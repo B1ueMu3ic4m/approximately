@@ -30,6 +30,21 @@ jobs:
       - name: Demo smoke test
         run: python -m approximately.cli demo
 
+  test-llm:
+    # Judge integration tests: real openai client vs a local fake server.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install with llm extra
+        run: pip install -e ".[dev,llm]"
+      - name: Judge integration tests
+        run: pytest tests/test_judge.py -v
+      - name: Full suite (judge paths included)
+        run: pytest -q
+
   lint:
     runs-on: ubuntu-latest
     steps:

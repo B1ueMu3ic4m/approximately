@@ -168,37 +168,47 @@ def build_parser() -> argparse.ArgumentParser:
                                         "(default ~/.approximately/traces)")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p = sub.add_parser("demo", help="run the built-in failing agent (30s tour)")
+    # --store is accepted both before and after the subcommand
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--store", help=argparse.SUPPRESS)
+
+    p = sub.add_parser("demo", parents=[common],
+                       help="run the built-in failing agent (30s tour)")
     p.add_argument("--open", action="store_true", help="open the HTML report")
     p.add_argument("--context-budget", type=int, default=60,
-                   help="token budget for the context-runtime demo (default 100)")
+                   help="token budget for the context-runtime demo (default 60)")
     p.set_defaults(func=cmd_demo)
 
-    p = sub.add_parser("attribute", help="attribute a failure on a trace")
+    p = sub.add_parser("attribute", parents=[common],
+                       help="attribute a failure on a trace")
     p.add_argument("trace", help="trace id or path to trace JSON")
     p.add_argument("--judge", action="store_true",
                    help="add the LLM judge verdict (needs openai + API key)")
     p.add_argument("--json", action="store_true", help="emit JSON")
     p.set_defaults(func=cmd_attribute)
 
-    p = sub.add_parser("replay", help="replay a trace through an executor")
+    p = sub.add_parser("replay", parents=[common],
+                       help="replay a trace through an executor")
     p.add_argument("trace")
     p.add_argument("--executor", required=True,
                    help="executor as 'package.module:func' taking a Step")
     p.set_defaults(func=cmd_replay)
 
-    p = sub.add_parser("test", help="generate a pytest regression file")
+    p = sub.add_parser("test", parents=[common],
+                       help="generate a pytest regression file")
     p.add_argument("trace")
     p.add_argument("-o", "--output", help="output test path")
     p.set_defaults(func=cmd_test)
 
-    p = sub.add_parser("report", help="render the HTML postmortem report")
+    p = sub.add_parser("report", parents=[common],
+                       help="render the HTML postmortem report")
     p.add_argument("trace")
     p.add_argument("-o", "--output", help="output HTML path")
     p.add_argument("--judge", action="store_true")
     p.set_defaults(func=cmd_report)
 
-    p = sub.add_parser("context", help="forecast a token budget against a trace")
+    p = sub.add_parser("context", parents=[common],
+                       help="forecast a token budget against a trace")
     p.add_argument("trace")
     p.add_argument("--budget", type=int, default=400,
                    help="token budget to simulate (default 400)")
@@ -206,7 +216,8 @@ def build_parser() -> argparse.ArgumentParser:
                                    "(default: one fact per tool result)")
     p.set_defaults(func=cmd_context)
 
-    sub.add_parser("taxonomy", help="print the MAST failure taxonomy").set_defaults(
+    sub.add_parser("taxonomy", parents=[common],
+                   help="print the MAST failure taxonomy").set_defaults(
         func=cmd_taxonomy
     )
     return parser

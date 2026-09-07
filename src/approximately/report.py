@@ -56,11 +56,11 @@ def _esc(text: str) -> str:
     return html.escape(str(text))
 
 
-def _step_row(step) -> str:
+def _step_row(step, hot: set) -> str:
     detail = step.error or step.result or step.thought or ""
     detail = _esc(" ".join(detail.split())[:160])
     head = _esc(step.tool or "-")
-    cls = ' class="hot"' if step.meta.get("_hot") else ""
+    cls = ' class="hot"' if step.index in hot else ""
     return (
         f"<tr{cls}><td>#{step.index}</td><td class=\"k\">{step.kind}</td>"
         f"<td class=\"k\">{head}</td><td>{detail}</td>"
@@ -90,8 +90,6 @@ def _category_bars(primary_category: str) -> str:
 
 def render_html(trace: Trace, report: FailureReport) -> str:
     hot = {d.step_index for d in report.detections}
-    for step in trace.steps:
-        step.meta["_hot"] = step.index in hot
 
     status = (
         '<span class="badge red">failed</span>'
@@ -128,7 +126,7 @@ def render_html(trace: Trace, report: FailureReport) -> str:
         else ""
     )
 
-    steps_html = "".join(_step_row(s) for s in trace.steps)
+    steps_html = "".join(_step_row(s, hot) for s in trace.steps)
 
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">

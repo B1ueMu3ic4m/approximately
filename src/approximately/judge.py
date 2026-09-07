@@ -96,27 +96,36 @@ def judge_trace(
             "The judge requires the openai package: pip install 'approximately[llm]'"
         ) from exc
 
-    client = OpenAI(
-        api_key=api_key or os.environ.get("OPENAI_API_KEY"),
-        base_url=base_url or os.environ.get("OPENAI_BASE_URL"),
-    )
-    chosen_model = model or os.environ.get("APPROXIMATELY_JUDGE_MODEL", "gpt-4o-mini")
+    try:
+        client = OpenAI(
+            api_key=api_key or os.environ.get("OPENAI_API_KEY"),
+            base_url=base_url or os.environ.get("OPENAI_BASE_URL"),
+        )
+        chosen_model = model or os.environ.get(
+            "APPROXIMATELY_JUDGE_MODEL", "gpt-4o-mini"
+        )
 
-    response = client.chat.completions.create(
-        model=chosen_model,
-        messages=[
-            {
-                "role": "system",
-                "content": SYSTEM_PROMPT.replace("{modes}", _taxonomy_block()),
-            },
-            {
-                "role": "user",
-                "content": json.dumps(_compact_trace(trace), default=str),
-            },
-        ],
-        temperature=0,
-    )
-    raw = response.choices[0].message.content or ""
+        response = client.chat.completions.create(
+            model=chosen_model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": SYSTEM_PROMPT.replace("{modes}", _taxonomy_block()),
+                },
+                {
+                    "role": "user",
+                    "content": json.dumps(_compact_trace(trace), default=str),
+                },
+            ],
+            temperature=0,
+        )
+        raw = response.choices[0].message.content or ""
+    except JudgeError:
+        raise
+    except Exception as exc:  # auth, network, HTTP — all degrade identically
+        raise JudgeError(
+            f"judge call failed: {type(exc).__name__}: {exc}"
+        ) from exc
     payload = _extract_json(raw)
 
     mode_id = str(payload.get("mode_id", OTHER))
