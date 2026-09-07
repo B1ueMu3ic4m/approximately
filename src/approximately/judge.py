@@ -82,6 +82,9 @@ def _compact_trace(trace: Trace, max_step_chars: int = 220) -> Dict[str, Any]:
                 "args": s.args,
                 "result": (s.error or s.result or "")[:max_step_chars],
                 "thought": (s.thought or "")[:max_step_chars] or None,
+                # semantic markers the judge needs for verification modes
+                "meta": {k: v for k, v in s.meta.items() if k != "_hot"}
+                or None,
             }
         )
     return {

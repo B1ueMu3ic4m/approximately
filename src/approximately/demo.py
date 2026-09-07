@@ -61,7 +61,7 @@ def _run_booking_agent(rec: Recorder) -> None:
     # failure 3: declares victory while the harness grades the run failed
     # (seat 12A was never confirmed against the airline's seat map).
     rec.respond(
-        "Done! Booked JT-044 SFO→NRT on 06-14, seat 12A, $870 (under your $900 "
+        "Done! Booked JT-044 SFO→NRT on 06-14, seat 12A, $880 (under your $900 "
         "budget). Confirmation #B-2231.",
         success=False,
     )
