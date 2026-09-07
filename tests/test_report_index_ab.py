@@ -3,6 +3,8 @@ A/B replay comparison, and the CLI wiring for both."""
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from approximately.attributor import attribute
@@ -90,3 +92,34 @@ def test_recorder_fail_sets_latency(store):
     with Recorder("fail latency", store=store) as rec:
         rec.fail("boom")
     assert rec.trace.steps[-1].latency_ms >= 0
+
+
+def test_report_all_generates_individual_reports(tmp_path, monkeypatch,
+                                                 capsys):
+    """Index links must resolve: --all writes every individual report."""
+    monkeypatch.setenv("APPROXIMATELY_HOME", str(tmp_path / "traces"))
+    from approximately.cli import main
+
+    main(["demo"])
+    code = main(["report", "--all"])
+    assert code == 0
+    out = capsys.readouterr().out
+    assert "0 individual reports generated" in out  # demo already wrote its own
+
+    # a trace with no individual report yet gets one
+    from approximately.store import TraceStore
+
+    store = TraceStore(tmp_path / "traces")
+    (store.directory / "manual.json").write_text(
+        __import__("approximately.trace", fromlist=["Trace"])
+        .Trace(task="no report yet", success=True).to_json(),
+        encoding="utf-8",
+    )
+    code = main(["report", "--all"])
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "1 individual reports generated" in out
+    # the report is named after the trace id inside manual.json
+    manual_id = json.loads((store.directory / "manual.json").read_text(
+        encoding="utf-8"))["id"]
+    assert (store.directory / f"{manual_id}.report.html").exists()

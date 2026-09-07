@@ -139,11 +139,19 @@ def cmd_report(args: argparse.Namespace) -> int:
     store = TraceStore(args.store)
     if args.all:
         pairs = []
+        written = 0
         for trace in store.list_traces():
-            pairs.append((trace, attribute(trace, use_judge=args.judge)))
+            report = attribute(trace, use_judge=args.judge)
+            pairs.append((trace, report))
+            # write every individual report so the index links resolve
+            page = store.directory / f"{trace.id}.report.html"
+            if not page.exists():
+                page.write_text(render_html(trace, report), encoding="utf-8")
+                written += 1
         out = Path(args.output) if args.output else store.directory / "index.html"
         out.write_text(render_index_html(pairs), encoding="utf-8")
-        print(f"wrote index over {len(pairs)} traces: {out}")
+        print(f"wrote index over {len(pairs)} traces: {out} "
+              f"({written} individual reports generated)")
         return 0
     trace = _load_trace(args.trace, store)
     report = attribute(trace, use_judge=args.judge)

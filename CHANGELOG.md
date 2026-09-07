@@ -2,6 +2,13 @@
 
 ## 0.3.0 — 2026-09-08
 
+- **Complete MAST rule coverage: all 14 failure modes detected offline**
+  (FM-1.2 role violations via role_tools conventions; FM-1.4 lost
+  references — quoting identifiers that never appeared earlier)
+- Multi-agent recording: `Recorder.message(from, to, text)` message steps
+- `approximately report --all` also writes every individual report so
+  index links always resolve
+
 - New rule detectors: FM-1.5 (unaware of termination: long-range loops,
   step-limit exhaustion), FM-2.6 (reasoning-action mismatch), FM-3.3
   (echo verification), FM-2.2 (fail to ask clarification), FM-2.4

@@ -95,10 +95,14 @@ Trace ──► rule detectors (one per MAST mode → Detection{mode, step,
           suggested fixes / replay_ready
 ```
 
-Six rule detectors ship in v0.1 (each maps to a MAST id): RepeatDetector
-(FM-1.3), ConversationResetDetector (FM-2.1), PrematureTerminationDetector
-(FM-3.1), MissingVerificationDetector (FM-3.2), DerailmentDetector (FM-2.3),
-SpecViolationDetector (FM-1.1). The fix library cites the MAST intervention
+Rule detectors now cover **all 14 MAST modes** (RepeatDetector FM-1.3,
+NoTerminationDetector FM-1.5, ConversationResetDetector FM-2.1,
+PrematureTerminationDetector FM-3.1, MissingVerificationDetector FM-3.2,
+WeakVerificationDetector FM-3.3, ReasoningActionMismatchDetector FM-2.6,
+DerailmentDetector FM-2.3, SpecViolationDetector FM-1.1,
+RoleViolationDetector FM-1.2, ClarificationDetector FM-2.2,
+WithholdingDetector FM-2.4, IgnoredInputDetector FM-2.5,
+LostReferenceDetector FM-1.4). The fix library cites the MAST intervention
 numbers (e.g. FM-3.2 → "add an explicit verification step, +15.6%").
 
 ### 2.4 Replay, regression guards, budget guards
