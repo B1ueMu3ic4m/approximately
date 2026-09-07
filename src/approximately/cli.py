@@ -223,6 +223,8 @@ def cmd_cluster(args: argparse.Namespace) -> int:
 
     store = TraceStore(args.store)
     traces = store.list_traces()
+    if args.last:
+        traces = traces[-args.last:]
     if args.json:
         report = cluster(traces)
         payload = {
@@ -245,7 +247,10 @@ def cmd_curve(args: argparse.Namespace) -> int:
 
     store = TraceStore(args.store)
     trace = _load_trace(args.trace, store)
-    curve = budget_curve(trace)
+    budgets = None
+    if args.budgets:
+        budgets = [int(b) for b in args.budgets.split(",") if b.strip()]
+    curve = budget_curve(trace, budgets=budgets)
     scatter = success_vs_tokens(store.list_traces()) if args.scatter else None
     out = Path(args.output) if args.output else store.directory / f"{trace.id}.curve.html"
     out.write_text(render_curve_html(curve, scatter), encoding="utf-8")
@@ -394,6 +399,8 @@ def build_parser() -> argparse.ArgumentParser:
                        help="cross-trace failure clustering (recidivist modes)")
     p.add_argument("--min-size", type=int, default=2,
                    help="cluster size threshold for recidivists (default 2)")
+    p.add_argument("--last", type=int,
+                   help="only consider the N most recent traces")
     p.add_argument("--json", action="store_true", help="emit JSON")
     p.set_defaults(func=cmd_cluster)
 
@@ -403,6 +410,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("-o", "--output", help="output HTML path")
     p.add_argument("--scatter", action="store_true",
                    help="overlay all store traces colored by success")
+    p.add_argument("--budgets", help="comma-separated budget list, e.g. 200,500,1000")
     p.set_defaults(func=cmd_curve)
 
     p = sub.add_parser("distill", parents=[common],

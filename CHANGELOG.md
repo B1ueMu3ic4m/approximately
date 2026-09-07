@@ -21,6 +21,10 @@
 - `approximately replay --patched`: A/B comparison summaries
 - Optional exact token counting (APPROXIMATELY_EXACT_TOKENS=1 + tiktoken)
 - PyPI publishing workflow (Trusted Publishing on v* tags)
+- `approximately stats [--json]`: store health at a glance
+- `approximately attribute --all --json`: batch attribution for CI
+- `report --all` writes missing individual reports (index links resolve)
+- `curve --budgets` custom sweep list; `cluster --last N`; `py.typed`
 
 ## 0.2.0 — 2026-09-08
 

@@ -43,3 +43,25 @@ def test_cli_attribute_all_json(demo_store, capsys):
     assert len(results) == 1
     assert results[0]["primary_mode"] == "FM-1.3"
     assert results[0]["trace"]["steps"] == 6
+
+
+def test_cli_cluster_last_n(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("APPROXIMATELY_HOME", str(tmp_path / "traces"))
+    from approximately.cli import main
+
+    main(["demo"])
+    main(["demo"])
+    code = main(["cluster", "--last", "1"])
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "scanned 1 traces" in out
+
+
+def test_cli_curve_custom_budgets(demo_store, tmp_path, capsys):
+    directory, trace_id = demo_store
+    code = main(["curve", trace_id, "--store", directory,
+                 "--budgets", "50,500,5000", "-o",
+                 str(tmp_path / "c.html")])
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "50 ->" in out and "5000 ->" in out
