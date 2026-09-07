@@ -145,7 +145,31 @@ def test_primary_mode_is_gone():
     return guards
 
 
-def render_regression(trace: Trace, report: FailureReport) -> str:
+BUDGET_GUARD = '''
+
+def test_context_budget_recall():
+    """Budget regression: a {budget}-token context must keep recall >= {min_recall:.0%}.
+
+    Fails when a shrunken context window silently drops facts that this run
+    needed — the v0.3 'budget regressions' guard.
+    """
+    from approximately.context import default_facts, forecast
+
+    trace = _trace()
+    facts = default_facts(trace)
+    if not facts:
+        pytest.skip("no probe facts in this trace")
+    fc = forecast(trace, budget={budget}, facts=facts)
+    assert fc.final_probe.recall >= {min_recall!r}, (
+        f"budget {{fc.budget}} loses critical facts: "
+        f"{{fc.final_probe.lost}} (recall {{fc.final_probe.recall:.0%}})"
+    )
+'''
+
+
+def render_regression(trace: Trace, report: FailureReport,
+                     budget: int | None = None,
+                     min_recall: float = 0.8) -> str:
     payload = base64.b64encode(
         json.dumps(trace.to_dict(), default=str).encode("utf-8")
     ).decode("ascii")
@@ -177,4 +201,6 @@ EXECUTOR = None  # Callable[[Step], str]; None -> replay guard skips
         '    diff = replay(_trace(), executor=EXECUTOR)',
     )
     parts.extend(_guards_for(report))
+    if budget is not None:
+        parts.append(BUDGET_GUARD.format(budget=budget, min_recall=min_recall))
     return "\n".join(parts)
