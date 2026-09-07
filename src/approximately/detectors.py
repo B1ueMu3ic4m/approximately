@@ -489,6 +489,92 @@ class IgnoredInputDetector:
         return None
 
 
+class RoleViolationDetector:
+    """FM-1.2 Disobey Role Specification — an agent used a tool outside its
+    assigned role.
+
+    Convention: ``trace.meta["role_tools"]`` maps agent roles to allowed
+    tool names, and steps carry ``meta["agent"]``. Example::
+
+        {"roles": {"writer": ["write_draft", "edit"]},
+         "agents": {"writer_1": "writer"}}
+    """
+
+    def detect(self, trace: Trace) -> Optional[Detection]:
+        role_tools = trace.meta.get("role_tools") or {}
+        role_of = trace.meta.get("agents") or {}
+        if not role_tools:
+            return None
+        for step in trace.steps:
+            if step.kind != TOOL_CALL or not step.tool:
+                continue
+            agent = step.meta.get("agent")
+            role = role_of.get(agent, agent) if agent else None
+            if role is None:
+                continue
+            allowed = role_tools.get(role)
+            if allowed is None or step.tool in allowed:
+                continue
+            return Detection(
+                "FM-1.2",
+                step.index,
+                [
+                    f"agent '{agent}' has role '{role}' "
+                    f"(allowed tools: {', '.join(sorted(allowed))})",
+                    f"used out-of-role tool: {step.tool}",
+                ],
+                0.85,
+                source="rule:RoleViolationDetector",
+            )
+        return None
+
+
+_ENTITY_RE = None
+
+
+def _entities(text: str):
+    """Identifiers that normally come from tool results (#conf-123, AB1234)."""
+    global _ENTITY_RE
+    if _ENTITY_RE is None:
+        import re
+
+        _ENTITY_RE = re.compile(r"#\w+(?:-\w+)*|\b[A-Z]{2,}\d+\b")
+    return set(_ENTITY_RE.findall(text or ""))
+
+
+class LostReferenceDetector:
+    """FM-1.4 Loss of Conversation History — the agent references an
+    identifier (confirmation code, ticket id) that was never established in
+    any earlier step: it is quoting state it no longer has."""
+
+    def detect(self, trace: Trace) -> Optional[Detection]:
+        established: set = set()
+        for step in trace.steps:
+            referenced = _entities(" ".join(
+                x for x in (step.thought, step.result) if x
+            ))
+            fresh = referenced - established
+            if fresh and step.index > 0:
+                # a tool result legitimately introduces new ids; thoughts and
+                # responses quoting unknown ids are the failure signature
+                if step.kind != TOOL_CALL:
+                    example = sorted(fresh)[0]
+                    return Detection(
+                        "FM-1.4",
+                        step.index,
+                        [
+                            f"references {example} which never appeared in "
+                            "any earlier step",
+                            "the agent is quoting history it no longer has",
+                        ],
+                        0.55,
+                        source="rule:LostReferenceDetector",
+                    )
+            for x in _entities(step.result or ""):
+                established.add(x)
+        return None
+
+
 ALL_DETECTORS = [
     RepeatDetector(),
     NoTerminationDetector(),
@@ -502,6 +588,8 @@ ALL_DETECTORS = [
     ClarificationDetector(),
     WithholdingDetector(),
     IgnoredInputDetector(),
+    RoleViolationDetector(),
+    LostReferenceDetector(),
 ]
 
 
