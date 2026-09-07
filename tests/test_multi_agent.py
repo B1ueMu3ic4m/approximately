@@ -103,3 +103,17 @@ def test_multiagent_demo_scenario_attributes_withholding():
     modes = {d.mode_id for d in report.detections}
     assert "FM-2.4" in modes   # researcher never messaged the writer
     assert trace.steps[0].meta.get("agent") == "orchestrator"
+
+
+def test_recorder_step_limit_enables_fm15_budget_detection():
+    from approximately.recorder import Recorder
+
+    with Recorder("bounded run", save=False, step_limit=3) as rec:
+        for i in range(3):
+            rec.tool("do_step", {"i": i}, result=f"ok {i}")
+        # budget cut mid-flight: no termination decision was made
+    assert rec.trace.meta["step_limit"] == 3
+    from approximately.detectors import run_rules
+
+    modes = {d.mode_id for d in run_rules(rec.trace)}
+    assert "FM-1.5" in modes

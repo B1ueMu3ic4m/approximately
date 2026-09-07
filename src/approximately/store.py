@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import time
 from pathlib import Path
 from typing import List, Optional
 
@@ -44,6 +45,16 @@ class TraceStore:
                 print(f"approximately: skipping unreadable trace {path.name}: "
                       f"{exc}", file=sys.stderr)
         return out
+
+    def clean(self, keep_days: int) -> int:
+        """Delete traces older than *keep_days*; returns the count removed."""
+        cutoff = time.time() - keep_days * 86400
+        removed = 0
+        for path in self.directory.glob("*.json"):
+            if path.stat().st_mtime < cutoff:
+                path.unlink()
+                removed += 1
+        return removed
 
     def _resolve(self, trace_id: str) -> Optional[Path]:
         path = Path(trace_id)

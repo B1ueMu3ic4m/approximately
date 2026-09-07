@@ -122,3 +122,18 @@ def test_trace_json_roundtrip_preserves_none_success(store):
     loaded = store.load(rec.trace.id)
     assert loaded.success is None  # distinct from False
     assert json.loads(loaded.to_json())["success"] is None
+
+
+def test_store_clean_removes_only_old_traces(store, failing_trace):
+    import os
+    import time
+
+    store.save(failing_trace)
+    old = store.directory / "old.json"
+    old.write_text('{"task": "old", "steps": []}', encoding="utf-8")
+    past = time.time() - 40 * 86400
+    os.utime(old, (past, past))
+    removed = store.clean(keep_days=30)
+    assert removed == 1
+    assert not old.exists()
+    assert store.load(failing_trace.id) is not None
