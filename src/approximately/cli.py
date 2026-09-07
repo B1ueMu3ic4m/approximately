@@ -219,6 +219,23 @@ def cmd_distill(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_export_dataset(args: argparse.Namespace) -> int:
+    from .distill import export_dataset, rules_labeler, teacher_labeler
+
+    store = TraceStore(args.store)
+    traces = store.list_traces()
+    if args.teacher:
+        labeler = teacher_labeler(args.teacher)
+        source = f"teacher {args.teacher}"
+    else:
+        labeler = rules_labeler()
+        source = "rule detectors"
+    stats = export_dataset(traces, Path(args.output), labeler)
+    print(f"wrote {stats['written']} labeled traces to {args.output} "
+          f"({stats['skipped']} skipped, too unsure) via {source}")
+    return 0
+
+
 def cmd_benchmark(args: argparse.Namespace) -> int:
     from .distill import evaluate, load_dataset, rules_labeler, teacher_labeler
 
@@ -324,6 +341,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--teacher", help="label with a strong judge model instead "
                                      "of the rule detectors")
     p.set_defaults(func=cmd_distill)
+
+    p = sub.add_parser("export-dataset", parents=[common],
+                       help="export labeled traces for benchmarking/sharing")
+    p.add_argument("-o", "--output", default="dataset.jsonl",
+                   help="output JSONL path (default dataset.jsonl)")
+    p.add_argument("--teacher", help="label with a strong judge model instead "
+                                     "of the rule detectors")
+    p.set_defaults(func=cmd_export_dataset)
 
     p = sub.add_parser("benchmark", parents=[common],
                        help="evaluate attribution against a labeled dataset")

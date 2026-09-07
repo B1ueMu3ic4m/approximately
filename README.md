@@ -161,7 +161,7 @@ Full design document: [docs/PLAN.md](docs/PLAN.md).
 
 ## Contributing
 
-Issues and PRs welcome. Good first issues: more framework adapters, rule detectors for the remaining MAST modes (FM-2.2, FM-2.4–2.6, FM-3.3), an optional exact tokenizer for token counting.
+Issues and PRs welcome. Good first issues: more framework adapters, rule detectors for the remaining multi-agent MAST modes (FM-2.2, FM-2.4, FM-2.5), an optional exact tokenizer for token counting.
 
 ## Citation
 

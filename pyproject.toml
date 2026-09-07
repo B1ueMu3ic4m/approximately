@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "approximately"
-version = "0.2.0"
+version = "0.3.0"
 description = "Approximate memory, exact accountability: a context runtime (budgeted windows, pins, recall probes) plus a flight recorder (MAST failure attribution, replay, regression tests) for AI agents."
 readme = "README.md"
 license = { file = "LICENSE" }
