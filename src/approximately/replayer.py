@@ -61,6 +61,25 @@ class ReplayDiff:
         return "\n".join(lines)
 
 
+def compare(a: ReplayDiff, b: ReplayDiff) -> str:
+    """Summarize an A/B replay: original executor *a* vs patched executor *b*."""
+    flips = []
+    for sa, sb in zip(a.steps, b.steps):
+        if sa.match != sb.match:
+            state = "now matches" if sb.match else "now diverges"
+            flips.append(f"  step #{sa.index} ({sb.tool or sb.kind}): {state}")
+    lines = [
+        f"A/B replay: {a.verdict} -> {b.verdict} "
+        f"(match rate {a.match_rate:.0%} -> {b.match_rate:.0%})"
+    ]
+    if flips:
+        lines.append("changed steps:")
+        lines.extend(flips)
+    else:
+        lines.append("  no per-step changes")
+    return "\n".join(lines)
+
+
 def _similarity(a: str, b: str) -> float:
     if not a and not b:
         return 1.0
