@@ -117,4 +117,7 @@ def test_report_all_generates_individual_reports(tmp_path, monkeypatch,
     out = capsys.readouterr().out
     assert code == 0
     assert "1 individual reports generated" in out
-    assert (store.directory / "manual.report.html").exists()
+    # the report is named after the trace id inside manual.json
+    manual_id = json.loads((store.directory / "manual.json").read_text(
+        encoding="utf-8"))["id"]
+    assert (store.directory / f"{manual_id}.report.html").exists()
