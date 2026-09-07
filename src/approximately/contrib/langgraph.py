@@ -92,6 +92,12 @@ class ApproximatelyCallbackHandler(_LCBaseHandler):
                             **kwargs: Any) -> None:
         self.recorder.plan(_preview(messages, 160))
 
+    def on_llm_start(self, serialized: Optional[Dict[str, Any]],
+                     prompts: Any, *, run_id: Any = None,
+                     **kwargs: Any) -> None:
+        # completion-style models: same treatment as chat models
+        self.recorder.plan(_preview(prompts, 160))
+
     def on_llm_error(self, error: BaseException, *, run_id: Any = None,
                      **kwargs: Any) -> None:
         self.recorder.tool("llm", {}, error=f"{type(error).__name__}: {error}")

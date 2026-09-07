@@ -76,6 +76,60 @@ class RepeatDetector:
         return None
 
 
+class NoTerminationDetector:
+    """FM-1.5 Unaware of Termination — the run does not know when to stop.
+
+    Two mechanical signatures, both low-false-positive:
+
+    (a) the same (tool, args) action recurs 3+ times with a spread wider
+        than the repeat-detector window — a long-range loop the agent
+        never concluded;
+    (b) the run declared a ``meta["step_limit"]`` and hit it while still
+        planning/acting — the budget cut it off mid-flight.
+    """
+
+    min_recurrences = 3
+    long_range_span = 6  # beyond RepeatDetector's window
+
+    def detect(self, trace: Trace) -> Optional[Detection]:
+        by_fp: dict = {}
+        for step in trace.steps:
+            if step.kind == TOOL_CALL and not step.error:
+                by_fp.setdefault(step.fingerprint(), []).append(step.index)
+
+        for fp, indexes in by_fp.items():
+            if (len(indexes) >= self.min_recurrences
+                    and indexes[-1] - indexes[0] > self.long_range_span):
+                return Detection(
+                    "FM-1.5",
+                    indexes[-1],
+                    [
+                        f"same action executed at steps {indexes}",
+                        f"spread of {indexes[-1] - indexes[0]} steps exceeds the "
+                        f"local repeat window — a loop the agent never concluded",
+                        "the task was already satisfiable at the first occurrence",
+                    ],
+                    0.65,
+                    source="rule:NoTerminationDetector",
+                )
+
+        step_limit = trace.meta.get("step_limit")
+        if (isinstance(step_limit, int) and len(trace.steps) >= step_limit
+                and trace.steps and trace.steps[-1].kind != RESPONSE):
+            return Detection(
+                "FM-1.5",
+                trace.steps[-1].index,
+                [
+                    f"step limit {step_limit} reached while still "
+                    f"{trace.steps[-1].kind}",
+                    "the run never reached a termination decision",
+                ],
+                0.6,
+                source="rule:NoTerminationDetector",
+            )
+        return None
+
+
 class ConversationResetDetector:
     """FM-2.1 Conversation Reset — the seed prompt reappears mid-run."""
 
@@ -220,6 +274,92 @@ class DerailmentDetector:
         return None
 
 
+_INTENT_RE = None
+
+
+def _intent_tool(thought: str) -> Optional[str]:
+    """Extract 'will call <tool>' style announced tool names from a thought."""
+    global _INTENT_RE
+    if _INTENT_RE is None:
+        import re
+
+        _INTENT_RE = re.compile(
+            r"\b(?:will|now|then|let'?s|next)\s+"
+            r"(?:call|use|run|invoke|execute)\s+`?([a-z_][a-z0-9_]{2,})`?",
+            re.IGNORECASE,
+        )
+    match = _INTENT_RE.search(thought)
+    return match.group(1).lower() if match else None
+
+
+class ReasoningActionMismatchDetector:
+    """FM-2.6 Reasoning-Action Mismatch — the agent announced one tool but
+    executed another.
+
+    Fires only on explicit intent statements ("will call book_flight") where
+    the announced name is a plausible tool (underscore, or seen elsewhere in
+    the trace) and differs from the executed tool.
+    """
+
+    def detect(self, trace: Trace) -> Optional[Detection]:
+        known = {s.tool for s in trace.steps if s.kind == TOOL_CALL and s.tool}
+        for step in trace.steps:
+            if step.kind != TOOL_CALL or not step.thought or not step.tool:
+                continue
+            announced = _intent_tool(step.thought)
+            if not announced or announced == step.tool.lower():
+                continue
+            plausible = "_" in announced or announced in known
+            if not plausible:
+                continue
+            return Detection(
+                "FM-2.6",
+                step.index,
+                [
+                    f"thought announced: “{step.thought[:80]}”",
+                    f"actually executed: {step.tool}",
+                    "stated reasoning does not match the action taken",
+                ],
+                0.65,
+                source="rule:ReasoningActionMismatchDetector",
+            )
+        return None
+
+
+class WeakVerificationDetector:
+    """FM-3.3 Incorrect Verification — verification happened but proved
+    nothing: it merely echoed the original claim instead of gathering
+    independent evidence."""
+
+    def detect(self, trace: Trace) -> Optional[Detection]:
+        markers = MissingVerificationDetector.VERIFY_MARKERS
+        for i, step in enumerate(trace.steps):
+            if step.kind != TOOL_CALL or step.error or not step.meta.get("mutating"):
+                continue
+            for later in trace.steps[i + 1:]:
+                is_verify = later.meta.get("verify") or (
+                    later.kind == TOOL_CALL and later.tool and any(
+                        m in later.tool.lower() for m in markers))
+                if not is_verify:
+                    continue
+                claimed = " ".join(step.result.split()).lower()
+                evidence = " ".join((later.error or later.result or "").split()).lower()
+                if claimed and evidence and claimed == evidence:
+                    return Detection(
+                        "FM-3.3",
+                        later.index,
+                        [
+                            f"verification step: {later.short()}",
+                            f"echoes the original claim verbatim: “{claimed[:60]}”",
+                            "no independent evidence was gathered — "
+                            "the verification proved nothing",
+                        ],
+                        0.6,
+                        source="rule:WeakVerificationDetector",
+                    )
+        return None
+
+
 class SpecViolationDetector:
     """FM-1.1 Disobey Task Specification — a declared-forbidden tool is used.
 
@@ -245,9 +385,12 @@ class SpecViolationDetector:
 
 ALL_DETECTORS = [
     RepeatDetector(),
+    NoTerminationDetector(),
     ConversationResetDetector(),
     PrematureTerminationDetector(),
     MissingVerificationDetector(),
+    WeakVerificationDetector(),
+    ReasoningActionMismatchDetector(),
     DerailmentDetector(),
     SpecViolationDetector(),
 ]
