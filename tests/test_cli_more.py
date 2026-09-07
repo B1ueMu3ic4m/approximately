@@ -13,15 +13,6 @@ import pytest
 from approximately.cli import main
 
 
-@pytest.fixture
-def demo_store(tmp_path, monkeypatch):
-    monkeypatch.setenv("APPROXIMATELY_HOME", str(tmp_path / "traces"))
-    main(["demo"])
-    directory = tmp_path / "traces"
-    trace_id = sorted(p.stem for p in directory.glob("*.json"))[0]
-    return str(directory), trace_id
-
-
 def test_store_flag_accepted_after_subcommand(demo_store, capsys, monkeypatch):
     """UX regression: --store must work in the natural position."""
     directory, trace_id = demo_store

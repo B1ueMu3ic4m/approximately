@@ -122,7 +122,9 @@ class Recorder:
 
     def fail(self, reason: str, **meta: Any) -> Step:
         self.trace.success = False
-        return self.trace.add(Step(kind=ERROR, error=reason, meta=meta))
+        return self.trace.add(
+            Step(kind=ERROR, error=reason, latency_ms=self._elapsed_ms(), meta=meta)
+        )
 
     def _elapsed_ms(self) -> int:
         return int((time.perf_counter() - self._t0) * 1000)

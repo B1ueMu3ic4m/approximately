@@ -100,10 +100,21 @@ def cmd_attribute(args: argparse.Namespace) -> int:
 
 
 def cmd_replay(args: argparse.Namespace) -> int:
+    from .replayer import compare
+
     store = TraceStore(args.store)
     trace = _load_trace(args.trace, store)
     executor = _resolve_executor(args.executor)
     diff = replay(trace, executor)
+    if args.patched:
+        patched = _resolve_executor(args.patched)
+        diff_b = replay(trace, patched)
+        print(compare(diff, diff_b))
+        print("--- original:")
+        print(diff.summary())
+        print("--- patched:")
+        print(diff_b.summary())
+        return 0
     print(diff.summary())
     return 0 if diff.verdict != "diverged" else 1
 
@@ -123,7 +134,17 @@ def cmd_test(args: argparse.Namespace) -> int:
 
 
 def cmd_report(args: argparse.Namespace) -> int:
+    from .report import render_index_html
+
     store = TraceStore(args.store)
+    if args.all:
+        pairs = []
+        for trace in store.list_traces():
+            pairs.append((trace, attribute(trace, use_judge=args.judge)))
+        out = Path(args.output) if args.output else store.directory / "index.html"
+        out.write_text(render_index_html(pairs), encoding="utf-8")
+        print(f"wrote index over {len(pairs)} traces: {out}")
+        return 0
     trace = _load_trace(args.trace, store)
     report = attribute(trace, use_judge=args.judge)
     out = Path(args.output) if args.output else store.directory / f"{trace.id}.report.html"
@@ -290,6 +311,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("trace")
     p.add_argument("--executor", required=True,
                    help="executor as 'package.module:func' taking a Step")
+    p.add_argument("--patched",
+                   help="A/B: a second executor to compare against --executor")
     p.set_defaults(func=cmd_replay)
 
     p = sub.add_parser("test", parents=[common],
@@ -305,7 +328,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("report", parents=[common],
                        help="render the HTML postmortem report")
-    p.add_argument("trace")
+    p.add_argument("trace", nargs="?", help="trace id or path (required unless --all)")
+    p.add_argument("--all", action="store_true",
+                   help="render an index page over every trace in the store")
     p.add_argument("-o", "--output", help="output HTML path")
     p.add_argument("--judge", action="store_true")
     p.set_defaults(func=cmd_report)

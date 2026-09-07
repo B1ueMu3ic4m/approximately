@@ -46,3 +46,15 @@ def failing_trace() -> Trace:
                  result="BOOKED #B-2231", mutating=True)
         rec.respond("Done! Booked JT-044 seat 12A.", success=False)
     return rec.trace
+
+
+@pytest.fixture
+def demo_store(tmp_path, monkeypatch):
+    """A store containing one recorded demo trace; yields (dir, trace_id)."""
+    monkeypatch.setenv("APPROXIMATELY_HOME", str(tmp_path / "traces"))
+    from approximately.cli import main
+
+    main(["demo"])
+    directory = tmp_path / "traces"
+    trace_id = sorted(p.stem for p in directory.glob("*.json"))[0]
+    return str(directory), trace_id
