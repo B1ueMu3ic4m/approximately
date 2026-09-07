@@ -1,6 +1,28 @@
-# 宣传文案 / Announcement Copy
+# Announcement copy
 
-## X 主帖（中文）
+## X main post (English — primary)
+
+Your AI agent runs 40-step tasks on its own. When it fails, do you know
+WHICH step broke — or whether it'll happen again next week?
+
+Neither did we. So we built approximately (open source):
+
+📼 A dashcam for agents — every tool call, recorded
+🔍 Auto-postmortem: "failed at step #2, mode: Step Repetition" (14 failure
+   modes from a 1,600-trace academic study)
+🔁 Replay to verify the fix — without re-running the whole task
+🧪 Failed runs become regression tests automatically
+📉 Plus: it tells you how big your agent's context window should actually
+   be — too big wastes money, too small and it starts forgetting
+
+Approximate memory. Exact accountability.
+
+Free, MIT, zero dependencies — 30-second demo:
+https://github.com/B1ueMu3ic4m/approximately
+
+#OpenSource #AIAgents #LLM #DevTools
+
+## X main post (Chinese — 中文版)
 
 你的 AI 员工在上班时间干了什么，你其实一无所知。
 
@@ -21,40 +43,19 @@ https://github.com/B1ueMu3ic4m/approximately
 
 #开源 #AIAgent #AI编程 #LLM #开发者工具
 
----
+## Short version (quote-posts / replies)
 
-## X 主帖（English）
-
-Your AI agent runs 40-step tasks on its own. When it fails, do you know
-WHICH step broke — or will it happen again next week?
-
-Neither did we. So we built approximately (open source):
-
-📼 A dashcam for agents — every tool call, recorded
-🔍 Auto-postmortem: "failed at step #2, mode: Step Repetition" (14 failure
-   modes, from a 1,600-trace academic study)
-🔁 Replay to verify the fix — without re-running the whole task
-🧪 Failed runs become regression tests automatically
-📉 And it tells you how big your agent's context window should actually be
-
-Approximate memory. Exact accountability.
-
-Free, MIT, pip install approximately — 30s demo:
+AI agent failed and you can't tell which step broke? This open-source tool
+gives it a dashcam: automatic attribution (which step + which failure mode)
+→ replay to verify the fix → auto-generated regression tests. Free, MIT,
+30-second demo 👇
 https://github.com/B1ueMu3ic4m/approximately
 
-#OpenSource #AIAgents #LLM #DevTools
+## Follow-up thread (technical details)
 
----
-
-## 短版（转评/二次传播用）
-
-AI 代理搞砸了不知道错哪步？这个开源工具给它装了行车记录仪：
-自动归因（错在第几步+哪种错）→ 一键重放验证 → 自动生成防复发测试。
-免费开源，30 秒上手 👇
-https://github.com/B1ueMu3ic4m/approximately
-
-## 回复楼（跟帖补充技术细节用）
-
-技术底细：失败分类对齐 MAST 分类学（arXiv:2503.13657，14 种失败模式，
-人工标注一致性 κ=0.88）；归因零依赖、可离线、确定性；AI 判官可选，支持
-本地模型蒸馏；上下文预算管理内置"有效召回探针"。122 个测试全绿，MIT。
+Under the hood: the taxonomy aligns with MAST (arXiv:2503.13657) — 14
+failure modes, 1,600+ human-annotated traces, κ = 0.88. Attribution is
+zero-dependency, offline, and deterministic; the LLM judge is optional
+(any OpenAI-compatible endpoint) and distillable to a local small model.
+Context budgeting ships with an effective-recall probe. 122 tests green,
+MIT licensed.

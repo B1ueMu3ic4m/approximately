@@ -1,177 +1,220 @@
-# Approximately — 项目计划与技术报告
+# approximately — Design & Launch Plan
 
 > **Approximate memory, exact accountability.**
-> 上下文运行时（预算窗口 + pins + 召回探针）与飞行记录仪（MAST 失败归因 + 回放 + 回归测试）共用一套录制基建，构成 Agent 可靠性技术栈。
+> A context runtime (budgeted windows + pins + recall probes) and a flight
+> recorder (MAST failure attribution + replay + regression guards) sharing
+> one recording infrastructure — together they form an agent reliability
+> stack.
 
-- 仓库：`https://github.com/B1ueMu3ic4m/approximately`
-- 版本：v0.1.0（MVP）
-- 日期：2026-09-08
-- 状态：本文件即设计与发布计划，随代码同仓发布
+- Repository: `https://github.com/B1ueMu3ic4m/approximately`
+- Version: 0.2.0
+- Status: this document is the design and launch plan, published in-repo
 
 ---
 
-## 1. 问题定位（为什么做）
+## 1. Problem (why build this)
 
-### 1.1 学术依据（2025–2026 一手论文结论）
+### 1.1 Academic grounding (first-hand results, 2025–2026)
 
-| 结论 | 来源 | 关键数字 |
+| Finding | Source | Key numbers |
 |---|---|---|
-| 多智能体失败可被系统分类：14 种失败模式、3 大类 | MAST, [arXiv:2503.13657](https://arxiv.org/abs/2503.13657) | 规格问题 41.77%、智能体失调 36.94%、验证缺失 21.30% |
-| **失败自动归因在技术上已可行** | MAST（o1-as-judge） | F1 = 0.80（few-shot），人类标注一致性 κ = 0.88 |
-| 失败主因是**系统组织**而非模型能力 | MAST 干预实验 | 仅加验证步骤 +15.6% 绝对成功率；角色提示 +9.4% |
-| 第一直击死因是"重复已完成步骤" | MAST FM-1.3 | 占全部轨迹的 17.14% |
-| 失败低效使成本/延迟恶化一个数量级 | MAST | 10x+ 成本/延迟放大 |
-| GUI Agent 单任务 85% 但长程仅 31% | OSWorld / OSWorld 2.0 | 基准-现实鸿沟在"错误恢复"层 |
+| Multi-agent failures classify into 14 modes / 3 categories | MAST, [arXiv:2503.13657](https://arxiv.org/abs/2503.13657) | Specification 41.77%, inter-agent misalignment 36.94%, verification 21.30% |
+| **Automatic failure attribution is feasible today** | MAST (o1-as-judge) | F1 = 0.80 (few-shot) vs human agreement κ = 0.88 |
+| Failures stem from **system organization**, not model capability | MAST interventions | +15.6% absolute success from one verification step; +9.4% from role prompts |
+| The #1 single failure is "repeating completed steps" | MAST FM-1.3 | 17.14% of all traces |
+| Failure-induced inefficiency inflates cost/latency by an order of magnitude | MAST | 10x+ |
+| Context curation beats stuffing: 91.6% vs 71.0% success at 2.7x fewer tokens | [arXiv:2606.10209](https://arxiv.org/abs/2606.10209) | per-configuration evidence |
+| GUI agents pass 85% of single tasks but only ~31% of long-horizon ones | OSWorld / OSWorld 2.0 | the benchmark-reality gap lives in error recovery |
 
-推论：失败归因的学术组件（分类学、判官、基准）2025–2026 已齐备，但**生产端只有扁平 tracing（Langfuse/LangSmith），没有 attribution 工具**——论文成果与工程产品之间存在明确空窗，这就是 Approximately 的位置。
+Inference: the academic components (taxonomy, judge, benchmarks) shipped in
+2025–2026, but production tooling only offers flat tracing
+(Langfuse/LangSmith) — no attribution layer. That gap between paper and
+product is exactly where approximately sits.
 
-### 1.2 产品假设
+### 1.2 Product hypotheses
 
-1. Agent 进入生产的团队每天都会遇到"跑挂了但不知道哪步坏"的问题（痛点频率：小时级）。
-2. 开发者愿意为"自动定位 + 可复现 + 防复发"付费/点星，只要 demo 在 30 秒内可见。
-3. 以 MAST 为分类内核形成学术差异化；以零依赖 SDK 形成工程差异化。
+1. Teams running agents in production hit "it failed and I can't tell which
+   step broke" daily (hourly pain frequency).
+2. Developers star/pay for "automatic localization + reproducibility +
+   prevention" when the demo lands in 30 seconds.
+3. MAST as the classification kernel provides academic differentiation; a
+   zero-dependency SDK provides engineering differentiation.
 
-### 1.3 命名
+### 1.3 Naming
 
-一次 Agent 执行 = 一场"审判"；因程序性错误而失败 = **approximately（无效审判）**。
-审查程序的是判官（LLM-as-judge），重跑是 retrial（replay），防复发是判例（regression tests）。隐喻自洽、单词可注册、全局无同名 AI 项目。
+Everything about agents is approximate: context is compressed approximately,
+memory is summarized approximately, traces are sampled approximately.
+approximately makes those approximations safe — the context runtime
+quantifies the approximation (effective-recall probes) and the flight
+recorder delivers exact accountability when approximations break.
+Tagline: **Approximate memory, exact accountability.**
+Directions #1 (agent black box) and #2 (context runtime) from the original
+research report are merged into this single product sharing one recorder.
 
 ---
 
-## 2. 架构设计
+## 2. Architecture
 
-### 2.1 模块
+### 2.1 Modules
 
 ```
 approximately/
-├── trace.py       轨迹数据模型（Step / Trace / Outcome），stdlib dataclasses + JSON
-├── recorder.py    录制器：Recorder + @agentstep 装饰器，零侵入采集
-├── store.py       轨迹存储：~/.approximately/traces/*.json
-├── taxonomy.py    MAST 14 失败模式的结构化定义（含修复建议库）
-├── detectors.py   规则检测引擎（无 LLM 也可归因）
-├── judge.py       可选 LLM 判官（OpenAI 兼容接口，结构化输出）
-├── attributor.py  归因编排：规则 ∪ 判官 → FailureReport（模式+定位+证据+修复）
-├── replayer.py    回放器：对录制的步逐重放并 diff 结果
-├── regress.py     回归测试生成器：轨迹 → pytest 文件
-├── report.py      自包含 HTML 报告（无外部依赖，可离线打开）
-└── cli.py         命令行：record / attribute / replay / test / report / demo / taxonomy
+├── trace.py       trace data model (Step / Trace), stdlib dataclasses + JSON
+├── recorder.py    the flight recorder: Recorder + @agentstep decorator
+├── store.py       local trace store (~/.approximately/traces/*.json)
+├── taxonomy.py    the 14 MAST failure modes + evidence-backed fix library
+├── detectors.py   rule-based detection engine (works with no LLM)
+├── judge.py       optional LLM judge (OpenAI-compatible), strong/local presets
+├── attributor.py  orchestration: rules ∪ judge → FailureReport
+├── replayer.py    step-level replay with per-step diffs
+├── regress.py     pytest regression-guard generation (incl. budget guards)
+├── report.py      self-contained HTML postmortem (no JS, no CDN)
+├── context.py     context runtime: budget, pins, compaction, recall probes,
+│                  budget forecasting
+├── cluster.py     cross-trace failure clustering (recidivist modes)
+├── curve.py       budget→recall curves + success scatter (SVG/HTML)
+├── distill.py     SFT export for local judge models + benchmark harness
+├── demo.py        built-in deterministic failing agent (no API key)
+├── cli.py         record / attribute / replay / test / report / context /
+│                  cluster / curve / distill / benchmark / taxonomy
+└── contrib/       framework adapters (lazy imports)
+    ├── langgraph.py    LangChain/LangGraph callback handler
+    ├── agents_sdk.py   OpenAI Agents SDK TracingProcessor
+    └── crewai.py       CrewAI event-bus adapter (defensive)
 ```
 
-### 2.2 数据模型（核心五分钟）
-
-```python
-Step:
-  index: int                  # 序号
-  kind: str                   # "plan" | "tool_call" | "observation" | "response" | "error"
-  tool: str | None            # 工具名（tool_call 时）
-  args: dict                  # 工具参数
-  result: str                 # 结果摘要
-  thought: str | None         # 该步的推理摘要（可选）
-  tokens: int                 # 该步消耗
-  latency_ms: int
-  error: str | None
-  meta: dict                  # 自由扩展（mutating、success_criteria 等）
-
-Trace:
-  id, task, model, created_at, steps: list[Step]
-  success: bool, final_output: str | None, meta: dict
-```
-
-### 2.3 归因管线
+### 2.3 Attribution pipeline
 
 ```
-Trace ──► 规则检测器组（每个 MAST 模式一个 detector，输出 Detection{mode, step_index, evidence, confidence})
-      ──► 可选 LLM 判官（MAST 全分类 + 轨迹 JSON → {mode, step, rationale, confidence}）
-      ──► 仲裁：规则与判官一致 → 置信度叠加；冲突 → 取高置信方并标注分歧
-      ──► FailureReport：primary_mode / category / evidence chain / suggested_fix / replay_ready
+Trace ──► rule detectors (one per MAST mode → Detection{mode, step,
+            evidence, confidence})
+      ──► optional LLM judge (MAST taxonomy + trace JSON → verdict)
+      ──► arbitration: rule+judge agreement boosts confidence; conflicts
+          are recorded, never hidden
+      ──► FailureReport: primary_mode / category / evidence chain /
+          suggested fixes / replay_ready
 ```
 
-规则检测器（v0.1 内置 6 个，均映射 MAST 编号）：
+Six rule detectors ship in v0.1 (each maps to a MAST id): RepeatDetector
+(FM-1.3), ConversationResetDetector (FM-2.1), PrematureTerminationDetector
+(FM-3.1), MissingVerificationDetector (FM-3.2), DerailmentDetector (FM-2.3),
+SpecViolationDetector (FM-1.1). The fix library cites the MAST intervention
+numbers (e.g. FM-3.2 → "add an explicit verification step, +15.6%").
 
-| 检测器 | MAST | 机制 |
-|---|---|---|
-| `RepeatDetector` | FM-1.3 | 同 (tool, args-hash) 在窗口内重复 ≥2 次 |
-| `ConversationResetDetector` | FM-2.1 | 初始任务 prompt 在轨迹中段原文重现 |
-| `PrematureTerminationDetector` | FM-3.1 | success=False 且尾部 N 步无修复尝试即终止 |
-| `MissingVerificationDetector` | FM-3.2 | 存在 mutating 工具调用但其后无验证步 |
-| `DerailmentDetector` | FM-2.3 | 工具调用序列偏离任务关键词集（启发式） |
-| `SpecViolationDetector` | FM-1.1 | 使用了任务规格中声明的禁用工具 |
+### 2.4 Replay, regression guards, budget guards
 
-修复建议库：每个模式配 2–3 条可操作修复，直接引用 MAST 干预数据（如 FM-3.2 → "加入显式验证步骤（MAST 干预实验 +15.6%）"）。
+- **Replay**: `Executor = Callable[[Step], str]`; replays every recorded
+  step and diffs (text similarity / error / latency); verdicts:
+  `reproduced` / `consistent` / `diverged`; supports A/B (original vs
+  patched executor).
+- **Regression guards**: generated pytest files embed the trace as base64
+  (self-contained) and assert per failure mode — "no repeated (tool, args)",
+  "every mutating call is verified", "runs never end silently on an error" —
+  plus a replay-consistency guard for CI.
+- **Budget guards (v0.3)**: `test --budget N --min-recall R` emits a guard
+  that forecasts the recorded run through an N-token budget and fails when
+  effective recall drops below R — making context-window changes behave like
+  any other behavioral change in review.
 
-### 2.4 回放与回归
+### 2.5 Context runtime (v0.1 core, extended in v0.3)
 
-- **Replay**：`Executor = Callable[[Step], str]`。对录制轨迹逐步执行，diff 三元组（result 文本相似度 / error / args），输出 `ReplayDiff`。支持 A/B：原执行器 vs 修复后执行器。
-- **Regression**：为失败轨迹生成 pytest 文件，两类断言：
-  1. 模式断言——重跑后归因器不得再报出原失败模式；
-  2. 合同断言——从证据步生成（如 "同一 (tool,args) 不得调用两次"、"mutating 调用后必须出现 verify"）。
+- **Budgeted window**: context is a budget, not a dumping ground; eviction
+  is oldest-first with class priority (tool_results → observations → plans
+  → summaries → facts → task).
+- **Pins**: task spec, constraints, and critical facts are never evicted —
+  the mechanical prevention for MAST FM-1.4 (loss of conversation history).
+- **Recall probe**: substring-presence checks over critical facts produce an
+  effective-recall number after every policy decision.
+- **Forecast**: replays a recorded trace through a budget (dry run) with
+  eviction-driven incremental probing — O(evictions), not O(steps × facts).
+- **Curves (v0.3)**: `budget_curve` sweeps budgets into a recall curve;
+  `success_vs_tokens` scatters every store run colored by outcome;
+  rendered as self-contained inline-SVG HTML.
 
-### 2.5 零依赖原则
+### 2.6 Judge presets & distillation (v0.2)
 
-核心包只用 Python 标准库（3.9+）。`openai` 为 optional extra（`pip install approximately[llm]`）。
-理由：目标用户环境各异（框架 lockfile 冲突是推广第一杀手）；tracing/归因本可以不碰网络。
+- The full MAST prompt is ~5x too large for a 1–7B model to hold reliably.
+  The `local` preset strips the taxonomy to ids + names.
+- `distill` exports chat-format JSONL in exactly that shape, labeled by the
+  rule detectors (free) or a teacher model (`--teacher`); fine-tune locally,
+  point `APPROXIMATELY_JUDGE_MODEL` at it, use `preset="local"`.
+
+### 2.7 Benchmark harness (v0.2)
+
+`evaluate(labeled, predictor)` → per-mode precision/recall/F1, accuracy,
+macro-F1. Dataset loaders: `approx` (native JSONL: trace dict + gold label)
+and `mast` (heuristic adapter for MAST-Data-style records).
+
+### 2.8 Zero-dependency principle
+
+Core uses only the standard library (3.9+). `openai` is an optional extra;
+framework adapters import lazily and degrade when the framework is absent.
 
 ---
 
-## 3. 里程碑
+## 3. Milestones
 
-### v0.1.0（本次交付，MVP）
-- [x] 轨迹模型 + 录制器 + 存储
-- [x] 上下文运行时：预算窗口 / pin / compact / 有效召回探针 / 预算推演（`approximately context`）
-- [x] demo 集成上下文推演段（"60-token 预算会丢什么"）
-- [x] MAST 14 模式结构化分类学与修复建议库
-- [x] 6 个规则检测器 + 归因仲裁
-- [x] 可选 LLM 判官（OpenAI 兼容）
-- [x] 回放器 + A/B diff
-- [x] pytest 回归测试生成
-- [x] 自包含 HTML 报告
-- [x] CLI（含 `approximately demo` 30 秒体验）
-- [x] 无 API key 的确定性演示 Agent（重复调用 + 无验证 + 过早终止三重失败）
-- [x] 单元测试全绿 + GitHub Actions CI
+### v0.1.0 ✅ (delivered)
+- [x] trace model + recorder + store
+- [x] 14-mode MAST taxonomy + fix library
+- [x] 6 rule detectors + arbitration
+- [x] optional LLM judge (OpenAI-compatible)
+- [x] replayer with A/B diffs
+- [x] pytest regression generation
+- [x] self-contained HTML report
+- [x] CLI (30-second `approximately demo`)
+- [x] deterministic no-API-key demo agent
+- [x] comprehensive test suite: 104+ tests, 97% core coverage, 3-OS CI
 
-### v0.2（已交付，0.2.0）
-- [x] 框架适配器：LangChain/LangGraph 回调处理器、OpenAI Agents SDK TracingProcessor、CrewAI 事件总线（防御式注册）
-- [x] 判官蒸馏：`local` 紧凑预设（提示缩短约 5 倍）+ `distill` SFT 导出（规则标注或教师模型标注）
-- [x] 归因基准：`benchmark` 命令（逐模式 P/R/F1、macro-F1）+ `approx`/`mast` 两种数据集加载器
+### v0.2.0 ✅ (delivered)
+- [x] adapters: LangChain/LangGraph callback handler, OpenAI Agents SDK
+      TracingProcessor (tested against the real packages), CrewAI event-bus
+      adapter (defensive)
+- [x] judge presets (`strong`/`local`) + `distill` SFT exporter
+      (rules or teacher labeling)
+- [x] `benchmark` command: per-mode P/R/F1 + macro-F1; `approx`/`mast`
+      dataset loaders
 
-### v0.2（原计划，留档）
-- LangGraph / OpenAI Agents SDK / CrewAI 三个适配器（各 ~100 行）
-- 判官 prompt 蒸馏：小模型（本地 Qwen 级）跑归因，成本降一个量级
-- MAST-Data 公开轨迹上的归因基准页（对标 o1 F1=0.80，规则引擎能到多少就亮多少）
+### v0.3 ✅ (delivered with 0.2.0)
+- [x] `cluster`: cross-trace failure clustering, recidivist table
+- [x] budget regression guards (`test --budget --min-recall`)
+- [x] `curve`: budget→recall SVG report + success scatter
 
-### v0.3（已交付，同 0.2.0 发布）
-- [x] 跨轨迹失败聚类：`cluster` 命令（模式×工具集签名，惯犯聚类表）
-- [x] 预算回归守卫：`test --budget N --min-recall R`（预算即行为变更，进 CI）
-- [x] 成本-召回曲线：`curve` 命令（预算扫描 SVG 报告 + 全库成功率散点，arXiv:2606.10209 的复现视图）
-
-### v0.3（原计划，留档）
-- 失败聚类：跨轨迹统计团队级"惯犯模式"（对齐 MAST 的 41.77% 规格类问题）
-- 上下文运行时接口预留（压缩/逐出的忠实性探针——调研报告方向 #2 的合并位）
-- 与 pytest-github-annotation 集成，CI 里直接在 PR 上标失败步
+### next
+- more adapters on request; MAST-Data leaderboard page; per-serving-stack
+  distillation recipes
 
 ---
 
-## 4. 发布与增长计划
+## 4. Launch plan
 
-1. **发布物**：GitHub 公共仓 + PyPI + 一篇技术博客（含 MAST 数据可视化与 demo GIF）。
-2. **引爆点排序**：① Hacker News "Show HN"（标题：*Show HN: Approximately – context runtime and automatic postmortems for AI agents*）；② r/LocalLLaMA + r/LLMDevs（本地模型判官角度）；③ X/Twitter Agent 圈；④ 即刻/知乎中文技术社区。
-3. **首屏承诺**（README 第一屏即 demo）：`pip install approximately && approximately demo` → 30 秒内看到一份归因报告：找到"第 3 步重复调用搜索工具 + 从未验证预订 + 提前宣告成功"。
-4. **传播钩子**：每个 HTML 报告页脚自带项目署名链接，天然自传播。
-5. **度量**：首月 star 500 / PyPI 下载 2k 为增长健康线；核心转化是 demo→自有轨迹的替换成本（Recorder API 保持 5 行以内）。
+1. **Artifacts**: public GitHub repo + PyPI + technical blog post
+   (MAST-data visualization, demo GIF).
+2. **Channels in order**: ① Hacker News "Show HN: Approximately – a dashcam
+   and automatic postmortems for AI agents"; ② r/LocalLLaMA +
+   r/LLMDevs (local-model judge angle); ③ X/Twitter agent community;
+   ④ Chinese dev communities (Jike/Zhihu).
+3. **Above-the-fold promise**: `pip install approximately && approximately
+   demo` → a full attribution report in 30 seconds.
+4. **Virality hook**: every HTML report footer carries the repo link.
+5. **Metrics**: 500 stars / 2k PyPI downloads in month one = healthy;
+   the core conversion is demo → own-agent instrumentation, so the
+   Recorder API must stay ≤ 5 lines.
 
-## 5. 风险与对策
+## 5. Risks & mitigations
 
-| 风险 | 对策 |
+| Risk | Mitigation |
 |---|---|
-| Langfuse/LangSmith 下沉做 attribution | 他们是 SaaS 记录优先；我们做本地、零依赖、MAST 语义层；且开源速度是护城河 |
-| 规则检测器误报 | 每条 Detection 必须携带可读证据链；报告里规则/判官来源分开标注；置信度阈值可配 |
-| 学术基准版权/复现问题 | 只引用分类学与数字并规范引用论文；不抓取 MAST-Data 分发，只提供适配接口 |
-| 单人维护带宽 | 核心零依赖、接口小（Recorder/Attributor/Replayer 三类），刻意压低维护面 |
+| Langfuse/LangSmith build attribution downstream | they are SaaS-tracing-first; we are local, zero-dependency, MAST-semantic; open-source speed is the moat |
+| Rule-detector false positives | every Detection carries readable evidence; rule vs judge sources are labeled separately; confidence thresholds configurable |
+| Benchmark dataset licensing/reproduction | cite the taxonomy with attribution; no redistribution of MAST-Data — provide loaders, not data |
+| Single-maintainer bandwidth | zero-dependency core with three small interfaces (Recorder/Attributor/Replayer) keeps the maintenance surface deliberately tiny |
 
-## 6. 引用
+## 6. References
 
 Cemri et al., *Why Do Multi-Agent LLM Systems Fail?* (MAST), arXiv:2503.13657, 2025.
 Bohnet et al., *Why Do LLM Agents Fail and How Can They Learn From Failures?*, arXiv:2509.25370, 2025.
 *Who&When: Automated Failure Attribution in Multi-Agent Systems*, arXiv:2505.00212, 2025.
 Xie et al., *OSWorld: Benchmarking Multimodal Agents*, arXiv:2404.07972, 2024.
+*Efficient Context Engineering for Long-Horizon Tool-Using Agents*, arXiv:2606.10209, 2026.
 Anthropic, *Effective Context Engineering for AI Agents*, 2025.
