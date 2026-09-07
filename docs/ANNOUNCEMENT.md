@@ -1,6 +1,20 @@
 # Announcement copy
 
-## X main post (English — primary)
+## Ready-to-post X (≤280 weighted chars — post this one)
+
+```
+Your AI agent just failed a 40-step task. Do you know WHICH step broke?
+
+approximately — open source — gives agents a dashcam:
+📼 record every step
+🔍 auto-postmortem: step # + failure mode
+🔁 replay to verify fixes
+🧪 auto regression tests
+
+Free, MIT: https://github.com/B1ueMu3ic4m/approximately
+```
+
+## Extended English post (for X Premium / blog quote)
 
 Your AI agent runs 40-step tasks on its own. When it fails, do you know
 WHICH step broke — or whether it'll happen again next week?
