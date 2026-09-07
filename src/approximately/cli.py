@@ -213,6 +213,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    # Windows consoles default to cp1252 and crash on box-drawing/arrow
+    # glyphs; force UTF-8 with replacement so reporting never dies mid-run.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):  # non-standard streams in tests
+            pass
     parser = build_parser()
     args = parser.parse_args(argv)
     if getattr(args, "store", None) is None:
