@@ -14,7 +14,7 @@ import json
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from .trace import ERROR, PLAN, RESPONSE, TOOL_CALL, Trace
+from .trace import ERROR, MESSAGE, PLAN, RESPONSE, TOOL_CALL, Trace
 
 STOPWORDS = {
     "the", "a", "an", "and", "or", "to", "of", "for", "with", "from", "by",
@@ -383,6 +383,112 @@ class SpecViolationDetector:
         return None
 
 
+class ClarificationDetector:
+    """FM-2.2 Fail to Ask for Clarification — the task was ambiguous, no
+    question was ever asked, and the agent committed to an irreversible
+    action anyway."""
+
+    def detect(self, trace: Trace) -> Optional[Detection]:
+        task = trace.task.lower()
+        ambiguous = (" or " in task and ("?" in task or "either" in task)) or \
+            trace.meta.get("ambiguous")
+        if not ambiguous:
+            return None
+        asked = any(
+            "?" in (s.thought or "") or "?" in (s.result or "")
+            for s in trace.steps
+        )
+        if asked:
+            return None
+        committed = next(
+            (s for s in trace.steps if s.kind == TOOL_CALL and s.meta.get("mutating")),
+            None,
+        )
+        target = committed or (trace.steps[-1] if trace.steps else None)
+        if target is None:
+            return None
+        return Detection(
+            "FM-2.2",
+            target.index,
+            [
+                f"task is ambiguous: “{trace.task[:80]}”",
+                "no step in the run ever asks the user anything",
+                f"agent committed to: {target.short(width=60)}",
+            ],
+            0.55,
+            source="rule:ClarificationDetector",
+        )
+
+
+class WithholdingDetector:
+    """FM-2.4 Information Withholding — a tool result flagged
+    ``meta["share_with"]`` was never sent via a message to the agents that
+    needed it, yet those agents kept acting."""
+
+    def detect(self, trace: Trace) -> Optional[Detection]:
+        for i, step in enumerate(trace.steps):
+            share_with = step.meta.get("share_with")
+            if step.kind != TOOL_CALL or not share_with:
+                continue
+            owner = step.meta.get("agent", "unknown")
+            sent = any(
+                s.kind == MESSAGE and s.meta.get("from_agent") == owner
+                for s in trace.steps[i + 1:]
+            )
+            if sent:
+                continue
+            acted = [
+                s for s in trace.steps[i + 1:]
+                if s.kind in (TOOL_CALL, PLAN)
+                and s.meta.get("agent") in share_with
+            ]
+            if acted:
+                return Detection(
+                    "FM-2.4",
+                    i,
+                    [
+                        f"agent '{owner}' produced: {step.short(width=60)}",
+                        f"flagged share_with={share_with} but never messaged them",
+                        f"agent(s) {', '.join(sorted(set(share_with)))} acted on "
+                        f"stale state afterwards",
+                    ],
+                    0.6,
+                    source="rule:WithholdingDetector",
+                )
+        return None
+
+
+class IgnoredInputDetector:
+    """FM-2.5 Ignored Other Agent's Input — a delivered message never
+    produced any downstream action by its recipient."""
+
+    def detect(self, trace: Trace) -> Optional[Detection]:
+        for i, step in enumerate(trace.steps):
+            if step.kind != MESSAGE:
+                continue
+            recipient = step.meta.get("to_agent")
+            if not recipient or step.meta.get("requires_ack") is not True:
+                continue
+            downstream = [
+                s for s in trace.steps[i + 1:]
+                if s.meta.get("agent") == recipient and s.kind != MESSAGE
+            ]
+            if not downstream:
+                return Detection(
+                    "FM-2.5",
+                    i,
+                    [
+                        f"message delivered: {step.tool} "
+                        f"“{(step.result or '')[:60]}”",
+                        f"recipient '{recipient}' never acted on it "
+                        "(requires_ack was set)",
+                    ],
+                    0.65,
+                    source="rule:IgnoredInputDetector",
+                )
+        return None
+
+
 ALL_DETECTORS = [
     RepeatDetector(),
     NoTerminationDetector(),
@@ -393,6 +499,9 @@ ALL_DETECTORS = [
     ReasoningActionMismatchDetector(),
     DerailmentDetector(),
     SpecViolationDetector(),
+    ClarificationDetector(),
+    WithholdingDetector(),
+    IgnoredInputDetector(),
 ]
 
 

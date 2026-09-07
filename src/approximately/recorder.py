@@ -22,7 +22,7 @@ import time
 from typing import Any, Callable, Dict, Optional, TypeVar
 
 from .store import TraceStore
-from .trace import ERROR, OBSERVATION, PLAN, RESPONSE, TOOL_CALL, Step, Trace
+from .trace import ERROR, MESSAGE, OBSERVATION, PLAN, RESPONSE, TOOL_CALL, Step, Trace
 
 _local = threading.local()
 
@@ -102,6 +102,23 @@ class Recorder:
         self.trace.success = success
         self.trace.final_output = text
         return step
+
+    def message(self, from_agent: str, to_agent: str, text: str,
+                **meta: Any) -> Step:
+        """Record an inter-agent message (multi-agent runs).
+
+        Detectors use these steps to catch information withholding (FM-2.4)
+        and ignored peer input (FM-2.5).
+        """
+        return self.trace.add(
+            Step(
+                kind=MESSAGE,
+                tool=f"{from_agent}->{to_agent}",
+                result=text,
+                latency_ms=self._elapsed_ms(),
+                meta={"from_agent": from_agent, "to_agent": to_agent, **meta},
+            )
+        )
 
     def fail(self, reason: str, **meta: Any) -> Step:
         self.trace.success = False

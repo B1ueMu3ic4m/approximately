@@ -252,7 +252,6 @@ def forecast(trace: Trace, budget: int,
 
     lost: set = set()
     pending: set = set()  # aligned facts whose item was evicted: re-verify
-    live_item_keys = {i.key for i in runtime.items}
 
     def _render() -> str:
         return "\n".join(i.render() for i in runtime.items)
@@ -263,11 +262,9 @@ def forecast(trace: Trace, budget: int,
         if step.kind == TOOL_CALL and step.result:
             key = f"{step.tool}#{step.index}"
             runtime.add_tool_result(key=key, text=step.result)
-            live_item_keys.add(key)
         for event in runtime.evictions:
             if event.at_step == runtime._step:
                 evicted_now.append(event.item_key)
-                live_item_keys.discard(event.item_key)
         lost_now: list = []
         if evicted_now:
             # facts whose supporting item just left must re-prove themselves
