@@ -93,3 +93,13 @@ def test_recorder_message_roundtrip(store):
     assert msg.meta["from_agent"] == "planner"
     assert msg.meta["to_agent"] == "critic"
     assert msg.meta["requires_ack"] is True
+
+
+def test_multiagent_demo_scenario_attributes_withholding():
+    from approximately.demo_multiagent import run_demo
+
+    trace, report, _ = run_demo(store_dir=None)
+    assert report.failed is True
+    modes = {d.mode_id for d in report.detections}
+    assert "FM-2.4" in modes   # researcher never messaged the writer
+    assert trace.steps[0].meta.get("agent") == "orchestrator"

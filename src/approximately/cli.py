@@ -59,7 +59,11 @@ def _print_report(report, judge_note: str = "") -> None:
 
 
 def cmd_demo(args: argparse.Namespace) -> int:
-    trace, report, path = run_demo()
+    if args.scenario == "multi-agent":
+        from .demo_multiagent import run_demo as run_multiagent
+        trace, report, path = run_multiagent()
+    else:
+        trace, report, path = run_demo()
     print(f"recorded demo trace {trace.id} ({len(trace.steps)} steps)")
     _print_report(report)
 
@@ -352,6 +356,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--open", action="store_true", help="open the HTML report")
     p.add_argument("--context-budget", type=int, default=60,
                    help="token budget for the context-runtime demo (default 60)")
+    p.add_argument("--scenario", choices=["booking", "multi-agent"],
+                   default="booking",
+                   help="demo scenario (default booking)")
     p.set_defaults(func=cmd_demo)
 
     p = sub.add_parser("attribute", parents=[common],
