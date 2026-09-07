@@ -24,7 +24,31 @@ from typing import Callable, Dict, List, Optional
 from .trace import TOOL_CALL, Trace
 
 # Rough token estimate; deliberately tokenizer-free (stdlib only).
+# Set APPROXIMATELY_EXACT_TOKENS=1 with tiktoken installed for exact
+# cl100k_base counting (approx 10x slower; off by default).
+_EXACT_TOKENS = None
+
+
+def _use_exact() -> bool:
+    global _EXACT_TOKENS
+    if _EXACT_TOKENS is None:
+        import os
+
+        _EXACT_TOKENS = (
+            os.environ.get("APPROXIMATELY_EXACT_TOKENS") == "1"
+        )
+    return _EXACT_TOKENS
+
+
 def estimate_tokens(text: str) -> int:
+    if _use_exact():
+        try:  # pragma: no cover - exercised only with tiktoken installed
+            import tiktoken
+
+            enc = tiktoken.encoding_for_model("gpt-4o")
+            return max(1, len(enc.encode(text)))
+        except Exception:
+            pass
     return max(1, len(text) // 4)
 
 

@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use approximately in your research, please cite it."
+title: approximately
+subtitle: Approximate memory, exact accountability for AI agents
+type: software
+authors:
+  - name: approximately contributors
+repository-code: "https://github.com/B1ueMu3ic4m/approximately"
+abstract: >-
+  A context runtime (budgeted windows, pins, effective-recall probes) and a
+  flight recorder (MAST failure attribution, step-level replay, regression
+  guards) for AI agents. Zero core dependencies; attribution works offline.
+license: MIT
+year: 2026
+version: 0.3.0
+date-released: "2026-09-08"
+preferred-citation:
+  type: misc
+  title: "approximately: approximate memory, exact accountability for AI agents"
+  year: 2026

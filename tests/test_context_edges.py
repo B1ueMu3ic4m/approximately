@@ -90,3 +90,19 @@ def test_recall_probe_substring_semantics():
                              "partial": "870"})
     assert probe.kept == ["exact", "partial"]
     assert probe.lost == ["missing"]
+
+
+def test_exact_token_counting_with_tiktoken(monkeypatch):
+    tiktoken = pytest.importorskip("tiktoken")
+    monkeypatch.setenv("APPROXIMATELY_EXACT_TOKENS", "1")
+    import importlib
+
+    from approximately import context
+
+    importlib.reload(context)
+    try:
+        assert context.estimate_tokens("hello world") >= 1
+        assert context.estimate_tokens("") == 1
+    finally:
+        monkeypatch.delenv("APPROXIMATELY_EXACT_TOKENS")
+        importlib.reload(context)
