@@ -319,6 +319,19 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_new(args: argparse.Namespace) -> int:
+    from .scaffold import scaffold
+
+    target = scaffold(args.name, base=Path.cwd())
+    print(f"created {target}/")
+    print(f"  {args.name}/agent.py                    <- your agent, recorder wired")
+    print(f"  {args.name}/test_agent_regressions.py  <- guards")
+    print(f"  {args.name}/README.md")
+    print("next: pip install approximately && python "
+          f"{args.name}/agent.py")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="approximately",
@@ -389,6 +402,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--facts", help="JSON file mapping fact keys -> expected substrings "
                                    "(default: one fact per tool result)")
     p.set_defaults(func=cmd_context)
+
+    p = sub.add_parser("new", help="scaffold an instrumented agent project")
+    p.add_argument("name", help="project directory name")
+    p.set_defaults(func=cmd_new)
 
     p = sub.add_parser("stats", parents=[common],
                        help="one-glance store health numbers")
