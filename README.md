@@ -1,5 +1,10 @@
 # approximately
 
+[![CI](https://github.com/B1ueMu3ic4m/approximately/actions/workflows/ci.yml/badge.svg)](https://github.com/B1ueMu3ic4m/approximately/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/approximately)](https://pypi.org/project/approximately/)
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue)](https://pypi.org/project/approximately/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 **Approximate memory, exact accountability.**
 
 <p align="center">

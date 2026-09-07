@@ -86,19 +86,6 @@ def cmd_demo(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_attribute(args: argparse.Namespace) -> int:
-    store = TraceStore(args.store)
-    trace = _load_trace(args.trace, store)
-    report = attribute(trace, use_judge=args.judge)
-    if args.json:
-        print(json.dumps(report.to_dict(), indent=2))
-    else:
-        note = "" if report.judge_used or not args.judge else \
-            "(judge requested but unavailable — rules only)"
-        _print_report(report, note)
-    return 0
-
-
 def cmd_replay(args: argparse.Namespace) -> int:
     from .replayer import compare
 
@@ -185,6 +172,49 @@ def cmd_taxonomy(_args: argparse.Namespace) -> int:
                   f"({share}% of failures)")
         share = f" {mode.mast_share:5.2f}% of traces" if mode.mast_share else ""
         print(f"  {mode.id:<7} {mode.name}{share}")
+    return 0
+
+
+def cmd_stats(args: argparse.Namespace) -> int:
+    from .cluster import store_stats
+
+    store = TraceStore(args.store)
+    traces = store.list_traces()
+    stats = store_stats(traces)
+    if args.json:
+        print(json.dumps({
+            "traces": stats.traces,
+            "failures": stats.failures,
+            "failure_rate": round(stats.failure_rate, 3),
+            "avg_steps": round(stats.avg_steps, 1),
+            "modes": stats.mode_counts,
+        }, indent=2))
+        return 0
+    print(stats.summary())
+    return 0
+
+
+def cmd_attribute(args: argparse.Namespace) -> int:
+    store = TraceStore(args.store)
+    if args.all:
+        results = []
+        for trace in store.list_traces():
+            report = attribute(trace, use_judge=args.judge)
+            entry = report.to_dict()
+            entry["trace"] = {"id": trace.id, "task": trace.task,
+                              "success": trace.success,
+                              "steps": len(trace.steps)}
+            results.append(entry)
+        print(json.dumps(results, indent=2))
+        return 0
+    trace = _load_trace(args.trace, store)
+    report = attribute(trace, use_judge=args.judge)
+    if args.json:
+        print(json.dumps(report.to_dict(), indent=2))
+    else:
+        note = "" if report.judge_used or not args.judge else \
+            "(judge requested but unavailable — rules only)"
+        _print_report(report, note)
     return 0
 
 
@@ -308,10 +338,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("attribute", parents=[common],
                        help="attribute a failure on a trace")
-    p.add_argument("trace", help="trace id or path to trace JSON")
+    p.add_argument("trace", nargs="?",
+                   help="trace id or path to trace JSON (required unless --all)")
     p.add_argument("--judge", action="store_true",
                    help="add the LLM judge verdict (needs openai + API key)")
     p.add_argument("--json", action="store_true", help="emit JSON")
+    p.add_argument("--all", action="store_true",
+                   help="attribute every trace in the store (JSON output)")
     p.set_defaults(func=cmd_attribute)
 
     p = sub.add_parser("replay", parents=[common],
@@ -351,6 +384,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--facts", help="JSON file mapping fact keys -> expected substrings "
                                    "(default: one fact per tool result)")
     p.set_defaults(func=cmd_context)
+
+    p = sub.add_parser("stats", parents=[common],
+                       help="one-glance store health numbers")
+    p.add_argument("--json", action="store_true", help="emit JSON")
+    p.set_defaults(func=cmd_stats)
 
     p = sub.add_parser("cluster", parents=[common],
                        help="cross-trace failure clustering (recidivist modes)")
