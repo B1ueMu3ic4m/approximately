@@ -3,6 +3,8 @@ A/B replay comparison, and the CLI wiring for both."""
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from approximately.attributor import attribute
