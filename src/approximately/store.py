@@ -33,12 +33,16 @@ class TraceStore:
         return Trace.from_json(path.read_text(encoding="utf-8"))
 
     def list_traces(self) -> List[Trace]:
+        import sys
+
         out = []
-        for path in sorted(self.directory.glob("*.json"), key=lambda p: p.stat().st_mtime):
+        for path in sorted(self.directory.glob("*.json"),
+                           key=lambda p: p.stat().st_mtime):
             try:
                 out.append(Trace.from_json(path.read_text(encoding="utf-8")))
-            except Exception:
-                continue
+            except Exception as exc:
+                print(f"approximately: skipping unreadable trace {path.name}: "
+                      f"{exc}", file=sys.stderr)
         return out
 
     def _resolve(self, trace_id: str) -> Optional[Path]:
