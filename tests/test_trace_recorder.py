@@ -14,10 +14,9 @@ def test_recorder_captures_steps_and_outcome(clean_trace):
 
 
 def test_recorder_captures_exceptions(store):
-    with pytest.raises(ValueError):
-        with Recorder("boom", store=store) as rec:
-            rec.tool("search", {})
-            raise ValueError("exploded")
+    with pytest.raises(ValueError), Recorder("boom", store=store) as rec:
+        rec.tool("search", {})
+        raise ValueError("exploded")
     assert rec.trace.success is False
     assert rec.trace.steps[-1].kind == ERROR
     assert "ValueError" in rec.trace.steps[-1].error

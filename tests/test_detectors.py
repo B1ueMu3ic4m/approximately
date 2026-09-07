@@ -7,7 +7,7 @@ from approximately.detectors import (
     SpecViolationDetector,
     run_rules,
 )
-from approximately.trace import Step, TOOL_CALL
+from approximately.trace import TOOL_CALL, Step
 
 
 def test_repeat_detector_fires_on_third_call(failing_trace):

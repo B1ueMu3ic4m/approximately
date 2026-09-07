@@ -72,3 +72,7 @@ jobs:
           python-version: "3.12"
       - name: Compile all sources
         run: python -m compileall -q src examples tests
+      - name: Type check
+        run: |
+          pip install mypy
+          mypy src/approximately --ignore-missing-imports

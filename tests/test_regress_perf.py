@@ -10,8 +10,7 @@ import pytest
 
 from approximately.attributor import attribute
 from approximately.regress import render_regression
-from approximately.trace import Step, TOOL_CALL, Trace
-
+from approximately.trace import TOOL_CALL, Step, Trace
 
 ADVERSARIAL_TASK = (
     'task with """triple quotes""", \\backslashes\\, \n newlines, '
@@ -169,7 +168,7 @@ def test_stress_20k_steps_attribution_and_forecast():
 
     start = time.perf_counter()
     report = attribute(trace)
-    mid = time.perf_counter()
+    time.perf_counter()
     fc = forecast(trace, budget=4000, facts=default_facts(trace))
     elapsed = time.perf_counter() - start
     assert report.primary_mode.id in ("FM-3.1", "FM-3.2")

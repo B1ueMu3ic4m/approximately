@@ -4,11 +4,8 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 from approximately.demo_multiagent import run_demo as run_crew_demo
 from approximately.recorder import Recorder
-from approximately.store import TraceStore
 
 
 def test_judge_compact_trace_includes_semantic_meta(failing_trace):
@@ -16,7 +13,7 @@ def test_judge_compact_trace_includes_semantic_meta(failing_trace):
 
     payload = json.dumps(_compact_trace(failing_trace))
     parsed = json.loads(payload)
-    book_step = [s for s in parsed["steps"] if s["tool"] == "book_flight"][0]
+    book_step = next(s for s in parsed["steps"] if s["tool"] == "book_flight")
     assert book_step["meta"]["mutating"] is True
 
 
@@ -30,7 +27,7 @@ def test_store_warns_on_corrupt_trace(store, capsys):
 
 def test_crew_demo_prices_are_consistent():
     """The demo narrative must not contradict itself across steps."""
-    trace, report, _ = run_crew_demo(store_dir=None)
+    trace, _report, _ = run_crew_demo(store_dir=None)
     results = " ".join(s.result for s in trace.steps)
     # booking demo artifact: price drift must be reflected in the response
     assert "$870" not in results or "880" in results

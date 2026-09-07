@@ -14,7 +14,7 @@ import json
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from .trace import ERROR, MESSAGE, PLAN, RESPONSE, TOOL_CALL, Trace
+from .trace import ERROR, MESSAGE, PLAN, RESPONSE, TOOL_CALL, Step, Trace
 
 STOPWORDS = {
     "the", "a", "an", "and", "or", "to", "of", "for", "with", "from", "by",
@@ -97,7 +97,7 @@ class NoTerminationDetector:
             if step.kind == TOOL_CALL and not step.error:
                 by_fp.setdefault(step.fingerprint(), []).append(step.index)
 
-        for fp, indexes in by_fp.items():
+        for indexes in by_fp.values():
             if (len(indexes) >= self.min_recurrences
                     and indexes[-1] - indexes[0] > self.long_range_span):
                 return Detection(
@@ -105,8 +105,8 @@ class NoTerminationDetector:
                     indexes[-1],
                     [
                         f"same action executed at steps {indexes}",
-                        f"spread of {indexes[-1] - indexes[0]} steps exceeds the "
-                        f"local repeat window — a loop the agent never concluded",
+                        (f"spread of {indexes[-1] - indexes[0]} steps exceeds the "
+                        f"local repeat window — a loop the agent never concluded"),
                         "the task was already satisfiable at the first occurrence",
                     ],
                     0.65,
@@ -120,8 +120,8 @@ class NoTerminationDetector:
                 "FM-1.5",
                 trace.steps[-1].index,
                 [
-                    f"step limit {step_limit} reached while still "
-                    f"{trace.steps[-1].kind}",
+                    (f"step limit {step_limit} reached while still "
+                    f"{trace.steps[-1].kind}"),
                     "the run never reached a termination decision",
                 ],
                 0.6,
@@ -206,9 +206,9 @@ VERIFY_MARKERS = ("verify", "check", "confirm", "get_", "read", "fetch",
 def _is_verify_step(step: Step) -> bool:
     if step.meta.get("verify"):
         return True
-    return (step.kind == TOOL_CALL and bool(step.tool) and any(
-        m in step.tool.lower() for m in VERIFY_MARKERS
-    ))
+    if step.kind != TOOL_CALL or not step.tool:
+        return False
+    return any(m in step.tool.lower() for m in VERIFY_MARKERS)
 
 
 def _verify_positions(trace: Trace) -> list:
@@ -367,8 +367,8 @@ class WeakVerificationDetector:
                     [
                         f"verification step: {later.short()}",
                         f"echoes the original claim verbatim: “{claimed[:60]}”",
-                        "no independent evidence was gathered — "
-                        "the verification proved nothing",
+                        ("no independent evidence was gathered — "
+                        "the verification proved nothing"),
                     ],
                     0.6,
                     source="rule:WeakVerificationDetector",
@@ -465,8 +465,8 @@ class WithholdingDetector:
                     [
                         f"agent '{owner}' produced: {step.short(width=60)}",
                         f"flagged share_with={share_with} but never messaged them",
-                        f"agent(s) {', '.join(sorted(set(share_with)))} acted on "
-                        f"stale state afterwards",
+                        (f"agent(s) {', '.join(sorted(set(share_with)))} acted on "
+                        f"stale state afterwards"),
                     ],
                     0.6,
                     source="rule:WithholdingDetector",
@@ -494,10 +494,10 @@ class IgnoredInputDetector:
                     "FM-2.5",
                     i,
                     [
-                        f"message delivered: {step.tool} "
-                        f"“{(step.result or '')[:60]}”",
-                        f"recipient '{recipient}' never acted on it "
-                        "(requires_ack was set)",
+                        (f"message delivered: {step.tool} "
+                        f"“{(step.result or '')[:60]}”"),
+                        (f"recipient '{recipient}' never acted on it "
+                        "(requires_ack was set)"),
                     ],
                     0.65,
                     source="rule:IgnoredInputDetector",
@@ -535,8 +535,8 @@ class RoleViolationDetector:
                 "FM-1.2",
                 step.index,
                 [
-                    f"agent '{agent}' has role '{role}' "
-                    f"(allowed tools: {', '.join(sorted(allowed))})",
+                    (f"agent '{agent}' has role '{role}' "
+                    f"(allowed tools: {', '.join(sorted(allowed))})"),
                     f"used out-of-role tool: {step.tool}",
                 ],
                 0.85,
@@ -570,17 +570,16 @@ class LostReferenceDetector:
                 x for x in (step.thought, step.result) if x
             ))
             fresh = referenced - established
-            if fresh and step.index > 0:
-                # a tool result legitimately introduces new ids; thoughts and
-                # responses quoting unknown ids are the failure signature
-                if step.kind != TOOL_CALL:
+            # a tool result legitimately introduces new ids; thoughts and
+            # responses quoting unknown ids are the failure signature
+            if fresh and step.index > 0 and step.kind != TOOL_CALL:
                     example = sorted(fresh)[0]
                     return Detection(
                         "FM-1.4",
                         step.index,
                         [
-                            f"references {example} which never appeared in "
-                            "any earlier step",
+                            (f"references {example} which never appeared in "
+                            "any earlier step"),
                             "the agent is quoting history it no longer has",
                         ],
                         0.55,
@@ -591,7 +590,7 @@ class LostReferenceDetector:
         return None
 
 
-ALL_DETECTORS = [
+ALL_DETECTORS: list = [
     RepeatDetector(),
     NoTerminationDetector(),
     ConversationResetDetector(),
@@ -617,4 +616,5 @@ def run_rules(trace: Trace) -> List[Detection]:
 
 def args_hash(args: dict) -> str:
     blob = json.dumps(args, sort_keys=True, default=str)
-    return hashlib.sha1(blob.encode()).hexdigest()[:10]
+    # fingerprinting only, never security: mark the hash as non-security
+    return hashlib.sha1(blob.encode(), usedforsecurity=False).hexdigest()[:10]

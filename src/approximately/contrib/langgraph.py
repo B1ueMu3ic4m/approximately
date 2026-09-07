@@ -23,7 +23,7 @@ from ..recorder import Recorder
 try:
     from langchain_core.callbacks import BaseCallbackHandler as _LCBaseHandler
 except ImportError:  # core stays dependency-free; adapter needs it at import
-    class _LCBaseHandler:  # pragma: no cover - only hit without langchain
+    class _LCBaseHandler:  # type: ignore[no-redef]  # pragma: no cover
         pass
 
 
@@ -54,9 +54,7 @@ class ApproximatelyCallbackHandler(_LCBaseHandler):
         self._chain_depth = 0
 
     # -- LangChain protocol ---------------------------------------------------
-    @property
-    def raise_error(self) -> bool:
-        return False  # never break the user's run over recording issues
+    raise_error: bool = False  # never break the user's run over recording issues
 
     def on_chain_start(self, serialized: Optional[Dict], inputs: Dict[str, Any],
                        *, run_id: Any = None, **kwargs: Any) -> None:

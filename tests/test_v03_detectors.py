@@ -13,8 +13,7 @@ from approximately.detectors import (
     WeakVerificationDetector,
     run_rules,
 )
-from approximately.trace import Step, TOOL_CALL, Trace
-
+from approximately.trace import TOOL_CALL, Step, Trace
 
 # ---- FM-1.5 NoTerminationDetector -------------------------------------------
 

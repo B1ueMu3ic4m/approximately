@@ -1,4 +1,3 @@
-import pytest
 
 from approximately.recorder import Recorder
 from approximately.replayer import CONSISTENT, DIVERGED, REPRODUCED, replay

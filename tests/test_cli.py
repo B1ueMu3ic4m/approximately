@@ -21,7 +21,7 @@ def test_cli_attribute_json(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("APPROXIMATELY_HOME", str(tmp_path / "traces"))
     main(["demo"])
     capsys.readouterr()  # flush demo output
-    trace_id = [f.stem for f in (tmp_path / "traces").glob("*.json")][0]
+    trace_id = next(f.stem for f in (tmp_path / "traces").glob("*.json"))
     code = main(["attribute", trace_id, "--json"])
     payload = json.loads(capsys.readouterr().out)
     assert code == 0
@@ -35,7 +35,7 @@ def test_cli_test_generates_pytest(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     main(["demo"])
     capsys.readouterr()  # flush demo output
-    trace_id = [f.stem for f in (tmp_path / "traces").glob("*.json")][0]
+    trace_id = next(f.stem for f in (tmp_path / "traces").glob("*.json"))
     code = main(["test", trace_id, "-o", "test_gen.py"])
     out = capsys.readouterr().out
     assert code == 0

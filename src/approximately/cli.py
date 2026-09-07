@@ -81,7 +81,7 @@ def cmd_demo(args: argparse.Namespace) -> int:
     print(bar)
 
     print(f"HTML report: {path}")
-    if args.open:
+    if args.open and path is not None:
         import webbrowser
 
         webbrowser.open(path.as_uri())
@@ -174,8 +174,9 @@ def cmd_taxonomy(_args: argparse.Namespace) -> int:
             share = {"FC1": 41.77, "FC2": 36.94, "FC3": 21.30}[mode.category]
             print(f"[{mode.category}] {CATEGORY_NAMES[mode.category]} "
                   f"({share}% of failures)")
-        share = f" {mode.mast_share:5.2f}% of traces" if mode.mast_share else ""
-        print(f"  {mode.id:<7} {mode.name}{share}")
+        share_text = (f" {mode.mast_share:5.2f}% of traces"
+                      if mode.mast_share else "")
+        print(f"  {mode.id:<7} {mode.name}{share_text}")
     return 0
 
 
@@ -505,8 +506,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     # Windows consoles default to cp1252 and crash on box-drawing/arrow
     # glyphs; force UTF-8 with replacement so reporting never dies mid-run.
     for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
         try:
-            stream.reconfigure(encoding="utf-8", errors="replace")
+            if reconfigure is not None:
+                reconfigure(encoding="utf-8", errors="replace")
         except (AttributeError, ValueError):  # non-standard streams in tests
             pass
     parser = build_parser()

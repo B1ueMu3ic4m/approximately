@@ -151,4 +151,4 @@ def all_modes() -> List[FailureMode]:
         (m for m in FAILURE_MODES.values() if m.id != OTHER),
         key=lambda m: (m.category, -(m.mast_share or 0)),
     )
-    return ordered + [FAILURE_MODES[OTHER]]
+    return [*ordered, FAILURE_MODES[OTHER]]

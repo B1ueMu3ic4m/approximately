@@ -58,6 +58,8 @@ class AgentsSDKProcessor:
 
     def on_span_end(self, span: Any) -> None:
         data = getattr(span, "span_data", None)
+        if data is None:
+            return
         kind = type(data).__name__
         error = getattr(span, "error", None)
 

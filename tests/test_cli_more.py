@@ -65,7 +65,7 @@ def test_replay_exit_codes(demo_store, tmp_path, capsys):
 
 def test_bad_executor_expression_is_clean_error(demo_store):
     directory, trace_id = demo_store
-    with pytest.raises(SystemExit, match="package.module:func"):
+    with pytest.raises(SystemExit, match=r"package\.module:func"):
         main(["replay", trace_id, "--store", directory, "--executor", "no_colon"])
 
 

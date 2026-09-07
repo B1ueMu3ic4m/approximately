@@ -8,7 +8,7 @@ from typing import List
 
 from .attributor import FailureReport
 from .taxonomy import CATEGORY_SHARE
-from .trace import ERROR, RESPONSE, TOOL_CALL, Trace
+from .trace import Trace
 
 _CSS = """
 :root { color-scheme: light; }
@@ -113,7 +113,7 @@ def _context_card(trace: Trace) -> str:
             "facts (runtime.pin) or raise the budget before this ships.</p>"
             "</div>"
         )
-    except Exception:  # noqa: BLE001 - report must never hard-fail
+    except Exception:
         return ""
 
 

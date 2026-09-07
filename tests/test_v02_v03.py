@@ -6,10 +6,10 @@ from __future__ import annotations
 import json
 
 import pytest
+from fake_openai_server import HAS_OPENAI
 
 from approximately.attributor import attribute
 from approximately.cluster import cluster
-from approximately.context import default_facts, forecast
 from approximately.curve import budget_curve, render_curve_html
 from approximately.distill import (
     evaluate,
@@ -18,12 +18,8 @@ from approximately.distill import (
     load_dataset,
     rules_labeler,
 )
-from approximately.recorder import Recorder
 from approximately.regress import render_regression
-from approximately.trace import Step, TOOL_CALL, Trace
-
-from fake_openai_server import HAS_OPENAI, fake_openai, openai_url  # noqa: F401
-
+from approximately.trace import TOOL_CALL, Step, Trace
 
 # ---- framework adapters ------------------------------------------------------
 
@@ -69,10 +65,15 @@ def test_langgraph_handler_records_tool_errors():
 
 def test_agents_sdk_processor_records_function_spans():
     pytest.importorskip("agents")
+    from agents.tracing import (
+        add_trace_processor,
+        function_span,
+        get_trace_provider,
+        set_trace_processors,
+        trace,
+    )
+
     from approximately.contrib.agents_sdk import AgentsSDKProcessor
-    from agents.tracing import (add_trace_processor, function_span,
-                                get_trace_provider, set_trace_processors,
-                                trace)
 
     provider = get_trace_provider()
     multi = provider._multi_processor
@@ -210,8 +211,11 @@ def test_load_dataset_both_formats(tmp_path):
 def test_agents_sdk_generation_agent_handoff_spans():
     """Unit-test remaining span types with real span-data classes."""
     pytest.importorskip("agents")
-    from agents.tracing.span_data import (AgentSpanData, GenerationSpanData,
-                                          HandoffSpanData)
+    from agents.tracing.span_data import (
+        AgentSpanData,
+        GenerationSpanData,
+        HandoffSpanData,
+    )
 
     from approximately.contrib.agents_sdk import AgentsSDKProcessor
 

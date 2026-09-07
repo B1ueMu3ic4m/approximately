@@ -4,12 +4,8 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 from approximately.recorder import Recorder, current_recorder
-from approximately.store import TraceStore
-from approximately.trace import TOOL_CALL, Step, Trace
-
+from approximately.trace import TOOL_CALL, Step
 
 # ---- trace -----------------------------------------------------------------
 

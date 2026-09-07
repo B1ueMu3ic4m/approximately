@@ -6,7 +6,6 @@ import json
 
 from approximately.cli import main
 from approximately.cluster import store_stats
-from approximately.trace import Step, Trace
 
 
 def test_store_stats_summary(failing_trace, clean_trace):

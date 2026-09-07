@@ -16,7 +16,7 @@ except ImportError:
 
 
 class FakeOpenAIHandler(BaseHTTPRequestHandler):
-    def do_POST(self):  # noqa: N802
+    def do_POST(self):
         length = int(self.headers.get("content-length", 0))
         raw = self.rfile.read(length) if length else b"{}"
         server = self.server

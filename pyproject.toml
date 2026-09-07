@@ -30,7 +30,8 @@ dependencies = []
 
 [project.optional-dependencies]
 llm = ["openai>=1.0"]
-dev = ["pytest>=7.0"]
+exact-tokens = ["tiktoken>=0.5"]
+dev = ["pytest>=7.0", "mypy"]
 
 [project.scripts]
 approximately = "approximately.cli:main"
@@ -48,3 +49,22 @@ include = ["src", "tests", "docs", "README.md", "CHANGELOG.md", "LICENSE"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+extend-exclude = ["dist"]
+
+[tool.ruff.lint]
+# pragmatic set: errors, pyflakes, warnings, bugbear, imports, misc
+select = ["E", "F", "W", "B", "I", "ISC", "RUF", "SIM", "PERF", "PLW", "C4"]
+ignore = [
+    "BLE001",  # blind except is intentional: attribution must never hard-fail
+    "PLW0603", # module-level caches (_INTENT_RE etc.) are deliberate
+    "E501",    # help strings read better unwrapped
+    "SIM105",  # try/except-pass around optional imports is the designed pattern
+]
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["PLW1510", "S101", "E402"]
+"src/approximately/store.py" = ["PERF203"]  # per-file try in loop is the degradation pattern
+"src/approximately/cli.py" = ["PERF203"]

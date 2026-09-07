@@ -54,8 +54,8 @@ class ReplayDiff:
 
     def summary(self) -> str:
         lines = [
-            f"replay {self.trace_id}: {self.verdict} "
-            f"({sum(1 for s in self.steps if s.match)}/{len(self.steps)} steps match)"
+            (f"replay {self.trace_id}: {self.verdict} "
+            f"({sum(1 for s in self.steps if s.match)}/{len(self.steps)} steps match)")
         ]
         lines += ["  " + s.headline for s in self.steps if not s.match]
         return "\n".join(lines)
@@ -69,8 +69,8 @@ def compare(a: ReplayDiff, b: ReplayDiff) -> str:
             state = "now matches" if sb.match else "now diverges"
             flips.append(f"  step #{sa.index} ({sb.tool or sb.kind}): {state}")
     lines = [
-        f"A/B replay: {a.verdict} -> {b.verdict} "
-        f"(match rate {a.match_rate:.0%} -> {b.match_rate:.0%})"
+        (f"A/B replay: {a.verdict} -> {b.verdict} "
+        f"(match rate {a.match_rate:.0%} -> {b.match_rate:.0%})")
     ]
     if flips:
         lines.append("changed steps:")
@@ -111,7 +111,7 @@ def replay(
         try:
             value = executor(step)
             error = None
-        except Exception as exc:  # noqa: BLE001 - replay must capture any failure
+        except Exception as exc:
             value = ""
             error = f"{type(exc).__name__}: {exc}"
         recorded_text = step.error or step.result

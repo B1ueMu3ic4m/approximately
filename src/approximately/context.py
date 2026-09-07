@@ -47,7 +47,7 @@ def estimate_tokens(text: str) -> int:
 
             enc = tiktoken.encoding_for_model("gpt-4o")
             return max(1, len(enc.encode(text)))
-        except Exception:
+        except Exception:  # nosec B110 - graceful fallback to the heuristic is the design
             pass
     return max(1, len(text) // 4)
 
@@ -167,7 +167,8 @@ class ContextRuntime:
         rendered context for the fact to count as recalled.
         """
         rendered = "\n".join(i.render() for i in self.items)
-        kept, lost = [], []
+        kept: List[str] = []
+        lost: List[str] = []
         for key, needle in facts.items():
             (kept if needle in rendered else lost).append(key)
         return ProbeResult(kept=kept, lost=lost)
@@ -236,8 +237,8 @@ class ContextForecast:
         saved = self.full_context_tokens - self.budgeted_tokens
         lines = [
             f"context forecast for {self.trace_id} @ budget {self.budget} tokens",
-            f"  full context: {self.full_context_tokens} tokens | "
-            f"budgeted: {self.budgeted_tokens} | saved: {max(saved, 0)}",
+            (f"  full context: {self.full_context_tokens} tokens | "
+            f"budgeted: {self.budgeted_tokens} | saved: {max(saved, 0)}"),
             f"  evictions: {self.evicted_count} | "
             + self.final_probe.summary(),
         ]
@@ -282,13 +283,15 @@ def forecast(trace: Trace, budget: int,
 
     for step in trace.steps:
         runtime.advance()
-        evicted_now = []
+        evicted_now: List[str] = []
         if step.kind == TOOL_CALL and step.result:
             key = f"{step.tool}#{step.index}"
             runtime.add_tool_result(key=key, text=step.result)
-        for event in runtime.evictions:
-            if event.at_step == runtime._step:
-                evicted_now.append(event.item_key)
+        evicted_now.extend(
+            event.item_key
+            for event in runtime.evictions
+            if event.at_step == runtime._step
+        )
         lost_now: list = []
         if evicted_now:
             # facts whose supporting item just left must re-prove themselves
@@ -302,12 +305,10 @@ def forecast(trace: Trace, budget: int,
                         lost.add(fact_key)
                         lost_now.append(fact_key)
                 pending -= lost
-        out.steps.append(
-            StepForecast(step_index=step.index, tool=step.tool or step.kind,
-                         tokens_used=runtime.used_tokens(),
-                         evicted_keys=evicted_now,
-                         lost_facts=lost_now)
-        )
+        out.steps.append(StepForecast(
+            step_index=step.index, tool=step.tool or step.kind,
+            tokens_used=runtime.used_tokens(),
+            evicted_keys=evicted_now, lost_facts=lost_now))
 
     out.final_probe = runtime.recall_probe(facts)
     out.full_context_tokens = sum(

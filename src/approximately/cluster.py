@@ -12,7 +12,7 @@ to the same MAST mode and their failing steps touch the same tools.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Tuple
 
 from .attributor import attribute
 from .detectors import args_hash
@@ -48,15 +48,14 @@ class ClusterReport:
 
     def summary(self, min_size: int = 2) -> str:
         lines = [
-            f"scanned {self.traces_scanned} traces, "
+            (f"scanned {self.traces_scanned} traces, "
             f"{self.failures_found} failures, "
-            f"{len(self.clusters)} clusters"
+            f"{len(self.clusters)} clusters")
         ]
         recidivists = self.recidivists(min_size)
         if recidivists:
             lines.append(f"recidivist clusters (size >= {min_size}):")
-            for cluster in recidivists:
-                lines.append(f"  - {cluster.summary()}")
+            lines.extend(f"  - {cluster.summary()}" for cluster in recidivists)
         else:
             lines.append(f"no cluster reaches size {min_size}")
         return "\n".join(lines)
@@ -111,9 +110,9 @@ class StoreStats:
 
     def summary(self) -> str:
         lines = [
-            f"{self.traces} traces · {self.failures} failures "
+            (f"{self.traces} traces · {self.failures} failures "
             f"(failure rate {self.failure_rate:.0%}) · "
-            f"avg {self.avg_steps:.1f} steps"
+            f"avg {self.avg_steps:.1f} steps")
         ]
         if self.mode_counts:
             lines.append("top failure modes:")

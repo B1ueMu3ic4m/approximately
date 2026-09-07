@@ -5,14 +5,11 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 from approximately.attributor import attribute
 from approximately.cli import main
 from approximately.recorder import Recorder
 from approximately.replayer import compare, replay
 from approximately.report import render_html, render_index_html
-from approximately.trace import Step
 
 
 def test_index_page_lists_traces_with_verdicts(failing_trace, clean_trace,
@@ -66,7 +63,6 @@ def test_replayer_compare_no_change(failing_trace):
 def test_cli_replay_patched_flag(demo_store, tmp_path, capsys):
     directory, trace_id = demo_store
     import sys
-    from pathlib import Path as _Path
 
     exec_mod = tmp_path / "orig_exec.py"
     exec_mod.write_text("def execute(step):\n    return step.result\n",
