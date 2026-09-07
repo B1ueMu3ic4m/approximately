@@ -8,7 +8,7 @@
 
 ---
 
-## What is this? (the one-paragraph version)
+## What is approximately?
 
 **approximately is a dashcam and crash-investigation report for your AI agents.**
 
@@ -43,7 +43,7 @@ The failure taxonomy inside approximately comes straight from 2025–2026 resear
 - **AI application startups** — when a customer asks "why was this result wrong?", you can produce the evidence chain
 - **Researchers** — a MAST-mode classifier, a benchmark harness, and distillation exporters out of the box
 
-## How does it work? (no-code version)
+## How it works, step by step
 
 1. **Record** — wrap your agent in a flight recorder; every tool call, thought, and result is archived (one-file adapters for LangChain/LangGraph, OpenAI Agents SDK, and CrewAI)
 2. **Attribute** — on failure, a built-in rule engine plus an optional LLM judge deliver the verdict: mode, step, evidence chain, suggested fixes
