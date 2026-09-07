@@ -200,8 +200,9 @@ framework adapters import lazily and degrade when the framework is absent.
 - [x] `curve`: budget→recall SVG report + success scatter
 
 ### next
-- more adapters on request; MAST-Data leaderboard page; per-serving-stack
-  distillation recipes
+- more adapters on request (AutoGen, LlamaIndex); MAST-Data leaderboard
+  page; per-serving-stack distillation recipes; `stats` trend lines over
+  time (failure-rate history per mode)
 
 ---
 

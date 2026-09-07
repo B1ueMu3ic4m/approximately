@@ -27,6 +27,15 @@
 - `approximately attribute --all --json`: batch attribution for CI
 - `report --all` writes missing individual reports (index links resolve)
 - `curve --budgets` custom sweep list; `cluster --last N`; `py.typed`
+- `demo --scenario multi-agent`: researcher/writer crew showcasing the
+  message convention and FM-2.4/FM-3.1 detection live
+- O(n log n) verification detectors (was O(n²) on verify-free traces);
+  detector quality-floor suite; 20k-step stress test
+- judge: compact trace now carries semantic step meta (mutating/verify/
+  agent markers) so the judge can reason about verification failures
+- store: stderr warning when a trace file is unreadable (was silent)
+- `replay --patched`: A/B comparison summaries; `Recorder.fail` records
+  latency; CONTRIBUTING.md, CITATION.cff, dependabot, CI concurrency
 
 ## 0.2.0 — 2026-09-08
 
