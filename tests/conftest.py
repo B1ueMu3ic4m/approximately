@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import pytest
 
+# shared fixtures from the fake-server helper (imported for pytest collection)
+from fake_openai_server import fake_openai, openai_url  # noqa: F401
+
 from approximately.recorder import Recorder
 from approximately.store import TraceStore
 from approximately.trace import Trace

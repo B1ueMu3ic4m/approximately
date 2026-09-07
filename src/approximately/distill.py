@@ -6,9 +6,9 @@ Pipeline (all offline after labeling):
 1. **Label** traces. Two sources:
    - rules — attribution from the rule detectors (free, deterministic); good
      for the mechanical MAST modes;
-   - teacher — a strong model labels via the judge (``--teacher``).
+   - teacher - a strong model labels via the judge (``--teacher``).
 2. **Export** chat-format JSONL (system/user/assistant) in the *local*
-   preset prompt shape, so a 1–7B model fine-tuned on it answers in exactly
+   preset prompt shape, so a 1-7B model fine-tuned on it answers in exactly
    the format :func:`approximately.judge.judge_trace` parses.
 3. Fine-tune with your favorite trainer (LoRA on any OpenAI-compatible
    serving stack), then point ``APPROXIMATELY_JUDGE_MODEL`` at it with
@@ -50,7 +50,7 @@ def teacher_labeler(model: str, base_url: Optional[str] = None,
         try:
             verdict = judge_trace(trace, model=model, base_url=base_url,
                                   api_key=api_key)
-        except Exception:  # noqa: BLE001 - a bad teacher call is just a skip
+        except Exception:
             return None
         det = verdict.detection
         if det.mode_id != OTHER and det.confidence >= min_confidence:
@@ -104,8 +104,8 @@ class BenchmarkResult:
 
     def summary(self) -> str:
         lines = [
-            f"attribution benchmark: accuracy {self.accuracy:.2f}, "
-            f"macro-F1 {self.macro_f1:.2f}"
+            (f"attribution benchmark: accuracy {self.accuracy:.2f}, "
+            f"macro-F1 {self.macro_f1:.2f}")
         ]
         for mode_id, m in sorted(self.per_mode.items()):
             lines.append(
@@ -165,17 +165,14 @@ def load_dataset(path: Path, fmt: str = "approx") -> List[tuple]:
     """
     labeled: List[tuple] = []
     with open(path, encoding="utf-8") as fh:
-        for line in fh:
-            line = line.strip()
+        for raw in fh:
+            line = raw.strip()
             if not line:
                 continue
             record = json.loads(line)
             label = (record.get("label") or record.get("failure_mode")
                      or record.get("mode"))
-            if fmt == "mast":
-                trace = _from_mast_record(record)
-            else:
-                trace = Trace.from_dict(record)
+            trace = _from_mast_record(record) if fmt == "mast" else Trace.from_dict(record)
             if label:
                 labeled.append((trace, label))
     return labeled

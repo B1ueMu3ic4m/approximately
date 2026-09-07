@@ -6,7 +6,6 @@ from approximately.context import (
     estimate_tokens,
     forecast,
 )
-from approximately.trace import TOOL_CALL
 
 
 def test_budget_enforcement_evicts_oldest_tool_result_first():

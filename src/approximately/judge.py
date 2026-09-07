@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from .detectors import Detection
 from .taxonomy import FAILURE_MODES, OTHER, all_modes
@@ -52,12 +52,10 @@ def _taxonomy_block(compact: bool = False) -> str:
             f"- {m.id} {m.name}"
             for m in all_modes() if m.id != OTHER
         )
-    lines = []
-    for m in all_modes():
-        if m.id == OTHER:
-            continue
-        lines.append(f"- {m.id} [{m.category_name}] {m.name}: {m.definition}")
-    return "\n".join(lines)
+    return "\n".join(
+        f"- {m.id} [{m.category_name}] {m.name}: {m.definition}"
+        for m in all_modes() if m.id != OTHER
+    )
 
 
 @dataclass
@@ -72,21 +70,19 @@ class JudgeError(RuntimeError):
 
 
 def _compact_trace(trace: Trace, max_step_chars: int = 220) -> Dict[str, Any]:
-    steps = []
-    for s in trace.steps:
-        steps.append(
-            {
-                "i": s.index,
-                "kind": s.kind,
-                "tool": s.tool,
-                "args": s.args,
-                "result": (s.error or s.result or "")[:max_step_chars],
-                "thought": (s.thought or "")[:max_step_chars] or None,
-                # semantic markers the judge needs for verification modes
-                "meta": {k: v for k, v in s.meta.items() if k != "_hot"}
-                or None,
-            }
-        )
+    steps = [
+        {
+            "i": s.index,
+            "kind": s.kind,
+            "tool": s.tool,
+            "args": s.args,
+            "result": (s.error or s.result or "")[:max_step_chars],
+            "thought": (s.thought or "")[:max_step_chars] or None,
+            # semantic markers the judge needs for verification modes
+            "meta": {k: v for k, v in s.meta.items() if k != "_hot"} or None,
+        }
+        for s in trace.steps
+    ]
     return {
         "task": trace.task,
         "success": trace.success,

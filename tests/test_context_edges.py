@@ -54,7 +54,7 @@ def test_empty_content_tokens_are_at_least_one():
 def test_default_facts_skip_errors_and_empty_results(failing_trace):
     facts = default_facts(failing_trace)
     assert facts  # has tool results
-    for key, needle in facts.items():
+    for needle in facts.values():
         assert needle.strip()
 
 
@@ -93,7 +93,7 @@ def test_recall_probe_substring_semantics():
 
 
 def test_exact_token_counting_with_tiktoken(monkeypatch):
-    tiktoken = pytest.importorskip("tiktoken")
+    pytest.importorskip("tiktoken")
     monkeypatch.setenv("APPROXIMATELY_EXACT_TOKENS", "1")
     import importlib
 

@@ -18,6 +18,7 @@ from .recorder import Recorder
 from .store import TraceStore
 from .trace import Trace
 
+
 def _flights(jt_price: int, ke_price: int) -> str:
     return (
         f"JT-044 SFO→NRT 06-14 ${jt_price} 12h40m 1 stop | "

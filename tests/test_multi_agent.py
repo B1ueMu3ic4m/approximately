@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from approximately.attributor import attribute
 from approximately.detectors import (
     ClarificationDetector,
     IgnoredInputDetector,
     WithholdingDetector,
 )
-from approximately.trace import MESSAGE, Step, TOOL_CALL, Trace
+from approximately.trace import MESSAGE, TOOL_CALL, Step, Trace
 
 
 def test_clarification_detector_fires_on_ambiguous_task():

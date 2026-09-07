@@ -8,8 +8,7 @@ from approximately.detectors import (
     RoleViolationDetector,
     run_rules,
 )
-from approximately.trace import Step, TOOL_CALL, Trace
-
+from approximately.trace import TOOL_CALL, Step, Trace
 
 # ---- FM-1.2 RoleViolationDetector -------------------------------------------
 

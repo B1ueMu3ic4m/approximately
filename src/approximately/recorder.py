@@ -19,6 +19,7 @@ from __future__ import annotations
 import functools
 import threading
 import time
+from pathlib import Path
 from typing import Any, Callable, Dict, Optional, TypeVar
 
 from .store import TraceStore
@@ -49,8 +50,8 @@ class Recorder:
             self.trace.meta["step_limit"] = step_limit
         self.store = store
         self.save_on_exit = save
-        self.saved_path = None
-        self._previous = None
+        self.saved_path: Optional[Path] = None
+        self._previous: Optional["Recorder"] = None
         self._t0 = time.perf_counter()
 
     # -- context management -------------------------------------------------
@@ -59,7 +60,7 @@ class Recorder:
         _local.recorder = self
         return self
 
-    def __exit__(self, exc_type, exc, tb) -> bool:
+    def __exit__(self, exc_type, exc, tb) -> None:
         _local.recorder = self._previous
         if exc_type is not None:
             self.trace.add(
@@ -72,7 +73,7 @@ class Recorder:
             self.trace.success = False
         if self.save_on_exit and self.store is not None:
             self.saved_path = self.store.save(self.trace)
-        return False  # never swallow exceptions
+        # returning None (not True): exceptions are never suppressed
 
     # -- recording API -------------------------------------------------------
     def plan(self, thought: str, **meta: Any) -> Step:

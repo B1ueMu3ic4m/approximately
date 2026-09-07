@@ -37,6 +37,18 @@ absent): `pip install openai langchain-core openai-agents`
 - More framework adapters (AutoGen, LlamaIndex, ...)
 - Optional exact tokenizer integrations beyond tiktoken
 
+## Static analysis (all must pass)
+
+```bash
+ruff check src tests examples     # lint (config in pyproject.toml)
+mypy src/approximately --ignore-missing-imports
+bandit -r src -q                  # security; zero findings is the bar
+```
+
+Core dependency rule is enforced by review: `src/approximately/**` (except
+`contrib/`) may import only the standard library; optional integrations are
+lazy imports behind extras.
+
 ## Pull requests
 
 - Branch from `main`, keep the change focused.

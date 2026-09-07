@@ -74,7 +74,6 @@ def _full_context_tokens(trace: Trace) -> int:
 
 def success_vs_tokens(traces: Iterable[Trace]) -> List[Tuple[int, Optional[bool]]]:
     """(tokens, success) per trace for the cross-run scatter."""
-    from .context import estimate_tokens
 
     out = []
     for trace in traces:

@@ -101,7 +101,7 @@ def test_fuzz_clean_success_traces_never_flag_verification_or_termination():
 @pytest.mark.parametrize("n_steps", [0, 1, 2])
 def test_tiny_traces_do_not_crash(n_steps):
     trace = Trace(task="minimal", success=False if n_steps == 0 else None)
-    for i in range(n_steps):
+    for _i in range(n_steps):
         trace.add(Step(kind=TOOL_CALL, tool="t", args={}, result="r"))
     report = attribute(trace)
     assert report.primary_mode.id in FAILURE_MODES
