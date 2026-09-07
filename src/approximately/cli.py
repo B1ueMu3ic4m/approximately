@@ -96,10 +96,10 @@ def cmd_replay(args: argparse.Namespace) -> int:
     store = TraceStore(args.store)
     trace = _load_trace(args.trace, store)
     executor = _resolve_executor(args.executor)
-    diff = replay(trace, executor)
+    diff = replay(trace, executor, threshold=args.threshold)
     if args.patched:
         patched = _resolve_executor(args.patched)
-        diff_b = replay(trace, patched)
+        diff_b = replay(trace, patched, threshold=args.threshold)
         print(compare(diff, diff_b))
         print("--- original:")
         print(diff.summary())
@@ -386,6 +386,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="executor as 'package.module:func' taking a Step")
     p.add_argument("--patched",
                    help="A/B: a second executor to compare against --executor")
+    p.add_argument("--threshold", type=float, default=0.85,
+                   help="step-result similarity floor (default 0.85)")
     p.set_defaults(func=cmd_replay)
 
     p = sub.add_parser("test", parents=[common],
