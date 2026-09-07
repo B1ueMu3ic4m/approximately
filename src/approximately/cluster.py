@@ -139,3 +139,41 @@ def store_stats(traces: Iterable[Trace]) -> StoreStats:
                 )
     stats.avg_steps = total_steps / stats.traces if stats.traces else 0.0
     return stats
+
+
+def trend(traces: Iterable[Trace], bucket_days: int = 7) -> List[dict]:
+    """Failure-rate history over time, oldest bucket first.
+
+    Buckets traces by creation date and reports the failure rate per
+    bucket — the "is the agent getting better or worse?" line.
+    """
+    rows = list(traces)
+    if not rows:
+        return []
+    import datetime
+
+    times = [t.created_at or 0 for t in rows]
+    start = min(times)
+    buckets: Dict[int, Dict[str, int]] = {}
+    for trace in rows:
+        age = ((trace.created_at or 0) - start) / 86400
+        bucket = int(age // bucket_days)
+        b = buckets.setdefault(bucket, {"total": 0, "failed": 0})
+        b["total"] += 1
+        if trace.success is False:
+            b["failed"] += 1
+    start_date = datetime.datetime.fromtimestamp(
+        start or 0, datetime.timezone.utc
+    )
+    out = []
+    for bucket in sorted(buckets):
+        b = buckets[bucket]
+        out.append({
+            "bucket_start": (start_date
+                             + datetime.timedelta(days=bucket * bucket_days)
+                             ).strftime("%Y-%m-%d"),
+            "total": b["total"],
+            "failed": b["failed"],
+            "failure_rate": round(b["failed"] / b["total"], 3),
+        })
+    return out
