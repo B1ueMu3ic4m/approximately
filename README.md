@@ -61,6 +61,7 @@ The failure taxonomy inside approximately comes straight from 2025–2026 resear
 ```bash
 pip install approximately
 approximately demo        # 30-second tour: a scripted agent that fails 3 classic ways
+approximately demo --scenario multi-agent   # researcher/writer crew: information withholding
 ```
 
 ```python

@@ -83,6 +83,21 @@ approximately/
     └── crewai.py       CrewAI event-bus adapter (defensive)
 ```
 
+```mermaid
+flowchart LR
+    A[Your agent\nany framework] -->|adapters / Recorder| B[Trace]
+    B --> C[Rule detectors\n14 MAST modes]
+    B --> D[LLM judge\noptional, local or API]
+    C --> E[FailureReport\nmode + step + evidence + fixes]
+    D --> E
+    B --> F[Context runtime\nbudget / pins / probes]
+    F --> G[Forecast + curves\nbudget vs recall]
+    E --> H[Replay +\nregression guards]
+    G --> H
+    E --> I[HTML postmortem\n+ index page]
+    H --> J[CI: failures never repeat]
+```
+
 ### 2.3 Attribution pipeline
 
 ```
