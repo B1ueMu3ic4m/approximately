@@ -42,8 +42,11 @@ class Recorder:
         model: str = "unknown",
         store: Optional[TraceStore] = None,
         save: bool = True,
+        step_limit: Optional[int] = None,
     ):
         self.trace = Trace(task=task, model=model)
+        if step_limit is not None:
+            self.trace.meta["step_limit"] = step_limit
         self.store = store
         self.save_on_exit = save
         self.saved_path = None

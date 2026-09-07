@@ -179,6 +179,13 @@ def cmd_taxonomy(_args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_clean(args: argparse.Namespace) -> int:
+    store = TraceStore(args.store)
+    removed = store.clean(keep_days=args.keep_days)
+    print(f"removed {removed} traces older than {args.keep_days} days")
+    return 0
+
+
 def cmd_stats(args: argparse.Namespace) -> int:
     from .cluster import store_stats
 
@@ -413,6 +420,12 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("new", help="scaffold an instrumented agent project")
     p.add_argument("name", help="project directory name")
     p.set_defaults(func=cmd_new)
+
+    p = sub.add_parser("clean", parents=[common],
+                       help="delete traces older than N days")
+    p.add_argument("--keep-days", type=int, default=30,
+                   help="keep traces newer than this many days (default 30)")
+    p.set_defaults(func=cmd_clean)
 
     p = sub.add_parser("stats", parents=[common],
                        help="one-glance store health numbers")
