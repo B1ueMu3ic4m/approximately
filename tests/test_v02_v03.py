@@ -209,6 +209,7 @@ def test_load_dataset_both_formats(tmp_path):
 
 def test_agents_sdk_generation_agent_handoff_spans():
     """Unit-test remaining span types with real span-data classes."""
+    pytest.importorskip("agents")
     from agents.tracing.span_data import (AgentSpanData, GenerationSpanData,
                                           HandoffSpanData)
 
