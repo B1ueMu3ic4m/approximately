@@ -119,7 +119,7 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | Capability | In one sentence | Command / API |
 |---|---|---|
 | 📼 Flight recorder | Zero-dependency recording of every agent step, any framework | `Recorder` / adapters |
-| 🔍 Failure attribution | Automatic MAST-mode + step localization with fixes | `approximately attribute` |
+| 🔍 Failure attribution | **All 14 MAST modes** covered by rule detectors, with fixes | `approximately attribute` |
 | 🔁 Step-level replay | Verify fixes without re-running the task | `approximately replay` |
 | 🧪 Regression guards | Failed runs become pytest tests that live in CI | `approximately test` |
 | 📉 Context budgeting | "Where does a shrinking budget start losing facts?" — guarded in CI | `approximately context` / `curve` |
@@ -161,7 +161,7 @@ Full design document: [docs/PLAN.md](docs/PLAN.md).
 
 ## Contributing
 
-Issues and PRs welcome. Good first issues: more framework adapters, rule detectors for the remaining multi-agent MAST modes (FM-2.2, FM-2.4, FM-2.5), an optional exact tokenizer for token counting.
+Issues and PRs welcome. Good first issues: more framework adapters, exact-tokenizer integrations beyond tiktoken, per-serving-stack judge-distillation recipes.
 
 ## Citation
 
