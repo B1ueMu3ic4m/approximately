@@ -284,20 +284,18 @@ def forecast(trace: Trace, budget: int,
     for step in trace.steps:
         runtime.advance()
         evicted_now: List[str] = []
+        seen_evictions = len(runtime.evictions)
         if step.kind == TOOL_CALL and step.result:
             key = f"{step.tool}#{step.index}"
             runtime.add_tool_result(key=key, text=step.result)
+        # only the evictions from THIS step (never rescan the whole list)
         evicted_now.extend(
-            event.item_key
-            for event in runtime.evictions
-            if event.at_step == runtime._step
+            event.item_key for event in runtime.evictions[seen_evictions:]
         )
         lost_now: list = []
         if evicted_now:
             # facts whose supporting item just left must re-prove themselves
-            for fact_key in facts:
-                if fact_key in evicted_now:
-                    pending.add(fact_key)
+            pending.update(facts.keys() & set(evicted_now))
             if pending:
                 rendered = _render()
                 for fact_key in sorted(pending):
