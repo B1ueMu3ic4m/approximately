@@ -199,39 +199,55 @@ class PrematureTerminationDetector:
         return None
 
 
-class MissingVerificationDetector:
-    """FM-3.2 — a mutating action is never followed by a verification step."""
+VERIFY_MARKERS = ("verify", "check", "confirm", "get_", "read", "fetch",
+                  "status")
 
-    VERIFY_MARKERS = ("verify", "check", "confirm", "get_", "read", "fetch", "status")
+
+def _is_verify_step(step: Step) -> bool:
+    if step.meta.get("verify"):
+        return True
+    return (step.kind == TOOL_CALL and bool(step.tool) and any(
+        m in step.tool.lower() for m in VERIFY_MARKERS
+    ))
+
+
+def _verify_positions(trace: Trace) -> list:
+    """Indices of verification steps, ascending (computed once per trace)."""
+    return [i for i, s in enumerate(trace.steps) if _is_verify_step(s)]
+
+
+class MissingVerificationDetector:
+    """FM-3.2 — a mutating action is never followed by a verification step.
+
+    O(n log n): verify positions are precomputed once, then each mutating
+    step does a single bisect lookup instead of a forward scan.
+    """
+
+    VERIFY_MARKERS = VERIFY_MARKERS
 
     def detect(self, trace: Trace) -> Optional[Detection]:
+        from bisect import bisect_right
+
+        positions = _verify_positions(trace)
         for i, step in enumerate(trace.steps):
             if step.kind != TOOL_CALL or step.error:
                 continue
             if not step.meta.get("mutating"):
                 continue
-            verified = False
-            for later in trace.steps[i + 1:]:
-                if later.meta.get("verify"):
-                    verified = True
-                    break
-                if later.kind == TOOL_CALL and later.tool and any(
-                    m in later.tool.lower() for m in self.VERIFY_MARKERS
-                ):
-                    verified = True
-                    break
-            if not verified:
-                return Detection(
-                    "FM-3.2",
-                    i,
-                    [
-                        f"mutating call: {step.short()} (meta.mutating=true)",
-                        "no verification step anywhere after it",
-                        "errors from mutating calls propagate silently to the final answer",
-                    ],
-                    0.7,
-                    source="rule:MissingVerificationDetector",
-                )
+            next_verify = bisect_right(positions, i)
+            if next_verify < len(positions):
+                continue  # a verification exists after this mutating call
+            return Detection(
+                "FM-3.2",
+                i,
+                [
+                    f"mutating call: {step.short()} (meta.mutating=true)",
+                    "no verification step anywhere after it",
+                    "errors from mutating calls propagate silently to the final answer",
+                ],
+                0.7,
+                source="rule:MissingVerificationDetector",
+            )
         return None
 
 
@@ -332,31 +348,31 @@ class WeakVerificationDetector:
     independent evidence."""
 
     def detect(self, trace: Trace) -> Optional[Detection]:
-        markers = MissingVerificationDetector.VERIFY_MARKERS
+        from bisect import bisect_right
+
+        positions = _verify_positions(trace)
         for i, step in enumerate(trace.steps):
             if step.kind != TOOL_CALL or step.error or not step.meta.get("mutating"):
                 continue
-            for later in trace.steps[i + 1:]:
-                is_verify = later.meta.get("verify") or (
-                    later.kind == TOOL_CALL and later.tool and any(
-                        m in later.tool.lower() for m in markers))
-                if not is_verify:
-                    continue
-                claimed = " ".join(step.result.split()).lower()
-                evidence = " ".join((later.error or later.result or "").split()).lower()
-                if claimed and evidence and claimed == evidence:
-                    return Detection(
-                        "FM-3.3",
-                        later.index,
-                        [
-                            f"verification step: {later.short()}",
-                            f"echoes the original claim verbatim: “{claimed[:60]}”",
-                            "no independent evidence was gathered — "
-                            "the verification proved nothing",
-                        ],
-                        0.6,
-                        source="rule:WeakVerificationDetector",
-                    )
+            next_verify = bisect_right(positions, i)
+            if next_verify >= len(positions):
+                continue  # no verification after this call: FM-3.2 territory
+            later = trace.steps[positions[next_verify]]
+            claimed = " ".join(step.result.split()).lower()
+            evidence = " ".join((later.error or later.result or "").split()).lower()
+            if claimed and evidence and claimed == evidence:
+                return Detection(
+                    "FM-3.3",
+                    later.index,
+                    [
+                        f"verification step: {later.short()}",
+                        f"echoes the original claim verbatim: “{claimed[:60]}”",
+                        "no independent evidence was gathered — "
+                        "the verification proved nothing",
+                    ],
+                    0.6,
+                    source="rule:WeakVerificationDetector",
+                )
         return None
 
 
