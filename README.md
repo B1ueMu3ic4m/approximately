@@ -184,13 +184,92 @@ distribution:
 
 ## Roadmap
 
-- **v0.2** — LangGraph / OpenAI Agents SDK / CrewAI adapters; judge distillation
-  to small local models; attribution benchmark on MAST-Data.
-- **v0.3** — cross-trace failure clustering ("your team's recidivist modes");
-  context-runtime integration with the regression guards (budget regressions);
-  token-cost vs success-rate curves from arXiv:2606.10209 as a first-class report.
+- **v0.3 (shipped)** — cross-trace failure clustering; budget regression guards;
+  token-cost vs recall/success curves (below).
+- **v0.2 (shipped)** — framework adapters (LangChain/LangGraph, OpenAI Agents
+  SDK, CrewAI); judge distillation to small local models; attribution
+  benchmark harness with a MAST-Data loader.
+- **next** — adapters for more frameworks on request; judge distillation
+  recipes per serving stack; MAST-Data leaderboard page.
 
 See [docs/PLAN.md](docs/PLAN.md) for the full design & launch plan.
+
+## Framework adapters (v0.2)
+
+One drop-in object, zero framework lock-in — recording happens through
+LangChain callbacks or Agents SDK tracing, and the postmortem is the same:
+
+```python
+# LangGraph / LangChain: add one handler to your callbacks
+from approximately.contrib.langgraph import ApproximatelyCallbackHandler
+
+handler = ApproximatelyCallbackHandler("book a flight")
+graph.invoke(inputs, config={"callbacks": [handler]})
+print(attribute(handler.recorder.trace).summary)
+```
+
+```python
+# OpenAI Agents SDK: add one tracing processor
+from approximately.contrib.agents_sdk import AgentsSDKProcessor
+from agents.tracing import add_trace_processor
+
+processor = AgentsSDKProcessor("research task")
+add_trace_processor(processor)
+# ... Runner.run(...) as usual
+```
+
+CrewAI is covered too (`approximately.contrib.crewai`), wired defensively to
+the event bus across releases.
+
+## Judge distillation & benchmark (v0.2)
+
+The full MAST prompt is ~5x too big for a 7B model to hold reliably, so the
+`local` preset strips it to ids + names — and `distill` emits training data
+in exactly that shape, labeled by the rule detectors (free) or a teacher
+model you trust:
+
+```bash
+approximately distill -o judge-sft.jsonl          # rules as labeler
+approximately distill --teacher gpt-4o-mini       # strong judge as labeler
+# fine-tune your 1-7B local model on the JSONL, then:
+APPROXIMATELY_JUDGE_MODEL=my-local-judge approximately attribute <trace> --judge
+```
+
+Score any predictor against a labeled dataset (per-mode precision/recall/F1):
+
+```bash
+approximately benchmark dataset.jsonl                  # rules
+approximately benchmark dataset.jsonl --judge          # judge model
+approximately benchmark mast-data.jsonl --format mast  # MAST-Data loader
+```
+
+## Cross-trace clustering (v0.3)
+
+One trace explains a run; a hundred traces expose what your agent
+*systematically* gets wrong:
+
+```bash
+approximately cluster
+# scanned 120 traces, 47 failures, 5 clusters
+# recidivist clusters (size >= 2):
+#   - FM-1.3 x18 via search_flights,book_hotel  e.g. book Paris under $400
+#   - FM-3.2 x6 via send_email                  e.g. notify the team
+```
+
+## Budget regressions & cost/recall curves (v0.3)
+
+Shrinking a context window is a behavioral change — treat it like one:
+
+```bash
+approximately test <trace> --budget 800 --min-recall 0.8
+# generates test_context_budget_recall: fails CI when the budget silently
+# drops facts this run needed
+approximately curve <trace>            # budget -> recall SVG report
+approximately curve <trace> --scatter  # overlay all runs colored by success
+```
+
+The curve replicates the arXiv:2606.10209 finding on your own data: pruning +
+pinning beats full context on both tokens and success.
 
 ## Contributing
 

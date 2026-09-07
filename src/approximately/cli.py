@@ -112,8 +112,10 @@ def cmd_test(args: argparse.Namespace) -> int:
     store = TraceStore(args.store)
     trace = _load_trace(args.trace, store)
     report = attribute(trace)
+    budget = args.budget if args.budget else None
     out = Path(args.output) if args.output else Path(f"test_approximately_{trace.id}.py")
-    out.write_text(render_regression(trace, report), encoding="utf-8")
+    out.write_text(render_regression(trace, report, budget=budget,
+                                     min_recall=args.min_recall), encoding="utf-8")
     print(f"wrote {out}")
     print("wire EXECUTOR (replay guard) and AGENT_ENTRY (contract guards), "
           "then run: pytest " + str(out))
@@ -154,6 +156,85 @@ def cmd_taxonomy(_args: argparse.Namespace) -> int:
                   f"({share}% of failures)")
         share = f" {mode.mast_share:5.2f}% of traces" if mode.mast_share else ""
         print(f"  {mode.id:<7} {mode.name}{share}")
+    return 0
+
+
+def cmd_cluster(args: argparse.Namespace) -> int:
+    from .cluster import cluster
+
+    store = TraceStore(args.store)
+    traces = store.list_traces()
+    if args.json:
+        report = cluster(traces)
+        payload = {
+            "traces_scanned": report.traces_scanned,
+            "failures_found": report.failures_found,
+            "clusters": [
+                {"mode_id": c.mode_id, "size": c.size, "tools": list(c.tools),
+                 "example_task": c.example_task}
+                for c in report.clusters
+            ],
+        }
+        print(json.dumps(payload, indent=2))
+        return 0
+    print(cluster(traces).summary(min_size=args.min_size))
+    return 0
+
+
+def cmd_curve(args: argparse.Namespace) -> int:
+    from .curve import budget_curve, render_curve_html, success_vs_tokens
+
+    store = TraceStore(args.store)
+    trace = _load_trace(args.trace, store)
+    curve = budget_curve(trace)
+    scatter = success_vs_tokens(store.list_traces()) if args.scatter else None
+    out = Path(args.output) if args.output else store.directory / f"{trace.id}.curve.html"
+    out.write_text(render_curve_html(curve, scatter), encoding="utf-8")
+    print(f"wrote {out}")
+    for p_ in curve.points:
+        print(f"  budget {p_.budget:>6} -> tokens {p_.tokens_used:>6}, "
+              f"recall {p_.recall:.0%}")
+    return 0
+
+
+def cmd_distill(args: argparse.Namespace) -> int:
+    from .distill import export_sft, rules_labeler, teacher_labeler
+
+    store = TraceStore(args.store)
+    traces = store.list_traces()
+    if args.teacher:
+        labeler = teacher_labeler(args.teacher)
+        source = f"teacher {args.teacher}"
+    else:
+        labeler = rules_labeler()
+        source = "rule detectors"
+    stats = export_sft(traces, Path(args.output), labeler)
+    print(f"labeled {stats['labeled']} traces via {source} "
+          f"({stats['skipped']} skipped, too unsure)")
+    for mode_id, count in sorted(stats["modes"].items()):
+        print(f"  {mode_id}: {count}")
+    print(f"training data: {args.output} "
+          f"(fine-tune, then APPROXIMATELY_JUDGE_MODEL=<model> "
+          f"approximately attribute <trace> --judge)")
+    return 0
+
+
+def cmd_benchmark(args: argparse.Namespace) -> int:
+    from .distill import evaluate, load_dataset, rules_labeler, teacher_labeler
+
+    labeled = load_dataset(Path(args.dataset), fmt=args.format)
+    if not labeled:
+        print("no labeled records found")
+        return 1
+    if args.judge:
+        labeler = teacher_labeler(args.judge_model or "gpt-4o-mini")
+        source = f"judge {args.judge_model or 'gpt-4o-mini'}"
+    else:
+        labeler = rules_labeler()
+        source = "rule detectors"
+    result = evaluate(labeled, labeler)
+    print(f"labeled {len(labeled)} traces · predictor: {source}")
+    print(result.summary())
     return 0
 
 
@@ -198,6 +279,11 @@ def build_parser() -> argparse.ArgumentParser:
                        help="generate a pytest regression file")
     p.add_argument("trace")
     p.add_argument("-o", "--output", help="output test path")
+    p.add_argument("--budget", type=int,
+                   help="also emit a context budget regression guard")
+    p.add_argument("--min-recall", type=float, default=0.8,
+                   help="required effective recall for the budget guard "
+                        "(default 0.8)")
     p.set_defaults(func=cmd_test)
 
     p = sub.add_parser("report", parents=[common],
@@ -215,6 +301,39 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--facts", help="JSON file mapping fact keys -> expected substrings "
                                    "(default: one fact per tool result)")
     p.set_defaults(func=cmd_context)
+
+    p = sub.add_parser("cluster", parents=[common],
+                       help="cross-trace failure clustering (recidivist modes)")
+    p.add_argument("--min-size", type=int, default=2,
+                   help="cluster size threshold for recidivists (default 2)")
+    p.add_argument("--json", action="store_true", help="emit JSON")
+    p.set_defaults(func=cmd_cluster)
+
+    p = sub.add_parser("curve", parents=[common],
+                       help="token budget vs effective recall curve (HTML+SVG)")
+    p.add_argument("trace")
+    p.add_argument("-o", "--output", help="output HTML path")
+    p.add_argument("--scatter", action="store_true",
+                   help="overlay all store traces colored by success")
+    p.set_defaults(func=cmd_curve)
+
+    p = sub.add_parser("distill", parents=[common],
+                       help="export SFT training data for a local judge model")
+    p.add_argument("-o", "--output", default="judge-sft.jsonl",
+                   help="output JSONL path (default judge-sft.jsonl)")
+    p.add_argument("--teacher", help="label with a strong judge model instead "
+                                     "of the rule detectors")
+    p.set_defaults(func=cmd_distill)
+
+    p = sub.add_parser("benchmark", parents=[common],
+                       help="evaluate attribution against a labeled dataset")
+    p.add_argument("dataset", help="JSONL dataset path")
+    p.add_argument("--format", choices=["approx", "mast"], default="approx",
+                   help="dataset format (default approx)")
+    p.add_argument("--judge", action="store_true", help="evaluate the LLM judge "
+                                                        "instead of rules")
+    p.add_argument("--judge-model", help="model for --judge")
+    p.set_defaults(func=cmd_benchmark)
 
     sub.add_parser("taxonomy", parents=[common],
                    help="print the MAST failure taxonomy").set_defaults(

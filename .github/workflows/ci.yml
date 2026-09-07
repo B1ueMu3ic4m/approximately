@@ -45,6 +45,20 @@ jobs:
       - name: Full suite (judge paths included)
         run: pytest -q
 
+  test-contrib:
+    # Framework adapters against the real packages (LangChain/LangGraph and
+    # OpenAI Agents SDK); CrewAI adapter is covered by graceful-skip tests.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install with contrib frameworks
+        run: pip install -e ".[dev,llm]" langchain-core openai-agents
+      - name: Adapter tests
+        run: pytest tests/test_v02_v03.py -v
+
   lint:
     runs-on: ubuntu-latest
     steps:

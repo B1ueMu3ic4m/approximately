@@ -129,12 +129,22 @@ Trace ──► 规则检测器组（每个 MAST 模式一个 detector，输出 
 - [x] 无 API key 的确定性演示 Agent（重复调用 + 无验证 + 过早终止三重失败）
 - [x] 单元测试全绿 + GitHub Actions CI
 
-### v0.2（发布后 2–4 周）
+### v0.2（已交付，0.2.0）
+- [x] 框架适配器：LangChain/LangGraph 回调处理器、OpenAI Agents SDK TracingProcessor、CrewAI 事件总线（防御式注册）
+- [x] 判官蒸馏：`local` 紧凑预设（提示缩短约 5 倍）+ `distill` SFT 导出（规则标注或教师模型标注）
+- [x] 归因基准：`benchmark` 命令（逐模式 P/R/F1、macro-F1）+ `approx`/`mast` 两种数据集加载器
+
+### v0.2（原计划，留档）
 - LangGraph / OpenAI Agents SDK / CrewAI 三个适配器（各 ~100 行）
 - 判官 prompt 蒸馏：小模型（本地 Qwen 级）跑归因，成本降一个量级
 - MAST-Data 公开轨迹上的归因基准页（对标 o1 F1=0.80，规则引擎能到多少就亮多少）
 
-### v0.3（1–2 月）
+### v0.3（已交付，同 0.2.0 发布）
+- [x] 跨轨迹失败聚类：`cluster` 命令（模式×工具集签名，惯犯聚类表）
+- [x] 预算回归守卫：`test --budget N --min-recall R`（预算即行为变更，进 CI）
+- [x] 成本-召回曲线：`curve` 命令（预算扫描 SVG 报告 + 全库成功率散点，arXiv:2606.10209 的复现视图）
+
+### v0.3（原计划，留档）
 - 失败聚类：跨轨迹统计团队级"惯犯模式"（对齐 MAST 的 41.77% 规格类问题）
 - 上下文运行时接口预留（压缩/逐出的忠实性探针——调研报告方向 #2 的合并位）
 - 与 pytest-github-annotation 集成，CI 里直接在 PR 上标失败步

@@ -28,8 +28,30 @@ Failure modes:
 {modes}
 """
 
+LOCAL_PROMPT = """You review LLM-agent runs and name the failure mode.
+Pick one id from this list:
 
-def _taxonomy_block() -> str:
+{modes}
+
+Answer with ONLY: {{"mode_id": "...", "step_index": <int>, "confidence": <0..1>}}
+"""
+
+# Presets for different judge models. "strong" gives the full taxonomy with
+# definitions (frontier models); "local" strips to ids and names, cutting the
+# prompt ~5x so 1-7B local models can hold it and answer reliably (this is
+# also the prompt shape the distill exporter emits training data for).
+PRESETS = {
+    "strong": SYSTEM_PROMPT,
+    "local": LOCAL_PROMPT,
+}
+
+
+def _taxonomy_block(compact: bool = False) -> str:
+    if compact:
+        return "\n".join(
+            f"- {m.id} {m.name}"
+            for m in all_modes() if m.id != OTHER
+        )
     lines = []
     for m in all_modes():
         if m.id == OTHER:
@@ -83,8 +105,13 @@ def judge_trace(
     model: Optional[str] = None,
     base_url: Optional[str] = None,
     api_key: Optional[str] = None,
+    preset: str = "strong",
 ) -> JudgeVerdict:
     """Ask an OpenAI-compatible model to classify the failure.
+
+    ``preset`` selects the prompt shape: ``"strong"`` (full taxonomy, for
+    frontier models) or ``"local"`` (compact ids-only prompt, for small
+    local models and for distillation data).
 
     Reads OPENAI_API_KEY / OPENAI_BASE_URL by default; ``model`` defaults to
     APPROXIMATELY_JUDGE_MODEL or "gpt-4o-mini".
@@ -105,12 +132,18 @@ def judge_trace(
             "APPROXIMATELY_JUDGE_MODEL", "gpt-4o-mini"
         )
 
+        template = PRESETS.get(preset)
+        if template is None:
+            raise JudgeError(f"unknown preset {preset!r}; "
+                             f"expected one of {sorted(PRESETS)}")
         response = client.chat.completions.create(
             model=chosen_model,
             messages=[
                 {
                     "role": "system",
-                    "content": SYSTEM_PROMPT.replace("{modes}", _taxonomy_block()),
+                    "content": template.replace(
+                        "{modes}", _taxonomy_block(compact=(preset == "local"))
+                    ),
                 },
                 {
                     "role": "user",
