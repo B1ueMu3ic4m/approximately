@@ -20,12 +20,15 @@ def test_scaffold_creates_expected_files(tmp_path):
 def test_scaffolded_agent_compiles_and_runs(tmp_path):
     target = scaffold("ag", base=tmp_path)
     compile((target / "agent.py").read_text(encoding="utf-8"), "agent.py", "exec")
+    import os
+
+    env = dict(os.environ,
+               HOME=str(tmp_path), USERPROFILE=str(tmp_path),
+               PYTHONPATH=str(Path(__file__).resolve().parents[1] / "src"),
+               APPROXIMATELY_HOME=str(tmp_path / "traces"))
     result = subprocess.run(
         [sys.executable, str(target / "agent.py")],
-        capture_output=True, text=True, timeout=60,
-        env={"PATH": "/usr/bin:/bin", "HOME": str(tmp_path),
-             "PYTHONPATH": str(Path(__file__).resolve().parents[1] / "src"),
-             "APPROXIMATELY_HOME": str(tmp_path / "traces")},
+        capture_output=True, text=True, timeout=60, env=env,
     )
     assert result.returncode == 0, result.stderr
     assert "report:" in result.stdout
