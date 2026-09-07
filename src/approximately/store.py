@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import time
 from pathlib import Path
 from typing import List, Optional
 
@@ -49,6 +48,3 @@ class TraceStore:
         candidate = self.directory / f"{trace_id}.json"
         return candidate if candidate.is_file() else None
 
-
-def new_trace_id() -> str:
-    return f"t{int(time.time() * 1000):x}"

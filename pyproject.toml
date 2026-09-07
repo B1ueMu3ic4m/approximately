@@ -43,5 +43,8 @@ Issues = "https://github.com/B1ueMu3ic4m/approximately/issues"
 [tool.hatch.build.targets.wheel]
 packages = ["src/approximately"]
 
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "docs", "README.md", "CHANGELOG.md", "LICENSE"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
