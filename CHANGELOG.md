@@ -21,6 +21,8 @@
 - `approximately replay --patched`: A/B comparison summaries
 - Optional exact token counting (APPROXIMATELY_EXACT_TOKENS=1 + tiktoken)
 - PyPI publishing workflow (Trusted Publishing on v* tags)
+- Community: PR/issue templates, CI-integration guide
+    (docs/ci-integration.md), `replay --threshold`
 - `approximately new <name>`: scaffold an instrumented agent project
   (recorder wired, guards included, runnable in seconds)
 - `approximately stats [--json]`: store health at a glance
