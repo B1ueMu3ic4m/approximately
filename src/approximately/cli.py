@@ -192,6 +192,18 @@ def cmd_stats(args: argparse.Namespace) -> int:
     store = TraceStore(args.store)
     traces = store.list_traces()
     stats = store_stats(traces)
+    if args.trend:
+        from .cluster import trend
+
+        buckets = trend(store.list_traces(),
+                        bucket_days=args.trend_bucket_days)
+        if args.json:
+            print(json.dumps(buckets, indent=2))
+            return 0
+        for b in buckets:
+            print(f"  {b['bucket_start']}: {b['total']} runs, "
+                  f"{b['failed']} failed ({b['failure_rate']:.0%})")
+        return 0
     if args.json:
         print(json.dumps({
             "traces": stats.traces,
@@ -431,6 +443,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("stats", parents=[common],
                        help="one-glance store health numbers")
+    p.add_argument("--trend", action="store_true",
+                   help="failure-rate history over time instead of totals")
+    p.add_argument("--trend-bucket-days", type=int, default=7,
+                   help="trend bucket size in days (default 7)")
     p.add_argument("--json", action="store_true", help="emit JSON")
     p.set_defaults(func=cmd_stats)
 

@@ -65,3 +65,24 @@ def test_cli_curve_custom_budgets(demo_store, tmp_path, capsys):
     out = capsys.readouterr().out
     assert code == 0
     assert "50 ->" in out and "5000 ->" in out
+
+
+def test_cli_stats_trend(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("APPROXIMATELY_HOME", str(tmp_path / "traces"))
+    from approximately.cli import main
+
+    main(["demo"])
+    # backdate the trace 8 days so it lands in the previous bucket
+    import os
+    import time
+
+    trace_file = next((tmp_path / "traces").glob("*.json"))
+    past = time.time() - 8 * 86400
+    os.utime(trace_file, (past, past))
+    trace_file2 = next((tmp_path / "traces").glob("*.report.html"))
+    os.utime(trace_file2, (past, past))
+
+    code = main(["stats", "--trend", "--trend-bucket-days", "7"])
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "1 runs, 1 failed (100%)" in out
