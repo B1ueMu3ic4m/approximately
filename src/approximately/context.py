@@ -240,27 +240,52 @@ def forecast(trace: Trace, budget: int,
     """Replay a recorded trace through a budgeted runtime (dry run).
 
     Every tool result is added in order; the budget is enforced after each
-    add; the probe runs after every eviction round. Nothing mutates the
-    trace — this is a what-if over the recording.
+    add. Facts can only be *lost* when an eviction happens, so the probe
+    runs incrementally: aligned facts (keys that name the item they came
+    from) are re-verified only on eviction batches, which keeps forecasting
+    large traces linear-ish instead of O(steps x facts). The final probe is
+    always computed exactly. Nothing mutates the trace.
     """
     facts = facts if facts is not None else default_facts(trace)
     runtime = ContextRuntime(budget=budget, task=trace.task)
     out = ContextForecast(trace_id=trace.id, budget=budget, facts=dict(facts))
 
+    lost: set = set()
+    pending: set = set()  # aligned facts whose item was evicted: re-verify
+    live_item_keys = {i.key for i in runtime.items}
+
+    def _render() -> str:
+        return "\n".join(i.render() for i in runtime.items)
+
     for step in trace.steps:
         runtime.advance()
+        evicted_now = []
         if step.kind == TOOL_CALL and step.result:
-            runtime.add_tool_result(key=f"{step.tool}#{step.index}",
-                                    text=step.result)
-        # after each step, check which probe facts are still around
-        probe = runtime.recall_probe(facts)
-        evicted_now = [e.item_key for e in runtime.evictions
-                       if e.at_step == runtime._step]
-        lost_now = [k for k in probe.lost]
+            key = f"{step.tool}#{step.index}"
+            runtime.add_tool_result(key=key, text=step.result)
+            live_item_keys.add(key)
+        for event in runtime.evictions:
+            if event.at_step == runtime._step:
+                evicted_now.append(event.item_key)
+                live_item_keys.discard(event.item_key)
+        lost_now: list = []
+        if evicted_now:
+            # facts whose supporting item just left must re-prove themselves
+            for fact_key in facts:
+                if fact_key in evicted_now:
+                    pending.add(fact_key)
+            if pending:
+                rendered = _render()
+                for fact_key in sorted(pending):
+                    if facts[fact_key] not in rendered:
+                        lost.add(fact_key)
+                        lost_now.append(fact_key)
+                pending -= lost
         out.steps.append(
             StepForecast(step_index=step.index, tool=step.tool or step.kind,
                          tokens_used=runtime.used_tokens(),
-                         evicted_keys=evicted_now, lost_facts=lost_now)
+                         evicted_keys=evicted_now,
+                         lost_facts=lost_now)
         )
 
     out.final_probe = runtime.recall_probe(facts)

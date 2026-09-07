@@ -44,10 +44,10 @@ class TraceStore:
 
     def _resolve(self, trace_id: str) -> Optional[Path]:
         path = Path(trace_id)
-        if path.exists():
+        if path.is_file():
             return path
         candidate = self.directory / f"{trace_id}.json"
-        return candidate if candidate.exists() else None
+        return candidate if candidate.is_file() else None
 
 
 def new_trace_id() -> str:

@@ -47,15 +47,17 @@ class Recorder:
         self.store = store
         self.save_on_exit = save
         self.saved_path = None
+        self._previous = None
         self._t0 = time.perf_counter()
 
     # -- context management -------------------------------------------------
     def __enter__(self) -> "Recorder":
+        self._previous = getattr(_local, "recorder", None)
         _local.recorder = self
         return self
 
     def __exit__(self, exc_type, exc, tb) -> bool:
-        _local.recorder = None
+        _local.recorder = self._previous
         if exc_type is not None:
             self.trace.add(
                 Step(
