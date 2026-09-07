@@ -1,0 +1,45 @@
+"""Tests for the stats command and attribute --all batch mode."""
+
+from __future__ import annotations
+
+import json
+
+from approximately.cli import main
+from approximately.cluster import store_stats
+from approximately.trace import Step, Trace
+
+
+def test_store_stats_summary(failing_trace, clean_trace):
+    stats = store_stats([failing_trace, clean_trace])
+    assert stats.traces == 2
+    assert stats.failures == 1
+    assert stats.failure_rate == 0.5
+    assert stats.mode_counts == {"FM-1.3": 1}
+    assert "failure rate 50%" in stats.summary()
+    assert "top failure modes" in stats.summary()
+
+
+def test_store_stats_empty():
+    stats = store_stats([])
+    assert stats.traces == 0 and stats.failure_rate == 0.0
+    assert "0 traces" in stats.summary()
+
+
+def test_cli_stats_json(demo_store, capsys):
+    directory, _ = demo_store
+    code = main(["stats", "--store", directory, "--json"])
+    payload = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert payload["traces"] == 1
+    assert payload["failures"] == 1
+    assert payload["modes"] == {"FM-1.3": 1}
+
+
+def test_cli_attribute_all_json(demo_store, capsys):
+    directory, _ = demo_store
+    code = main(["attribute", "--all", "--store", directory, "--json"])
+    results = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert len(results) == 1
+    assert results[0]["primary_mode"] == "FM-1.3"
+    assert results[0]["trace"]["steps"] == 6

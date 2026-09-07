@@ -96,3 +96,46 @@ def cluster(traces: Iterable[Trace], use_judge: bool = False) -> ClusterReport:
 
     report.clusters = sorted(by_key.values(), key=lambda c: -c.size)
     return report
+
+
+@dataclass
+class StoreStats:
+    traces: int = 0
+    failures: int = 0
+    mode_counts: Dict[str, int] = field(default_factory=dict)
+    avg_steps: float = 0.0
+
+    @property
+    def failure_rate(self) -> float:
+        return self.failures / self.traces if self.traces else 0.0
+
+    def summary(self) -> str:
+        lines = [
+            f"{self.traces} traces · {self.failures} failures "
+            f"(failure rate {self.failure_rate:.0%}) · "
+            f"avg {self.avg_steps:.1f} steps"
+        ]
+        if self.mode_counts:
+            lines.append("top failure modes:")
+            for mode_id, count in sorted(self.mode_counts.items(),
+                                         key=lambda kv: -kv[1])[:5]:
+                lines.append(f"  {mode_id:<7} x{count}")
+        return "\n".join(lines)
+
+
+def store_stats(traces: Iterable[Trace]) -> StoreStats:
+    """One-glance health numbers for a store (single attribution pass)."""
+    stats = StoreStats()
+    total_steps = 0
+    for trace in traces:
+        stats.traces += 1
+        total_steps += len(trace.steps)
+        if trace.success is False:
+            stats.failures += 1
+            report = attribute(trace)
+            if report.primary_mode.id != OTHER:
+                stats.mode_counts[report.primary_mode.id] = (
+                    stats.mode_counts.get(report.primary_mode.id, 0) + 1
+                )
+    stats.avg_steps = total_steps / stats.traces if stats.traces else 0.0
+    return stats
