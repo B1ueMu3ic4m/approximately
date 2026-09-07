@@ -95,3 +95,83 @@ def test_forecast_performance_5k_steps():
     elapsed = time.perf_counter() - start
     assert fc.evicted_count > 0
     assert elapsed < 5.0, f"forecast took {elapsed:.2f}s"
+
+
+# ---- detector quality floor -------------------------------------------------
+#
+# Guards the *quality* of attribution, not just its absence of crashes: the
+# rule engine must keep scoring perfectly on this hand-built labeled set.
+# If a future change regresses a detector, this fails before users do.
+
+
+def _labeled_quality_set():
+    from approximately.recorder import Recorder
+
+    labeled = []
+
+    # FM-1.3: repeated search
+    with Recorder("find flight", save=False) as rec:
+        rec.plan("search")
+        for _ in range(3):
+            rec.tool("search", {"q": "SFO"}, result="JT-044")
+        rec.respond("done", success=False)
+    labeled.append((rec.trace, "FM-1.3"))
+
+    # FM-2.1: conversation reset (success run so FM-3.1 stays silent)
+    with Recorder("clarify the order", save=False) as rec:
+        rec.plan("clarify the order")
+        rec.tool("search", {}, result="ok")
+        rec.plan("clarify the order")
+        rec.respond("restarted cleanly", success=True)
+    labeled.append((rec.trace, "FM-2.1"))
+
+    # FM-3.2: mutating without verification, verified success run
+    with Recorder("update record", save=False) as rec:
+        rec.tool("update_record", {}, result="updated", mutating=True)
+        rec.tool("get_record", {}, result="updated row", meta={"verify": True})
+        rec.respond("done", success=True)
+    labeled.append((rec.trace, "OTHER"))
+
+    # FM-3.1: ends on error with no repair
+    with Recorder("flaky pipeline", save=False) as rec:
+        rec.tool("step_a", {}, result="ok")
+        rec.tool("step_b", {}, error="ConnectionError: reset")
+        rec.fail("ConnectionError: reset")
+    labeled.append((rec.trace, "FM-3.1"))
+
+    # FM-1.1: forbidden tool usage
+    with Recorder("read-only audit", save=False,
+                  ) as rec:
+        rec.trace.meta["forbidden_tools"] = ["delete_row"]
+        rec.tool("read_table", {}, result="rows")
+        rec.tool("delete_row", {"id": 5}, result="deleted")
+        rec.fail("deleted too much")
+    labeled.append((rec.trace, "FM-1.1"))
+
+    return labeled
+
+
+def test_rule_engine_quality_floor():
+    from approximately.attributor import attribute
+
+    for trace, gold in _labeled_quality_set():
+        report = attribute(trace)
+        assert report.primary_mode.id == gold, (
+            f"{trace.task}: expected {gold}, got {report.primary_mode.id}"
+        )
+
+
+def test_stress_20k_steps_attribution_and_forecast():
+    trace = _long_trace(20000)
+    import time
+
+    from approximately.context import default_facts, forecast
+
+    start = time.perf_counter()
+    report = attribute(trace)
+    mid = time.perf_counter()
+    fc = forecast(trace, budget=4000, facts=default_facts(trace))
+    elapsed = time.perf_counter() - start
+    assert report.primary_mode.id in ("FM-3.1", "FM-3.2")
+    assert fc.evicted_count > 0
+    assert elapsed < 15.0, f"20k-step attribution+forecast took {elapsed:.1f}s"
