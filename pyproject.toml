@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "approximately"
+version = "0.1.0"
+description = "Approximate memory, exact accountability: a context runtime (budgeted windows, pins, recall probes) plus a flight recorder (MAST failure attribution, replay, regression tests) for AI agents."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.9"
+authors = [{ name = "Approximately contributors" }]
+keywords = ["llm", "agents", "context-engineering", "debugging", "observability", "failure-analysis", "mast", "replay", "testing", "memory"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Debuggers",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = []
+
+[project.optional-dependencies]
+llm = ["openai>=1.0"]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+approximately = "approximately.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/B1ueMu3ic4m/approximately"
+Documentation = "https://github.com/B1ueMu3ic4m/approximately/tree/main/docs"
+Issues = "https://github.com/B1ueMu3ic4m/approximately/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/approximately"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
