@@ -58,6 +58,10 @@ class TraceStore:
 
     def _resolve(self, trace_id: str) -> Optional[Path]:
         path = Path(trace_id)
+        # block traversal: an id may name an explicit .json file, but never
+        # may it climb out of the caller's intent via parent segments
+        if ".." in path.parts:
+            return None
         if path.is_file():
             return path
         candidate = self.directory / f"{trace_id}.json"

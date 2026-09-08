@@ -133,3 +133,8 @@ def test_store_clean_removes_only_old_traces(store, failing_trace):
     assert removed == 1
     assert not old.exists()
     assert store.load(failing_trace.id) is not None
+
+
+def test_store_blocks_path_traversal(store):
+    assert store.load("../../etc/passwd") is None
+    assert store.load("..\\..\\windows\\system32\\config") is None

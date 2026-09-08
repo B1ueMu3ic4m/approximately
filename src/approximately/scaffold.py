@@ -6,6 +6,7 @@ and a regression test — so the 30-second demo becomes *your* 30 seconds.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 AGENT_TEMPLATE = '''"""A tiny booking agent instrumented with approximately.
@@ -107,8 +108,15 @@ postmortems keep working unchanged.
 """
 
 
+_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
+
+
 def scaffold(name: str, base: Path = Path(".")) -> Path:
     """Create ./<name>/ with an instrumented agent, guards, and a README."""
+    if not _NAME_RE.match(name) or ".." in name:
+        raise ValueError(
+            f"invalid project name {name!r}: use letters, digits, '.', '_' '-'"
+        )
     target = base / name
     target.mkdir(parents=True, exist_ok=True)
     (target / "agent.py").write_text(
