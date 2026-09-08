@@ -393,7 +393,7 @@ class SpecViolationDetector:
                         f"task spec forbids tools: {', '.join(forbidden)}",
                         f"used anyway: {step.short()}",
                     ],
-                    0.9,
+                    1.0,  # hard constraint check: conclusive given the declared spec
                     source="rule:SpecViolationDetector",
                 )
         return None

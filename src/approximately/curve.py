@@ -17,7 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Iterable, List, Optional, Tuple
 
-from .context import default_facts, forecast
+from .context import default_facts, forecast, full_context_tokens
 from .trace import Trace
 
 
@@ -48,7 +48,7 @@ def budget_curve(trace: Trace, budgets: Optional[List[int]] = None,
                  steps: int = 8) -> BudgetCurve:
     """Sweep ``budgets`` (default: geometric grid over the run's full size)."""
     facts = default_facts(trace)
-    full = _full_context_tokens(trace)
+    full = full_context_tokens(trace)
     if budgets is None:
         budgets = sorted({
             max(1, int(full * f))
@@ -65,11 +65,7 @@ def budget_curve(trace: Trace, budgets: Optional[List[int]] = None,
     return curve
 
 
-def _full_context_tokens(trace: Trace) -> int:
-    from .context import estimate_tokens
 
-    total = sum(estimate_tokens(s.result) + 8 for s in trace.steps if s.result)
-    return total + estimate_tokens(trace.task)
 
 
 def success_vs_tokens(traces: Iterable[Trace]) -> List[Tuple[int, Optional[bool]]]:
@@ -77,7 +73,7 @@ def success_vs_tokens(traces: Iterable[Trace]) -> List[Tuple[int, Optional[bool]
 
     out = []
     for trace in traces:
-        tokens = _full_context_tokens(trace)
+        tokens = full_context_tokens(trace)
         for step in trace.steps:  # count llm-side cost too, if recorded
             tokens += step.tokens
         out.append((tokens, trace.success))

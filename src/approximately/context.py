@@ -52,6 +52,13 @@ def estimate_tokens(text: str) -> int:
     return max(1, len(text) // 4)
 
 
+def full_context_tokens(trace) -> int:
+    """Total tokens of the trace rendered in full."""
+    total = sum(estimate_tokens(s.result) + 8
+                for s in trace.steps if s.result)
+    return total + estimate_tokens(trace.task)
+
+
 # Context item classes, in eviction priority order (first = evicted first).
 TOOL_RESULT = "tool_result"
 OBSERVATION = "observation"
@@ -320,3 +327,75 @@ def forecast(trace: Trace, budget: int,
 
 def render_forecast_text(forecast: ContextForecast) -> str:
     return forecast.summary()
+
+
+# ---- minimal-budget optimizer (binary search over the recall monotone) ------
+#
+# Recall is monotonically non-decreasing in budget (a superset never loses
+# facts), which makes the "smallest budget that keeps recall >= target"
+# problem a binary search instead of a sweep: O(log full) forecasts instead
+# of O(full / granularity).
+
+
+@dataclass
+class OptimizeResult:
+    minimal_budget: int
+    full_budget: int
+    recall: float
+    tokens_used: int
+    probes: int
+    lost_facts: List[str] = field(default_factory=list)
+
+    @property
+    def tokens_saved(self) -> int:
+        return max(0, self.full_budget - self.minimal_budget)
+
+    def summary(self) -> str:
+        return (
+            f"minimal budget {self.minimal_budget} tokens "
+            f"(full context {self.full_budget}) keeps recall "
+            f"{self.recall:.0%} — saves {self.tokens_saved} tokens/run "
+            f"({self.probes} probes)"
+        )
+
+
+def optimize_budget(trace: Trace, min_recall: float = 1.0,
+                    low: int = 1) -> Optional[OptimizeResult]:
+    """Binary-search the smallest budget whose effective recall >= target.
+
+    ``min_recall=1.0`` finds the tightest lossless budget. Returns None when
+    the trace has no probe facts (nothing to preserve).
+    """
+    facts = default_facts(trace)
+    if not facts:
+        return None
+    full = full_context_tokens(trace)
+
+    def recall_at(budget: int) -> float:
+        fc = forecast(trace, budget=budget, facts=facts)
+        return fc.final_probe.recall
+
+    probes = 0
+    lo, hi = max(1, low), full
+    # invariant: hi always achieves the target, lo never does
+    if recall_at(hi) < min_recall:
+        return OptimizeResult(minimal_budget=hi, full_budget=full,
+                              recall=recall_at(hi), tokens_used=hi,
+                              probes=probes + 1,
+                              lost_facts=[])
+    probes += 1
+    best = hi
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        probes += 1
+        if recall_at(mid) >= min_recall:
+            best = mid
+            hi = mid - 1
+        else:
+            lo = mid + 1
+    fc = forecast(trace, budget=best, facts=facts)
+    probes += 1
+    return OptimizeResult(minimal_budget=best, full_budget=full,
+                          recall=fc.final_probe.recall,
+                          tokens_used=fc.budgeted_tokens, probes=probes,
+                          lost_facts=list(fc.final_probe.lost))

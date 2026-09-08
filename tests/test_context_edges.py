@@ -106,3 +106,50 @@ def test_exact_token_counting_with_tiktoken(monkeypatch):
     finally:
         monkeypatch.delenv("APPROXIMATELY_EXACT_TOKENS")
         importlib.reload(context)
+
+
+# ---- minimal-budget optimizer ------------------------------------------------
+
+def test_optimize_finds_lossless_minimum(failing_trace):
+    from approximately.context import default_facts, forecast, optimize_budget
+
+    result = optimize_budget(failing_trace, min_recall=1.0)
+    assert result is not None
+    # the found budget must actually achieve the target recall
+    check = forecast(failing_trace, budget=result.minimal_budget,
+                     facts=default_facts(failing_trace))
+    assert check.final_probe.recall == pytest.approx(1.0)
+    # and one token less must NOT (that's what makes it minimal)
+    tighter = forecast(failing_trace, budget=result.minimal_budget - 1,
+                       facts=default_facts(failing_trace))
+    assert tighter.final_probe.recall < 1.0
+    assert result.tokens_saved > 0
+    assert result.probes <= 12  # binary search: log2(full) probes, not a sweep
+
+
+def test_optimize_relaxed_target_saves_more(failing_trace):
+    from approximately.context import optimize_budget
+
+    strict = optimize_budget(failing_trace, min_recall=1.0)
+    loose = optimize_budget(failing_trace, min_recall=0.5)
+    assert loose.minimal_budget <= strict.minimal_budget
+
+
+def test_optimize_no_facts_returns_none():
+    from approximately.context import optimize_budget
+    from approximately.recorder import Recorder
+
+    with Recorder("plan only", save=False) as rec:
+        rec.plan("just think")
+    assert optimize_budget(rec.trace, min_recall=1.0) is None
+
+
+def test_cli_optimize(demo_store, capsys):
+    directory, trace_id = demo_store
+    from approximately.cli import main
+
+    code = main(["optimize", trace_id, "--store", directory,
+                 "--min-recall", "0.5"])
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "minimal budget" in out and "saves" in out

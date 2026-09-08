@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.2 — 2026-09-08
+
+- **Bayesian evidence fusion**: detections are scored as
+  `log(prior_odds) + Σ log-likelihood-ratio(confidence)` with MAST base
+  rates as priors (add-one smoothed). Independent weak evidence now
+  accumulates; strong evidence beats a common-mode prior; a 0.9-confidence
+  rare-mode detection honestly loses to a 0.8 common-mode one (correct
+  base-rate correction, tested).
+- **`approximately optimize <trace>`**: binary-searches the smallest
+  context budget that keeps effective recall ≥ target (20k-step traces:
+  ~10 probes instead of a full sweep).
+- Untrusted trace JSON parsing hardened: malformed records raise
+  ValueError (store warns and skips) instead of leaking
+  AttributeError/TypeError; 60+ fuzz payloads pin the contract.
+
 ## 0.3.1 — 2026-09-08
 
 - **Tamper-evident evidence chains**: every saved trace carries a per-step
