@@ -103,7 +103,7 @@ class NoTerminationDetector:
             if step.kind != TOOL_CALL or step.error:
                 continue
             by_fp.setdefault(step.fingerprint(), []).append(step.index)
-        for fp, indexes in by_fp.items():
+        for indexes in by_fp.values():
             if (len(indexes) >= self.min_recurrences
                     and indexes[-1] - indexes[0] > self.long_range_span):
                 return Detection(
@@ -111,8 +111,9 @@ class NoTerminationDetector:
                     indexes[-1],
                     [
                         f"same action executed at steps {indexes}",
-                        f"spread of {indexes[-1] - indexes[0]} steps exceeds the "
-                        f"local repeat window — a loop the agent never concluded",
+                        (f"spread of {indexes[-1] - indexes[0]} steps exceeds "
+                        "the local repeat window — a loop the agent never "
+                        "concluded"),
                         "the task was already satisfiable at the first occurrence",
                     ],
                     0.65,
@@ -130,8 +131,8 @@ class NoTerminationDetector:
             "FM-1.5",
             trace.steps[-1].index,
             [
-                f"step limit {step_limit} reached while still "
-                f"{trace.steps[-1].kind}",
+                (f"step limit {step_limit} reached while still "
+                f"{trace.steps[-1].kind}"),
                 "the run never reached a termination decision",
             ],
             0.6,
