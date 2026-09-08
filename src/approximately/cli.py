@@ -180,6 +180,20 @@ def cmd_taxonomy(_args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_optimize(args: argparse.Namespace) -> int:
+    from .context import optimize_budget
+
+    store = TraceStore(args.store)
+    trace = _load_trace(args.trace, store)
+    result = optimize_budget(trace, min_recall=args.min_recall)
+    if result is None:
+        print("no probe facts in this trace — nothing to optimize")
+        return 1
+    print(result.summary())
+    print(f"  set Recorder budget to {result.minimal_budget} to lock it in")
+    return 0
+
+
 def cmd_verify(args: argparse.Namespace) -> int:
     from .integrity import load_key, verify
 
@@ -460,6 +474,14 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("new", help="scaffold an instrumented agent project")
     p.add_argument("name", help="project directory name")
     p.set_defaults(func=cmd_new)
+
+    p = sub.add_parser("optimize", parents=[common],
+                       help="binary-search the smallest context budget "
+                            "that keeps recall >= target")
+    p.add_argument("trace")
+    p.add_argument("--min-recall", type=float, default=1.0,
+                   help="required effective recall (default 1.0)")
+    p.set_defaults(func=cmd_optimize)
 
     p = sub.add_parser("verify", parents=[common],
                        help="verify the tamper-evident hash chain of a trace")
