@@ -194,6 +194,35 @@ def cmd_optimize(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_similar(args: argparse.Namespace) -> int:
+    from .align import rank_similar
+
+    store = TraceStore(args.store)
+    trace = _load_trace(args.trace, store)
+    ranked = rank_similar(trace, store.list_traces(), top=args.top)
+    if not ranked:
+        print("no other traces in the store to compare against")
+        return 0
+    print(f"most alignment-similar traces to {trace.id}:")
+    for candidate, score in ranked:
+        print(f"  {score:.2f}  {candidate.id}  {candidate.task[:56]}")
+    return 0
+
+
+def cmd_predict(args: argparse.Namespace) -> int:
+    from .precursor import PrecursorModel
+
+    store = TraceStore(args.store)
+    trace = _load_trace(args.trace, store)
+    model = PrecursorModel()
+    for t in store.list_traces():
+        if t.id != trace.id:
+            model.observe(t)
+    score = model.probability(trace)
+    print(score.summary())
+    return 0
+
+
 def cmd_verify(args: argparse.Namespace) -> int:
     from .integrity import load_key, verify
 
@@ -474,6 +503,19 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("new", help="scaffold an instrumented agent project")
     p.add_argument("name", help="project directory name")
     p.set_defaults(func=cmd_new)
+
+    p = sub.add_parser("similar", parents=[common],
+                       help="rank store traces by alignment similarity "
+                            "to a trace")
+    p.add_argument("trace")
+    p.add_argument("--top", type=int, default=5)
+    p.set_defaults(func=cmd_similar)
+
+    p = sub.add_parser("predict", parents=[common],
+                       help="failure-probability early warning from "
+                            "store history")
+    p.add_argument("trace")
+    p.set_defaults(func=cmd_predict)
 
     p = sub.add_parser("optimize", parents=[common],
                        help="binary-search the smallest context budget "
