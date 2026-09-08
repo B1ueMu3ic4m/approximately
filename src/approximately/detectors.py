@@ -92,12 +92,18 @@ class NoTerminationDetector:
     long_range_span = 6  # beyond RepeatDetector's window
 
     def detect(self, trace: Trace) -> Optional[Detection]:
+        loop = self._long_range_loop(trace)
+        if loop is not None:
+            return loop
+        return self._budget_exhausted(trace)
+
+    def _long_range_loop(self, trace: Trace) -> Optional[Detection]:
         by_fp: dict = {}
         for step in trace.steps:
-            if step.kind == TOOL_CALL and not step.error:
-                by_fp.setdefault(step.fingerprint(), []).append(step.index)
-
-        for indexes in by_fp.values():
+            if step.kind != TOOL_CALL or step.error:
+                continue
+            by_fp.setdefault(step.fingerprint(), []).append(step.index)
+        for fp, indexes in by_fp.items():
             if (len(indexes) >= self.min_recurrences
                     and indexes[-1] - indexes[0] > self.long_range_span):
                 return Detection(
@@ -105,29 +111,32 @@ class NoTerminationDetector:
                     indexes[-1],
                     [
                         f"same action executed at steps {indexes}",
-                        (f"spread of {indexes[-1] - indexes[0]} steps exceeds the "
-                        f"local repeat window — a loop the agent never concluded"),
+                        f"spread of {indexes[-1] - indexes[0]} steps exceeds the "
+                        f"local repeat window — a loop the agent never concluded",
                         "the task was already satisfiable at the first occurrence",
                     ],
                     0.65,
                     source="rule:NoTerminationDetector",
                 )
-
-        step_limit = trace.meta.get("step_limit")
-        if (isinstance(step_limit, int) and len(trace.steps) >= step_limit
-                and trace.steps and trace.steps[-1].kind != RESPONSE):
-            return Detection(
-                "FM-1.5",
-                trace.steps[-1].index,
-                [
-                    (f"step limit {step_limit} reached while still "
-                    f"{trace.steps[-1].kind}"),
-                    "the run never reached a termination decision",
-                ],
-                0.6,
-                source="rule:NoTerminationDetector",
-            )
         return None
+
+    def _budget_exhausted(self, trace: Trace) -> Optional[Detection]:
+        step_limit = trace.meta.get("step_limit")
+        if not (isinstance(step_limit, int) and len(trace.steps) >= step_limit):
+            return None
+        if not trace.steps or trace.steps[-1].kind == RESPONSE:
+            return None
+        return Detection(
+            "FM-1.5",
+            trace.steps[-1].index,
+            [
+                f"step limit {step_limit} reached while still "
+                f"{trace.steps[-1].kind}",
+                "the run never reached a termination decision",
+            ],
+            0.6,
+            source="rule:NoTerminationDetector",
+        )
 
 
 class ConversationResetDetector:
@@ -320,26 +329,31 @@ class ReasoningActionMismatchDetector:
     def detect(self, trace: Trace) -> Optional[Detection]:
         known = {s.tool for s in trace.steps if s.kind == TOOL_CALL and s.tool}
         for step in trace.steps:
-            if step.kind != TOOL_CALL or not step.thought or not step.tool:
-                continue
-            announced = _intent_tool(step.thought)
-            if not announced or announced == step.tool.lower():
-                continue
-            plausible = "_" in announced or announced in known
-            if not plausible:
-                continue
-            return Detection(
-                "FM-2.6",
-                step.index,
-                [
-                    f"thought announced: “{step.thought[:80]}”",
-                    f"actually executed: {step.tool}",
-                    "stated reasoning does not match the action taken",
-                ],
-                0.65,
-                source="rule:ReasoningActionMismatchDetector",
-            )
+            detection = self._mismatch_in_step(step, known)
+            if detection is not None:
+                return detection
         return None
+
+    @staticmethod
+    def _mismatch_in_step(step: Step, known: set) -> Optional[Detection]:
+        if step.kind != TOOL_CALL or not step.thought or not step.tool:
+            return None
+        announced = _intent_tool(step.thought)
+        if not announced or announced == step.tool.lower():
+            return None
+        if "_" not in announced and announced not in known:
+            return None  # not a plausible tool name
+        return Detection(
+            "FM-2.6",
+            step.index,
+            [
+                f"thought announced: “{step.thought[:80]}”",
+                f"actually executed: {step.tool}",
+                "stated reasoning does not match the action taken",
+            ],
+            0.65,
+            source="rule:ReasoningActionMismatchDetector",
+        )
 
 
 class WeakVerificationDetector:
@@ -358,9 +372,8 @@ class WeakVerificationDetector:
             if next_verify >= len(positions):
                 continue  # no verification after this call: FM-3.2 territory
             later = trace.steps[positions[next_verify]]
-            claimed = " ".join(step.result.split()).lower()
-            evidence = " ".join((later.error or later.result or "").split()).lower()
-            if claimed and evidence and claimed == evidence:
+            claimed = self._echoed_claim(step, later)
+            if claimed:
                 return Detection(
                     "FM-3.3",
                     later.index,
@@ -373,6 +386,14 @@ class WeakVerificationDetector:
                     0.6,
                     source="rule:WeakVerificationDetector",
                 )
+        return None
+
+    @staticmethod
+    def _echoed_claim(step: Step, later: Step) -> Optional[str]:
+        claimed = " ".join(step.result.split()).lower()
+        evidence = " ".join((later.error or later.result or "").split()).lower()
+        if claimed and evidence and claimed == evidence:
+            return claimed
         return None
 
 
@@ -404,23 +425,32 @@ class ClarificationDetector:
     question was ever asked, and the agent committed to an irreversible
     action anyway."""
 
-    def detect(self, trace: Trace) -> Optional[Detection]:
+    @staticmethod
+    def _is_ambiguous(trace: Trace) -> bool:
         task = trace.task.lower()
-        ambiguous = (" or " in task and ("?" in task or "either" in task)) or \
-            trace.meta.get("ambiguous")
-        if not ambiguous:
-            return None
-        asked = any(
+        return (" or " in task and ("?" in task or "either" in task)) or \
+            bool(trace.meta.get("ambiguous"))
+
+    @staticmethod
+    def _asked_something(trace: Trace) -> bool:
+        return any(
             "?" in (s.thought or "") or "?" in (s.result or "")
             for s in trace.steps
         )
-        if asked:
-            return None
+
+    @staticmethod
+    def _committing_step(trace: Trace) -> Optional[Step]:
         committed = next(
-            (s for s in trace.steps if s.kind == TOOL_CALL and s.meta.get("mutating")),
+            (s for s in trace.steps
+             if s.kind == TOOL_CALL and s.meta.get("mutating")),
             None,
         )
-        target = committed or (trace.steps[-1] if trace.steps else None)
+        return committed or (trace.steps[-1] if trace.steps else None)
+
+    def detect(self, trace: Trace) -> Optional[Detection]:
+        if not self._is_ambiguous(trace) or self._asked_something(trace):
+            return None
+        target = self._committing_step(trace)
         if target is None:
             return None
         return Detection(
@@ -443,35 +473,42 @@ class WithholdingDetector:
 
     def detect(self, trace: Trace) -> Optional[Detection]:
         for i, step in enumerate(trace.steps):
-            share_with = step.meta.get("share_with")
-            if step.kind != TOOL_CALL or not share_with:
-                continue
-            owner = step.meta.get("agent", "unknown")
-            sent = any(
-                s.kind == MESSAGE and s.meta.get("from_agent") == owner
-                for s in trace.steps[i + 1:]
-            )
-            if sent:
-                continue
-            acted = [
-                s for s in trace.steps[i + 1:]
-                if s.kind in (TOOL_CALL, PLAN)
-                and s.meta.get("agent") in share_with
-            ]
-            if acted:
-                return Detection(
-                    "FM-2.4",
-                    i,
-                    [
-                        f"agent '{owner}' produced: {step.short(width=60)}",
-                        f"flagged share_with={share_with} but never messaged them",
-                        (f"agent(s) {', '.join(sorted(set(share_with)))} acted on "
-                        f"stale state afterwards"),
-                    ],
-                    0.6,
-                    source="rule:WithholdingDetector",
-                )
+            detection = self._withheld_at(trace, i, step)
+            if detection is not None:
+                return detection
         return None
+
+    @staticmethod
+    def _withheld_at(trace: Trace, i: int, step: Step) -> Optional[Detection]:
+        share_with = step.meta.get("share_with")
+        if step.kind != TOOL_CALL or not share_with:
+            return None
+        owner = step.meta.get("agent", "unknown")
+        sent = any(
+            s.kind == MESSAGE and s.meta.get("from_agent") == owner
+            for s in trace.steps[i + 1:]
+        )
+        if sent:
+            return None
+        acted = [
+            s for s in trace.steps[i + 1:]
+            if s.kind in (TOOL_CALL, PLAN)
+            and s.meta.get("agent") in share_with
+        ]
+        if not acted:
+            return None
+        return Detection(
+            "FM-2.4",
+            i,
+            [
+                f"agent '{owner}' produced: {step.short(width=60)}",
+                f"flagged share_with={share_with} but never messaged them",
+                (f"agent(s) {', '.join(sorted(set(share_with)))} acted on "
+                f"stale state afterwards"),
+            ],
+            0.6,
+            source="rule:WithholdingDetector",
+        )
 
 
 class IgnoredInputDetector:

@@ -2,6 +2,9 @@
 
 ## 0.3.2 — 2026-09-08
 
+- Code-health gate: xenon in CI (blocks D/F-grade complexity);
+  replay/Clarification/Withholding/NoTermination refactored below it
+
 - **Bayesian evidence fusion**: detections are scored as
   `log(prior_odds) + Σ log-likelihood-ratio(confidence)` with MAST base
   rates as priors (add-one smoothed). Independent weak evidence now

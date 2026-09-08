@@ -88,6 +88,22 @@ def _similarity(a: str, b: str) -> float:
     return difflib.SequenceMatcher(None, a, b).ratio()
 
 
+def _replay_steps(trace: Trace, executor: Executor, threshold: float,
+                  only_tool_calls: bool) -> tuple:
+    """Run every eligible step; returns (diffs, reproduced_failure, all_match)."""
+    diffs: List[StepDiff] = []
+    reproduced_failure = False
+    all_match = True
+    for step in trace.steps:
+        if only_tool_calls and step.kind != TOOL_CALL:
+            continue
+        diff, reproduced = _replay_one(step, executor, threshold)
+        reproduced_failure = reproduced_failure or reproduced
+        all_match = all_match and diff.match
+        diffs.append(diff)
+    return diffs, reproduced_failure, all_match
+
+
 def replay(
     trace: Trace,
     executor: Executor,
@@ -101,39 +117,8 @@ def replay(
     in the recording errors again at the same index, ``consistent`` when all
     steps match, ``diverged`` otherwise.
     """
-    diffs: List[StepDiff] = []
-    reproduced_failure = False
-    all_match = True
-
-    for step in trace.steps:
-        if only_tool_calls and step.kind != TOOL_CALL:
-            continue
-        try:
-            value = executor(step)
-            error = None
-        except Exception as exc:
-            value = ""
-            error = f"{type(exc).__name__}: {exc}"
-        recorded_text = step.error or step.result
-        similarity = _similarity(recorded_text, value if error is None else "")
-        match = error is None and similarity >= threshold
-        if step.error and error is not None:
-            reproduced_failure = True
-            match = True  # same failure at the same step = faithful replay
-        if not match:
-            all_match = False
-        diffs.append(
-            StepDiff(
-                index=step.index,
-                kind=step.kind,
-                tool=step.tool,
-                recorded=recorded_text,
-                replayed=value if error is None else error,
-                error=error,
-                similarity=similarity,
-                match=match,
-            )
-        )
+    diffs, reproduced_failure, all_match = _replay_steps(
+        trace, executor, threshold, only_tool_calls)
 
     match_rate = (sum(1 for d in diffs if d.match) / len(diffs)) if diffs else 1.0
     if reproduced_failure:
@@ -144,3 +129,31 @@ def replay(
         verdict = DIVERGED
     return ReplayDiff(trace_id=trace.id, steps=diffs,
                       match_rate=match_rate, verdict=verdict)
+
+
+def _replay_one(step: Step, executor: Executor,
+                threshold: float) -> tuple:
+    """Execute one recorded step and diff it. Returns (diff, reproduced)."""
+    try:
+        value = executor(step)
+        error = None
+    except Exception as exc:
+        value = ""
+        error = f"{type(exc).__name__}: {exc}"
+    recorded_text = step.error or step.result
+    similarity = _similarity(recorded_text, value if error is None else "")
+    match = error is None and similarity >= threshold
+    reproduced = bool(step.error) and error is not None
+    if reproduced:
+        match = True  # same failure at the same step = faithful replay
+    diff = StepDiff(
+        index=step.index,
+        kind=step.kind,
+        tool=step.tool,
+        recorded=recorded_text,
+        replayed=value if error is None else error,
+        error=error,
+        similarity=similarity,
+        match=match,
+    )
+    return diff, reproduced
