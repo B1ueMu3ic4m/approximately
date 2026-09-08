@@ -76,3 +76,7 @@ jobs:
         run: |
           pip install mypy
           mypy src/approximately --ignore-missing-imports
+      - name: Complexity gate (blocks D/F-grade functions)
+        run: |
+          pip install xenon
+          xenon --max-absolute C --max-modules B --max-average A src

@@ -37,6 +37,13 @@ absent): `pip install openai langchain-core openai-agents`
 - More framework adapters (AutoGen, LlamaIndex, ...)
 - Optional exact tokenizer integrations beyond tiktoken
 
+## Complexity gate
+
+CI runs `xenon --max-absolute C --max-modules B --max-average A src`:
+no function may reach D-grade cyclomatic complexity (20+), module averages
+stay B or better, overall average A. When you touch a C-grade function,
+extract helpers instead of adding branches.
+
 ## Static analysis (all must pass)
 
 ```bash
