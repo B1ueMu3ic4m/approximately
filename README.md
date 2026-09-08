@@ -31,6 +31,7 @@ approximately records every step an agent takes. When a run fails, it tells you 
 | "How big should the context window be? Will compression lose critical facts?" | **Context budgeting**: see exactly where a shrinking budget starts making the agent forget — and guard it in CI |
 | "Of our last 100 failures, what should we fix first?" | **Recidivist clustering**: groups failures across runs and surfaces the systematic patterns |
 | "Agent logs are too long for humans to review" | Every verdict carries an evidence chain pointing at exact steps — review only what matters |
+| "Prove the evidence wasn't edited after the incident" | **Tamper-evident hash chains**: `approximately verify` detects and localizes any post-hoc edit; HMAC keys defend against deliberate forgery |
 
 ## Why trust the numbers?
 
@@ -120,23 +121,27 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 
 ---
 
-## The six capabilities at a glance
+## The capabilities at a glance
 
 | Capability | In one sentence | Command / API |
 |---|---|---|
-| 📼 Flight recorder | Zero-dependency recording of every agent step, any framework | `Recorder` / adapters |
-| 🔍 Failure attribution | **All 14 MAST modes** covered by rule detectors, with fixes | `approximately attribute` |
-| 🔁 Step-level replay | Verify fixes without re-running the task | `approximately replay` |
+| 📼 Flight recorder | Zero-dependency recording of every agent step — including inter-agent messages — any framework | `Recorder` / adapters |
+| 🔍 Failure attribution | **All 14 MAST modes** covered by rule detectors; Bayesian fusion ranks verdicts by MAST base rates × evidence likelihood | `approximately attribute` |
+| 🛡️ Tamper-evident evidence | Every save stamps a per-step hash chain; `verify` detects and localizes any post-hoc edit | `approximately verify` |
+| 🔁 Step-level replay | Verify fixes without re-running the task; A/B compare original vs patched executors | `approximately replay --patched` |
 | 🧪 Regression guards | Failed runs become pytest tests that live in CI | `approximately test` |
-| 📉 Context budgeting | "Where does a shrinking budget start losing facts?" — guarded in CI | `approximately context` / `curve` |
+| 📉 Context budgeting | "Where does a shrinking budget start losing facts?" — guarded in CI | `approximately context` / `test --budget` |
+| 🎯 Budget optimizer | Binary-searches the **smallest context window that keeps recall ≥ target** | `approximately optimize` |
 | 🔎 Recidivist clustering | Cross-run statistics of your systematic failure modes | `approximately cluster` |
+| 📈 Failure-rate trends | "Is the agent getting better or worse?" — per-week failure history | `approximately stats --trend` |
+| 🚀 Project scaffold | An instrumented agent project with guards, runnable in seconds | `approximately new myagent` |
 
-Advanced: **local small-model judge** (`distill` exports training data — distill to your own 1–7B model and skip the API bill), **attribution benchmark** (`benchmark`, per-mode precision/recall/F1), **cost-vs-recall curve reports** (`curve`).
+Advanced: **local small-model judge** (`distill` exports training data — distill to your own 1–7B model and skip the API bill), **attribution benchmark** (`benchmark`, per-mode precision/recall/F1), **cost-vs-recall curve reports** (`curve`), **threat model** ([docs/SECURITY.md](docs/SECURITY.md)).
 
 ## Design principles
 
 1. **Zero dependencies** — the core uses only the Python standard library; attribution works offline, deterministically, and for free
-2. **Evidence or it didn't happen** — every verdict carries a readable evidence chain pointing at exact steps
+2. **Evidence or it didn't happen** — every verdict carries a readable evidence chain pointing at exact steps, and every trace carries a **tamper-evident hash chain**: `approximately verify` proves the evidence wasn't edited after the fact
 3. **Never make it worse** — no API key, no network? Attribution degrades gracefully; your program never crashes because of us
 4. **Failures are engineering, not vibes** — every fix suggestion is backed by published intervention numbers
 
@@ -151,6 +156,12 @@ No and no. The rule engine covers most mechanical failure modes offline and free
 **Q: Will recording slow my agent down or leak data?**
 Recording is a local JSON write taking microseconds. Everything lives under `~/.approximately/` on your machine — no telemetry, no uploads, nothing.
 
+**Q: How do I know the evidence wasn't edited after an incident?**
+Every save stamps a per-step SHA-256 hash chain into the trace. `approximately verify <trace-id>` recomputes it: any edit to any step (results, outcomes, even metadata) breaks the chain and is localized to the first altered step. For hostile environments, set a signing key (`APPROXIMATELY_SIGNING_KEY`) and the chain becomes an HMAC — an attacker with write access can no longer forge it. See [docs/SECURITY.md](docs/SECURITY.md).
+
+**Q: Does it handle multi-agent runs?**
+Yes. `Recorder.message(from, to, text)` records inter-agent messages as first-class steps, and dedicated detectors catch information withholding (a result flagged `share_with` that never reached its audience) and ignored peer input (a `requires_ack` message the recipient never acted on).
+
 **Q: What is "context budgeting" exactly?**
 An agent's working memory (context window) is finite and expensive. Stuffing it costs money and degrades recall (research shows mid-window recall collapses); shrinking it silently loses facts. approximately manages context as a budgeted resource: facts you can pin (never evicted), policy-driven eviction, and an "effective recall probe" that measures how much the agent still remembers — deployable as a CI guard so nobody quietly shrinks the window.
 
@@ -160,8 +171,9 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 
 - ✅ **v0.1** — flight recorder + MAST attribution + replay + regression guards + context runtime
 - ✅ **v0.2** — framework adapters (LangChain/LangGraph, OpenAI Agents SDK, CrewAI) · judge distillation · attribution benchmark
-- ✅ **v0.3** — cross-trace recidivist clustering · budget regression guards · cost-vs-recall curves
-- 🔜 **next** — more adapters on request · MAST-Data leaderboard page · per-serving-stack distillation recipes
+- ✅ **v0.3** — cross-trace recidivist clustering · budget regression guards · cost-vs-recall curves · project scaffold · stats trends
+- ✅ **v0.3.2** — Bayesian evidence fusion (MAST priors × evidence likelihood) · budget optimizer (binary-search) · tamper-evident evidence chains + `verify` · HMAC signing · security threat model
+- 🔜 **next** — more adapters on request · MAST-Data leaderboard page · per-serving-stack distillation recipes · stats trend charts in reports
 
 Full design document: [docs/PLAN.md](docs/PLAN.md).
 
