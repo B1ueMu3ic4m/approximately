@@ -7,7 +7,7 @@
 > stack.
 
 - Repository: `https://github.com/B1ueMu3ic4m/approximately`
-- Version: 0.2.0
+- Version: 0.3.2
 - Status: this document is the design and launch plan, published in-repo
 
 ---
@@ -199,10 +199,33 @@ framework adapters import lazily and degrade when the framework is absent.
 - [x] budget regression guards (`test --budget --min-recall`)
 - [x] `curve`: budget→recall SVG report + success scatter
 
+### v0.3.1 ✅ (delivered) — security hardening
+- [x] **Tamper-evident evidence chains**: per-step sha256 chain stamped on
+      every save; `verify` detects and localizes post-hoc edits
+- [x] **HMAC-SHA256 keyed chains** (`APPROXIMATELY_SIGNING_KEY` /
+      `--key-file`): cryptographic authenticity against adversarial
+      forgery — the unkeyed chain's documented design gap, closed
+- [x] Path-traversal blocks (store ids, scaffold names)
+- [x] Threat model published (docs/SECURITY.md); parser hardened with a
+      60+ payload fuzz contract
+
+### v0.3.2 ✅ (delivered) — algorithm depth
+- [x] **Bayesian evidence fusion**: detections scored as
+      `log(prior_odds) + Σ log-likelihood-ratio(confidence)` with
+      add-one-smoothed MAST base rates as priors; properties tested
+      (accumulation, prior-vs-evidence calibration, signed bounded c=0)
+- [x] **Budget optimizer**: recall is monotone in budget, so
+      `approximately optimize` binary-searches the smallest budget keeping
+      recall ≥ target (~10 probes on 20k-step traces)
+- [x] Two O(n × evictions) quadratic scans eliminated in forecast
+      (20k-step forecast 11.4s → 1.1s)
+
 ### next
 - more adapters on request (AutoGen, LlamaIndex); MAST-Data leaderboard
-  page; per-serving-stack distillation recipes; `stats` trend lines over
-  time (failure-rate history per mode)
+  page; per-serving-stack distillation recipes
+- trend charts rendered inside HTML reports (trend data shipped, viz
+  pending)
+- optional key rotation + signature counter for the HMAC chain
 
 ---
 
