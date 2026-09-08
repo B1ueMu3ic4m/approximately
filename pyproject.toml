@@ -65,6 +65,6 @@ ignore = [
     "SIM105",  # try/except-pass around optional imports is the designed pattern
 ]
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["PLW1510", "S101", "E402"]
+"tests/*" = ["PLW1510", "S101", "E402", "PERF203"]
 "src/approximately/store.py" = ["PERF203"]  # per-file try in loop is the degradation pattern
 "src/approximately/cli.py" = ["PERF203"]

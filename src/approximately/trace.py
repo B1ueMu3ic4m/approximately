@@ -64,6 +64,8 @@ class Step:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Step":
+        if not isinstance(data, dict):
+            raise ValueError("step record must be a JSON object")
         known = {f.name for f in dataclasses.fields(cls)}
         return cls(**{k: v for k, v in data.items() if k in known})
 
@@ -107,8 +109,13 @@ class Trace:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Trace":
+        if not isinstance(data, dict):
+            raise ValueError("trace record must be a JSON object")
+        steps_data = data.get("steps", [])
+        if not isinstance(steps_data, list):
+            raise ValueError("malformed trace: 'steps' must be a list")
         trace = cls(
-            task=data["task"],
+            task=data.get("task", ""),
             id=data.get("id", uuid.uuid4().hex[:12]),
             created_at=data.get("created_at", 0.0),
             model=data.get("model", "unknown"),
@@ -116,7 +123,7 @@ class Trace:
             final_output=data.get("final_output"),
             meta=data.get("meta", {}),
         )
-        trace.steps = [Step.from_dict(s) for s in data.get("steps", [])]
+        trace.steps = [Step.from_dict(s) for s in steps_data]
         return trace
 
     def to_json(self, indent: int = 2) -> str:

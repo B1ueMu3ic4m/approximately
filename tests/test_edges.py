@@ -138,3 +138,15 @@ def test_store_clean_removes_only_old_traces(store, failing_trace):
 def test_store_blocks_path_traversal(store):
     assert store.load("../../etc/passwd") is None
     assert store.load("..\\..\\windows\\system32\\config") is None
+
+
+def test_malformed_trace_json_raises_value_error_not_crash():
+    from approximately.trace import Trace
+
+    for bad in [{"steps": "not-a-list"}, {"steps": 5}, "a string", 42, []]:
+        try:
+            Trace.from_dict(bad)
+        except ValueError:
+            pass
+        except Exception as exc:
+            raise AssertionError(f"unhandled exception type: {exc!r}") from exc

@@ -20,13 +20,17 @@ recomputing the entire chain, and any edit is visible as a broken link.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
+import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List, Optional
 
 from .trace import Trace
 
 ALGORITHM = "sha256-chain-v1"
+ALGORITHM_KEYED = "hmac-sha256-chain-v1"
 
 
 def _canonical(step_dict: dict) -> bytes:
@@ -38,26 +42,59 @@ def _sha(data: bytes) -> str:
     return hashlib.sha256(data, usedforsecurity=False).hexdigest()
 
 
+def _mac(key: bytes, data: bytes) -> str:
+    return hmac.new(key, data, hashlib.sha256).hexdigest()
+
+
+def load_key(key_file: Optional[str] = None) -> Optional[bytes]:
+    """Signing key: explicit file, else APPROXIMATELY_SIGNING_KEY (hex or text)."""
+    if key_file:
+        path = Path(key_file)
+        if not path.is_file():
+            return None
+        return path.read_bytes().strip()
+    env = os.environ.get("APPROXIMATELY_SIGNING_KEY")
+    if not env:
+        return None
+    try:
+        return bytes.fromhex(env)
+    except ValueError:
+        return env.encode("utf-8")
+
+
 def _seed(trace: Trace) -> str:
     seed_input = f"{trace.task}|{trace.model}|{trace.created_at}"
     return _sha(seed_input.encode("utf-8"))
 
 
-def compute_chain(trace: Trace) -> List[str]:
-    """Walk the hash chain over the trace's steps as they are right now."""
+def compute_chain(trace: Trace, key: Optional[bytes] = None) -> List[str]:
+    """Walk the chain over the trace's steps as they are right now.
+
+    Without a key this is a plain sha256 chain (detects accidental or lazy
+    tampering). With a key it is an HMAC-SHA256 chain: an attacker with
+    write access to the file can no longer recompute the chain, so forgery
+    is detectable by anyone holding the key.
+    """
+    if key is not None:
+        def digest(msg: bytes) -> str:
+            return _mac(key, msg)
+    else:
+        def digest(msg: bytes) -> str:
+            return _sha(msg)
     hashes = []
     previous = _seed(trace)
     for step in trace.steps:
-        previous = _sha(previous.encode("utf-8") + _canonical(step.to_dict()))
+        previous = digest(previous.encode("utf-8") + _canonical(step.to_dict()))
         hashes.append(previous)
     return hashes
 
 
-def sign(trace: Trace) -> dict:
+def sign(trace: Trace, key: Optional[bytes] = None) -> dict:
     """Stamp an integrity block into ``trace.meta`` (recorder calls this)."""
-    chain = compute_chain(trace)
+    chain = compute_chain(trace, key=key)
     block = {
-        "algorithm": ALGORITHM,
+        "algorithm": ALGORITHM_KEYED if key else ALGORITHM,
+        "keyed": key is not None,
         "seed": _seed(trace),
         "step_hashes": chain,
         "final": chain[-1] if chain else _seed(trace),
@@ -74,21 +111,38 @@ class VerificationResult:
     expected_final: Optional[str] = None
     actual_final: Optional[str] = None
     detail: str = ""
+    verdict_override: Optional[str] = None  # e.g. "keyed": locked, not broken
 
     @property
     def verdict(self) -> str:
+        if self.verdict_override:
+            return self.verdict_override
         if not self.signed:
             return "unsigned"
         return "intact" if self.intact else "TAMPERED"
 
 
-def verify(trace: Trace) -> VerificationResult:
-    """Recompute the chain and compare against the stamped integrity block."""
+def verify(trace: Trace, key: Optional[bytes] = None) -> VerificationResult:
+    """Recompute the chain and compare against the stamped integrity block.
+
+    Keyed traces require the same key. Verifying a keyed trace without the
+    key returns verdict ``keyed`` — the evidence is locked, not broken.
+    """
     block = trace.meta.get("integrity")
-    if not block or block.get("algorithm") != ALGORITHM:
+    if not block or block.get("algorithm") not in (ALGORITHM, ALGORITHM_KEYED):
         return VerificationResult(signed=False,
                                   detail="trace carries no integrity block")
-    actual = compute_chain(trace)
+    if block.get("keyed") and block.get("algorithm") == ALGORITHM_KEYED:
+        if not key:
+            key = load_key()
+        if not key:
+            return VerificationResult(
+                signed=True, intact=False,
+                detail=("trace is HMAC-keyed; pass the signing key "
+                        "(--key-file or APPROXIMATELY_SIGNING_KEY) to verify"),
+                verdict_override="keyed",
+            )
+    actual = compute_chain(trace, key=key if block.get("keyed") else None)
     expected_hashes: List[str] = block.get("step_hashes", [])
     if actual == expected_hashes:
         return VerificationResult(
