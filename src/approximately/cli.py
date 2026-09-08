@@ -181,17 +181,22 @@ def cmd_taxonomy(_args: argparse.Namespace) -> int:
 
 
 def cmd_verify(args: argparse.Namespace) -> int:
-    from .integrity import verify
+    from .integrity import load_key, verify
 
     store = TraceStore(args.store)
     trace = _load_trace(args.trace, store)
-    result = verify(trace)
+    key = load_key(args.key_file)
+    result = verify(trace, key=key)
     if result.verdict == "unsigned":
         print("unsigned: trace carries no integrity block "
               "(recorded before v0.3.1)")
         return 2
+    if result.verdict == "keyed":
+        print(f"KEYED: {result.detail}")
+        return 3
     if result.intact:
-        print(f"intact: {result.detail}")
+        kind = "HMAC-authenticated" if key else "intact"
+        print(f"{kind}: {result.detail}")
         print(f"  chain final: {result.actual_final}")
         return 0
     print(f"TAMPERED: {result.detail}")
@@ -459,6 +464,8 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("verify", parents=[common],
                        help="verify the tamper-evident hash chain of a trace")
     p.add_argument("trace")
+    p.add_argument("--key-file",
+                   help="signing key file for HMAC-keyed traces")
     p.set_defaults(func=cmd_verify)
 
     p = sub.add_parser("clean", parents=[common],

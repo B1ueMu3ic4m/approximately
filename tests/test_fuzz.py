@@ -110,3 +110,34 @@ def test_tiny_traces_do_not_crash(n_steps):
 def test_empty_trace_report_is_healthy():
     report = attribute(Trace(task="nothing happened", success=True))
     assert "No failure detected" in report.summary
+
+
+def test_fuzz_trace_json_parser_never_raises_unexpected():
+    """The untrusted trace parser must fail with ValueError, never
+    AttributeError/TypeError/RecursionError on hostile JSON."""
+    import json
+
+    from approximately.trace import Trace
+
+    rng = random.Random(99)
+    payloads = ['{"steps": {"a": 1}}', '{"steps": [null]}', '{"steps": [[]]}',
+                '{"steps": ["x"]}', '[]', '"str"', '3', 'null', 'true',
+                ('{"task": {"deep": {"deeper": [1, 2, {"x": null}]}}, '
+                 '"steps": [{"kind": {"nested": true}}]}')]
+    for _ in range(50):
+        obj = rng.choice([
+            {"steps": [rng.random() for _ in range(3)]},
+            {"steps": [[1], {"kind": 5}], "task": 7},
+            {"task": None, "steps": None},
+            dict.fromkeys(range(20), "x"),
+        ])
+        payloads.append(json.dumps(obj))
+    for payload in payloads:
+        try:
+            data = json.loads(payload)
+            try:
+                Trace.from_dict(data)
+            except ValueError:
+                pass
+        except json.JSONDecodeError:
+            continue  # invalid JSON itself is fine to reject at the store

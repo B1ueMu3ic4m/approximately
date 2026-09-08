@@ -72,9 +72,10 @@ class Recorder:
             )
             self.trace.success = False
         if self.save_on_exit:
-            from .integrity import sign
 
-            sign(self.trace)
+            from .integrity import load_key, sign
+
+            sign(self.trace, key=load_key())
         if self.save_on_exit and self.store is not None:
             self.saved_path = self.store.save(self.trace)
         # returning None (not True): exceptions are never suppressed

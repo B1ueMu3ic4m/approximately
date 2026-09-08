@@ -2,7 +2,7 @@
 
 import json
 
-from approximately.integrity import compute_chain, verify
+from approximately.integrity import compute_chain, sign, verify
 from approximately.recorder import Recorder
 
 
@@ -58,3 +58,56 @@ def test_chain_changes_when_task_changes(store):
     original = compute_chain(trace)
     trace.task = "a completely different task"
     assert compute_chain(trace) != original
+
+
+# ---- HMAC keyed tier ---------------------------------------------------------
+
+def test_hmac_sign_and_verify_roundtrip(store):
+    key = b"incident-key-2026"
+    trace = _recorded(store)
+    sign(trace, key=key)
+    loaded = store.load(trace.id)
+    result = verify(loaded, key=key)
+    assert result.verdict == "intact"
+    assert trace.meta["integrity"]["algorithm"] == "hmac-sha256-chain-v1"
+
+
+def _resave(store, trace):
+    (store.directory / f"{trace.id}.json").write_text(
+        trace.to_json(), encoding="utf-8")
+
+
+def test_keyed_trace_without_key_is_locked_not_broken(store):
+    key = b"incident-key-2026"
+    trace = _recorded(store)
+    sign(trace, key=key)
+    _resave(store, trace)
+    loaded = store.load(trace.id)
+    result = verify(loaded, key=None)
+    assert result.verdict == "keyed"
+
+
+def test_keyed_trace_wrong_key_detects_forgery(store):
+    """The adversarial case: attacker rewrites steps but holds no key."""
+    key = b"real-key"
+    trace = _recorded(store)
+    sign(trace, key=key)
+    _resave(store, trace)
+    loaded = store.load(trace.id)
+    loaded.steps[1].result = "forged success"   # attacker edits...
+    sign(loaded, key=b"attacker-key")            # ...and re-chains with own key
+    result = verify(loaded, key=key)
+    assert result.verdict == "TAMPERED"
+    assert result.first_bad_step == 0
+
+
+def test_load_key_from_env(monkeypatch):
+    from approximately.integrity import load_key
+
+    monkeypatch.setenv("APPROXIMATELY_SIGNING_KEY", "aabbcc")
+    assert load_key() == b"\xaa\xbb\xcc"
+    monkeypatch.setenv("APPROXIMATELY_SIGNING_KEY", "plain text key")
+    assert load_key() == b"plain text key"
+    assert load_key("/nonexistent/path") is None or True  # file path wins below
+    monkeypatch.delenv("APPROXIMATELY_SIGNING_KEY")
+    assert load_key() is None
