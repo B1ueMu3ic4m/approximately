@@ -180,6 +180,26 @@ def cmd_taxonomy(_args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_verify(args: argparse.Namespace) -> int:
+    from .integrity import verify
+
+    store = TraceStore(args.store)
+    trace = _load_trace(args.trace, store)
+    result = verify(trace)
+    if result.verdict == "unsigned":
+        print("unsigned: trace carries no integrity block "
+              "(recorded before v0.3.1)")
+        return 2
+    if result.intact:
+        print(f"intact: {result.detail}")
+        print(f"  chain final: {result.actual_final}")
+        return 0
+    print(f"TAMPERED: {result.detail}")
+    print(f"  expected chain final: {result.expected_final}")
+    print(f"  actual chain final:   {result.actual_final}")
+    return 1
+
+
 def cmd_clean(args: argparse.Namespace) -> int:
     store = TraceStore(args.store)
     removed = store.clean(keep_days=args.keep_days)
@@ -435,6 +455,11 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("new", help="scaffold an instrumented agent project")
     p.add_argument("name", help="project directory name")
     p.set_defaults(func=cmd_new)
+
+    p = sub.add_parser("verify", parents=[common],
+                       help="verify the tamper-evident hash chain of a trace")
+    p.add_argument("trace")
+    p.set_defaults(func=cmd_verify)
 
     p = sub.add_parser("clean", parents=[common],
                        help="delete traces older than N days")

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1 — 2026-09-08
+
+- **Tamper-evident evidence chains**: every saved trace carries a per-step
+  sha256 hash chain; `approximately verify <trace>` detects and localizes
+  any post-hoc edit (incidents/compliance grade postmortems)
+- Security hardening: path-traversal blocks in the trace store and the
+  scaffold name validator; threat model published (docs/SECURITY.md)
+
 ## 0.3.0 — 2026-09-08
 
 - **Complete MAST rule coverage: all 14 failure modes detected offline**

@@ -6,6 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from approximately.cli import main
 from approximately.scaffold import scaffold
 
@@ -47,3 +49,12 @@ def test_scaffold_is_idempotent_friendly(tmp_path):
     scaffold("ag", base=tmp_path)
     scaffold("ag", base=tmp_path)  # second run overwrites, no crash
     assert (tmp_path / "ag" / "agent.py").exists()
+
+
+def test_scaffold_rejects_traversal_names(tmp_path):
+    from approximately.scaffold import scaffold
+
+    for bad in ("../evil", "a/../b", ".hidden", ""):
+        with pytest.raises(ValueError):
+            scaffold(bad, base=tmp_path)
+    assert not (tmp_path / "evil").exists()
