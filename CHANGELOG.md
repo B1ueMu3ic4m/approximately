@@ -2,6 +2,15 @@
 
 ## 0.5.0 — 2026-09-08
 
+- **Counterfactual root-cause analysis** (`counterfactual.py` +
+  `approximately counterfactual`): do(step=∅) leave-one-out intervention
+  experiments over every detected step; classifies root causes vs
+  symptoms vs distributed causes, with a causal ranking by eliminated
+  modes. Found and fixed a real aliasing bug during its own tests:
+  ``Trace.add`` re-assigns ``step.index``, so the do-trace must deep-copy
+  steps or the original trace silently renumbers itself.
+
+
 - **Conformal attribution** (`calibration.py` + `calibrate`): split-
   conformal prediction sets over MAST modes with a distribution-free
   coverage guarantee (alpha configurable; the only assumption is

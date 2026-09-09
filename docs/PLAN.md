@@ -243,6 +243,12 @@ framework adapters import lazily and degrade when the framework is absent.
 - [x] `score_modes`: per-mode fusion score surface
 - [x] `calibrate` command: held-out coverage + ECE report
 
+### v0.5.0 additions ✅ — counterfactual root-cause analysis
+- [x] do(step=∅) leave-one-out interventions over detected steps;
+      root-cause / symptom / distributed-cause classification; causal
+      ranking. Aliasing bug (Step objects shared with do-traces) caught
+      by its own tests and fixed via deep copies.
+
 ### next
 - more adapters on request (AutoGen, LlamaIndex); MAST-Data leaderboard
   page; per-serving-stack distillation recipes
