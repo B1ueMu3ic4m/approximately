@@ -2,6 +2,12 @@
 
 ## 0.5.0 — 2026-09-08
 
+- **Behavior-drift detection** (`drift.py` + `approximately drift`):
+  Population Stability Index over action structure tokens between an
+  older baseline window and a recent window (<0.1 no shift, >0.25
+  significant) — catches prompt/model/tool changes before failures spike
+
+
 - **Counterfactual root-cause analysis** (`counterfactual.py` +
   `approximately counterfactual`): do(step=∅) leave-one-out intervention
   experiments over every detected step; classifies root causes vs

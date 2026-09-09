@@ -249,6 +249,11 @@ framework adapters import lazily and degrade when the framework is absent.
       ranking. Aliasing bug (Step objects shared with do-traces) caught
       by its own tests and fixed via deep copies.
 
+### v0.5.0 additions ✅ — behavior-drift detection
+- [x] PSI over action structure tokens between time windows;
+      `approximately drift --baseline-ratio` with industry-convention
+      thresholds; smoothing keeps disjoint distributions finite
+
 ### next
 - more adapters on request (AutoGen, LlamaIndex); MAST-Data leaderboard
   page; per-serving-stack distillation recipes
