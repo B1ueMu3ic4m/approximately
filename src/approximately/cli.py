@@ -302,6 +302,22 @@ def cmd_counterfactual(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_drift(args: argparse.Namespace) -> int:
+    from .drift import detect_drift
+
+    store = TraceStore(args.store)
+    traces = sorted(store.list_traces(), key=lambda t: t.created_at)
+    split_at = int(len(traces) * args.baseline_ratio)
+    baseline, current = traces[:split_at], traces[split_at:]
+    if not baseline or not current:
+        print("need traces in both windows "
+              "(baseline = oldest, current = newest)")
+        return 1
+    report = detect_drift(baseline, current)
+    print(report.summary())
+    return 0
+
+
 def cmd_verify(args: argparse.Namespace) -> int:
     from .integrity import load_key, verify
 
@@ -641,6 +657,13 @@ def build_parser() -> argparse.ArgumentParser:
                        help="do(step=∅) experiments: root causes vs symptoms")
     p.add_argument("trace")
     p.set_defaults(func=cmd_counterfactual)
+
+    p = sub.add_parser("drift", parents=[common],
+                       help="PSI behavior-drift between the oldest and "
+                            "newest traces")
+    p.add_argument("--baseline-ratio", type=float, default=0.5,
+                   help="share of oldest traces used as baseline (default 0.5)")
+    p.set_defaults(func=cmd_drift)
 
     p = sub.add_parser("verify", parents=[common],
                        help="verify the tamper-evident hash chain of a trace")
