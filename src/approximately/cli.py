@@ -292,6 +292,16 @@ def cmd_scan_tool(args: argparse.Namespace) -> int:
     return 0 if result.is_clean else 1
 
 
+def cmd_counterfactual(args: argparse.Namespace) -> int:
+    from .counterfactual import counterfactual
+
+    store = TraceStore(args.store)
+    trace = _load_trace(args.trace, store)
+    report = counterfactual(trace)
+    print(report.summary())
+    return 0
+
+
 def cmd_verify(args: argparse.Namespace) -> int:
     from .integrity import load_key, verify
 
@@ -626,6 +636,11 @@ def build_parser() -> argparse.ArgumentParser:
                        help="scan an MCP tool description for poisoning")
     p.add_argument("file", help="tool description (text) to scan")
     p.set_defaults(func=cmd_scan_tool)
+
+    p = sub.add_parser("counterfactual", parents=[common],
+                       help="do(step=∅) experiments: root causes vs symptoms")
+    p.add_argument("trace")
+    p.set_defaults(func=cmd_counterfactual)
 
     p = sub.add_parser("verify", parents=[common],
                        help="verify the tamper-evident hash chain of a trace")
