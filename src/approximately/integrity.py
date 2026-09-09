@@ -122,6 +122,21 @@ class VerificationResult:
         return "intact" if self.intact else "TAMPERED"
 
 
+def rotate(trace: Trace, old_key: Optional[bytes],
+           new_key: bytes) -> VerificationResult:
+    """Re-key a signed trace: verify with the old key, re-sign with the new.
+
+    Raises ValueError when the old key does not verify (refusing to rotate
+    a trace whose evidence is already broken).
+    """
+    result = verify(trace, key=old_key)
+    if result.verdict not in ("intact", "unsigned"):
+        raise ValueError(f"cannot rotate a {result.verdict} trace: "
+                         f"{result.detail}")
+    sign(trace, key=new_key)
+    return result
+
+
 def verify(trace: Trace, key: Optional[bytes] = None) -> VerificationResult:
     """Recompute the chain and compare against the stamped integrity block.
 

@@ -7,7 +7,7 @@
 > stack.
 
 - Repository: `https://github.com/B1ueMu3ic4m/approximately`
-- Version: 0.3.2
+- Version: 0.4.0
 - Status: this document is the design and launch plan, published in-repo
 
 ---
@@ -219,6 +219,19 @@ framework adapters import lazily and degrade when the framework is absent.
       recall ≥ target (~10 probes on 20k-step traces)
 - [x] Two O(n × evictions) quadratic scans eliminated in forecast
       (20k-step forecast 11.4s → 1.1s)
+
+### v0.4.0 ✅ (delivered) — algorithms + integrations
+- [x] **Trajectory alignment** (align.py): Needleman-Wunsch over
+      normalized action sequences; identity/structure token two-tier
+      scoring; `similar` similarity ranking
+- [x] **Failure-precursor prediction** (precursor.py): structure-token
+      n-grams (n=1..3), Laplace-smoothed conditionals, support-capped
+      log-odds; `predict` early-warning command
+- [x] **SARIF 2.1.0 export**: attribution as GitHub code-scanning alerts
+      (`attribute --sarif`)
+- [x] **MCP tool-poisoning scanner** (`scan-tool`): invisible chars, bidi
+      attacks, homoglyph mixing, injection phrasing
+- [x] **HMAC key rotation** (`rotate`)
 
 ### next
 - more adapters on request (AutoGen, LlamaIndex); MAST-Data leaderboard

@@ -223,6 +223,36 @@ def cmd_predict(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_rotate(args: argparse.Namespace) -> int:
+    from .integrity import load_key, rotate
+
+    store = TraceStore(args.store)
+    trace = _load_trace(args.trace, store)
+    old_key = load_key(args.old_key_file)
+    new_key = load_key(args.new_key_file)
+    if new_key is None:
+        raise SystemExit("error: --new-key-file is required "
+                         "(or set APPROXIMATELY_SIGNING_KEY)")
+    try:
+        rotate(trace, old_key=old_key, new_key=new_key)
+    except ValueError as exc:
+        print(f"rotation refused: {exc}")
+        return 1
+    store.save(trace)
+    print(f"rotated {trace.id} to a new signing key "
+          f"(old key no longer verifies the chain)")
+    return 0
+
+
+def cmd_scan_tool(args: argparse.Namespace) -> int:
+    from .toolscan import scan
+
+    text = Path(args.file).read_text(encoding="utf-8")
+    result = scan(text)
+    print(result.summary())
+    return 0 if result.is_clean else 1
+
+
 def cmd_verify(args: argparse.Namespace) -> int:
     from .integrity import load_key, verify
 
@@ -287,7 +317,17 @@ def cmd_stats(args: argparse.Namespace) -> int:
 
 
 def cmd_attribute(args: argparse.Namespace) -> int:
+    from .sarif import to_sarif
+
     store = TraceStore(args.store)
+    if args.sarif:
+        pairs = [(t, attribute(t, use_judge=args.judge))
+                 for t in store.list_traces()]
+        out = Path(args.sarif)
+        out.write_text(json.dumps(to_sarif([r for _, r in pairs]),
+                                  indent=2), encoding="utf-8")
+        print(f"wrote SARIF over {len(pairs)} traces: {out}")
+        return 0
     if args.all:
         results = []
         for trace in store.list_traces():
@@ -458,6 +498,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true", help="emit JSON")
     p.add_argument("--all", action="store_true",
                    help="attribute every trace in the store (JSON output)")
+    p.add_argument("--sarif", help="write attribution as SARIF 2.1.0 "
+                                   "(GitHub code scanning)")
     p.set_defaults(func=cmd_attribute)
 
     p = sub.add_parser("replay", parents=[common],
@@ -524,6 +566,18 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--min-recall", type=float, default=1.0,
                    help="required effective recall (default 1.0)")
     p.set_defaults(func=cmd_optimize)
+
+    p = sub.add_parser("rotate", parents=[common],
+                       help="re-key a signed trace (old key must verify)")
+    p.add_argument("trace")
+    p.add_argument("--old-key-file", help="current signing key")
+    p.add_argument("--new-key-file", required=True, help="new signing key")
+    p.set_defaults(func=cmd_rotate)
+
+    p = sub.add_parser("scan-tool", parents=[common],
+                       help="scan an MCP tool description for poisoning")
+    p.add_argument("file", help="tool description (text) to scan")
+    p.set_defaults(func=cmd_scan_tool)
 
     p = sub.add_parser("verify", parents=[common],
                        help="verify the tamper-evident hash chain of a trace")

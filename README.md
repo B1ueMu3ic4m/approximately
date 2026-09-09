@@ -135,6 +135,10 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 🔎 Recidivist clustering | Cross-run statistics of your systematic failure modes | `approximately cluster` |
 | 📈 Failure-rate trends | "Is the agent getting better or worse?" — per-week failure history | `approximately stats --trend` |
 | 🚀 Project scaffold | An instrumented agent project with guards, runnable in seconds | `approximately new myagent` |
+| 🔮 Failure precursor | Early warning mined from your own history: "runs like this fail Z% of the time" | `approximately predict` |
+| 🧬 Trajectory alignment | Needleman-Wunsch over action sequences — find runs with the same *shape* | `approximately similar` |
+| 📮 SARIF export | Attribution results as GitHub code-scanning alerts | `approximately attribute --sarif` |
+| 🕵️ Tool-poisoning scanner | Static analysis of MCP tool descriptions (homoglyphs, bidi, injection) | `approximately scan-tool` |
 
 Advanced: **local small-model judge** (`distill` exports training data — distill to your own 1–7B model and skip the API bill), **attribution benchmark** (`benchmark`, per-mode precision/recall/F1), **cost-vs-recall curve reports** (`curve`), **threat model** ([docs/SECURITY.md](docs/SECURITY.md)).
 
@@ -173,6 +177,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.2** — framework adapters (LangChain/LangGraph, OpenAI Agents SDK, CrewAI) · judge distillation · attribution benchmark
 - ✅ **v0.3** — cross-trace recidivist clustering · budget regression guards · cost-vs-recall curves · project scaffold · stats trends
 - ✅ **v0.3.2** — Bayesian evidence fusion (MAST priors × evidence likelihood) · budget optimizer (binary-search) · tamper-evident evidence chains + `verify` · HMAC signing · security threat model
+- ✅ **v0.4** — trajectory alignment (Needleman-Wunsch) · failure-precursor prediction (n-gram early warning) · SARIF export · MCP tool-poisoning scanner · HMAC key rotation
 - 🔜 **next** — more adapters on request · MAST-Data leaderboard page · per-serving-stack distillation recipes · stats trend charts in reports
 
 Full design document: [docs/PLAN.md](docs/PLAN.md).

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.4.0 — 2026-09-08
+
+- **Trajectory alignment** (`approximately similar`): Needleman-Wunsch
+  global alignment over normalized action sequences — identity tokens
+  score full matches, structure tokens half credit; [0,1] and symmetric
+- **Failure-precursor prediction** (`approximately predict`): n-gram
+  early warning mined from your own store (structure-token prefixes,
+  Laplace-smoothed conditionals, support-capped log-odds); unseen
+  prefixes honestly score 0.5
+- **SARIF 2.1.0 export** (`attribute --sarif out.sarif`): agent failures
+  as GitHub code-scanning alerts via upload-sarif
+- **MCP tool-poisoning scanner** (`scan-tool`): invisible characters,
+  bidi attacks, homoglyph script mixing, injection phrasing — verdicts
+  clean/suspicious/malicious
+- **HMAC key rotation** (`rotate --old-key-file --new-key-file`):
+  re-key signed traces, refused when the old key no longer verifies
+
 ## 0.3.2 — 2026-09-08
 
 - Code-health gate: xenon in CI (blocks D/F-grade complexity);
