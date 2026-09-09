@@ -72,6 +72,10 @@ jobs:
           python-version: "3.12"
       - name: Compile all sources
         run: python -m compileall -q src examples tests
+      - name: Lint
+        run: |
+          pip install ruff
+          ruff check src tests examples
       - name: Type check
         run: |
           pip install mypy
