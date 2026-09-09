@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.0 — 2026-09-08
+
+- **Conformal attribution** (`calibration.py` + `calibrate`): split-
+  conformal prediction sets over MAST modes with a distribution-free
+  coverage guarantee (alpha configurable; the only assumption is
+  exchangeability). Ambiguous runs honestly widen the set.
+- **Temperature calibration**: NLL-fitted temperature scaling (Guo et
+  al. 2017 criterion — deliberately not ECE, which collapses to a
+  degenerate temperature on separable sets); ECE reported as a metric.
+- `score_modes`: per-mode fusion score surface, consumed by calibration
+  and conformal layers.
+
 ## 0.4.0 — 2026-09-08
 
 - **Trajectory alignment** (`approximately similar`): Needleman-Wunsch

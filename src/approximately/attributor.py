@@ -169,6 +169,23 @@ def _llr(confidence: float) -> float:
     return math.log((confidence + EPS) / (1 - confidence + EPS))
 
 
+def score_modes(trace: Trace) -> Dict[str, float]:
+    """Fusion score of EVERY MAST mode for a trace (unfiltered, unranked).
+
+    prior-odds + summed LLR of all detections, per mode — the raw score
+    surface that fuse_evidence ranks and calibration/conformal consume.
+    """
+    detections = run_rules(trace)
+    priors = mast_priors()
+    scores: Dict[str, float] = {}
+    for mode_id, prior in priors.items():
+        scores[mode_id] = math.log(prior * UNIFORM_PRIOR)
+    for det in detections:
+        if det.mode_id in scores:
+            scores[det.mode_id] += _llr(det.confidence)
+    return scores
+
+
 def fuse_evidence(detections: List[Detection]) -> List[Detection]:
     """Re-rank detections by Bayesian score: MAST prior odds + summed LLR.
 

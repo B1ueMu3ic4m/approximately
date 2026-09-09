@@ -223,6 +223,45 @@ def cmd_predict(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_calibrate(args: argparse.Namespace) -> int:
+    from .attributor import score_modes
+    from .calibration import (
+        ConformalModel,
+        expected_calibration_error,
+        fit_conformal,
+        fit_temperature,
+    )
+    from .distill import load_dataset
+
+    labeled = load_dataset(Path(args.dataset), fmt=args.format)
+    if len(labeled) < 10:
+        print(f"need >= 10 labeled traces, got {len(labeled)}")
+        return 1
+    scored = [(score_modes(t), gold) for t, gold in labeled]
+    split = max(1, int(len(scored) * 0.5))
+    temperature = fit_temperature(scored[:split])
+    model = fit_conformal(scored[:split], alpha=args.alpha,
+                          temperature=temperature)
+    model.scores_of = score_modes
+
+    held = scored[split:]
+    covered, ece_pairs = 0, []
+    for scores, gold in held:
+        modes, probs = model.prediction_set(scores)
+        covered += gold in modes
+        ece_pairs.append((probs.get(gold, 0.0), True))
+        ece_pairs.append((1 - probs.get(gold, 0.0), False))
+    ece = expected_calibration_error(ece_pairs)
+    print(f"calibration split {split} · held-out {len(held)} · "
+          f"temperature {temperature}")
+    print(f"coverage: {covered}/{len(held)} "
+          f"(target >= {model.target_coverage:.0%} at alpha={args.alpha})")
+    print(f"ECE on held-out (gold-probability view): {ece:.3f}")
+    if isinstance(model, ConformalModel) and model.threshold:
+        print(f"conformal threshold (nonconformity): {model.threshold:.3f}")
+    return 0
+
+
 def cmd_rotate(args: argparse.Namespace) -> int:
     from .integrity import load_key, rotate
 
@@ -566,6 +605,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--min-recall", type=float, default=1.0,
                    help="required effective recall (default 1.0)")
     p.set_defaults(func=cmd_optimize)
+
+    p = sub.add_parser("calibrate", parents=[common],
+                       help="fit temperature + conformal threshold on a "
+                            "labeled dataset; report held-out coverage/ECE")
+    p.add_argument("dataset", help="labeled JSONL (approx format)")
+    p.add_argument("--format", choices=["approx", "mast"], default="approx")
+    p.add_argument("--alpha", type=float, default=0.1,
+                   help="miscoverage level (default 0.1 = 90%% coverage)")
+    p.set_defaults(func=cmd_calibrate)
 
     p = sub.add_parser("rotate", parents=[common],
                        help="re-key a signed trace (old key must verify)")
