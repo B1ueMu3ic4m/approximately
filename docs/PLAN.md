@@ -7,7 +7,7 @@
 > stack.
 
 - Repository: `https://github.com/B1ueMu3ic4m/approximately`
-- Version: 0.4.0
+- Version: 0.5.0
 - Status: this document is the design and launch plan, published in-repo
 
 ---
@@ -232,6 +232,16 @@ framework adapters import lazily and degrade when the framework is absent.
 - [x] **MCP tool-poisoning scanner** (`scan-tool`): invisible chars, bidi
       attacks, homoglyph mixing, injection phrasing
 - [x] **HMAC key rotation** (`rotate`)
+
+### v0.5.0 ✅ (delivered) — statistical rigor
+- [x] **Conformal attribution**: split-conformal prediction sets with a
+      distribution-free coverage guarantee (alpha configurable); ambiguous
+      runs widen the set honestly (tested superset property)
+- [x] **Temperature calibration**: NLL-fitted (Guo et al. 2017 criterion —
+      ECE deliberately rejected as a fitting objective: it collapses to a
+      degenerate temperature on separable sets); ECE kept as reporting
+- [x] `score_modes`: per-mode fusion score surface
+- [x] `calibrate` command: held-out coverage + ECE report
 
 ### next
 - more adapters on request (AutoGen, LlamaIndex); MAST-Data leaderboard
