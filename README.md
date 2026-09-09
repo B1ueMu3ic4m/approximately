@@ -139,6 +139,12 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 🧬 Trajectory alignment | Needleman-Wunsch over action sequences — find runs with the same *shape* | `approximately similar` |
 | 📮 SARIF export | Attribution results as GitHub code-scanning alerts | `approximately attribute --sarif` |
 | 🕵️ Tool-poisoning scanner | Static analysis of MCP tool descriptions (homoglyphs, bidi, injection) | `approximately scan-tool` |
+| 🔮 Failure precursor | Early warning mined from your own history: "runs like this fail Z% of the time" | `approximately predict` |
+| 🧬 Trajectory alignment | Needleman-Wunsch over action sequences — find runs with the same *shape* | `approximately similar` |
+| 🧪 Conformal attribution | Prediction **sets** with a distribution-free 90% coverage guarantee — ambiguity widens the set honestly | `calibrate` + `attribute` |
+| 📮 SARIF export | Attribution results as GitHub code-scanning alerts | `approximately attribute --sarif` |
+| 🌡️ Drift detection | PSI over action distributions — catches prompt/model changes before failures spike | `approximately drift` |
+| ⚡ Counterfactual RCA | do(step=∅) experiments separating root causes from symptoms | `approximately counterfactual` |
 
 Advanced: **local small-model judge** (`distill` exports training data — distill to your own 1–7B model and skip the API bill), **attribution benchmark** (`benchmark`, per-mode precision/recall/F1), **cost-vs-recall curve reports** (`curve`), **threat model** ([docs/SECURITY.md](docs/SECURITY.md)).
 
@@ -178,6 +184,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.3** — cross-trace recidivist clustering · budget regression guards · cost-vs-recall curves · project scaffold · stats trends
 - ✅ **v0.3.2** — Bayesian evidence fusion (MAST priors × evidence likelihood) · budget optimizer (binary-search) · tamper-evident evidence chains + `verify` · HMAC signing · security threat model
 - ✅ **v0.4** — trajectory alignment (Needleman-Wunsch) · failure-precursor prediction (n-gram early warning) · SARIF export · MCP tool-poisoning scanner · HMAC key rotation
+- ✅ **v0.5** — conformal attribution (coverage-guaranteed prediction sets) · NLL temperature calibration · counterfactual root-cause analysis · PSI behavior-drift detection
 - 🔜 **next** — more adapters on request · MAST-Data leaderboard page · per-serving-stack distillation recipes · stats trend charts in reports
 
 Full design document: [docs/PLAN.md](docs/PLAN.md).
