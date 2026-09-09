@@ -21,7 +21,7 @@ attributed failure disappears. Verified by replay afterwards.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from .attributor import FailureReport, attribute
 from .trace import Trace
@@ -72,10 +72,9 @@ class CounterfactualReport:
     causal_ranking: List[int] = field(default_factory=list)
 
     def summary(self) -> str:
-        lines = [
-            f"baseline: {self.baseline_primary} · "
-            f"{len(self.interventions)} interventions on trace {self.trace_id}"
-        ]
+        lines = [(f"baseline: {self.baseline_primary} · "
+                  f"{len(self.interventions)} interventions on trace "
+                  f"{self.trace_id}")]
         roots = [i for i in self.interventions if i.eliminated]
         if roots:
             lines.append("root-cause steps (removal eliminates the mode):")

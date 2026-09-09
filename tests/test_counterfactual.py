@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from approximately.counterfactual import counterfactual, counterfactual as _cf
+from approximately.counterfactual import counterfactual
+from approximately.counterfactual import counterfactual as _cf
 from approximately.recorder import Recorder
 
 
