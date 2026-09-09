@@ -18,13 +18,9 @@ VERSION = "2.1.0"
 _LEVELS = {"FC1": "warning", "FC2": "warning", "FC3": "error"}
 
 
-def to_sarif(reports: List[FailureReport]) -> Dict[str, Any]:
-    """Render one or more FailureReports as a SARIF 2.1.0 log."""
-    used_modes = sorted({r.primary_mode.id for r in reports if r.failed})
-    for rep in reports:
-        used_modes.extend(d.mode_id for d in rep.detections)
+def _build_rules(mode_ids: set) -> List[Dict[str, Any]]:
     rules = []
-    for mode_id in sorted(set(used_modes)):
+    for mode_id in sorted(mode_ids):
         mode = FAILURE_MODES.get(mode_id)
         if mode is None:
             continue
@@ -36,6 +32,10 @@ def to_sarif(reports: List[FailureReport]) -> Dict[str, Any]:
             "properties": {"category": mode.category_name,
                            "mastShare": mode.mast_share},
         })
+    return rules
+
+
+def _build_results(reports: List[FailureReport]) -> List[Dict[str, Any]]:
     results = []
     for rep in reports:
         if not rep.failed:
@@ -48,7 +48,7 @@ def to_sarif(reports: List[FailureReport]) -> Dict[str, Any]:
                 "ruleId": det.mode_id,
                 "level": _LEVELS.get(mode.category, "warning"),
                 "message": {
-                    "text": f"{rep.task[:100]} — {rep.summary} "
+                    "text": f"{rep.task[:100]} - {rep.summary} "
                             f"(evidence: {'; '.join(det.evidence)})"
                 },
                 "locations": [{
@@ -68,6 +68,14 @@ def to_sarif(reports: List[FailureReport]) -> Dict[str, Any]:
                 "properties": {"confidence": round(det.confidence, 3),
                                "source": det.source},
             })
+    return results
+
+
+def to_sarif(reports: List[FailureReport]) -> Dict[str, Any]:
+    """Render one or more FailureReports as a SARIF 2.1.0 log."""
+    used_modes = {r.primary_mode.id for r in reports if r.failed}
+    for rep in reports:
+        used_modes.update(d.mode_id for d in rep.detections)
     return {
         "$schema": SCHEMA,
         "version": VERSION,
@@ -77,10 +85,10 @@ def to_sarif(reports: List[FailureReport]) -> Dict[str, Any]:
                     "name": "approximately",
                     "informationUri":
                         "https://github.com/B1ueMu3ic4m/approximately",
-                    "rules": rules,
+                    "rules": _build_rules(used_modes),
                 }
             },
-            "results": results,
+            "results": _build_results(reports),
             "automationDetails": {
                 "description": "approximately agent-failure attribution"
             },
