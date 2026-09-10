@@ -7,7 +7,7 @@
 > stack.
 
 - Repository: `https://github.com/B1ueMu3ic4m/approximately`
-- Version: 0.5.0
+- Version: 0.6.0
 - Status: this document is the design and launch plan, published in-repo
 
 ---
@@ -253,6 +253,13 @@ framework adapters import lazily and degrade when the framework is absent.
 - [x] PSI over action structure tokens between time windows;
       `approximately drift --baseline-ratio` with industry-convention
       thresholds; smoothing keeps disjoint distributions finite
+
+### v0.6.0 ✅ (delivered) — structural trace diff
+- [x] Needleman-Wunsch **traceback**: full edit script over two runs
+      (equal/mutated/deleted/inserted per tool call)
+- [x] `approximately diff <a> <b>`: failed-run vs last-success is the
+      classic regression-debugging workflow
+- [x] similarity consistent with align.py (tested within 0.01)
 
 ### next
 - more adapters on request (AutoGen, LlamaIndex); MAST-Data leaderboard

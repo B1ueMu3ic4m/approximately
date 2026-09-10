@@ -318,6 +318,17 @@ def cmd_drift(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_diff(args: argparse.Namespace) -> int:
+    from .diff import diff as trace_diff
+
+    store = TraceStore(args.store)
+    trace_a = _load_trace(args.trace, store)
+    trace_b = _load_trace(args.other, store)
+    result = trace_diff(trace_a, trace_b)
+    print(result.summary())
+    return 0
+
+
 def cmd_verify(args: argparse.Namespace) -> int:
     from .integrity import load_key, verify
 
@@ -664,6 +675,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--baseline-ratio", type=float, default=0.5,
                    help="share of oldest traces used as baseline (default 0.5)")
     p.set_defaults(func=cmd_drift)
+
+    p = sub.add_parser("diff", parents=[common],
+                       help="git-style diff of two runs (failed vs last "
+                            "success is the classic use)")
+    p.add_argument("trace")
+    p.add_argument("other", help="the trace to compare against")
+    p.set_defaults(func=cmd_diff)
 
     p = sub.add_parser("verify", parents=[common],
                        help="verify the tamper-evident hash chain of a trace")

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0 — 2026-09-09
+
+- **Structural trace diff** (`diff.py` + `approximately diff <a> <b>`):
+  Needleman-Wunsch **traceback** over two runs — every tool call
+  classified equal/mutated/deleted/inserted. The classic workflow: diff
+  the failed run against the last successful one; the first `~` is where
+  behavior broke. Alignment traceback shares the scoring of align.py
+  (similarity consistent between the two modules, tested).
+
 ## 0.5.0 — 2026-09-08
 
 - **Behavior-drift detection** (`drift.py` + `approximately drift`):
