@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
-from approximately.attributor import attribute
 from approximately.recorder import Recorder
 from approximately.repair import plan_repair
 from approximately.trace import TOOL_CALL

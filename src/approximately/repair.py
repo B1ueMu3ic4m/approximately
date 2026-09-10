@@ -22,12 +22,11 @@ silently "fixed" by trace surgery.
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
 from .attributor import attribute
-from .trace import MESSAGE, TOOL_CALL, Step, Trace
+from .trace import TOOL_CALL, Step, Trace
 
 VERIFY_MARKERS = ("verify", "check", "confirm", "get_", "read", "fetch",
                   "status")
@@ -92,11 +91,8 @@ def _unverified_mutating(trace: Trace) -> List[int]:
     positions = [i for i, s in enumerate(trace.steps)
                  if s.kind == TOOL_CALL and not s.error
                  and s.meta.get("mutating")]
-    unverified = []
-    for i in positions:
-        if not any(_is_verify_step(s) for s in trace.steps[i + 1:]):
-            unverified.append(i)
-    return unverified
+    return [i for i in positions
+            if not any(_is_verify_step(s) for s in trace.steps[i + 1:])]
 
 
 def _insert_verify(trace: Trace, after_index: int) -> Tuple[Trace, Step]:
