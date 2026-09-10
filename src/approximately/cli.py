@@ -329,6 +329,20 @@ def cmd_diff(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_repair(args: argparse.Namespace) -> int:
+    from .repair import plan_repair
+
+    store = TraceStore(args.store)
+    trace = _load_trace(args.trace, store)
+    result = plan_repair(trace)
+    print(result.summary())
+    if result.repaired_trace is not None and args.apply:
+        out = store.directory / f"{trace.id}.repaired.json"
+        out.write_text(result.repaired_trace.to_json(), encoding="utf-8")
+        print(f"repaired trace written: {out}")
+    return 0
+
+
 def cmd_verify(args: argparse.Namespace) -> int:
     from .integrity import load_key, verify
 
@@ -682,6 +696,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("trace")
     p.add_argument("other", help="the trace to compare against")
     p.set_defaults(func=cmd_diff)
+
+    p = sub.add_parser("repair", parents=[common],
+                       help="search the minimal intervention set that "
+                            "clears attribution (prescription validation)")
+    p.add_argument("trace")
+    p.add_argument("--apply", action="store_true",
+                   help="write the repaired trace into the store")
+    p.set_defaults(func=cmd_repair)
 
     p = sub.add_parser("verify", parents=[common],
                        help="verify the tamper-evident hash chain of a trace")
