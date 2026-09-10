@@ -343,6 +343,19 @@ def cmd_repair(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_metrics(args: argparse.Namespace) -> int:
+    from .cluster import store_stats
+    from .metrics import render_prometheus
+
+    store = TraceStore(args.store)
+    stats = store_stats(store.list_traces())
+    if args.prometheus:
+        print(render_prometheus(stats, extra_labels=args.label or None))
+        return 0
+    print(stats.summary())
+    return 0
+
+
 def cmd_verify(args: argparse.Namespace) -> int:
     from .integrity import load_key, verify
 
@@ -704,6 +717,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--apply", action="store_true",
                    help="write the repaired trace into the store")
     p.set_defaults(func=cmd_repair)
+
+    p = sub.add_parser("metrics", parents=[common],
+                       help="store statistics (Prometheus format with "
+                            "--prometheus)")
+    p.add_argument("--prometheus", action="store_true",
+                   help="emit Prometheus text exposition format")
+    p.add_argument("--label", action="append",
+                   help="extra label k=v for the --prometheus output")
+    p.set_defaults(func=cmd_metrics)
 
     p = sub.add_parser("verify", parents=[common],
                        help="verify the tamper-evident hash chain of a trace")
