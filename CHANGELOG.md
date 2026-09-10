@@ -2,6 +2,14 @@
 
 ## 0.6.0 — 2026-09-09
 
+- **Minimal-repair search** (`repair.py` + `approximately repair`):
+  greedy prescription search over an honest intervention vocabulary
+  (drop-duplicate calls, insert verification after unverified mutating
+  calls); every prescription is validated by re-attribution, and modes
+  that need agent-level changes are reported as unrepairable instead of
+  being faked by trace surgery
+
+
 - **Structural trace diff** (`diff.py` + `approximately diff <a> <b>`):
   Needleman-Wunsch **traceback** over two runs — every tool call
   classified equal/mutated/deleted/inserted. The classic workflow: diff
