@@ -35,9 +35,9 @@ VERIFY_MARKERS = ("verify", "check", "confirm", "get_", "read", "fetch",
 def _is_verify_step(step: Step) -> bool:
     if step.meta.get("verify"):
         return True
-    return (step.kind == TOOL_CALL and bool(step.tool) and any(
-        m in step.tool.lower() for m in VERIFY_MARKERS
-    ))
+    if step.kind != TOOL_CALL or not step.tool:
+        return False
+    return any(m in step.tool.lower() for m in VERIFY_MARKERS)
 
 
 @dataclass
@@ -95,7 +95,8 @@ def _unverified_mutating(trace: Trace) -> List[int]:
             if not any(_is_verify_step(s) for s in trace.steps[i + 1:])]
 
 
-def _insert_verify(trace: Trace, after_index: int) -> Tuple[Trace, Step]:
+def _insert_verify(trace: Trace,
+                   after_index: int) -> Tuple[Trace, Optional[Step]]:
     copy = Trace(task=trace.task, model=trace.model,
                  success=trace.success, meta=dict(trace.meta))
     inserted = None
