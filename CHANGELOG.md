@@ -2,6 +2,12 @@
 
 ## 0.6.0 — 2026-09-09
 
+- **Prometheus metrics export** (`metrics.py` + `approximately metrics
+  --prometheus`): runs_total/failures_total/failure_rate/steps_average
+  and per-MAST-mode counters, with per-spec label escaping — agent
+  reliability on the same dashboards and alerts as every other service
+
+
 - **Minimal-repair search** (`repair.py` + `approximately repair`):
   greedy prescription search over an honest intervention vocabulary
   (drop-duplicate calls, insert verification after unverified mutating
