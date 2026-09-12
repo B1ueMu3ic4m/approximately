@@ -2,6 +2,14 @@
 
 ## 0.7.0 — 2026-09-10
 
+- **Concurrent-safe trace store**: saves are atomic (temp + os.replace)
+  and same-id writes serialize via a per-id lock file with stale-lock
+  recovery — multiple agents recording to a shared store is now the
+  supported deployment. Readers never observe a partial write (tested
+  with a polling reader across 30 saves).
+
+## 0.7.0 — 2026-09-10
+
 - **Streaming reliability monitor** (`streaming.py`): live failure-risk
   estimation over in-flight runs — precursor probability, repetition
   velocity (sliding window), verification debt — fused by weighted voting
