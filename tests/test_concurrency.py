@@ -64,3 +64,66 @@ def test_no_stale_lock_files_after_save(store, failing_trace):
     store.save(failing_trace)
     locks = list(store.directory.glob(".*.lock"))
     assert locks == []
+
+
+def test_stale_lock_is_broken_and_save_succeeds(store, failing_trace):
+    """A crashed writer leaves a lock; the next save breaks it (after the
+    bounded timeout shortened here via many pre-created locks is not
+    needed — we simulate by pre-creating and shrinking the deadline via
+    monkeypatched time)."""
+    import time as _time
+
+    from approximately import store as store_module
+
+    store.save(failing_trace)  # ensure dir + base file
+    lock = store.directory / f".{failing_trace.id}.lock"
+    lock.write_bytes(b"")  # simulate a crashed writer
+
+    real_time = _time.time
+    # first time.time() call (deadline) is 'now'; the loop check sees a
+    # time far in the future so the stale branch fires immediately
+    calls = {"n": 0}
+
+    def fake_time():
+        calls["n"] += 1
+        return real_time() + (0 if calls["n"] == 1 else 3600)
+
+    original = store_module.time.time
+    store_module.time.time = fake_time
+    try:
+        saved = store.save(failing_trace)
+    finally:
+        store_module.time.time = original
+    assert saved.exists()
+    assert not lock.exists()  # stale lock removed after recovery
+    assert store.load(failing_trace.id) is not None
+
+
+def test_concurrent_readers_during_lock_waits(store, failing_trace):
+    """A second save while the lock is held waits, then succeeds."""
+    import threading
+    import time as _time
+
+    store.save(failing_trace)
+    lock = store.directory / f".{failing_trace.id}.lock"
+    lock.write_bytes(b"")
+    release = threading.Event()
+
+    def hold_then_release():
+        release.wait(timeout=2)
+        lock.unlink(missing_ok=True)
+
+    thread = threading.Thread(target=hold_then_release)
+    thread.start()
+    results = []
+
+    def saver():
+        results.append(store.save(failing_trace))
+
+    saver_thread = threading.Thread(target=saver)
+    saver_thread.start()
+    _time.sleep(0.05)  # let the saver hit the lock
+    release.set()
+    thread.join()
+    saver_thread.join()
+    assert results and results[0].exists()

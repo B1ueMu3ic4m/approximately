@@ -2,6 +2,11 @@
 
 ## 0.7.0 — 2026-09-10
 
+- Audit round: stale-lock recovery and lock-wait paths now tested
+  (store.py coverage 90% → 95%); zero-dependency claim re-verified by
+  AST scan; bandit/mypy/xenon all clean
+
+
 - **Concurrent-safe trace store**: saves are atomic (temp + os.replace)
   and same-id writes serialize via a per-id lock file with stale-lock
   recovery — multiple agents recording to a shared store is now the
@@ -9,6 +14,11 @@
   with a polling reader across 30 saves).
 
 ## 0.7.0 — 2026-09-10
+
+- Audit round: stale-lock recovery and lock-wait paths now tested
+  (store.py coverage 90% → 95%); zero-dependency claim re-verified by
+  AST scan; bandit/mypy/xenon all clean
+
 
 - **Streaming reliability monitor** (`streaming.py`): live failure-risk
   estimation over in-flight runs — precursor probability, repetition
