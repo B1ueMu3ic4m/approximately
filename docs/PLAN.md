@@ -7,7 +7,7 @@
 > stack.
 
 - Repository: `https://github.com/B1ueMu3ic4m/approximately`
-- Version: 0.6.0
+- Version: 0.7.0
 - Status: this document is the design and launch plan, published in-repo
 
 ---
@@ -260,6 +260,11 @@ framework adapters import lazily and degrade when the framework is absent.
 - [x] `approximately diff <a> <b>`: failed-run vs last-success is the
       classic regression-debugging workflow
 - [x] similarity consistent with align.py (tested within 0.01)
+
+### v0.7.0 ✅ (delivered) — streaming monitor
+- [x] Live failure-risk over in-flight runs: three signals (precursor,
+      repetition velocity, verification debt) fused with hysteresis
+- [x] Escalation fires once per level crossing; O(window) per observation
 
 ### next
 - more adapters on request (AutoGen, LlamaIndex); MAST-Data leaderboard

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0 — 2026-09-10
+
+- **Streaming reliability monitor** (`streaming.py`): live failure-risk
+  estimation over in-flight runs — precursor probability, repetition
+  velocity (sliding window), verification debt — fused by weighted voting
+  with hysteresis so levels cannot flap. `observe(trace)` after every
+  tool call; O(window) per observation.
+  The level-machine hysteresis bug (dead branch, caught by its own test)
+  was fixed before merge.
+
 ## 0.6.0 — 2026-09-09
 
 - **Prometheus metrics export** (`metrics.py` + `approximately metrics
