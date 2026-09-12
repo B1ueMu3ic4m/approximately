@@ -145,6 +145,10 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 📮 SARIF export | Attribution results as GitHub code-scanning alerts | `approximately attribute --sarif` |
 | 🌡️ Drift detection | PSI over action distributions — catches prompt/model changes before failures spike | `approximately drift` |
 | ⚡ Counterfactual RCA | do(step=∅) experiments separating root causes from symptoms | `approximately counterfactual` |
+| 📡 Streaming monitor | Live failure-risk over in-flight runs — precursor + repetition + verification-debt signals with hysteresis | `StreamingMonitor.observe()` |
+| 🌡️ Drift detection | PSI over action distributions — catches prompt/model changes before failures spike | `approximately drift` |
+| 🔧 Repair search | Smallest validated intervention set that clears attribution (or honest "unrepairable") | `approximately repair` |
+| 📊 Prometheus export | Agent reliability on your Grafana dashboards, with per-mode counters | `approximately metrics --prometheus` |
 
 Advanced: **local small-model judge** (`distill` exports training data — distill to your own 1–7B model and skip the API bill), **attribution benchmark** (`benchmark`, per-mode precision/recall/F1), **cost-vs-recall curve reports** (`curve`), **threat model** ([docs/SECURITY.md](docs/SECURITY.md)).
 
@@ -185,6 +189,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.3.2** — Bayesian evidence fusion (MAST priors × evidence likelihood) · budget optimizer (binary-search) · tamper-evident evidence chains + `verify` · HMAC signing · security threat model
 - ✅ **v0.4** — trajectory alignment (Needleman-Wunsch) · failure-precursor prediction (n-gram early warning) · SARIF export · MCP tool-poisoning scanner · HMAC key rotation
 - ✅ **v0.5** — conformal attribution (coverage-guaranteed prediction sets) · NLL temperature calibration · counterfactual root-cause analysis · PSI behavior-drift detection
+- ✅ **v0.6** — structural trace diff (NW traceback: failed-vs-success edit scripts) · minimal-repair search (validated prescriptions) · Prometheus export
+- ✅ **v0.7** — streaming reliability monitor (live risk with hysteresis) · concurrent-safe store (atomic writes + per-id locks) · concurrency threat model
 - 🔜 **next** — more adapters on request · MAST-Data leaderboard page · per-serving-stack distillation recipes · stats trend charts in reports
 
 Full design document: [docs/PLAN.md](docs/PLAN.md).
