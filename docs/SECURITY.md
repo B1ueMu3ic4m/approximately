@@ -23,6 +23,13 @@ with write access can rewrite a trace and re-compute the chain. For
 evidence that must survive a hostile environment, set a signing key:
 HMAC chains are infeasible to re-compute without the secret.
 
+## Concurrency
+
+Shared stores are a supported deployment. Saves are atomic (temp file +
+`os.replace`) and same-id writes serialize on a per-id lock file with
+stale-lock recovery — a crashed writer cannot block the store forever,
+and readers never observe partial writes.
+
 ## Explicitly out of scope
 
 - The LLM judge path sends trace content to whatever endpoint you configure
