@@ -266,6 +266,10 @@ framework adapters import lazily and degrade when the framework is absent.
       repetition velocity, verification debt) fused with hysteresis
 - [x] Escalation fires once per level crossing; O(window) per observation
 
+### v0.7.0 additions ✅ — concurrent store
+- [x] Atomic saves (temp + os.replace) and per-id lock files with
+      stale-lock recovery; concurrent same-id writers tested
+
 ### next
 - more adapters on request (AutoGen, LlamaIndex); MAST-Data leaderboard
   page; per-serving-stack distillation recipes
