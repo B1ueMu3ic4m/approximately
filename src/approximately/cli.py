@@ -125,22 +125,26 @@ def cmd_test(args: argparse.Namespace) -> int:
 
 
 def cmd_report(args: argparse.Namespace) -> int:
+    from .cluster import trend
     from .report import render_index_html
 
     store = TraceStore(args.store)
     if args.all:
         pairs = []
+        traces = []
         written = 0
         for trace in store.list_traces():
             report = attribute(trace, use_judge=args.judge)
             pairs.append((trace, report))
+            traces.append(trace)
             # write every individual report so the index links resolve
             page = store.directory / f"{trace.id}.report.html"
             if not page.exists():
                 page.write_text(render_html(trace, report), encoding="utf-8")
                 written += 1
         out = Path(args.output) if args.output else store.directory / "index.html"
-        out.write_text(render_index_html(pairs), encoding="utf-8")
+        out.write_text(render_index_html(pairs, trend_rows=trend(traces)),
+                       encoding="utf-8")
         print(f"wrote index over {len(pairs)} traces: {out} "
               f"({written} individual reports generated)")
         return 0
