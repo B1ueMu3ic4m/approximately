@@ -34,7 +34,7 @@ from __future__ import annotations
 import logging
 import types
 from contextlib import contextmanager
-from typing import Any, Optional
+from typing import Any, ClassVar, Optional
 
 # event type names (suffix-matched) -> how to record them
 _KNOWN = (
@@ -89,39 +89,58 @@ class AutoGenEventHandler(logging.Handler):
             pass
 
     def _record(self, kind: str, event: Any) -> None:
-        rec = self.recorder
-        agent = _preview(_field(event, "agent_id", "agent"), limit=80)
+        handler = self._HANDLERS.get(kind)
+        if handler is not None:
+            handler(self, event)
 
-        if kind == "LLMCallEvent":
-            usage = _field(event, "completion_tokens", default=0) or 0
-            rec.tool(
-                "llm",
-                {"agent": agent},
-                result=_preview(_field(event, "response")),
-                tokens=usage,
-            )
-        elif kind == "LLMStreamEndEvent":
-            rec.tool(
-                "llm-stream",
-                {"agent": agent},
-                result=_preview(_field(event, "response")),
-            )
-        elif kind == "FunctionCallEvent":
-            name = _preview(_field(event, "function", "name"), limit=80) \
-                or "function"
-            rec.tool(name, {"agent": agent},
-                     result=_preview(_field(event, "content", "args")))
-        elif kind == "FunctionExecutionEvent":
-            fn = _preview(_field(event, "function", "name"), limit=80) or "tool"
-            rec.observe(f"result of {fn}: "
-                        f"{_preview(_field(event, 'content'), limit=120)}")
-        elif kind == "SelectSpeakerEvent":
-            speakers = _field(event, "speakers", default=[]) or []
-            names = ", ".join(_preview(s, limit=40) for s in speakers)
-            rec.observe(f"select speaker: {names}")
-        elif kind == "TerminationEvent":
-            rec.observe(f"termination: {_preview(_field(event, 'content'))}",
-                        verify=True)
+    def _agent(self, event: Any) -> str:
+        return _preview(_field(event, "agent_id", "agent"), limit=80)
+
+    def _llm_call(self, event: Any) -> None:
+        self.recorder.tool(
+            "llm",
+            {"agent": self._agent(event)},
+            result=_preview(_field(event, "response")),
+            tokens=_field(event, "completion_tokens", default=0) or 0,
+        )
+
+    def _llm_stream_end(self, event: Any) -> None:
+        self.recorder.tool(
+            "llm-stream",
+            {"agent": self._agent(event)},
+            result=_preview(_field(event, "response")),
+        )
+
+    def _function_call(self, event: Any) -> None:
+        name = _preview(_field(event, "function", "name"), limit=80) \
+            or "function"
+        self.recorder.tool(name, {"agent": self._agent(event)},
+                           result=_preview(_field(event, "content", "args")))
+
+    def _function_execution(self, event: Any) -> None:
+        fn = _preview(_field(event, "function", "name"), limit=80) or "tool"
+        self.recorder.observe(
+            f"result of {fn}: {_preview(_field(event, 'content'), limit=120)}"
+        )
+
+    def _select_speaker(self, event: Any) -> None:
+        speakers = _field(event, "speakers", default=[]) or []
+        names = ", ".join(_preview(s, limit=40) for s in speakers)
+        self.recorder.observe(f"select speaker: {names}")
+
+    def _termination(self, event: Any) -> None:
+        self.recorder.observe(
+            f"termination: {_preview(_field(event, 'content'))}", verify=True
+        )
+
+    _HANDLERS: ClassVar[dict] = {
+        "LLMCallEvent": _llm_call,
+        "LLMStreamEndEvent": _llm_stream_end,
+        "FunctionCallEvent": _function_call,
+        "FunctionExecutionEvent": _function_execution,
+        "SelectSpeakerEvent": _select_speaker,
+        "TerminationEvent": _termination,
+    }
 
 
 class RecordingChatCompletionClient:

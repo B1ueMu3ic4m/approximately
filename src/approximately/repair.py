@@ -114,6 +114,30 @@ def _insert_verify(trace: Trace,
     return copy, inserted
 
 
+def _copy_trace(trace: Trace) -> Trace:
+    """Deep copy with independent step indices (Trace.add renumbers)."""
+    working = Trace(task=trace.task, model=trace.model,
+                    success=trace.success, meta=dict(trace.meta))
+    for step in trace.steps:
+        working.add(Step.from_dict(step.to_dict()))
+    return working
+
+
+def _dedupe_phase(working: Trace, result: RepairResult) -> Trace:
+    working, description = _drop_duplicates(working)
+    if description:
+        result.applied.append(description)
+    return working
+
+
+def _verify_phase(working: Trace, result: RepairResult) -> Trace:
+    for i in _unverified_mutating(working):
+        working, inserted = _insert_verify(working, i)
+        if inserted is not None:
+            result.applied.append(f"insert-verify: {inserted.tool}")
+    return working
+
+
 def plan_repair(trace: Trace) -> RepairResult:
     """Greedy search: smallest honest intervention set that clears modes.
 
@@ -127,21 +151,9 @@ def plan_repair(trace: Trace) -> RepairResult:
     if not baseline.failed or not failed_modes:
         return result
 
-    working = Trace(task=trace.task, model=trace.model,
-                    success=trace.success, meta=dict(trace.meta))
-    for step in trace.steps:
-        working.add(Step.from_dict(step.to_dict()))
-
-    # 1. drop duplicate calls (FM-1.3)
-    working, description = _drop_duplicates(working)
-    if description:
-        result.applied.append(description)
-
-    # 2. insert verification after every unverified mutating call (FM-3.2)
-    for i in _unverified_mutating(working):
-        working, inserted = _insert_verify(working, i)
-        if inserted is not None:
-            result.applied.append(f"insert-verify: {inserted.tool}")
+    working = _copy_trace(trace)
+    working = _dedupe_phase(working, result)
+    working = _verify_phase(working, result)
 
     # re-attribute the repaired trace
     repaired_report = attribute(working)

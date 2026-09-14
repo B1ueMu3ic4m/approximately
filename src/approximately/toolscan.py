@@ -77,9 +77,8 @@ class ScanResult:
         return "\n".join(lines)
 
 
-def scan(description: str) -> ScanResult:
-    findings: List[Finding] = []
-
+def _invisible_findings(description: str, findings: List[Finding]) -> None:
+    """Invisible and bidi control characters, malicious on sight."""
     for ch, name in {**INVISIBLE, **BIDI}.items():
         pos = description.find(ch)
         while pos != -1:
@@ -87,6 +86,9 @@ def scan(description: str) -> ScanResult:
             findings.append(Finding(kind, f"{name} U+{ord(ch):04X}", pos))
             pos = description.find(ch, pos + 1)
 
+
+def _script_findings(description: str, findings: List[Finding]) -> None:
+    """Homoglyph camouflage: foreign scripts embedded in Latin text."""
     scripts = set()
     for ch in description:
         if ch.isalpha():
@@ -103,6 +105,8 @@ def scan(description: str) -> ScanResult:
             f"Latin text mixed with {', '.join(sorted(foreign))} letters "
             "(classic homoglyph camouflage)", 0))
 
+
+def _injection_findings(description: str, findings: List[Finding]) -> None:
     lowered = description.lower()
     for pattern, kind in INJECTION_PATTERNS:
         match = re.search(pattern, lowered)
@@ -111,14 +115,23 @@ def scan(description: str) -> ScanResult:
                                     f"{kind}: “{match.group(0)}”",
                                     match.start()))
 
+
+def _verdict(findings: List[Finding]) -> str:
     malicious = any(f.kind in ("bidi-attack", "invisible-character")
                     for f in findings)
-    suspicious = sum(1 for f in findings
-                     if f.kind in ("injection-phrasing", "homoglyph-mixing"))
+    suspicious = any(f.kind in ("injection-phrasing", "homoglyph-mixing")
+                     for f in findings)
     if malicious:
-        verdict = "malicious"
-    elif suspicious:
-        verdict = "suspicious"
-    else:
-        verdict = "clean"
-    return ScanResult(verdict=verdict, findings=findings)
+        return "malicious"
+    if suspicious:
+        return "suspicious"
+    return "clean"
+
+
+def scan(description: str) -> ScanResult:
+    """Run every deterministic check and classify the description."""
+    findings: List[Finding] = []
+    _invisible_findings(description, findings)
+    _script_findings(description, findings)
+    _injection_findings(description, findings)
+    return ScanResult(verdict=_verdict(findings), findings=findings)

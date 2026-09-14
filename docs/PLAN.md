@@ -270,12 +270,23 @@ framework adapters import lazily and degrade when the framework is absent.
 - [x] Atomic saves (temp + os.replace) and per-id lock files with
       stale-lock recovery; concurrent same-id writers tested
 
+### v0.8.0 ✅ (delivered) — AutoGen adapter + trend verdict
+- [x] AutoGen v0.4+ adapter: event-log handler (`autogen_core.events`
+      via standard logging, the seam AutoGen Studio consumes) plus a
+      transparent `RecordingChatCompletionClient` proxy at the model
+      boundary; version-tolerant, exception-guarded, faked in tests
+- [x] Failure-rate trend in `report --all`: inline-SVG sparkline +
+      Theil–Sen slope (outlier-resistant) with a verdict judged relative
+      to the series' own mean level
+- [x] Complexity audit: every C-rank block (14, under `--max-absolute B`,
+      stricter than CI) refactored to B/A; full suite green throughout
+- [x] Security fuzzing of new surfaces; fixed `cluster.trend` overflow
+      on out-of-range timestamps and sparkline `nan` coordinate leak
+
 ### next
-- more adapters on request (AutoGen, LlamaIndex); MAST-Data leaderboard
-  page; per-serving-stack distillation recipes
-- trend charts rendered inside HTML reports (trend data shipped, viz
-  pending)
-- optional key rotation + signature counter for the HMAC chain
+- LlamaIndex adapter; MAST-Data leaderboard page; per-serving-stack
+  distillation recipes
+- optional signature counter for the HMAC chain
 
 ---
 

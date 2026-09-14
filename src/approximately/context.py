@@ -267,6 +267,27 @@ def default_facts(trace: Trace) -> Dict[str, str]:
     return facts
 
 
+def _probe_evictions(runtime, evicted_now: List[str], facts: Dict[str, str],
+                     lost: set, pending: set) -> List[str]:
+    """Re-verify pending facts whose supporting item just got evicted.
+
+    Aligned facts are re-proved only on eviction batches (never a full
+    rescan), which is what keeps forecasting large traces linear-ish.
+    """
+    lost_now: list = []
+    if not evicted_now:
+        return lost_now
+    pending.update(facts.keys() & set(evicted_now))
+    if pending:
+        rendered = "\n".join(i.render() for i in runtime.items)
+        for fact_key in sorted(pending):
+            if facts[fact_key] not in rendered:
+                lost.add(fact_key)
+                lost_now.append(fact_key)
+        pending -= lost
+    return lost_now
+
+
 def forecast(trace: Trace, budget: int,
              facts: Optional[Dict[str, str]] = None) -> ContextForecast:
     """Replay a recorded trace through a budgeted runtime (dry run).
@@ -285,31 +306,17 @@ def forecast(trace: Trace, budget: int,
     lost: set = set()
     pending: set = set()  # aligned facts whose item was evicted: re-verify
 
-    def _render() -> str:
-        return "\n".join(i.render() for i in runtime.items)
-
     for step in trace.steps:
         runtime.advance()
-        evicted_now: List[str] = []
         seen_evictions = len(runtime.evictions)
         if step.kind == TOOL_CALL and step.result:
             key = f"{step.tool}#{step.index}"
             runtime.add_tool_result(key=key, text=step.result)
         # only the evictions from THIS step (never rescan the whole list)
-        evicted_now.extend(
+        evicted_now = [
             event.item_key for event in runtime.evictions[seen_evictions:]
-        )
-        lost_now: list = []
-        if evicted_now:
-            # facts whose supporting item just left must re-prove themselves
-            pending.update(facts.keys() & set(evicted_now))
-            if pending:
-                rendered = _render()
-                for fact_key in sorted(pending):
-                    if facts[fact_key] not in rendered:
-                        lost.add(fact_key)
-                        lost_now.append(fact_key)
-                pending -= lost
+        ]
+        lost_now = _probe_evictions(runtime, evicted_now, facts, lost, pending)
         out.steps.append(StepForecast(
             step_index=step.index, tool=step.tool or step.kind,
             tokens_used=runtime.used_tokens(),

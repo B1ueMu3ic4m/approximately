@@ -85,14 +85,16 @@ def render_sparkline(values: Sequence[float], width: int = 220,
     lo, hi = min(vals), max(vals)
     span = hi - lo
     n = len(vals)
-    if n == 1 or span == 0:
-        y = height / 2
-        points = [(width * i / (n - 1), y) for i in range(n)]
+    mid = height / 2
+    if n == 1 or span <= 0 or not math.isfinite(span):
+        # constant or overflowing range: flat midline
+        points = [(width * i / (n - 1), mid) for i in range(n)]
     else:
-        points = [
-            (width * i / (n - 1), height - 3 - (v - lo) / span * (height - 6))
-            for i, v in enumerate(vals)
-        ]
+        points = []
+        for i, v in enumerate(vals):
+            y = height - 3 - (v - lo) / span * (height - 6)
+            points.append((width * i / (n - 1),
+                           y if math.isfinite(y) else mid))
     pts = " ".join(f"{x:.1f},{y:.1f}" for x, y in points)
     last_x, last_y = points[-1]
     return (
@@ -282,6 +284,36 @@ def render_index_html(items, trend_rows: Optional[list] = None) -> str:
     )
 
 
+def _evidence_cards(report: FailureReport) -> str:
+    blocks = []
+    for det in report.detections:
+        primary = det.mode_id == report.primary_mode.id
+        title = _esc(det.mode_id + (" (primary)" if primary else ""))
+        blocks.append(
+            f'<div class="card"><h2>Detection · {title}</h2>'
+            f'<div class="k">{_esc(det.source)} · confidence {det.confidence:.2f} · {det.where}</div>'
+            "<ul class=\"evidence\">"
+            + "".join(f"<li>{_esc(e)}</li>" for e in det.evidence)
+            + "</ul></div>"
+        )
+    return "".join(blocks)
+
+
+def _disagreement_banner(report: FailureReport) -> str:
+    if not report.disagreement:
+        return ""
+    return (f'<div class="disagree">⚠ Rule/judge disagreement: '
+            f"{_esc(report.disagreement)}</div>")
+
+
+def _fixes_card(report: FailureReport) -> str:
+    if not report.suggested_fixes:
+        return ""
+    return ('<div class="card"><h2>Suggested Fixes</h2><ol class="fixes">'
+            + "".join(f"<li>{_esc(f)}</li>" for f in report.suggested_fixes)
+            + "</ol></div>")
+
+
 def render_html(trace: Trace, report: FailureReport) -> str:
     hot = {d.step_index for d in report.detections}
 
@@ -294,32 +326,9 @@ def render_html(trace: Trace, report: FailureReport) -> str:
         trace.created_at or 0, datetime.timezone.utc
     ).strftime("%Y-%m-%d %H:%M UTC")
 
-    evidence_blocks = []
-    for det in report.detections:
-        mode = report.primary_mode if det.mode_id == report.primary_mode.id else None
-        title = _esc(det.mode_id + (" (primary)" if mode else ""))
-        evidence_blocks.append(
-            f'<div class="card"><h2>Detection · {title}</h2>'
-            f'<div class="k">{_esc(det.source)} · confidence {det.confidence:.2f} · {det.where}</div>'
-            "<ul class=\"evidence\">"
-            + "".join(f"<li>{_esc(e)}</li>" for e in det.evidence)
-            + "</ul></div>"
-        )
-
-    disagreement = (
-        f'<div class="disagree">⚠ Rule/judge disagreement: {_esc(report.disagreement)}</div>'
-        if report.disagreement
-        else ""
-    )
-
-    fixes = (
-        '<div class="card"><h2>Suggested Fixes</h2><ol class="fixes">'
-        + "".join(f"<li>{_esc(f)}</li>" for f in report.suggested_fixes)
-        + "</ol></div>"
-        if report.suggested_fixes
-        else ""
-    )
-
+    evidence_blocks = _evidence_cards(report)
+    disagreement = _disagreement_banner(report)
+    fixes = _fixes_card(report)
     steps_html = "".join(_step_row(s, hot) for s in trace.steps)
     context_card = _context_card(trace)
 

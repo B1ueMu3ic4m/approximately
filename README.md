@@ -133,20 +133,16 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 📉 Context budgeting | "Where does a shrinking budget start losing facts?" — guarded in CI | `approximately context` / `test --budget` |
 | 🎯 Budget optimizer | Binary-searches the **smallest context window that keeps recall ≥ target** | `approximately optimize` |
 | 🔎 Recidivist clustering | Cross-run statistics of your systematic failure modes | `approximately cluster` |
-| 📈 Failure-rate trends | "Is the agent getting better or worse?" — per-week failure history | `approximately stats --trend` |
+| 📈 Failure-rate trends | "Is the agent getting better or worse?" — sparkline + robust Theil–Sen verdict in every batch report | `approximately report --all` / `stats --trend` |
 | 🚀 Project scaffold | An instrumented agent project with guards, runnable in seconds | `approximately new myagent` |
 | 🔮 Failure precursor | Early warning mined from your own history: "runs like this fail Z% of the time" | `approximately predict` |
 | 🧬 Trajectory alignment | Needleman-Wunsch over action sequences — find runs with the same *shape* | `approximately similar` |
 | 📮 SARIF export | Attribution results as GitHub code-scanning alerts | `approximately attribute --sarif` |
 | 🕵️ Tool-poisoning scanner | Static analysis of MCP tool descriptions (homoglyphs, bidi, injection) | `approximately scan-tool` |
-| 🔮 Failure precursor | Early warning mined from your own history: "runs like this fail Z% of the time" | `approximately predict` |
-| 🧬 Trajectory alignment | Needleman-Wunsch over action sequences — find runs with the same *shape* | `approximately similar` |
 | 🧪 Conformal attribution | Prediction **sets** with a distribution-free 90% coverage guarantee — ambiguity widens the set honestly | `calibrate` + `attribute` |
-| 📮 SARIF export | Attribution results as GitHub code-scanning alerts | `approximately attribute --sarif` |
 | 🌡️ Drift detection | PSI over action distributions — catches prompt/model changes before failures spike | `approximately drift` |
 | ⚡ Counterfactual RCA | do(step=∅) experiments separating root causes from symptoms | `approximately counterfactual` |
 | 📡 Streaming monitor | Live failure-risk over in-flight runs — precursor + repetition + verification-debt signals with hysteresis | `StreamingMonitor.observe()` |
-| 🌡️ Drift detection | PSI over action distributions — catches prompt/model changes before failures spike | `approximately drift` |
 | 🔧 Repair search | Smallest validated intervention set that clears attribution (or honest "unrepairable") | `approximately repair` |
 | 📊 Prometheus export | Agent reliability on your Grafana dashboards, with per-mode counters | `approximately metrics --prometheus` |
 
@@ -162,7 +158,7 @@ Advanced: **local small-model judge** (`distill` exports training data — disti
 ## FAQ
 
 **Q: Does it work with my framework?**
-Yes. The core recording API is framework-agnostic — if your code can call a function, it can be recorded. Official adapters also cover LangChain / LangGraph (callback handler), OpenAI Agents SDK (tracing processor), and CrewAI (event bus).
+Yes. The core recording API is framework-agnostic — if your code can call a function, it can be recorded. Official adapters cover LangChain / LangGraph (callback handler), OpenAI Agents SDK (tracing processor), CrewAI (event bus), and AutoGen v0.4+ (event-log handler plus a transparent model-client proxy that records every `create()` at the model boundary).
 
 **Q: Does the LLM judge require internet? Does it cost money?**
 No and no. The rule engine covers most mechanical failure modes offline and free (repeated steps, missing verification, premature termination…). The judge is an optional enhancement that speaks any OpenAI-compatible endpoint — including local Ollama/llama.cpp — and you can distill it down to a local small model with `distill`.
@@ -191,7 +187,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.5** — conformal attribution (coverage-guaranteed prediction sets) · NLL temperature calibration · counterfactual root-cause analysis · PSI behavior-drift detection
 - ✅ **v0.6** — structural trace diff (NW traceback: failed-vs-success edit scripts) · minimal-repair search (validated prescriptions) · Prometheus export
 - ✅ **v0.7** — streaming reliability monitor (live risk with hysteresis) · concurrent-safe store (atomic writes + per-id locks) · concurrency threat model
-- 🔜 **next** — more adapters on request · MAST-Data leaderboard page · per-serving-stack distillation recipes · stats trend charts in reports
+- ✅ **v0.8** — AutoGen adapter (event log + model-client proxy) · failure-rate trend with Theil–Sen verdict in HTML reports · full complexity audit (all C-rank blocks refactored below a strict bar) · security fuzzing of the new surfaces
+- 🔜 **next** — LlamaIndex adapter · MAST-Data leaderboard page · per-serving-stack distillation recipes · HMAC key-rotation counter
 
 Full design document: [docs/PLAN.md](docs/PLAN.md).
 

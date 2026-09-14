@@ -15,7 +15,7 @@ Requires ``openai-agents``.
 from __future__ import annotations
 
 import json
-from typing import Any, Optional
+from typing import Any, ClassVar, Optional
 
 
 def _preview(value: Any, limit: int = 200) -> str:
@@ -60,44 +60,57 @@ class AgentsSDKProcessor:
         data = getattr(span, "span_data", None)
         if data is None:
             return
-        kind = type(data).__name__
-        error = getattr(span, "error", None)
+        handler = self._SPAN_HANDLERS.get(type(data).__name__)
+        if handler is not None:
+            handler(self, data, getattr(span, "error", None))
 
-        if kind == "FunctionSpanData":
-            args = {}
-            try:
-                parsed = json.loads(data.input) if data.input else {}
-                if isinstance(parsed, dict):
-                    args = parsed
-            except (json.JSONDecodeError, TypeError):
-                args = {"input": _preview(data.input)}
-            self.recorder.tool(
-                data.name or "function",
-                args,
-                result=_preview(data.output),
-                error=error,
-            )
-        elif kind == "GenerationSpanData":
-            usage = (getattr(data, "usage", None) or {})
-            model = getattr(data, "model", None) or "llm"
-            self.recorder.tool(
-                "llm",
-                {"model": model},
-                result=_preview(getattr(data, "output", None)),
-                error=error,
-                tokens=usage.get("output_tokens", 0),
-            )
-        elif kind == "AgentSpanData":
-            self.recorder.observe(f"agent: {getattr(data, 'name', '?')}")
-        elif kind == "HandoffSpanData":
-            self.recorder.observe(
-                f"handoff {getattr(data, 'from_agent', '?')} -> "
-                f"{getattr(data, 'to_agent', '?')}", verify=True
-            )
-        elif kind == "ResponseSpanData":
-            response = getattr(data, "response", None)
-            text = _preview(getattr(response, "output_text", None) or response)
-            self._final_output = text or self._final_output
+    def _on_function(self, data: Any, error: Any) -> None:
+        args = {}
+        try:
+            parsed = json.loads(data.input) if data.input else {}
+            if isinstance(parsed, dict):
+                args = parsed
+        except (json.JSONDecodeError, TypeError):
+            args = {"input": _preview(data.input)}
+        self.recorder.tool(
+            data.name or "function",
+            args,
+            result=_preview(data.output),
+            error=error,
+        )
+
+    def _on_generation(self, data: Any, error: Any) -> None:
+        usage = (getattr(data, "usage", None) or {})
+        model = getattr(data, "model", None) or "llm"
+        self.recorder.tool(
+            "llm",
+            {"model": model},
+            result=_preview(getattr(data, "output", None)),
+            error=error,
+            tokens=usage.get("output_tokens", 0),
+        )
+
+    def _on_agent(self, data: Any, error: Any) -> None:
+        self.recorder.observe(f"agent: {getattr(data, 'name', '?')}")
+
+    def _on_handoff(self, data: Any, error: Any) -> None:
+        self.recorder.observe(
+            f"handoff {getattr(data, 'from_agent', '?')} -> "
+            f"{getattr(data, 'to_agent', '?')}", verify=True
+        )
+
+    def _on_response(self, data: Any, error: Any) -> None:
+        response = getattr(data, "response", None)
+        text = _preview(getattr(response, "output_text", None) or response)
+        self._final_output = text or self._final_output
+
+    _SPAN_HANDLERS: ClassVar[dict] = {
+        "FunctionSpanData": _on_function,
+        "GenerationSpanData": _on_generation,
+        "AgentSpanData": _on_agent,
+        "HandoffSpanData": _on_handoff,
+        "ResponseSpanData": _on_response,
+    }
 
     # -- convenience -----------------------------------------------------------
     def respond(self, text: Optional[str] = None,

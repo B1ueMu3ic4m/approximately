@@ -63,6 +63,43 @@ CONFIRM_BONUS = 0.1
 MIN_CONFIDENCE = 0.5
 
 
+def _arbitrate(detections: List, verdict) -> Optional[str]:
+    """Fuse a judge verdict into the rule detections in place.
+
+    Agreement boosts the top rule's confidence; disagreement appends the
+    judge's own detection and returns a human-readable disagreement note.
+    """
+    rule_top = detections[0] if detections else None
+    if rule_top and rule_top.mode_id == verdict.detection.mode_id:
+        rule_top.confidence = min(0.99, rule_top.confidence + CONFIRM_BONUS)
+        rule_top.evidence.extend(verdict.detection.evidence)
+        return None
+    detections.append(verdict.detection)
+    if rule_top is None:
+        return None
+    return (
+        f"rules say {rule_top.mode_id} "
+        f"({rule_top.confidence:.2f}), judge says "
+        f"{verdict.detection.mode_id} "
+        f"({verdict.detection.confidence:.2f})"
+    )
+
+
+def _verdict_summary(failed: bool, meaningful: List) -> tuple:
+    """Pick the primary mode and the one-line summary for the report."""
+    if not failed and not meaningful:
+        return get_mode(OTHER), \
+            "No failure detected: run succeeded and no rule detector fired."
+    if not meaningful:
+        return get_mode(OTHER), (
+            "Run failed, but no MAST mode reached the confidence floor. "
+            "Try `approximately attribute --judge` for semantic classification."
+        )
+    primary = get_mode(meaningful[0].mode_id)
+    where = f" at step #{meaningful[0].step_index}" if failed else ""
+    return primary, f"{primary.label}{where}: {primary.definition}"
+
+
 def attribute(trace: Trace, use_judge: bool = False, **judge_kwargs) -> FailureReport:
     """Produce a FailureReport for *trace*.
 
@@ -83,36 +120,11 @@ def attribute(trace: Trace, use_judge: bool = False, **judge_kwargs) -> FailureR
             pass
         else:
             judge_used = True
-            rule_top = detections[0] if detections else None
-            if rule_top and rule_top.mode_id == verdict.detection.mode_id:
-                rule_top.confidence = min(0.99, rule_top.confidence + CONFIRM_BONUS)
-                rule_top.evidence.extend(verdict.detection.evidence)
-            else:
-                detections.append(verdict.detection)
-                if rule_top is not None:
-                    disagreement = (
-                        f"rules say {rule_top.mode_id} "
-                        f"({rule_top.confidence:.2f}), judge says "
-                        f"{verdict.detection.mode_id} "
-                        f"({verdict.detection.confidence:.2f})"
-                    )
+            disagreement = _arbitrate(detections, verdict)
 
     meaningful = [d for d in detections if d.confidence >= MIN_CONFIDENCE]
     meaningful = fuse_evidence(meaningful)
-
-    if not failed and not meaningful:
-        primary = get_mode(OTHER)
-        summary = "No failure detected: run succeeded and no rule detector fired."
-    elif not meaningful:
-        primary = get_mode(OTHER)
-        summary = (
-            "Run failed, but no MAST mode reached the confidence floor. "
-            "Try `approximately attribute --judge` for semantic classification."
-        )
-    else:
-        primary = get_mode(meaningful[0].mode_id)
-        where = f" at step #{meaningful[0].step_index}" if failed else ""
-        summary = f"{primary.label}{where}: {primary.definition}"
+    primary, summary = _verdict_summary(failed, meaningful)
 
     return FailureReport(
         trace_id=trace.id,
