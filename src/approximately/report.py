@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import datetime
 import html
-from typing import List
+import math
+from typing import List, Optional, Sequence
 
 from .attributor import FailureReport
 from .taxonomy import CATEGORY_SHARE
@@ -49,7 +50,101 @@ footer { margin-top: 28px; color: #adb5bd; font-size: 12.5px; text-align: center
 footer a { color: #748ffc; }
 .disagree { background: #fff9db; border: 1px solid #ffe066; padding: 10px 14px;
             border-radius: 8px; margin-top: 10px; font-size: 13.5px; }
+.spark-row { display: flex; gap: 14px; align-items: center; margin-top: 8px;
+             flex-wrap: wrap; }
+.spark-line { font-size: 12.5px; color: #6c757d; }
 """
+
+TREND_LABELS = {
+    "improving": ("green", "↓ failure rate falling"),
+    "stable": ("", "→ flat"),
+    "worsening": ("red", "↑ failure rate rising"),
+}
+
+
+def _finite(values: Sequence[float]) -> List[float]:
+    """Coerce a series to plain floats, replacing non-finite with 0."""
+    out: List[float] = []
+    for v in values:
+        try:
+            f = float(v)
+        except (TypeError, ValueError):
+            f = 0.0
+        out.append(f if math.isfinite(f) else 0.0)
+    return out
+
+
+def render_sparkline(values: Sequence[float], width: int = 220,
+                     height: int = 40) -> str:
+    """Inline-SVG sparkline — pure markup, no JS, no CDN."""
+    vals = _finite(values)
+    if not vals:
+        vals = [0.0, 0.0]
+    if len(vals) == 1:
+        vals = vals + vals
+    lo, hi = min(vals), max(vals)
+    span = hi - lo
+    n = len(vals)
+    if n == 1 or span == 0:
+        y = height / 2
+        points = [(width * i / (n - 1), y) for i in range(n)]
+    else:
+        points = [
+            (width * i / (n - 1), height - 3 - (v - lo) / span * (height - 6))
+            for i, v in enumerate(vals)
+        ]
+    pts = " ".join(f"{x:.1f},{y:.1f}" for x, y in points)
+    last_x, last_y = points[-1]
+    return (
+        f'<svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" '
+        f'role="img" aria-label="trend sparkline">'
+        f'<polyline fill="none" stroke="#b02a37" stroke-width="2" '
+        f'stroke-linejoin="round" points="{pts}"/>'
+        f'<circle cx="{last_x:.1f}" cy="{last_y:.1f}" r="3" fill="#b02a37"/>'
+        f"</svg>"
+    )
+
+
+def theil_sen_slope(values: Sequence[float]) -> float:
+    """Robust trend slope: the median of all pairwise slopes.
+
+    Theil-Sen rather than OLS — a single anomalous bucket (one bad deploy
+    day) cannot drag the estimate the way least squares can. O(n²) is fine
+    for the handful of buckets a report shows.
+    """
+    vals = _finite(values)
+    n = len(vals)
+    if n < 2:
+        return 0.0
+    slopes = [
+        (vals[j] - vals[i]) / (j - i)
+        for i in range(n) for j in range(i + 1, n)
+    ]
+    slopes.sort()
+    m = len(slopes)
+    mid = m // 2
+    if m % 2:
+        return slopes[mid]
+    return (slopes[mid - 1] + slopes[mid]) / 2
+
+
+def trend_verdict(values: Sequence[float],
+                  threshold: float = 0.05) -> tuple:
+    """Classify a failure-rate series as improving / stable / worsening.
+
+    The slope is judged relative to the series' own mean level, so a
+    2-point move on a 60% failure rate reads as noise while the same move
+    on 5% reads as a real trend. Returns ``(verdict, slope)``.
+    """
+    vals = _finite(values)
+    slope = theil_sen_slope(vals)
+    mean = sum(vals) / len(vals) if vals else 0.0
+    scale = mean if mean > 0.5 else 1.0  # absolute comparison near zero
+    if slope <= -threshold * scale:
+        return "improving", slope
+    if slope >= threshold * scale:
+        return "worsening", slope
+    return "stable", slope
 
 
 def _esc(text: str) -> str:
@@ -117,8 +212,43 @@ def _context_card(trace: Trace) -> str:
         return ""
 
 
-def render_index_html(items) -> str:
-    """Batch postmortem index: one row per (trace, report) pair."""
+def _trend_card(trend_rows) -> str:
+    """Sparkline + verdict for the failure-rate history (cluster.trend rows)."""
+    try:
+        rates = [float(r["failed"]) / r["total"]
+                 for r in trend_rows if r.get("total")]
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return ""
+    if not rates:
+        return ""
+    verdict, slope = trend_verdict(rates)
+    badge_cls, label = TREND_LABELS[verdict]
+    start = trend_rows[0].get("bucket_start", "")
+    end = trend_rows[-1].get("bucket_start", "")
+    detail = (
+        f"{len(trend_rows)} buckets · {start} → {end} · "
+        f"slope {slope:+.3f}/bucket (Theil-Sen)"
+    )
+    return (
+        '<div class="card"><h2>Failure-rate trend</h2>'
+        '<div class="spark-row">'
+        f"{render_sparkline([r * 100 for r in rates])}"
+        f'<span class="badge {badge_cls}">{_esc(label)}</span>'
+        f'<span class="spark-line">{_esc(detail)}</span>'
+        "</div>"
+        '<p style="margin:6px 0 0;color:#6c757d;font-size:13px">'
+        "Failure rate per time bucket, oldest first. A rising line usually "
+        "means a config or model change — bisect with replay tests.</p></div>"
+    )
+
+
+def render_index_html(items, trend_rows: Optional[list] = None) -> str:
+    """Batch postmortem index: one row per (trace, report) pair.
+
+    Pass ``trend_rows`` (from :func:`approximately.cluster.trend`) to add
+    a failure-rate sparkline card with an improving/stable/worsening
+    verdict.
+    """
     rows = []
     for trace, rep in items:
         badge = "green" if not rep.failed else "red"
@@ -136,12 +266,14 @@ def render_index_html(items) -> str:
             + created + "</td></tr>"
         )
     rows_html = "".join(rows) or '<tr><td colspan="4">no traces yet</td></tr>'
+    trend_card = _trend_card(trend_rows) if trend_rows else ""
     return (
         '<!doctype html>\n<html><head><meta charset="utf-8">'
         "<title>approximately · postmortem index</title>\n"
         f"<style>{_CSS}</style></head><body><main>\n"
         "<h1>Postmortem index</h1>\n"
         f'<div class="meta">{len(items)} traces · generated by approximately</div>\n'
+        f"{trend_card}"
         '<div class="card"><table class="steps">\n'
         "<tr><th>trace</th><th>task</th><th>verdict</th><th>meta</th></tr>\n"
         f"{rows_html}\n</table></div>\n"
