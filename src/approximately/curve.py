@@ -96,6 +96,44 @@ def _svg_line(points: List[Tuple[float, float]], width: int, height: int,
             f'points="{coords}" />')
 
 
+def _curve_dots(curve: BudgetCurve, width: int, height: int, pad: int) -> str:
+    """Labeled dots for every measured budget point."""
+    if not curve.points:
+        return ""
+    max_budget = max(p.budget for p in curve.points) or 1
+    dots = []
+    for p in curve.points:
+        x = pad + p.budget / max_budget * (width - 2 * pad)
+        y = height - pad - p.recall * (height - 2 * pad)
+        dots.append(
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4" fill="#1a1d21" />'
+            f'<text x="{x:.1f}" y="{y:.1f}" '
+            f'dx="7" dy="-6" font-size="10" fill="#495057">'
+            f"{p.budget}tok / {p.recall:.0%}</text>"
+        )
+    return "".join(dots)
+
+
+def _scatter_svg(scatter, width: int, height: int, pad: int) -> str:
+    if not scatter:
+        return ""
+    max_tokens = max((t for t, _ in scatter), default=1) or 1
+    marks = []
+    for tokens, success in scatter:
+        x = pad + tokens / max_tokens * (width - 2 * pad)
+        color = "#1c7430" if success else "#b02a37"
+        marks.append(
+            f'<circle cx="{x:.1f}" cy="{height - pad - (height - 2 * pad) / 2:.1f}" '
+            f'r="4" fill="{color}" opacity="0.8" />'
+        )
+    return (
+        f"<p>Runs by token cost (green = success, red = failure):</p>"
+        f'<svg viewBox="0 0 {width} {height}" width="{width}" '
+        f'height="{height}"><rect width="{width}" height="{height}" '
+        f'fill="#f6f7f9" />{"".join(marks)}</svg>'
+    )
+
+
 def render_curve_html(curve: BudgetCurve,
                       scatter: Optional[List[Tuple[int, Optional[bool]]]] = None
                       ) -> str:
@@ -103,31 +141,8 @@ def render_curve_html(curve: BudgetCurve,
     width, height, pad = 640, 300, 40
     line = _svg_line([(p.budget, p.recall) for p in curve.points],
                      width, height, pad, "#b02a37")
-    dots = " ".join(
-        f'<circle cx="{pad + (p.budget / max(p.budget for p in curve.points) or 1) * (width - 2 * pad):.1f}" '
-        f'cy="{height - pad - p.recall * (height - 2 * pad):.1f}" r="4" fill="#1a1d21" />'
-        f'<text x="{pad + (p.budget / max(p.budget for p in curve.points) or 1) * (width - 2 * pad):.1f}" '
-        f'y="{height - pad - p.recall * (height - 2 * pad):.1f}" '
-        f'dx="7" dy="-6" font-size="10" fill="#495057">{p.budget}tok / {p.recall:.0%}</text>'
-        for p in curve.points
-    )
-    scatter_svg = ""
-    if scatter:
-        max_tokens = max((t for t, _ in scatter), default=1) or 1
-        marks = []
-        for tokens, success in scatter:
-            x = pad + tokens / max_tokens * (width - 2 * pad)
-            color = "#1c7430" if success else "#b02a37"
-            marks.append(
-                f'<circle cx="{x:.1f}" cy="{height - pad - (height - 2 * pad) / 2:.1f}" '
-                f'r="4" fill="{color}" opacity="0.8" />'
-            )
-        scatter_svg = (
-            f"<p>Runs by token cost (green = success, red = failure):</p>"
-            f'<svg viewBox="0 0 {width} {height}" width="{width}" '
-            f'height="{height}"><rect width="{width}" height="{height}" '
-            f'fill="#f6f7f9" />{"".join(marks)}</svg>'
-        )
+    dots = _curve_dots(curve, width, height, pad)
+    scatter_svg = _scatter_svg(scatter, width, height, pad)
     return f"""<!doctype html>
 <html><head><meta charset="utf-8"><title>approximately · cost/recall curve</title>
 <style>body{{font:15px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;max-width:760px;

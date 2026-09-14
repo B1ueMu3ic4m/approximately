@@ -137,6 +137,24 @@ def rotate(trace: Trace, old_key: Optional[bytes],
     return result
 
 
+_LOCKED = object()  # sentinel: keyed trace, but no key available
+
+
+def _effective_key(block: dict, key: Optional[bytes]):
+    """Resolve the verification key for a stamped trace.
+
+    Returns ``None`` for unkeyed traces, the key for keyed traces, and the
+    ``_LOCKED`` sentinel when a keyed trace cannot be verified for lack of
+    the key.
+    """
+    keyed = bool(block.get("keyed")) and block.get("algorithm") == ALGORITHM_KEYED
+    if not keyed:
+        return None
+    if not key:
+        key = load_key()
+    return key if key else _LOCKED
+
+
 def verify(trace: Trace, key: Optional[bytes] = None) -> VerificationResult:
     """Recompute the chain and compare against the stamped integrity block.
 
@@ -147,17 +165,17 @@ def verify(trace: Trace, key: Optional[bytes] = None) -> VerificationResult:
     if not block or block.get("algorithm") not in (ALGORITHM, ALGORITHM_KEYED):
         return VerificationResult(signed=False,
                                   detail="trace carries no integrity block")
-    if block.get("keyed") and block.get("algorithm") == ALGORITHM_KEYED:
-        if not key:
-            key = load_key()
-        if not key:
-            return VerificationResult(
-                signed=True, intact=False,
-                detail=("trace is HMAC-keyed; pass the signing key "
-                        "(--key-file or APPROXIMATELY_SIGNING_KEY) to verify"),
-                verdict_override="keyed",
-            )
-    actual = compute_chain(trace, key=key if block.get("keyed") else None)
+
+    key = _effective_key(block, key)
+    if key is _LOCKED:
+        return VerificationResult(
+            signed=True, intact=False,
+            detail=("trace is HMAC-keyed; pass the signing key "
+                    "(--key-file or APPROXIMATELY_SIGNING_KEY) to verify"),
+            verdict_override="keyed",
+        )
+
+    actual = compute_chain(trace, key=key)
     expected_hashes: List[str] = block.get("step_hashes", [])
     if actual == expected_hashes:
         return VerificationResult(
@@ -166,9 +184,15 @@ def verify(trace: Trace, key: Optional[bytes] = None) -> VerificationResult:
             actual_final=actual[-1] if actual else block.get("seed"),
             detail=f"{len(actual)} steps verified",
         )
+    return _tamper_result(block, actual, expected_hashes)
+
+
+def _tamper_result(block: dict, actual: List[str],
+                   expected: List[str]) -> VerificationResult:
+    """Localize the first divergent step of a broken chain."""
     first_bad = next(
-        (i for i, (a, e) in enumerate(zip(actual, expected_hashes)) if a != e),
-        min(len(actual), len(expected_hashes)),
+        (i for i, (a, e) in enumerate(zip(actual, expected)) if a != e),
+        min(len(actual), len(expected)),
     )
     return VerificationResult(
         signed=True, intact=False, first_bad_step=first_bad,

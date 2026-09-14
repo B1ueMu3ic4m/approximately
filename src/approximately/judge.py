@@ -99,22 +99,10 @@ def _extract_json(text: str) -> Dict[str, Any]:
     return json.loads(text[start : end + 1])
 
 
-def judge_trace(
-    trace: Trace,
-    model: Optional[str] = None,
-    base_url: Optional[str] = None,
-    api_key: Optional[str] = None,
-    preset: str = "strong",
-) -> JudgeVerdict:
-    """Ask an OpenAI-compatible model to classify the failure.
-
-    ``preset`` selects the prompt shape: ``"strong"`` (full taxonomy, for
-    frontier models) or ``"local"`` (compact ids-only prompt, for small
-    local models and for distillation data).
-
-    Reads OPENAI_API_KEY / OPENAI_BASE_URL by default; ``model`` defaults to
-    APPROXIMATELY_JUDGE_MODEL or "gpt-4o-mini".
-    """
+def _judge_request(trace: Trace, chosen_model: str, preset: str,
+                   api_key: Optional[str] = None,
+                   base_url: Optional[str] = None) -> str:
+    """Call the OpenAI-compatible API; every failure becomes JudgeError."""
     try:
         from openai import OpenAI
     except ImportError as exc:  # pragma: no cover - environment-dependent
@@ -127,10 +115,6 @@ def judge_trace(
             api_key=api_key or os.environ.get("OPENAI_API_KEY"),
             base_url=base_url or os.environ.get("OPENAI_BASE_URL"),
         )
-        chosen_model = model or os.environ.get(
-            "APPROXIMATELY_JUDGE_MODEL", "gpt-4o-mini"
-        )
-
         template = PRESETS.get(preset)
         if template is None:
             raise JudgeError(f"unknown preset {preset!r}; "
@@ -151,15 +135,17 @@ def judge_trace(
             ],
             temperature=0,
         )
-        raw = response.choices[0].message.content or ""
+        return response.choices[0].message.content or ""
     except JudgeError:
         raise
     except Exception as exc:  # auth, network, HTTP — all degrade identically
         raise JudgeError(
             f"judge call failed: {type(exc).__name__}: {exc}"
         ) from exc
-    payload = _extract_json(raw)
 
+
+def _parse_verdict(payload: dict, chosen_model: str, raw: str) -> JudgeVerdict:
+    """Normalize an arbitrary judge payload into a safe Detection."""
     mode_id = str(payload.get("mode_id", OTHER))
     if mode_id not in FAILURE_MODES:
         mode_id = OTHER
@@ -181,3 +167,28 @@ def judge_trace(
         source=f"judge:{chosen_model}",
     )
     return JudgeVerdict(detection=detection, rationale=rationale, raw=raw)
+
+
+def judge_trace(
+    trace: Trace,
+    model: Optional[str] = None,
+    base_url: Optional[str] = None,
+    api_key: Optional[str] = None,
+    preset: str = "strong",
+) -> JudgeVerdict:
+    """Ask an OpenAI-compatible model to classify the failure.
+
+    ``preset`` selects the prompt shape: ``"strong"`` (full taxonomy, for
+    frontier models) or ``"local"`` (compact ids-only prompt, for small
+    local models and for distillation data).
+
+    Reads OPENAI_API_KEY / OPENAI_BASE_URL by default; ``model`` defaults to
+    APPROXIMATELY_JUDGE_MODEL or "gpt-4o-mini".
+    """
+    chosen_model = model or os.environ.get(
+        "APPROXIMATELY_JUDGE_MODEL", "gpt-4o-mini"
+    )
+    raw = _judge_request(trace, chosen_model, preset,
+                         api_key=api_key, base_url=base_url)
+    payload = _extract_json(raw)
+    return _parse_verdict(payload, chosen_model, raw)

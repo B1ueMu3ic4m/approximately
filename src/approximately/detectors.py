@@ -271,11 +271,8 @@ class DerailmentDetector:
     min_calls = 3
     relevance_floor = 0.3
 
-    def detect(self, trace: Trace) -> Optional[Detection]:
-        keywords = set(_task_keywords(trace))
-        calls = trace.tool_calls()
-        if len(calls) < self.min_calls or not keywords:
-            return None
+    @staticmethod
+    def _irrelevant(calls, keywords) -> list:
         irrelevant = []
         for step in calls:
             text = _join(
@@ -283,6 +280,14 @@ class DerailmentDetector:
             )
             if not any(k in text for k in keywords):
                 irrelevant.append(step)
+        return irrelevant
+
+    def detect(self, trace: Trace) -> Optional[Detection]:
+        keywords = set(_task_keywords(trace))
+        calls = trace.tool_calls()
+        if len(calls) < self.min_calls or not keywords:
+            return None
+        irrelevant = self._irrelevant(calls, keywords)
         ratio = len(irrelevant) / len(calls)
         if ratio >= 1 - self.relevance_floor * 2 and ratio >= 0.5:
             evidence = [
@@ -516,31 +521,40 @@ class IgnoredInputDetector:
     """FM-2.5 Ignored Other Agent's Input — a delivered message never
     produced any downstream action by its recipient."""
 
-    def detect(self, trace: Trace) -> Optional[Detection]:
+    @staticmethod
+    def _unacked_message(trace: Trace):
+        """First requires_ack message whose recipient never acted on it."""
         for i, step in enumerate(trace.steps):
             if step.kind != MESSAGE:
                 continue
             recipient = step.meta.get("to_agent")
             if not recipient or step.meta.get("requires_ack") is not True:
                 continue
-            downstream = [
-                s for s in trace.steps[i + 1:]
-                if s.meta.get("agent") == recipient and s.kind != MESSAGE
-            ]
-            if not downstream:
-                return Detection(
-                    "FM-2.5",
-                    i,
-                    [
-                        (f"message delivered: {step.tool} "
-                        f"“{(step.result or '')[:60]}”"),
-                        (f"recipient '{recipient}' never acted on it "
-                        "(requires_ack was set)"),
-                    ],
-                    0.65,
-                    source="rule:IgnoredInputDetector",
-                )
+            acted = any(
+                s.meta.get("agent") == recipient and s.kind != MESSAGE
+                for s in trace.steps[i + 1:]
+            )
+            if not acted:
+                return i, step, recipient
         return None
+
+    def detect(self, trace: Trace) -> Optional[Detection]:
+        hit = self._unacked_message(trace)
+        if hit is None:
+            return None
+        i, step, recipient = hit
+        return Detection(
+            "FM-2.5",
+            i,
+            [
+                (f"message delivered: {step.tool} "
+                f"“{(step.result or '')[:60]}”"),
+                (f"recipient '{recipient}' never acted on it "
+                "(requires_ack was set)"),
+            ],
+            0.65,
+            source="rule:IgnoredInputDetector",
+        )
 
 
 class RoleViolationDetector:
@@ -554,11 +568,9 @@ class RoleViolationDetector:
          "agents": {"writer_1": "writer"}}
     """
 
-    def detect(self, trace: Trace) -> Optional[Detection]:
-        role_tools = trace.meta.get("role_tools") or {}
-        role_of = trace.meta.get("agents") or {}
-        if not role_tools:
-            return None
+    @staticmethod
+    def _off_role_step(trace: Trace, role_tools: dict, role_of: dict):
+        """First tool call outside the actor's allowed set, if any."""
         for step in trace.steps:
             if step.kind != TOOL_CALL or not step.tool:
                 continue
@@ -569,7 +581,19 @@ class RoleViolationDetector:
             allowed = role_tools.get(role)
             if allowed is None or step.tool in allowed:
                 continue
-            return Detection(
+            return step, agent, role, allowed
+        return None
+
+    def detect(self, trace: Trace) -> Optional[Detection]:
+        role_tools = trace.meta.get("role_tools") or {}
+        role_of = trace.meta.get("agents") or {}
+        if not role_tools:
+            return None
+        hit = self._off_role_step(trace, role_tools, role_of)
+        if hit is None:
+            return None
+        step, agent, role, allowed = hit
+        return Detection(
                 "FM-1.2",
                 step.index,
                 [

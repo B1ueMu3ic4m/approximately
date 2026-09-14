@@ -1,24 +1,33 @@
 # Changelog
 
+## 0.8.0 — 2026-09-13
+
+- **AutoGen adapter** (`contrib/autogen.py`): two capture seams for
+  AutoGen v0.4+ — an `AutoGenEventHandler` that converts
+  `autogen_core.events` objects (the same seam AutoGen Studio consumes)
+  into recorder steps, and a transparent `RecordingChatCompletionClient`
+  proxy that records every `create()` at the model boundary independent
+  of logging config. Version-tolerant and exception-guarded: unknown
+  future events are ignored and a failing recorder cannot break a run
+- **Failure-rate trend in the HTML index** (`report.py`): `report --all`
+  now renders a sparkline (inline SVG, still no JS/CDN) of failure rate
+  per time bucket with an improving/stable/worsening verdict based on a
+  Theil–Sen slope judged relative to the series' own mean level — one
+  anomalous bucket cannot drag the estimate, and 2-point jitter on a
+  60% rate reads as noise rather than a trend
+- Audit round: **all 14 C-complexity blocks refactored to B or better**
+  under a strict xenon bar (`--max-absolute B`, stricter than the CI
+  gate) — attribution, judge, repair, integrity, toolscan, curve,
+  report, detectors, context forecast and both SDK adapters; the full
+  suite guarded every refactor
+- Security fuzzing of the new surfaces: poisoned event objects, hostile
+  logger names, handler lifecycle leaks, `<script>` smuggling through
+  sparkline values, malformed trend rows. Found and fixed two real
+  bugs: `cluster.trend` crashed (OverflowError) on out-of-range
+  timestamps, and the sparkline could emit `nan` SVG coordinates when
+  values spanned ±1e308
+
 ## 0.7.0 — 2026-09-10
-
-- Audit round: stale-lock recovery and lock-wait paths now tested
-  (store.py coverage 90% → 95%); zero-dependency claim re-verified by
-  AST scan; bandit/mypy/xenon all clean
-
-
-- **Concurrent-safe trace store**: saves are atomic (temp + os.replace)
-  and same-id writes serialize via a per-id lock file with stale-lock
-  recovery — multiple agents recording to a shared store is now the
-  supported deployment. Readers never observe a partial write (tested
-  with a polling reader across 30 saves).
-
-## 0.7.0 — 2026-09-10
-
-- Audit round: stale-lock recovery and lock-wait paths now tested
-  (store.py coverage 90% → 95%); zero-dependency claim re-verified by
-  AST scan; bandit/mypy/xenon all clean
-
 
 - **Streaming reliability monitor** (`streaming.py`): live failure-risk
   estimation over in-flight runs — precursor probability, repetition
@@ -27,6 +36,14 @@
   tool call; O(window) per observation.
   The level-machine hysteresis bug (dead branch, caught by its own test)
   was fixed before merge.
+- **Concurrent-safe trace store**: saves are atomic (temp + os.replace)
+  and same-id writes serialize via a per-id lock file with stale-lock
+  recovery — multiple agents recording to a shared store is now the
+  supported deployment. Readers never observe a partial write (tested
+  with a polling reader across 30 saves).
+- Audit round: stale-lock recovery and lock-wait paths now tested
+  (store.py coverage 90% → 95%); zero-dependency claim re-verified by
+  AST scan; bandit/mypy/xenon all clean
 
 ## 0.6.0 — 2026-09-09
 

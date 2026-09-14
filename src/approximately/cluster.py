@@ -161,16 +161,22 @@ def trend(traces: Iterable[Trace], bucket_days: int = 7) -> List[dict]:
         b["total"] += 1
         if trace.success is False:
             b["failed"] += 1
-    start_date = datetime.datetime.fromtimestamp(
-        start or 0, datetime.timezone.utc
-    )
+
+    def _bucket_label(bucket: int) -> str:
+        """UTC date of the bucket start; absurd timestamps get a day count."""
+        try:
+            ts = (start or 0) + bucket * bucket_days * 86400
+            return datetime.datetime.fromtimestamp(
+                ts, datetime.timezone.utc
+            ).strftime("%Y-%m-%d")
+        except (OverflowError, OSError, ValueError):
+            return f"+{bucket * bucket_days}d"
+
     out = []
     for bucket in sorted(buckets):
         b = buckets[bucket]
         out.append({
-            "bucket_start": (start_date
-                             + datetime.timedelta(days=bucket * bucket_days)
-                             ).strftime("%Y-%m-%d"),
+            "bucket_start": _bucket_label(bucket),
             "total": b["total"],
             "failed": b["failed"],
             "failure_rate": round(b["failed"] / b["total"], 3),
