@@ -158,7 +158,7 @@ Advanced: **local small-model judge** (`distill` exports training data — disti
 ## FAQ
 
 **Q: Does it work with my framework?**
-Yes. The core recording API is framework-agnostic — if your code can call a function, it can be recorded. Official adapters cover LangChain / LangGraph (callback handler), OpenAI Agents SDK (tracing processor), CrewAI (event bus), and AutoGen v0.4+ (event-log handler plus a transparent model-client proxy that records every `create()` at the model boundary).
+Yes. The core recording API is framework-agnostic — if your code can call a function, it can be recorded. Official adapters cover LangChain / LangGraph (callback handler), OpenAI Agents SDK (tracing processor), CrewAI (event bus), AutoGen v0.4+ (event-log handler plus a transparent model-client proxy), and LlamaIndex (callback-handler seam: LLM, function-call, retrieval and exception events).
 
 **Q: Does the LLM judge require internet? Does it cost money?**
 No and no. The rule engine covers most mechanical failure modes offline and free (repeated steps, missing verification, premature termination…). The judge is an optional enhancement that speaks any OpenAI-compatible endpoint — including local Ollama/llama.cpp — and you can distill it down to a local small model with `distill`.
@@ -188,7 +188,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.6** — structural trace diff (NW traceback: failed-vs-success edit scripts) · minimal-repair search (validated prescriptions) · Prometheus export
 - ✅ **v0.7** — streaming reliability monitor (live risk with hysteresis) · concurrent-safe store (atomic writes + per-id locks) · concurrency threat model
 - ✅ **v0.8** — AutoGen adapter (event log + model-client proxy) · failure-rate trend with Theil–Sen verdict in HTML reports · full complexity audit (all C-rank blocks refactored below a strict bar) · security fuzzing of the new surfaces
-- 🔜 **next** — LlamaIndex adapter · MAST-Data leaderboard page · per-serving-stack distillation recipes · HMAC key-rotation counter
+- ✅ **v0.9** — LlamaIndex adapter (callback-handler seam) · HMAC key-ID + rotation counter with the honest `wrong-key` verdict (no more false TAMPERED after key rotation)
+- 🔜 **next** — MAST-Data leaderboard page · per-serving-stack distillation recipes · LlamaIndex Dispatcher (span-level) seam
 
 Full design document: [docs/PLAN.md](docs/PLAN.md).
 
