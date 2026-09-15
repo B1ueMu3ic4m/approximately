@@ -119,7 +119,8 @@ def test_rotation_rekeys_and_old_key_stops_verifying(store, tmp_path):
 
     # new key authenticates; the old key now reads as a foreign chain
     assert verify(store.load(rec.trace.id), key=b"new-secret").verdict == "intact"
-    assert verify(store.load(rec.trace.id), key=b"old-secret").verdict == "TAMPERED"
+    result = verify(store.load(rec.trace.id), key=b"old-secret")
+    assert result.verdict == "wrong-key" and not result.intact
 
 
 def test_rotation_refused_on_tampered_trace(store, tmp_path):
