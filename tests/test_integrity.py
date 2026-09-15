@@ -88,7 +88,12 @@ def test_keyed_trace_without_key_is_locked_not_broken(store):
 
 
 def test_keyed_trace_wrong_key_detects_forgery(store):
-    """The adversarial case: attacker rewrites steps but holds no key."""
+    """The adversarial case: attacker rewrites steps but holds no key.
+
+    The attacker can re-chain with their own key, but the key-id stamp
+    makes that visible: with the real key the trace reads `wrong-key`
+    (locked by a foreign key), never `intact` — forgery stays detected.
+    """
     key = b"real-key"
     trace = _recorded(store)
     sign(trace, key=key)
@@ -97,8 +102,8 @@ def test_keyed_trace_wrong_key_detects_forgery(store):
     loaded.steps[1].result = "forged success"   # attacker edits...
     sign(loaded, key=b"attacker-key")            # ...and re-chains with own key
     result = verify(loaded, key=key)
-    assert result.verdict == "TAMPERED"
-    assert result.first_bad_step == 0
+    assert result.verdict == "wrong-key"
+    assert not result.intact
 
 
 def test_load_key_from_env(monkeypatch):

@@ -89,6 +89,16 @@ def compute_chain(trace: Trace, key: Optional[bytes] = None) -> List[str]:
     return hashes
 
 
+def key_id(key: bytes) -> str:
+    """Short identifier of a signing key, stamped into keyed blocks.
+
+    Lets `verify` distinguish *evidence broken* (TAMPERED) from *evidence
+    signed with a different key* (wrong-key), and lets `rotate` keep a
+    per-trace rotation counter.
+    """
+    return _sha(b"key-id:" + key)[:8]
+
+
 def sign(trace: Trace, key: Optional[bytes] = None) -> dict:
     """Stamp an integrity block into ``trace.meta`` (recorder calls this)."""
     chain = compute_chain(trace, key=key)
@@ -99,6 +109,11 @@ def sign(trace: Trace, key: Optional[bytes] = None) -> dict:
         "step_hashes": chain,
         "final": chain[-1] if chain else _seed(trace),
     }
+    if key is not None:
+        block["key_id"] = key_id(key)
+        # preserve the rotation counter across re-signing (rotate uses it)
+        previous = trace.meta.get("integrity") or {}
+        block["rotations"] = int(previous.get("rotations", 0))
     trace.meta["integrity"] = block
     return block
 
@@ -127,13 +142,17 @@ def rotate(trace: Trace, old_key: Optional[bytes],
     """Re-key a signed trace: verify with the old key, re-sign with the new.
 
     Raises ValueError when the old key does not verify (refusing to rotate
-    a trace whose evidence is already broken).
+    a trace whose evidence is already broken). Each successful rotation
+    bumps the block's ``rotations`` counter, so the audit trail shows how
+    often the evidence has been re-keyed.
     """
     result = verify(trace, key=old_key)
     if result.verdict not in ("intact", "unsigned"):
         raise ValueError(f"cannot rotate a {result.verdict} trace: "
                          f"{result.detail}")
     sign(trace, key=new_key)
+    trace.meta["integrity"]["rotations"] = \
+        int((trace.meta.get("integrity") or {}).get("rotations", 0)) + 1
     return result
 
 
@@ -174,15 +193,30 @@ def verify(trace: Trace, key: Optional[bytes] = None) -> VerificationResult:
                     "(--key-file or APPROXIMATELY_SIGNING_KEY) to verify"),
             verdict_override="keyed",
         )
+    if key is not None and block.get("key_id") \
+            and key_id(key) != block.get("key_id"):
+        # a different (older/newer) key signed this evidence: it is
+        # locked, not broken — accusing TAMPERED here would be wrong
+        return VerificationResult(
+            signed=True, intact=False,
+            detail=(f"evidence signed with key {block.get('key_id')}; "
+                    f"the supplied key has id {key_id(key)} "
+                    "(rotate first, then verify)"),
+            verdict_override="wrong-key",
+        )
 
     actual = compute_chain(trace, key=key)
     expected_hashes: List[str] = block.get("step_hashes", [])
     if actual == expected_hashes:
+        detail = f"{len(actual)} steps verified"
+        if block.get("keyed"):
+            detail += (f" with key {block.get('key_id', '?')}"
+                       f" · rotations: {block.get('rotations', 0)}")
         return VerificationResult(
             signed=True, intact=True,
             expected_final=block.get("final"),
             actual_final=actual[-1] if actual else block.get("seed"),
-            detail=f"{len(actual)} steps verified",
+            detail=detail,
         )
     return _tamper_result(block, actual, expected_hashes)
 
