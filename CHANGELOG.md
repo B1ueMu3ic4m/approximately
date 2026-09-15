@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.9.0 — 2026-09-15
+
+- **LlamaIndex adapter** (`contrib/llamaindex.py`): a duck-typed
+  callback handler covering the `BaseCallbackHandler` protocol without
+  importing llama_index — LLM calls, function calls (kwargs parsed
+  across brace/paren serialisations), agent steps, retrievals and
+  exceptions land in the trace. Version-tolerant (enum-or-string event
+  types, defensive payload lookup) and exception-guarded
+- **HMAC key-ID + rotation counter** (`integrity.py`): keyed blocks now
+  stamp a key fingerprint and a monotonic rotation count. `verify`
+  gained an honest new verdict — a trace signed by a *different* key
+  reads `wrong-key` (locked, not broken) instead of the old false
+  `TAMPERED` accusation; forgery via an attacker's own key still never
+  verifies as intact. Old blocks keep verifying (back-compat tested)
+
 ## 0.8.0 — 2026-09-13
 
 - **AutoGen adapter** (`contrib/autogen.py`): two capture seams for

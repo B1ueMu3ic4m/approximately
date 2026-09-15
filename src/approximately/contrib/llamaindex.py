@@ -24,7 +24,7 @@ extraction failure is swallowed rather than breaking your query.
 from __future__ import annotations
 
 import json
-from typing import Any, Optional
+from typing import Any, ClassVar, Optional
 
 # LlamaIndex EventPayload members are str-valued; use the literal values
 # so the adapter needs no llama_index import.
@@ -143,7 +143,7 @@ class ApproximatelyHandler:
         self.recorder.fail(_preview(exc) or "exception event")
 
     # dispatch table: CBEventType name -> recorder action
-    _EVENTS = {
+    _EVENTS: ClassVar[dict] = {
         "LLM": _llm,
         "FUNCTION_CALL": _function_call,
         "AGENT_STEP": _agent_step,
@@ -176,6 +176,139 @@ class ApproximatelyHandler:
         from ..attributor import attribute
 
         return attribute(self.recorder.trace)
+
+
+class ApproximatelySpanHandler:
+    """Span-level seam: a duck-typed ``BaseSpanHandler`` for the
+    instrumentation Dispatcher (``llama_index.core.instrumentation``).
+
+    Where the callback seam sees coarse events, the Dispatcher sees
+    structured spans (``LLMSpan``, ``RetrieverSpan``, ``AgentRunSpan``,
+    ``QuerySpan``, ``SynthesisSpan``, tool spans) with typed fields —
+    a finer, framework-internal layer. The handler is version-tolerant:
+    spans are matched by class-name suffix, fields are looked up
+    defensively, and no entry point can raise into your query::
+
+        from approximately.contrib.llamaindex import (
+            ApproximatelySpanHandler,
+        )
+
+        spans = ApproximatelySpanHandler("revenue query")
+        spans.wire_dispatcher(get_dispatcher("llama_index.core"))
+        ...
+        report = attribute(spans.recorder.trace)
+    """
+
+    def __init__(self, task: str, recorder=None):
+        from ..recorder import Recorder
+
+        self.recorder = recorder or Recorder(task, model="llamaindex",
+                                             save=False)
+        self._open: set = set()
+
+    # -- BaseSpanHandler protocol ---------------------------------------------
+    def new_span(self, id: str, parent_id: Optional[str] = None,
+                 span: Any = None, **kwargs: Any) -> None:
+        try:
+            self._open.add(id)
+        except Exception:
+            pass
+
+    def prepare_to_exit_span(self, id: str, span: Any = None,
+                             **kwargs: Any) -> None:
+        try:
+            self._open.discard(id)
+            if span is not None:
+                self._record_span(span)
+        except Exception:  # never break the query
+            pass
+
+    def prepare_to_drop_span(self, id: str, span: Any = None, err: Any = None,
+                             **kwargs: Any) -> None:
+        try:
+            self._open.discard(id)
+            reason = _preview(err) or f"span dropped: {_span_kind(span)}"
+            self.recorder.fail(reason)
+        except Exception:
+            pass
+
+    # -- span mapping -----------------------------------------------------------
+    def _record_span(self, span: Any) -> None:
+        handler = self._SPANS.get(_span_kind(span))
+        if handler is not None:
+            handler(self, span)
+
+    def _llm(self, span: Any) -> None:
+        prompt = _preview(getattr(span, "prompt", None), limit=120)
+        self.recorder.tool(
+            "llm", {"prompt": prompt} if prompt else {},
+            result=_preview(getattr(span, "completion", None)),
+        )
+
+    def _retrieve(self, span: Any) -> None:
+        text = _preview(getattr(span, "retrieval_str",
+                                getattr(span, "query_str", None)))
+        self.recorder.tool("retrieve", {}, result=text)
+
+    def _synthesize(self, span: Any) -> None:
+        self.recorder.observe("synthesizing response")
+
+    def _agent_run(self, span: Any) -> None:
+        agent = _preview(getattr(span, "agent_id", None), limit=60) or "?"
+        self.recorder.observe(f"agent run: {agent}")
+
+    def _query(self, span: Any) -> None:
+        self.recorder.plan(_preview(getattr(span, "query_str", None),
+                                    limit=200))
+
+    def _tool_call(self, span: Any) -> None:
+        name = _preview(getattr(span, "tool_name",
+                                getattr(span, "name", None)), limit=80) \
+            or "tool"
+        self.recorder.tool(name, {},
+                           result=_preview(getattr(span, "result", None)))
+
+    # dispatch table: span class-name suffix -> recorder action
+    # (spans without an entry — SimpleSpan, EmbeddingSpan, GenericSpan —
+    # are deliberately ignored: too low-level to attribute against)
+    _SPANS: ClassVar[dict] = {
+        "LLMSpan": _llm,
+        "RetrieverSpan": _retrieve,
+        "SynthesisSpan": _synthesize,
+        "AgentRunSpan": _agent_run,
+        "QuerySpan": _query,
+        "ToolCallSpan": _tool_call,
+    }
+
+    # -- wiring & convenience ---------------------------------------------------
+    def wire_dispatcher(self, dispatcher: Any):
+        """Attach to a Dispatcher (method or handler-list shape)."""
+        add = getattr(dispatcher, "add_span_handler", None)
+        if add is not None:
+            add(self)
+            return dispatcher
+        handlers = getattr(dispatcher, "span_handlers", None)
+        if isinstance(handlers, list):
+            handlers.append(self)
+            return dispatcher
+        raise RuntimeError(
+            "wire_dispatcher() needs a llama_index Dispatcher "
+            "(or an object with add_span_handler / span_handlers)")
+
+    def respond(self, text: Optional[str] = None,
+                success: bool = True) -> None:
+        self.recorder.respond(text or "query finished", success=success)
+
+    def report(self):
+        from ..attributor import attribute
+
+        return attribute(self.recorder.trace)
+
+
+def _span_kind(span: Any) -> str:
+    if span is None or isinstance(span, str):
+        return ""
+    return type(span).__name__
 
 
 # friendly alias

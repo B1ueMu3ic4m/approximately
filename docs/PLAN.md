@@ -283,10 +283,20 @@ framework adapters import lazily and degrade when the framework is absent.
 - [x] Security fuzzing of new surfaces; fixed `cluster.trend` overflow
       on out-of-range timestamps and sparkline `nan` coordinate leak
 
+### v0.9.0 ✅ (delivered) — LlamaIndex + key provenance
+- [x] LlamaIndex adapter: duck-typed callback handler (BaseCallbackHandler
+      protocol without importing llama_index); LLM / FUNCTION_CALL /
+      AGENT_STEP / RETRIEVE / EXCEPTION mapped; enum-or-string event
+      types, hostile payloads fuzzed
+- [x] HMAC key-ID + rotation counter: keyed blocks carry a key
+      fingerprint and rotation count; new `wrong-key` verdict replaces
+      the false TAMPERED on key mismatch; forgery still never verifies
+- [x] Adapters now: LangChain/LangGraph, OpenAI Agents SDK, CrewAI,
+      AutoGen v0.4+, LlamaIndex
+
 ### next
-- LlamaIndex adapter; MAST-Data leaderboard page; per-serving-stack
-  distillation recipes
-- optional signature counter for the HMAC chain
+- MAST-Data leaderboard page; per-serving-stack distillation recipes
+- LlamaIndex Dispatcher (span-level) seam alongside the callback seam
 
 ---
 
