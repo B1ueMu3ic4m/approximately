@@ -24,7 +24,7 @@ extraction failure is swallowed rather than breaking your query.
 from __future__ import annotations
 
 import json
-from typing import Any, Optional
+from typing import Any, ClassVar, Optional
 
 # LlamaIndex EventPayload members are str-valued; use the literal values
 # so the adapter needs no llama_index import.
@@ -143,7 +143,7 @@ class ApproximatelyHandler:
         self.recorder.fail(_preview(exc) or "exception event")
 
     # dispatch table: CBEventType name -> recorder action
-    _EVENTS = {
+    _EVENTS: ClassVar[dict] = {
         "LLM": _llm,
         "FUNCTION_CALL": _function_call,
         "AGENT_STEP": _agent_step,
