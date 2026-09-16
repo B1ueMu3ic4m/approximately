@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.13.0 — 2026-09-16
+
+- **Fleet trend alerts**: `survey()` computes the Theil-Sen verdict
+  per store; the dashboard card shows the improving/stable/worsening
+  badge and `--fail-on-worsening` exits 1 naming the degrading stores —
+  the fleet page doubles as a CI gate
+- **MAST-Data pipeline** (`mastdata.py` +
+  `approximately convert-mast`): converts the MAST project's human
+  annotations (arXiv:2503.13657) into labeled benchmark JSONL under
+  three honesty rules — only detector-covered behaviours map, only
+  single-label traces become rows, every exclusion is counted. First
+  real-data run published in `docs/LEADERBOARD.md` with structural
+  analysis: chat-shaped corpus vs tool-call-fingerprint detectors,
+  accuracy 0.00 at n=13, printed as-is
+
 ## 0.12.0 — 2026-09-16
 
 - **Fleet dashboard** (`fleet.py` + `approximately fleet <dir>...`

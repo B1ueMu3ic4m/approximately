@@ -320,10 +320,16 @@ framework adapters import lazily and degrade when the framework is absent.
 - [x] Fixed: before-position `--store` was clobbered by the subparser
       default (classic argparse bug); both positions work now
 
+### v0.13.0 ✅ (delivered) — trend alerts + real-data benchmark
+- [x] Fleet trend verdicts wired to CI (`--fail-on-worsening`)
+- [x] MAST-Data converter with honest exclusion accounting; first
+      real-data run (463 files -> 13 single-label records -> 0.00)
+      published with structural analysis in docs/LEADERBOARD.md
+
 ### next
-- MAST-Data real benchmark run published in-repo
+- prose-level detector family for chat-shaped annotated corpora
 - HMAC signature counter (rollback anchor hardening)
-- fleet trend alerts (worsening verdict wired to CI exit codes)
+- fleet trend webhooks/notifications
 
 ---
 
