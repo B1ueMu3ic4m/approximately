@@ -369,10 +369,16 @@ framework adapters import lazily and degrade when the framework is absent.
       restart detector (one failure, one label); FM-1.3 FP 2 -> 0 on
       the real benchmark
 
+### v0.23.0 ✅ (delivered) — time windows + digest pattern
+- [x] `--since DAYS` on stats / cluster / attribute --all /
+      verify --all (created_at with mtime fallback)
+- [x] docs/FLEET-DIGEST.md: Actions cron + signed webhook +
+      receiver-side verification + exit semantics
+
 ### next
-- scheduled fleet digest (webhook + cron pattern)
 - FM-3.2 outcome-level verification (embeddings or test-result parsing)
 - paraphrase restart with dependency-order features
+- scheduled fleet digest (webhook + cron pattern documented)
 
 ---
 
