@@ -171,3 +171,45 @@ class TestFleetJson:
         posted = json.loads(_Capture.received[-1]["body"])
         for key in ("stores", "worsening_stores"):
             assert cli_payload[key] == posted[key]
+
+
+class TestRetry:
+    def test_transport_failure_retried_then_raises(self, populated,
+                                                   monkeypatch):
+        import urllib.error
+
+        import approximately.fleet as fleet
+
+        attempts = []
+        class FakeResponse:
+            status = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+        def flaky(request, timeout=None):
+            attempts.append(1)
+            if len(attempts) < 2:
+                raise urllib.error.URLError("temporary")
+            return FakeResponse()
+
+        monkeypatch.setattr(fleet.urllib.request, "urlopen", flaky)
+        status = notify_webhook(populated, "http://127.0.0.1:1/x",
+                                timeout=1.0)
+        assert status == "200" and len(attempts) == 2
+
+    def test_exhausted_retries_raise_with_count(self, populated,
+                                                monkeypatch):
+        import urllib.error
+
+        import approximately.fleet as fleet
+
+        def always_down(request, timeout=None):
+            raise urllib.error.URLError("down")
+
+        monkeypatch.setattr(fleet.urllib.request, "urlopen", always_down)
+        with pytest.raises(RuntimeError, match="after 2 attempts"):
+            notify_webhook(populated, "http://127.0.0.1:1/x", timeout=1.0)
