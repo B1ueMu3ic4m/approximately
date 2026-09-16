@@ -127,7 +127,7 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 |---|---|---|
 | 📼 Flight recorder | Zero-dependency recording of every agent step — including inter-agent messages — any framework | `Recorder` / adapters |
 | 🔍 Failure attribution | **All 14 MAST modes** covered by rule detectors; Bayesian fusion ranks verdicts by MAST base rates × evidence likelihood | `approximately attribute` |
-| 🛡️ Tamper-evident evidence | Per-step hash chain + optional HMAC; `verify` detects edits, and the opt-in evidence ledger catches **rolled-back** traces that still verify | `approximately verify` |
+| 🛡️ Tamper-evident evidence | Per-step hash chain + optional HMAC; `verify` detects edits, the ledger catches **rolled-back** traces, and `verify --all` gates a whole store in CI | `approximately verify [--all]` |
 | 🧩 Fleet merge | Union another team's store, refusing broken evidence; id conflicts via skip/replace/rename | `approximately merge <source>` |
 | 🗺️ Fleet dashboard | All your stores on one page: failure rates, trend sparklines, top modes, broken ledgers | `approximately fleet <dir>... --fleet-html` |
 | 🔔 Fleet alerts | HMAC-signed JSON webhooks when a store's trend turns worse — receivers authenticate alerts like evidence | `approximately fleet --webhook URL` |

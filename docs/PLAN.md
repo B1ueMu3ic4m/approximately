@@ -360,9 +360,13 @@ framework adapters import lazily and degrade when the framework is absent.
 - [x] v0.17 shipped: routing-placeholder filter (FM-1.3 FP 2 -> 1);
       FM-3.2 outcome analysis deferred with rationale
 
+### v0.19.0 ✅ (delivered) — store-wide verify gate
+- [x] `verify --all`: whole-store audit with summary counts and a CI
+      exit gate; ledger breakage surfaced alongside per-trace verdicts
+
 ### next
 - scheduled fleet digest (webhook + cron pattern)
-- FM-1.3 harness-echo discrimination beyond placeholders
+- FM-1.3 acknowledgment-echo discrimination
 - paraphrase restart with dependency-order features
 
 ---
