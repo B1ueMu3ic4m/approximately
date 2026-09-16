@@ -555,6 +555,16 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
     result = evaluate(labeled, labeler)
     print(f"labeled {len(labeled)} traces · predictor: {source}")
     print(result.summary())
+    if args.html:
+        from .distill import render_leaderboard_html
+
+        out = Path(args.html)
+        out.write_text(
+            render_leaderboard_html(result, source, args.dataset,
+                                    len(labeled)),
+            encoding="utf-8",
+        )
+        print(f"wrote leaderboard: {out}")
     return 0
 
 
@@ -795,6 +805,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--judge", action="store_true", help="evaluate the LLM judge "
                                                         "instead of rules")
     p.add_argument("--judge-model", help="model for --judge")
+    p.add_argument("--html", help="also write a self-contained HTML leaderboard "
+                                  "to this path")
     p.set_defaults(func=cmd_benchmark)
 
     sub.add_parser("taxonomy", parents=[common],
