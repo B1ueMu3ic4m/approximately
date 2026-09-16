@@ -365,6 +365,11 @@ def cmd_verify(args: argparse.Namespace) -> int:
     from .ledger import audit_rollback, verify_ledger
 
     store = TraceStore(args.store)
+    if getattr(args, "all", None):
+        return _verify_all(store, key=load_key(args.key_file))
+    if not args.trace:
+        print("provide a trace id, or use --all")
+        return 2
     trace = _load_trace(args.trace, store)
     key = load_key(args.key_file)
     result = verify(trace, key=key)
@@ -456,6 +461,30 @@ def cmd_anomalies(args: argparse.Namespace) -> int:
     anomalies = detect_latency_anomalies(trace, threshold=args.threshold)
     print(summarize_anomalies(anomalies))
     return 0 if not anomalies else 1
+
+
+def _verify_all(store, key) -> int:
+    """Batch integrity audit; exit 1 when any trace fails."""
+    from .integrity import verify
+    from .ledger import audit_rollback, verify_ledger
+
+    counts = {"intact": 0, "unsigned": 0, "keyed": 0, "problem": 0}
+    for trace in store.list_traces():
+        result = verify(trace, key=key)
+        verdict = result.verdict
+        if verdict == "intact" and audit_rollback(trace, store.directory):
+            verdict = "rolled-back"
+        counts[verdict if verdict in counts else "problem"] += 1
+        flag = {"intact": "", "unsigned": " (unsigned)",
+                "keyed": " (keyed, no key)"}.get(verdict, " <-- " + verdict)
+        print(f"{trace.id}: {verdict}{flag}")
+    ledger_check = verify_ledger(store.directory)
+    if ledger_check.entries and not ledger_check.intact:
+        counts["problem"] += 1
+        print(f"LEDGER BROKEN: {ledger_check.detail}")
+    print(f"\n{counts['intact']} intact · {counts['unsigned']} unsigned · "
+          f"{counts['keyed']} keyed (locked) · {counts['problem']} failed")
+    return 1 if counts["problem"] else 0
 
 
 def cmd_convert_mast(args: argparse.Namespace) -> int:
@@ -837,9 +866,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("verify", parents=[common],
                        help="verify the tamper-evident hash chain of a trace")
-    p.add_argument("trace")
+    p.add_argument("trace", nargs="?", help="trace id (required unless --all)")
     p.add_argument("--key-file",
                    help="signing key file for HMAC-keyed traces")
+    p.add_argument("--all", action="store_true",
+                   help="verify every trace in the store (exit 1 on any "
+                        "TAMPERED or rolled-back trace; then trace id is "
+                        "omitted)")
     p.set_defaults(func=cmd_verify)
 
     p = sub.add_parser("convert-mast",
