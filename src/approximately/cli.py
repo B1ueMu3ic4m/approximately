@@ -399,6 +399,16 @@ def cmd_verify(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_merge(args: argparse.Namespace) -> int:
+    from .merge import merge_store
+
+    store = TraceStore(args.store)
+    report = merge_store(Path(args.source), store,
+                         on_conflict=args.on_conflict)
+    print(report.summary())
+    return 0
+
+
 def cmd_clean(args: argparse.Namespace) -> int:
     store = TraceStore(args.store)
     removed = store.clean(keep_days=args.keep_days)
@@ -761,6 +771,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--key-file",
                    help="signing key file for HMAC-keyed traces")
     p.set_defaults(func=cmd_verify)
+
+    p = sub.add_parser("merge", parents=[common],
+                       help="import another store's traces into this one")
+    p.add_argument("source", help="source store directory")
+    p.add_argument("--on-conflict", choices=["skip", "replace", "rename"],
+                   default="skip",
+                   help="same-id policy (default: skip, target wins)")
+    p.set_defaults(func=cmd_merge)
 
     p = sub.add_parser("clean", parents=[common],
                        help="delete traces older than N days")
