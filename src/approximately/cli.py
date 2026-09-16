@@ -365,7 +365,8 @@ def cmd_verify(args: argparse.Namespace) -> int:
 
     store = TraceStore(args.store)
     if getattr(args, "all", None):
-        return _verify_all(store, key=load_key(args.key_file))
+        return _verify_all(store, key=load_key(args.key_file),
+                           as_json=getattr(args, "json", False))
     if not args.trace:
         print("provide a trace id, or use --all")
         return 2
@@ -442,6 +443,11 @@ def cmd_fleet(args: argparse.Namespace) -> int:
     from .fleet import render_fleet_html, survey
 
     summaries = survey([Path(d) for d in args.stores])
+    if getattr(args, "json", False):
+        from .fleet import webhook_payload
+
+        print(json.dumps(webhook_payload(summaries), indent=2))
+        return 0
     _print_fleet(summaries)
     if args.fleet_html:
         out = Path(args.fleet_html)
@@ -468,24 +474,40 @@ def cmd_anomalies(args: argparse.Namespace) -> int:
     return 0 if not anomalies else 1
 
 
-def _verify_all(store, key) -> int:
+def _verify_all(store, key, as_json: bool = False) -> int:
     """Batch integrity audit; exit 1 when any trace fails."""
+    import json as _json
+
     from .integrity import verify
     from .ledger import audit_rollback, verify_ledger
 
     counts = {"intact": 0, "unsigned": 0, "keyed": 0, "problem": 0}
+    rows = []
     for trace in store.list_traces():
         result = verify(trace, key=key)
         verdict = result.verdict
         if verdict == "intact" and audit_rollback(trace, store.directory):
             verdict = "rolled-back"
         counts[verdict if verdict in counts else "problem"] += 1
-        flag = {"intact": "", "unsigned": " (unsigned)",
-                "keyed": " (keyed, no key)"}.get(verdict, " <-- " + verdict)
-        print(f"{trace.id}: {verdict}{flag}")
+        rows.append({"trace_id": trace.id, "verdict": verdict,
+                     "detail": result.detail})
     ledger_check = verify_ledger(store.directory)
-    if ledger_check.entries and not ledger_check.intact:
+    ledger_broken = bool(ledger_check.entries) and not ledger_check.intact
+    if ledger_broken:
         counts["problem"] += 1
+    if as_json:
+        print(_json.dumps({
+            "summary": counts, "ledger_broken": ledger_broken,
+            "ledger_detail": ledger_check.detail,
+            "traces": rows,
+        }, indent=2))
+        return 1 if counts["problem"] else 0
+    for row in rows:
+        flag = {"intact": "", "unsigned": " (unsigned)",
+                "keyed": " (keyed, no key)"}.get(row["verdict"],
+                                                 " <-- " + row["verdict"])
+        print(f"{row['trace_id']}: {row['verdict']}{flag}")
+    if ledger_broken:
         print(f"LEDGER BROKEN: {ledger_check.detail}")
     print(f"\n{counts['intact']} intact · {counts['unsigned']} unsigned · "
           f"{counts['keyed']} keyed (locked) · {counts['problem']} failed")
@@ -878,6 +900,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="verify every trace in the store (exit 1 on any "
                         "TAMPERED or rolled-back trace; then trace id is "
                         "omitted)")
+    p.add_argument("--json", action="store_true",
+                   help="emit machine-readable audit JSON (with --all)")
     p.set_defaults(func=cmd_verify)
 
     p = sub.add_parser("convert-mast",
@@ -892,6 +916,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("stores", nargs="+", help="store directories to survey")
     p.add_argument("--fleet-html", help="also write a self-contained HTML "
                                         "dashboard to this path")
+    p.add_argument("--json", action="store_true",
+                   help="emit machine-readable fleet JSON instead of text")
     p.add_argument("--fail-on-worsening", action="store_true",
                    help="exit 1 when any store's failure-rate trend is "
                         "worsening (CI gate)")
