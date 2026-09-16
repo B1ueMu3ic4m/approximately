@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.15.0 — 2026-09-17
+
+- **Shingle-overlap restart** (FM-2.1): character-trigram Jaccard
+  between the opening turn and later turns catches paraphrased
+  restarts SequenceMatcher misses (real gold: 0.28 ratio / 0.553 J);
+  confidence 0.7 to clear the rules-labeler floor — the v0.14 run had
+  the evidence and lost the prediction to the 0.6 < 0.7 floor gap
+- **FM-2.6 prose detector**: thought/action entity divergence in
+  Thought/Action-shaped turns
+- **Benchmark v4**: first true positive on human-annotated data —
+  accuracy 0.00 → 0.08, FM-2.1 P 0.50 · R 0.50 · F1 0.50, with the
+  run-history table and the calibration lesson in
+  docs/LEADERBOARD.md
+
 ## 0.14.0 — 2026-09-17
 
 - **Prose detector family** (`prose.py`): five detectors over agent
