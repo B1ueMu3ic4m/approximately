@@ -362,6 +362,7 @@ def cmd_metrics(args: argparse.Namespace) -> int:
 
 def cmd_verify(args: argparse.Namespace) -> int:
     from .integrity import load_key, verify
+    from .ledger import audit_rollback, verify_ledger
 
     store = TraceStore(args.store)
     trace = _load_trace(args.trace, store)
@@ -374,15 +375,28 @@ def cmd_verify(args: argparse.Namespace) -> int:
     if result.verdict == "keyed":
         print(f"KEYED: {result.detail}")
         return 3
-    if result.intact:
-        kind = "HMAC-authenticated" if key else "intact"
-        print(f"{kind}: {result.detail}")
-        print(f"  chain final: {result.actual_final}")
-        return 0
-    print(f"TAMPERED: {result.detail}")
-    print(f"  expected chain final: {result.expected_final}")
-    print(f"  actual chain final:   {result.actual_final}")
-    return 1
+    if not result.intact:
+        print(f"TAMPERED: {result.detail}")
+        print(f"  expected chain final: {result.expected_final}")
+        print(f"  actual chain final:   {result.actual_final}")
+        return 1
+
+    kind = "HMAC-authenticated" if key else "intact"
+    print(f"{kind}: {result.detail}")
+    print(f"  chain final: {result.actual_final}")
+
+    rollback = audit_rollback(trace, store.directory)
+    if rollback:
+        print(f"ROLLED-BACK: an older signed state of this trace is in "
+              f"the evidence ledger ({result.actual_final[:12]}…); newer "
+              f"saves were recorded afterwards — the file was rolled "
+              f"back, the hashes are valid but the state is stale")
+        return 4
+    ledger_check = verify_ledger(store.directory)
+    if ledger_check.entries and not ledger_check.intact:
+        print(f"LEDGER-BROKEN: {ledger_check.detail}")
+        return 5
+    return 0
 
 
 def cmd_clean(args: argparse.Namespace) -> int:

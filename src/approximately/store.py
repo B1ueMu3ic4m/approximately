@@ -61,7 +61,25 @@ class TraceStore:
                     lock.unlink()
                 except FileNotFoundError:
                     pass
+        self._ledger_append(trace)
         return path
+
+    def _ledger_append(self, trace: Trace) -> None:
+        """Opt-in evidence ledger (APPROXIMATELY_LEDGER=1).
+
+        Appends the trace's chain-final hash to ledger.jsonl so later
+        saves are visible to rollback detection (see approximately.ledger).
+        Best-effort by design: a ledger failure never fails the save.
+        """
+        root = (trace.meta.get("integrity") or {}).get("final")
+        if not root or not os.environ.get("APPROXIMATELY_LEDGER"):
+            return
+        try:
+            from .ledger import EvidenceLedger
+
+            EvidenceLedger(self.directory).append(trace.id, root)
+        except Exception:
+            pass
 
     def load(self, trace_id: str) -> Optional[Trace]:
         path = self._resolve(trace_id)
