@@ -140,6 +140,41 @@ def store_stats(traces: Iterable[Trace]) -> StoreStats:
     return stats
 
 
+SPARK_BLOCKS = "▁▂▃▄▅▆▇█"
+
+
+def _clean_value(v) -> float:
+    """Non-finite or non-numeric values read as 0 (scale floor)."""
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return 0.0
+    return f if f == f and abs(f) != float("inf") else 0.0
+
+
+def sparkline(values, width: int = 0) -> str:
+    """Unicode-block sparkline for terminal output.
+
+    Zero-width or empty input renders as an empty string; constant
+    input renders as a flat mid-height line. Values are scaled to the
+    block range independently of ``width`` (width truncates only).
+    """
+    if not values:
+        return ""
+    vals = [_clean_value(v) for v in values]
+    lo, hi = min(vals), max(vals)
+    span = hi - lo
+    out = []
+    for v in vals:
+        if span == 0:
+            level = len(SPARK_BLOCKS) // 2
+        else:
+            level = int((v - lo) / span * (len(SPARK_BLOCKS) - 1))
+        out.append(SPARK_BLOCKS[level])
+    text = "".join(out)
+    return text[:width] if width else text
+
+
 def trend(traces: Iterable[Trace], bucket_days: int = 7) -> List[dict]:
     """Failure-rate history over time, oldest bucket first.
 
