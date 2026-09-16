@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.26.0 — 2026-09-17
+
+- **`replay --html`**: self-contained A/B replay page — verdict badge,
+  match rate, per-step recorded-vs-replayed (vs patched executor)
+  table with diverged rows highlighted; executor output escaped
+
 ## 0.25.0 — 2026-09-17
 
 - **Webhook bounded retry**: transport failures retry once with brief
@@ -8,6 +14,17 @@
 - FM-2.3 prose derailment diagnosed structurally: keyword persistence
   on goal-drift golds means progress-level features are required;
   documented as deferred in docs/LEADERBOARD.md instead of fitted
+
+## 0.24.0 — 2026-09-17
+
+- **Docs artifacts pipeline** (`scripts/make_docs_artifacts.py`):
+  regenerates real rendered pages (postmortem report, index with
+  trend, budget-vs-recall curve, fleet dashboard) into
+  docs/artifacts; README links them
+- **Fixed**: `demo --store X` was accepted and silently ignored
+  (demo recordings always landed in the default store)
+- **Fixed**: `latest` was advertised in help text but never resolved
+  by the trace loader
 
 ## 0.23.0 — 2026-09-17
 
