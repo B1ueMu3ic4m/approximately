@@ -334,9 +334,16 @@ framework adapters import lazily and degrade when the framework is absent.
       per-mode structural diagnosis (0.00, honestly explained)
 - [x] re-sign counter in integrity blocks
 
+### v0.15.0 ✅ (delivered) — shingle restart + FM-2.6
+- [x] Order-tolerant restart via trigram Jaccard (0.5) beside the
+      verbatim path (0.9); confidence coordinated with the labeler
+      floor after the 0.6-below-0.7 calibration lesson
+- [x] ProseThoughtActionDetector for FM-2.6 entity divergence
+- [x] Benchmark v4: first real TP - accuracy 0.08, FM-2.1 F1 0.50
+
 ### next
-- paraphrase-level restart detection (embeddings or dependency parse)
-- outcome-level verification analysis for FM-3.2
+- outcome-level verification analysis for FM-3.2 (largest gold pool)
+- harness-echo discrimination for FM-1.3 precision
 - fleet trend webhooks/notifications
 
 ---
