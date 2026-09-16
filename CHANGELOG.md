@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.18.0 — 2026-09-17
+
+- **`attribute --explain`** (`attributor.explain_fusion`): auditable
+  fusion arithmetic — per detection, the MAST prior (probability +
+  log-odds), the confidence's LLR, the fused score, and the ranked
+  verdict line. A disputed ranking is now demonstrable, not asserted
+
 ## 0.17.0 — 2026-09-17
 
 - **Routing-placeholder filter** (FM-1.3 precision): repeated harness

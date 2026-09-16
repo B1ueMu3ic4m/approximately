@@ -354,10 +354,16 @@ framework adapters import lazily and degrade when the framework is absent.
 - [x] Fleet webhooks shipped in v0.16; FM-3.2 outcome analysis
       documented as deferred with the n=6 gold-fitting rationale
 
+### v0.18.0 ✅ (delivered) — explainable fusion
+- [x] `attribute --explain`: per-detection prior/LLR/fused-score
+      account with the ranked verdict line
+- [x] v0.17 shipped: routing-placeholder filter (FM-1.3 FP 2 -> 1);
+      FM-3.2 outcome analysis deferred with rationale
+
 ### next
-- FM-3.2 outcome-level verification (embeddings or test-result parsing)
+- scheduled fleet digest (webhook + cron pattern)
+- FM-1.3 harness-echo discrimination beyond placeholders
 - paraphrase restart with dependency-order features
-- scheduled fleet digest (webhook + cron pattern documented)
 
 ---
 
