@@ -20,7 +20,7 @@ from typing import List, Optional
 from .attributor import attribute
 from .cluster import trend
 from .ledger import verify_ledger
-from .report import render_sparkline
+from .report import TREND_LABELS, render_sparkline, trend_verdict
 from .store import TraceStore
 
 _FLEET_CSS = """
@@ -46,6 +46,11 @@ table { border-collapse: collapse; font-size: 13px; margin-top: 8px; }
 td { padding: 3px 12px 3px 0; border-bottom: 1px solid #eef0f2; }
 .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 footer { margin-top: 22px; color: #adb5bd; font-size: 12.5px; text-align: center; }
+.badge { display: inline-block; font-size: 11px; letter-spacing: .08em;
+         text-transform: uppercase; padding: 3px 10px; border-radius: 999px;
+         background: #e4e7eb; color: #495057; font-weight: 600; }
+.badge.red { background: #fde8e8; color: #b02a37; }
+.badge.green { background: #def7e5; color: #1c7430; }
 """
 
 
@@ -59,6 +64,18 @@ class StoreSummary:
     top_modes: List[tuple] = field(default_factory=list)
     trend_rows: List[dict] = field(default_factory=list)
     ledger_intact: Optional[bool] = None  # None: no ledger in use
+    trend_verdict: str = "stable"
+    trend_slope: float = 0.0
+
+    @property
+    def worsening(self) -> bool:
+        return self.trend_verdict == "worsening"
+
+
+def _verdict(trend_rows: List[dict]) -> tuple:
+    """Theil-Sen verdict over the store's failure-rate history."""
+    rates = [r["failed"] / r["total"] for r in trend_rows if r.get("total")]
+    return trend_verdict(rates)
 
 
 def _top_failure_modes(traces) -> List[tuple]:
@@ -90,6 +107,8 @@ def survey(stores: List[Path]) -> List[StoreSummary]:
         store = TraceStore(Path(path))
         traces = store.list_traces()
         failed = sum(1 for t in traces if t.success is False)
+        rows = trend(traces)
+        verdict, slope = _verdict(rows)
         summaries.append(StoreSummary(
             name=Path(path).name or str(path),
             path=str(path),
@@ -97,14 +116,16 @@ def survey(stores: List[Path]) -> List[StoreSummary]:
             failed=failed,
             failure_rate=failed / len(traces) if traces else 0.0,
             top_modes=_top_failure_modes(traces),
-            trend_rows=trend(traces),
+            trend_rows=rows,
             ledger_intact=_ledger_state(store.directory),
+            trend_verdict=verdict,
+            trend_slope=slope,
         ))
     return summaries
 
 
 def _store_card(s: StoreSummary) -> str:
-    """One store's card: rate, trend sparkline, top modes."""
+    """One store's card: rate, trend sparkline + verdict, top modes."""
     import html as _html
 
     esc = _html.escape
@@ -112,6 +133,7 @@ def _store_card(s: StoreSummary) -> str:
     rates = [r["failed"] / r["total"] * 100 for r in s.trend_rows
              if r.get("total")]
     spark = render_sparkline(rates, width=180, height=34) if rates else ""
+    badge_cls, trend_label = TREND_LABELS[s.trend_verdict]
     ledger_note = {True: "ledger intact",
                    False: "<b>LEDGER BROKEN</b>",
                    None: "no ledger"}[s.ledger_intact]
@@ -125,7 +147,9 @@ def _store_card(s: StoreSummary) -> str:
         f'{s.traces} traces · ledger: {ledger_note}</div>'
         '<div class="row">'
         f'<span class="rate {rate_cls}">{s.failure_rate:.0%}</span>'
-        f"{spark}</div>"
+        f"{spark}"
+        f'<span class="badge {badge_cls}">{esc(trend_label)}</span>'
+        "</div>"
         f"<table>{modes_html}</table></div>"
     )
 

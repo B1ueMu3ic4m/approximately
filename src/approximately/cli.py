@@ -421,6 +421,12 @@ def cmd_fleet(args: argparse.Namespace) -> int:
         out = Path(args.fleet_html)
         out.write_text(render_fleet_html(summaries), encoding="utf-8")
         print(f"wrote fleet dashboard: {out}")
+    if args.fail_on_worsening:
+        worsening = [s.name for s in summaries if s.worsening]
+        if worsening:
+            print(f"FAIL: worsening failure-rate trend in: "
+                  f"{', '.join(worsening)}")
+            return 1
     return 0
 
 
@@ -805,6 +811,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("stores", nargs="+", help="store directories to survey")
     p.add_argument("--fleet-html", help="also write a self-contained HTML "
                                         "dashboard to this path")
+    p.add_argument("--fail-on-worsening", action="store_true",
+                   help="exit 1 when any store's failure-rate trend is "
+                        "worsening (CI gate)")
     p.set_defaults(func=cmd_fleet)
 
     p = sub.add_parser("anomalies", parents=[common],
