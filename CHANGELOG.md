@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.17.0 — 2026-09-17
+
+- **Routing-placeholder filter** (FM-1.3 precision): repeated harness
+  transport lines (`Observation Editor->Planner: Observation`) no
+  longer count as step repetition — repetition means repeated *work*.
+  Benchmark v5: FM-1.3 false predictions 2 → 1, FM-2.1 holds
+  P 0.50 · R 0.50 · F1 0.50
+- **FM-3.2 outcome-level analysis deliberately deferred**: all 6 golds
+  contain verification AND execution language; regex cannot cross the
+  outcome-verification semantic gap on n=6 without gold-fitting —
+  reasoning recorded in docs/LEADERBOARD.md
+
 ## 0.16.0 — 2026-09-17
 
 - **Fleet webhooks** (`fleet.py` + `approximately fleet --webhook`):

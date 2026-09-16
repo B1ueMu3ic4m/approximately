@@ -348,10 +348,16 @@ framework adapters import lazily and degrade when the framework is absent.
       judges whether the *outcome* was verified - regex cannot cross
       that semantic gap on n=6 without gold-fitting (documented)
 
+### v0.17.0 ✅ (delivered) — placeholder filter
+- [x] Routing-placeholder filter: FM-1.3 false predictions 2 -> 1 on
+      real data; negative-tested (real-work repetition still fires)
+- [x] Fleet webhooks shipped in v0.16; FM-3.2 outcome analysis
+      documented as deferred with the n=6 gold-fitting rationale
+
 ### next
-- harness-echo discrimination for FM-1.3 precision
-- FM-3.2 outcome-level verification (needs richer features than regex)
-- fleet trend digest scheduling
+- FM-3.2 outcome-level verification (embeddings or test-result parsing)
+- paraphrase restart with dependency-order features
+- scheduled fleet digest (webhook + cron pattern documented)
 
 ---
 
