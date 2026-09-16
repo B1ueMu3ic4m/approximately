@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.29.0 — 2026-09-17
+
+- **Multi-label evaluation**: `convert-mast --multi-label` +
+  `benchmark --multi-label` — set-based sample-averaged P/R/F1 over
+  the full gold set; real MAST-Data run published (27 records):
+  FM-2.1 P 0.93 · R 1.00 · F1 0.96
+- **`replay --html`**: self-contained A/B replay page with per-step
+  recorded-vs-replayed table, diverged rows highlighted, patched
+  executor column
+- **`stats --trend` terminal sparkline**; trend buckets in JSON
+
 ## 0.26.0 — 2026-09-17
 
 - **`replay --html`**: self-contained A/B replay page — verdict badge,
