@@ -312,10 +312,18 @@ framework adapters import lazily and degrade when the framework is absent.
 - [x] `approximately merge`: fleet imports that refuse TAMPERED /
       wrong-key evidence; skip/replace/rename conflict policies
 
+### v0.12.0 ✅ (delivered) — fleet dashboard + latency anomalies
+- [x] `fleet`: N-store survey, fleet KPIs, per-store sparklines and
+      top modes, ledger-state badges; rule-detector-only attribution
+- [x] `anomalies`: MAD modified z-score (3.5 threshold), slow+fast
+      outliers, degenerate cases honest; report card + CLI exit code
+- [x] Fixed: before-position `--store` was clobbered by the subparser
+      default (classic argparse bug); both positions work now
+
 ### next
-- fleet dashboard: aggregate multiple stores into one HTML page
-- MAD-based latency-anomaly detection in reports
-- MAST-Data leaderboard page (real benchmark run published in-repo)
+- MAST-Data real benchmark run published in-repo
+- HMAC signature counter (rollback anchor hardening)
+- fleet trend alerts (worsening verdict wired to CI exit codes)
 
 ---
 

@@ -73,7 +73,11 @@ def detect_latency_anomalies(trace: Trace, threshold: float
     mad = _mad(values, med)
     if mad == 0:
         return []  # identical latencies: no scale, no anomalies
+    return _flagged(timed, values, med, mad, threshold)
 
+
+def _flagged(timed, values, med: float, mad: float,
+             threshold: float) -> List[LatencyAnomaly]:
     anomalies = []
     for step, value in zip(timed, values):
         z = _CONSISTENCY * (value - med) / mad
