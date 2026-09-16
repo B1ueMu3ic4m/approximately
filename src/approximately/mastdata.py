@@ -191,8 +191,14 @@ def _signal_turns(trace: Trace) -> int:
                and not st.result.lower().startswith(HARNESS_PREFIXES))
 
 
-def convert_mast(source: Path, out_path: Path) -> ConvertStats:
-    """Convert a MAST-Data checkout into labeled ``approx`` JSONL."""
+def convert_mast(source: Path, out_path: Path,
+                 multi_label: bool = False) -> ConvertStats:
+    """Convert a MAST-Data checkout into labeled ``approx`` JSONL.
+
+    With ``multi_label=True``, records carry ``labels`` (the full set
+    of detector-covered gold modes) instead of a single ``label``, for
+    set-based evaluation; the no-signal and hygiene rules still apply.
+    """
     stats = ConvertStats()
     with open(out_path, "w", encoding="utf-8") as fh:
         for path in _iter_files(source):
@@ -214,24 +220,35 @@ def convert_mast(source: Path, out_path: Path) -> ConvertStats:
             if len(modes) == 0:
                 stats.excluded_no_covered_label += 1
                 continue
-            if len(modes) > 1:
+            if len(modes) > 1 and not multi_label:
+                # single-label evaluation cannot honestly score records
+                # with several gold modes
                 stats.excluded_multi_label += 1
                 continue
-
-            trace = _to_trace(record)
-            if modes:
-                # a yes-annotated MAST behaviour asserts the run
-                # contained a failure; task-level correctness (was the
-                # issue eventually fixed?) is a different question and
-                # must not mask it from attribution
-                trace.success = False
-                trace.meta["task_correct"] = _success_of(record)
-            if _signal_turns(trace) < MIN_AGENT_TURNS:
-                stats.excluded_no_signal += 1
-                continue
-            payload = trace.to_dict()
-            payload["label"] = modes[0]
-            fh.write(json.dumps(payload, default=str) + "\n")
-            stats.converted += 1
-            stats.labels[modes[0]] = stats.labels.get(modes[0], 0) + 1
+            stats.converted += _emit_record(record, modes, fh, stats,
+                                            multi_label)
     return stats
+
+
+def _emit_record(record: dict, modes: List[str], fh, stats,
+                 multi_label: bool) -> int:
+    trace = _to_trace(record)
+    if modes:
+        # a yes-annotated MAST behaviour asserts the run contained a
+        # failure; task-level correctness (was the issue eventually
+        # fixed?) is a different question and must not mask it
+        trace.success = False
+        trace.meta["task_correct"] = _success_of(record)
+    if _signal_turns(trace) < MIN_AGENT_TURNS:
+        stats.excluded_no_signal += 1
+        return 0
+    payload = trace.to_dict()
+    if multi_label:
+        payload["labels"] = modes
+        for mode_id in modes:
+            stats.labels[mode_id] = stats.labels.get(mode_id, 0) + 1
+    else:
+        payload["label"] = modes[0]
+        stats.labels[modes[0]] = stats.labels.get(modes[0], 0) + 1
+    fh.write(json.dumps(payload, default=str) + "\n")
+    return 1

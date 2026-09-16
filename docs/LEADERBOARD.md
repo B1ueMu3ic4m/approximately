@@ -52,6 +52,34 @@ owns that signal, and ProseRepeat now yields it (specificity
 precedence). FM-1.3's false predictions went to zero; FM-2.1 holds
 P 0.50 / R 0.50 / F1 0.50.
 
+## Multi-label evaluation (v0.29): 27 records, set-based P/R/F1
+
+Single-label evaluation threw away 15 multi-mode golds. `convert-mast
+--multi-label` + `benchmark --multi-label` now score them honestly
+(predicted set = all modes the fusion reports at confidence >= 0.5;
+sample-averaged set P/R/F1, plus per-mode pooled counts). Same corpus,
+same hygiene:
+
+```
+converted 27 multi-label records | FM-2.1 x13, FM-3.2 x11, FM-2.3 x7,
+FM-1.3 x7, FM-2.2 x5, FM-2.6 x2, FM-1.2 x4, FM-2.4 x4, FM-2.5 x2, ...
+```
+
+| mode | precision | recall | F1 |
+|---|---|---|---|
+| **FM-2.1 restart** | **0.93** | **1.00** | **0.96** |
+| FM-1.3 repetition | 1.00 | 0.14 | 0.25 |
+| FM-2.6 thought/action | 0.07 | 0.50 | 0.12 |
+| FM-3.2 verification | 0.00 | 0.00 | 0.00 |
+| others (FM-1.2/2.2/2.3/2.4/2.5/3.1) | 0 | 0 | 0 |
+
+Read of it: the shingle restart detector is *strong* on real annotated
+data (13/13 recall, one false positive across 27 runs); repetition has
+frontier-grade precision but misses echo variants; the thought/action
+divergence heuristic over-fires on log-style traces (14 false
+positives) and needs role-aware tightening; FM-3.2 remains deferred
+(see above). Numbers are n=27 — directional, not decisive.
+
 ## The calibration lesson (v3 -> v4, kept for the record)
 
 The shingle detector fired on a true FM-2.1 at confidence 0.6 in v3
