@@ -364,9 +364,14 @@ framework adapters import lazily and degrade when the framework is absent.
 - [x] `verify --all`: whole-store audit with summary counts and a CI
       exit gate; ledger breakage surfaced alongside per-trace verdicts
 
+### v0.21.0 ✅ (delivered) — specificity precedence
+- [x] Repetition cycles anchored at the opening turn yield to the
+      restart detector (one failure, one label); FM-1.3 FP 2 -> 0 on
+      the real benchmark
+
 ### next
 - scheduled fleet digest (webhook + cron pattern)
-- FM-1.3 acknowledgment-echo discrimination
+- FM-3.2 outcome-level verification (embeddings or test-result parsing)
 - paraphrase restart with dependency-order features
 
 ---
