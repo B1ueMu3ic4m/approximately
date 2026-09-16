@@ -130,6 +130,11 @@ def _hyperagent_turns(trajectory: list) -> List[tuple]:
             buffer = [m.group(2)] if m.group(2) else []
         elif role is not None:
             buffer.append(msg)
+    return _flush(turns, role, buffer)
+
+
+def _flush(turns: List[tuple], role: Optional[str],
+           buffer: List[str]) -> List[tuple]:
     if role and buffer:
         turns.append((role, " ".join(buffer)))
     return turns

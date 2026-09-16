@@ -114,6 +114,8 @@ def sign(trace: Trace, key: Optional[bytes] = None) -> dict:
         # preserve the rotation counter across re-signing (rotate uses it)
         previous = trace.meta.get("integrity") or {}
         block["rotations"] = int(previous.get("rotations", 0))
+    previous = trace.meta.get("integrity") or {}
+    block["resign_count"] = int(previous.get("resign_count", 0)) + 1
     trace.meta["integrity"] = block
     return block
 
@@ -208,17 +210,23 @@ def verify(trace: Trace, key: Optional[bytes] = None) -> VerificationResult:
     actual = compute_chain(trace, key=key)
     expected_hashes: List[str] = block.get("step_hashes", [])
     if actual == expected_hashes:
-        detail = f"{len(actual)} steps verified"
-        if block.get("keyed"):
-            detail += (f" with key {block.get('key_id', '?')}"
-                       f" · rotations: {block.get('rotations', 0)}")
-        return VerificationResult(
-            signed=True, intact=True,
-            expected_final=block.get("final"),
-            actual_final=actual[-1] if actual else block.get("seed"),
-            detail=detail,
-        )
+        return _intact_result(block, actual)
     return _tamper_result(block, actual, expected_hashes)
+
+
+def _intact_result(block: dict, actual: List[str]) -> VerificationResult:
+    detail = f"{len(actual)} steps verified"
+    if block.get("resign_count", 0) > 1:
+        detail += f" · re-signed {block['resign_count'] - 1}x"
+    if block.get("keyed"):
+        detail += (f" with key {block.get('key_id', '?')}"
+                   f" · rotations: {block.get('rotations', 0)}")
+    return VerificationResult(
+        signed=True, intact=True,
+        expected_final=block.get("final"),
+        actual_final=actual[-1] if actual else block.get("seed"),
+        detail=detail,
+    )
 
 
 def _tamper_result(block: dict, actual: List[str],
