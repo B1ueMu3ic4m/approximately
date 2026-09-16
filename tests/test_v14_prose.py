@@ -47,6 +47,13 @@ class TestProseRepeat:
         ])
         assert ProseRepeatDetector().detect(trace) is None
 
+    def test_opening_anchored_cycle_is_restart_not_repeat(self):
+        turn = "Distinct opening analysis of the ribbon situation."
+        trace = _prose_trace(TASK, [turn, "middle work on the gifts",
+                                    turn, "later work continues here"])
+        det = ProseRepeatDetector().detect(trace)
+        assert det is None  # restart detector owns opening recurrences
+
     def test_too_few_turns_quiet(self):
         turn = "same text"
         trace = _prose_trace(TASK, [turn, turn])
@@ -150,7 +157,8 @@ class TestGating:
 
     def test_prose_flag_activates_family(self):
         turn = "The statement is insufficient to conclude anything here."
-        trace = _prose_trace(TASK, [turn, "more analysis follows now",
+        trace = _prose_trace(TASK, ["opening scan of the problem space",
+                                    turn, "more analysis follows now",
                                     turn, "and yet more analysis here"])
         from approximately.detectors import run_rules
 

@@ -85,6 +85,13 @@ class ProseRepeatDetector:
             for j in range(i + 1, len(turns)):
                 if SequenceMatcher(None, turns[i], turns[j]).ratio() \
                         >= _SIMILARITY:
+                    if i == 0:
+                        # a repetition cycle anchored at the opening turn
+                        # is a trajectory RESTART (the agent re-runs the
+                        # same approach from the start) - the restart
+                        # detector owns that signal; claiming FM-1.3 too
+                        # would double-label one failure
+                        return None
                     return self._detection(i, j, turns)
         return None
 

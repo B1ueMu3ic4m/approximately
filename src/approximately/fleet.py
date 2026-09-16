@@ -157,8 +157,8 @@ def notify_webhook(summaries: List[StoreSummary], url: str,
     request = urllib.request.Request(url, data=body, headers=headers,
                                      method="POST")
     try:
-        # nosec B310: scheme validated to http/https above
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        with urllib.request.urlopen(  # nosec B310: scheme checked above
+                request, timeout=timeout) as response:
             return f"{response.status}"
     except urllib.error.HTTPError as exc:
         return f"HTTP {exc.code}"

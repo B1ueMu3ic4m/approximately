@@ -361,8 +361,7 @@ def cmd_metrics(args: argparse.Namespace) -> int:
 
 
 def cmd_verify(args: argparse.Namespace) -> int:
-    from .integrity import load_key, verify
-    from .ledger import audit_rollback, verify_ledger
+    from .integrity import load_key
 
     store = TraceStore(args.store)
     if getattr(args, "all", None):
@@ -370,8 +369,14 @@ def cmd_verify(args: argparse.Namespace) -> int:
     if not args.trace:
         print("provide a trace id, or use --all")
         return 2
+    return _verify_one(args, store, load_key(args.key_file))
+
+
+def _verify_one(args: argparse.Namespace, store, key) -> int:
+    from .integrity import verify
+    from .ledger import audit_rollback, verify_ledger
+
     trace = _load_trace(args.trace, store)
-    key = load_key(args.key_file)
     result = verify(trace, key=key)
     if result.verdict == "unsigned":
         print("unsigned: trace carries no integrity block "
