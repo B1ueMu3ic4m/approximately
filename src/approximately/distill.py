@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Callable, Iterable, List, Optional
 
 from .attributor import attribute
+from .detectors import run_rules
 from .judge import PRESETS, _compact_trace, _taxonomy_block, judge_trace
 from .taxonomy import OTHER, get_mode
 from .trace import Trace
@@ -170,7 +171,8 @@ def load_dataset(path: Path, fmt: str = "approx") -> List[tuple]:
             if not line:
                 continue
             record = json.loads(line)
-            label = (record.get("label") or record.get("failure_mode")
+            label = (record.get("labels") if record.get("labels")
+                     else record.get("label") or record.get("failure_mode")
                      or record.get("mode"))
             trace = _from_mast_record(record) if fmt == "mast" else Trace.from_dict(record)
             if label:
@@ -210,6 +212,78 @@ def export_dataset(traces: Iterable[Trace], out_path: Path,
             fh.write(json.dumps(record, default=str) + "\n")
             stats["written"] += 1
     return stats
+
+
+def _tally_modes(per_mode: dict, predicted: set, gold_set: set,
+                 tp_set: set) -> None:
+    for mode_id in gold_set | predicted:
+        counts = per_mode.setdefault(mode_id, {"tp": 0, "fp": 0, "fn": 0})
+        if mode_id in tp_set:
+            counts["tp"] += 1
+        elif mode_id in predicted:
+            counts["fp"] += 1
+        elif mode_id in gold_set:
+            counts["fn"] += 1
+
+
+def _set_scores(predicted: set, gold_set: set, tp_set: set) -> dict:
+    precision = len(tp_set) / len(predicted) if predicted else (
+        1.0 if not gold_set else 0.0)
+    recall = len(tp_set) / len(gold_set) if gold_set else 1.0
+    f1 = (2 * precision * recall / (precision + recall)
+          if precision + recall else 0.0)
+    return {"precision": precision, "recall": recall, "f1": f1}
+
+
+def evaluate_multi(labeled: List[tuple]) -> "MultiLabelResult":
+    """Set-based evaluation over multi-gold records.
+
+    ``labeled``: ``(trace, gold_set)`` pairs. The predictor is the set
+    of MAST modes the fusion layer reports at confidence >= threshold.
+    Sample-averaged set precision/recall/F1 — a sample's precision is
+    |pred ∩ gold| / |pred|, its recall is |pred ∩ gold| / |gold|, and
+    the averages are over samples, which treats a 5-mode gold trace
+    exactly as fairly as a 1-mode one.
+    """
+    from .attributor import MIN_CONFIDENCE
+
+    per_sample: List[dict] = []
+    per_mode: dict = {}
+    for trace, gold in labeled:
+        gold_set = set(gold)
+        predicted = {d.mode_id for d in run_rules(trace)
+                     if d.confidence >= MIN_CONFIDENCE}
+        tp_set = predicted & gold_set
+        per_sample.append(_set_scores(predicted, gold_set, tp_set))
+        _tally_modes(per_mode, predicted, gold_set, tp_set)
+    return _summarize_multi(per_sample, per_mode)
+
+
+def _summarize_multi(per_sample: List[dict], per_mode: dict
+                     ) -> "MultiLabelResult":
+    for mode_id, counts in per_mode.items():
+        per_mode[mode_id].update(_prf(**counts))
+    n = len(per_sample)
+    avg_p = sum(s["precision"] for s in per_sample) / n if n else 0.0
+    avg_r = sum(s["recall"] for s in per_sample) / n if n else 0.0
+    avg_f1 = sum(s["f1"] for s in per_sample) / n if n else 0.0
+    return MultiLabelResult(accuracy=avg_p, macro_f1=avg_f1,
+                            per_mode=per_mode, samples=n,
+                            sample_precision=avg_p, sample_recall=avg_r)
+
+
+@dataclass
+class MultiLabelResult(BenchmarkResult):
+    """Set-based evaluation summary (sample-averaged P/R/F1).
+
+    ``accuracy`` carries the sample-averaged set precision (set-based
+    evaluation has no point-accuracy); ``macro_f1`` the sample-averaged
+    F1 — both names keep the leaderboard renderer shared.
+    """
+
+    samples: int = 0
+    sample_precision: float = 0.0
+    sample_recall: float = 0.0
 
 
 # ---- leaderboard rendering (v0.10) -------------------------------------------

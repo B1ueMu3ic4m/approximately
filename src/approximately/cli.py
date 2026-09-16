@@ -545,7 +545,8 @@ def _verify_all(store, key, as_json: bool = False,
 def cmd_convert_mast(args: argparse.Namespace) -> int:
     from .mastdata import convert_mast
 
-    stats = convert_mast(Path(args.source), Path(args.output))
+    stats = convert_mast(Path(args.source), Path(args.output),
+                         multi_label=getattr(args, "multi_label", False))
     print(stats.summary())
     for mode_id, count in sorted(stats.labels.items()):
         print(f"  {mode_id}: {count} traces")
@@ -714,6 +715,33 @@ def cmd_export_dataset(args: argparse.Namespace) -> int:
     return 0
 
 
+def _benchmark_multi(labeled, args: argparse.Namespace) -> int:
+    from .distill import evaluate_multi, render_leaderboard_html
+
+    pairs = []
+    for trace, record_label in labeled:
+        labels = record_label if isinstance(record_label, list) \
+            else [record_label]
+        pairs.append((trace, labels))
+    multi = evaluate_multi(pairs)
+    source = "rule detectors (set-based)"
+    n = len(pairs)
+    print(f"labeled {n} multi-label traces · predictor: {source}")
+    print(f"sample-averaged precision {multi.sample_precision:.2f}, "
+          f"recall {multi.sample_recall:.2f}, F1 {multi.macro_f1:.2f}")
+    for mode_id, m in sorted(multi.per_mode.items()):
+        print(f"  {mode_id:<7} P {m['precision']:.2f} "
+              f"R {m['recall']:.2f} F1 {m['f1']:.2f} "
+              f"(tp {m['tp']} fp {m['fp']} fn {m['fn']})")
+    if args.html:
+        out = Path(args.html)
+        out.write_text(
+            render_leaderboard_html(multi, source, args.dataset, n),
+            encoding="utf-8")
+        print(f"wrote leaderboard: {out}")
+    return 0
+
+
 def cmd_benchmark(args: argparse.Namespace) -> int:
     from .distill import evaluate, load_dataset, rules_labeler, teacher_labeler
 
@@ -721,6 +749,9 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
     if not labeled:
         print("no labeled records found")
         return 1
+    if args.multi_label:
+        return _benchmark_multi(labeled, args)
+
     if args.judge:
         labeler = teacher_labeler(args.judge_model or "gpt-4o-mini")
         source = f"judge {args.judge_model or 'gpt-4o-mini'}"
@@ -948,6 +979,9 @@ def build_parser() -> argparse.ArgumentParser:
                             "benchmark JSONL")
     p.add_argument("source", help="MAST-Data checkout directory")
     p.add_argument("output", help="output JSONL path")
+    p.add_argument("--multi-label", action="store_true",
+                   help="emit a labels SET per record (for set-based "
+                        "evaluation) instead of a single label")
     p.set_defaults(func=cmd_convert_mast)
 
     p = sub.add_parser("fleet", help="aggregate several stores into one "
@@ -1042,6 +1076,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--judge", action="store_true", help="evaluate the LLM judge "
                                                         "instead of rules")
     p.add_argument("--judge-model", help="model for --judge")
+    p.add_argument("--multi-label", action="store_true",
+                   help="records carry a labels SET (from convert-mast "
+                        "--multi-label); evaluate set-based P/R/F1")
     p.add_argument("--html", help="also write a self-contained HTML leaderboard "
                                   "to this path")
     p.set_defaults(func=cmd_benchmark)
