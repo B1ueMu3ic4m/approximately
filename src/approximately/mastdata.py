@@ -29,7 +29,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Iterator, List
+from typing import Dict, Iterator, List, Optional
 
 from .trace import Step, Trace
 
@@ -53,6 +53,19 @@ OPTION_TO_MODE: Dict[str, str] = {
 }
 
 
+MIN_AGENT_TURNS = 2  # below this, no prose detector may fire
+# (the minimum shape any prose detector needs: an
+# insufficiency turn plus the eventual answer — the
+# ProseAmbiguityDetector pattern)
+
+# AG2 math-proxy harness templates: interrogator boilerplate, not
+# agent behaviour. Filtered before prose analysis.
+HARNESS_PREFIXES = (
+    "let's use python to solve a math problem",
+    "continue. please keep solving the problem",
+)
+
+
 @dataclass
 class ConvertStats:
     converted: int = 0
@@ -60,6 +73,7 @@ class ConvertStats:
     excluded_no_covered_label: int = 0
     excluded_no_annotation: int = 0
     excluded_unreadable: int = 0
+    excluded_no_signal: int = 0
     labels: Dict[str, int] = field(default_factory=dict)
 
     def summary(self) -> str:
@@ -67,6 +81,7 @@ class ConvertStats:
                 f"excluded: {self.excluded_multi_label} multi-label, "
                 f"{self.excluded_no_covered_label} no covered mode, "
                 f"{self.excluded_no_annotation} unannotated, "
+                f"{self.excluded_no_signal} too few agent turns, "
                 f"{self.excluded_unreadable} unreadable")
 
 
@@ -85,6 +100,39 @@ def _gold_modes(record: dict) -> List[str]:
             if mode_id not in modes:
                 modes.append(mode_id)
     return modes
+
+
+_RESPONSE_MARKER = __import__("re").compile(
+    r"^([\w-]*)'s Response:\s?(.*)$")
+
+
+def _hyperagent_turns(trajectory: list) -> List[tuple]:
+    """Parse HyperAgent log-line trajectories into (role, text) turns.
+
+    HyperAgent dumps its run as log lines (``<logger> - INFO - msg``);
+    agent turns start at "…'s Response:" markers and accumulate lines
+    until the next marker. Everything else (init lines, raw code
+    echoes) belongs to the open turn or is dropped before it starts.
+    """
+    turns: List[tuple] = []
+    role: Optional[str] = None
+    buffer: List[str] = []
+    for line in trajectory:
+        if not isinstance(line, str) or not line.strip():
+            continue
+        parts = line.split(" - ", 2)
+        msg = parts[2] if len(parts) == 3 else parts[-1]
+        m = _RESPONSE_MARKER.match(msg)
+        if m:
+            if role and buffer:
+                turns.append((role, " ".join(buffer)))
+            role = m.group(1)
+            buffer = [m.group(2)] if m.group(2) else []
+        elif role is not None:
+            buffer.append(msg)
+    if role and buffer:
+        turns.append((role, " ".join(buffer)))
+    return turns
 
 
 def _flatten(content: object) -> str:
@@ -111,7 +159,15 @@ def _success_of(record: dict):
 
 def _to_trace(record: dict) -> Trace:
     trace = Trace(task=_task_of(record), success=_success_of(record))
-    for i, msg in enumerate(record.get("trajectory") or []):
+    trace.meta["prose"] = True  # activates the prose detector family
+    trajectory = record.get("trajectory") or []
+    if trajectory and isinstance(trajectory[0], str):
+        # HyperAgent log-line schema
+        for role, text in _hyperagent_turns(trajectory):
+            trace.add(Step(kind="tool_call", tool=role.lower(), args={},
+                           result=text[:2000]))
+        return trace
+    for i, msg in enumerate(trajectory):
         if not isinstance(msg, dict):
             continue
         text = _flatten(msg.get("content"))
@@ -121,6 +177,13 @@ def _to_trace(record: dict) -> Trace:
         name = str(msg.get("name") or msg.get("tool") or f"msg-{i}")
         trace.add(_step_for(role, name, text))
     return trace
+
+
+def _signal_turns(trace: Trace) -> int:
+    """Agent turns with content, minus harness boilerplate."""
+    return sum(1 for st in trace.steps
+               if st.kind == "tool_call" and st.result
+               and not st.result.lower().startswith(HARNESS_PREFIXES))
 
 
 def convert_mast(source: Path, out_path: Path) -> ConvertStats:
@@ -151,6 +214,16 @@ def convert_mast(source: Path, out_path: Path) -> ConvertStats:
                 continue
 
             trace = _to_trace(record)
+            if modes:
+                # a yes-annotated MAST behaviour asserts the run
+                # contained a failure; task-level correctness (was the
+                # issue eventually fixed?) is a different question and
+                # must not mask it from attribution
+                trace.success = False
+                trace.meta["task_correct"] = _success_of(record)
+            if _signal_turns(trace) < MIN_AGENT_TURNS:
+                stats.excluded_no_signal += 1
+                continue
             payload = trace.to_dict()
             payload["label"] = modes[0]
             fh.write(json.dumps(payload, default=str) + "\n")

@@ -671,8 +671,22 @@ ALL_DETECTORS: list = [
 
 
 def run_rules(trace: Trace) -> List[Detection]:
-    """Run every rule detector; returns detections sorted by confidence."""
-    found = [d for d in (det.detect(trace) for det in ALL_DETECTORS) if d]
+    """Run every rule detector; returns detections sorted by confidence.
+
+    Detector families are mutually exclusive: prose-shaped traces
+    (``meta["prose"]``, set by the MAST-Data converter) run the prose
+    family only — their (tool, args) fingerprints are meaningless
+    without real tool calls, and the tool family would fire on every
+    same-agent turn pair.
+    """
+    if trace.meta.get("prose"):
+        from .prose import PROSE_DETECTORS
+
+        found = [d for d in (det.detect(trace)
+                             for det in PROSE_DETECTORS) if d]
+    else:
+        found = [d for d in (det.detect(trace) for det in ALL_DETECTORS)
+                 if d]
     return sorted(found, key=lambda d: -d.confidence)
 
 

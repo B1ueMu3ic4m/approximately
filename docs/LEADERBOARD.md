@@ -1,57 +1,66 @@
-# Real-data benchmark: MAST annotated trajectories (v1)
+# Real-data benchmark: MAST annotated trajectories (v2)
 
 Source: [multi-agent-systems-failure-taxonomy/MAST](https://github.com/multi-agent-systems-failure-taxonomy/MAST)
-(the annotated-trajectory release of "Why Do Multi-Agent LLM Systems Fail?",
-arXiv:2503.13657) — 463 annotated trace files sampled across AG2,
-HyperAgent, MagenticOne-GAIA and programdev, converted with
-`approximately convert-mast` (commit the JSONL: [docs/mast-bench.jsonl](mast-bench.jsonl),
+(annotated trajectories of "Why Do Multi-Agent LLM Systems Fail?",
+arXiv:2503.13657). 1792 annotated files sampled across AG2, HyperAgent,
+MagenticOne-GAIA and programdev; converted with
+`approximately convert-mast` ([docs/mast-bench.jsonl](mast-bench.jsonl),
 rendered page: [docs/leaderboard.html](leaderboard.html)).
 
-## Conversion honesty rules
+## v2 pipeline (this release)
 
-1. Only annotation behaviours with a matching approximately detector are
-   converted (10 of the 14 modes; FM-1.1 / FM-1.4 / FM-3.3 have no
-   behaviour in this annotation vocabulary, invented content and
-   discontinued reasoning have no detector and were never forced onto
-   an adjacent id).
-2. Only traces with **exactly one** covered gold mode become benchmark
-   rows (single-label evaluation; multi-label golds would manufacture
-   precision numbers).
-3. Everything excluded is counted, never dropped silently:
+- **Prose detector family** (`approximately.prose`): five detectors
+  reading agent *turns* instead of tool calls — near-verbatim
+  repetition (FM-1.3), trajectory restart via opening-turn recurrence
+  or task re-statement (FM-2.1), task-keyword loss in the trailing
+  window (FM-2.3), absence of any verification language (FM-3.2),
+  insufficiency-named-then-proceeded-anyway (FM-2.2). Thresholds are
+  a priori (0.92/0.9 similarity, marker vocabularies from the failure
+  definitions) — never fitted on the benchmark.
+- **HyperAgent log-schema parser**: `trajectory` entries are raw
+  `logger - INFO - message` lines; turns accumulate between
+  "…'s Response:" markers.
+- **Hygiene**: harness boilerplate filtered (AG2 math-proxy
+  interrogator templates), records with fewer than 2 agent turns
+  excluded (annotation-only or template+answer files cannot exercise
+  any detector), and a yes-annotated behaviour now forces
+  `success=False` — task-level correctness (was the issue eventually
+  fixed?) must not mask annotated in-run failures.
+
+Conversion accounting (everything counted, nothing hidden):
 
 ```
-converted 13 | excluded: 14 multi-label, 346 no covered mode,
-              87 unannotated, 3 unreadable
+converted 13 | excluded: 15 multi-label, 1841 no covered mode,
+              87 unannotated, 4 too few agent turns, 3 unreadable
 gold distribution: FM-3.2 x6, FM-2.1 x2, FM-2.2 x2, FM-2.3 x2, FM-2.6 x1
 ```
 
 ## Result: accuracy 0.00, macro-F1 0.00 (rules-only)
 
-**Every detector missed every gold.** That is the honest number, and it
-comes with a structural explanation, not an excuse:
+Per-mode diagnosis — each miss is a measured, structural statement:
 
-- The annotated corpus is **chat-shaped**. The gold behaviours are
-  annotated over message trajectories (assistant/user turns); the rule
-  detectors fingerprint *tool calls* — mutating-call names, repeated
-  (tool, args) pairs, verification markers on tool steps. The
-  converter maps assistant turns to tool steps only to keep the trace
-  schema; no detector is designed to read prose turns as actions.
-- FM-3.2 (no attempt to verify) is structurally unreachable on this
-  corpus: the detector requires an unverified *mutating tool call*,
-  and converted chat traces contain none by construction.
-- With n=13 single-label traces the page has no statistical power
-  anyway. It is published as a v1 baseline of the *pipeline*, not as a
-  claim about detector quality.
+| gold | n | what the gold actually contains | why the detector stays silent |
+|---|---|---|---|
+| FM-2.1 | 2 | *semantic* restarts: the planner re-derives its plan in different words (max SequenceMatcher ratio 0.28 vs the 0.9 verbatim threshold) | the restart detector requires near-verbatim recurrence; a paraphrase detector is future work |
+| FM-3.2 | 6 | verification *is* discussed/planned ("We should verify…"), the annotation judges the outcome unverified | absence-of-verification-language is the wrong signal when agents talk about verifying; needs outcome-level analysis |
+| FM-2.2 | 2 | ambiguity flagged, agent proceeds after a nudge — but asks a clarifying question first, which correctly suppresses our detector | our suppress-rule (did it ask?) is right for most cases and wrong for these |
+| FM-2.3 | 2 | keyword drift in long SWE trajectories | detector did not fire; trailing-window shape mismatch |
+| FM-2.6 | 1 | thought/message misalignment across planner/executor roles | needs role-attributed turns, not yet modeled |
 
-## What this means
+The two false predictions are FM-1.3 (echoed planner/executor pairs at
+the 0.92 similarity floor) — and they expose a real property of the
+fusion layer: with FM-1.3's MAST base rate (~17%) an order of magnitude
+above FM-2.1's, a 0.75-confidence restart detection *correctly* loses
+to a 0.7 repetition one. The fix is better evidence, not lower priors.
 
-approx's rule detectors target the domain they ship for: tool-using
-agents (LangGraph, AutoGen, OpenAI Agents SDK traces with real tool
-calls). The reproducible quality-floor suite (tests/test_detectors.py,
-tests/test_full_mast_coverage.py) pins per-mode precision/recall on
-tool-shaped failure traces. Reading annotated *chat* trajectories
-would need a prose-level detector family — that is future work, and
-this benchmark exists precisely to measure it when it exists.
+## What v2 establishes
+
+v1 scored 0.00 on traces that were unconvertible artifacts (empty
+turns). v2 scores 0.00 on a *real, properly converted, single-label*
+subset — with the failure modes named precisely enough to build
+against: paraphrase-level restart detection, outcome-level
+verification analysis, role-attributed turn modeling. The benchmark
+pipeline exists precisely to measure that work when it happens.
 
 ## Reproduce
 
