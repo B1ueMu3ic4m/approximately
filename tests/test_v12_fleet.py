@@ -85,13 +85,26 @@ class TestFleetHtml:
         assert "50.0%" in html  # fleet failure rate KPI
         assert "2</div>" in html or ">2<" in html  # traces KPI
 
-    def test_store_names_and_paths_escaped(self, tmp_path):
-        nasty = tmp_path / '"><script>alert(1)'
-        nasty.mkdir()
-        TraceStore(nasty)
-        html = render_fleet_html(survey([nasty]))
+    def test_store_names_and_paths_escaped(self):
+        # hand-built summary: hostile names are illegal on Windows
+        # filesystems, so exercise the renderer directly
+        from approximately.fleet import StoreSummary
+
+        nasty = StoreSummary(name='"><script>alert(1)',
+                             path="C:/nowhere", traces=1)
+        html = render_fleet_html([nasty])
         assert "<script>" not in html
         assert "&gt;" in html or "&quot;" in html
+
+    def test_survey_name_from_real_path(self, tmp_path):
+        import html as _html
+
+        real = tmp_path / "team&store"
+        real.mkdir()
+        TraceStore(real)
+        s = survey([real])[0]
+        html = render_fleet_html([s])
+        assert _html.escape("team&store") in html
 
     def test_empty_fleet(self):
         html = render_fleet_html([])
