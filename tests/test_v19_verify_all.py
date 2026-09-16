@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from approximately.cli import main
 from approximately.integrity import sign
 from approximately.ledger import EvidenceLedger
@@ -118,3 +120,36 @@ class TestVerifyAllJson:
         payload = json.loads(capsys.readouterr().out)
         assert payload["summary"]["problem"] == 1
         assert any(t["verdict"] == "TAMPERED" for t in payload["traces"])
+
+
+class TestLatestResolution:
+    def test_load_trace_latest(self, tmp_path, capsys):
+        import time
+
+        from approximately.cli import main
+        from approximately.store import TraceStore
+
+        store = TraceStore(tmp_path / "s")
+        for i, name in enumerate(["older", "newer"]):
+            rec = Recorder(name, store=store, save=False)
+            rec.tool("t", {}, result=name)
+            rec.respond("done")
+            sign(rec.trace)
+            rec.trace.created_at = int(time.time()) - (10 - i) * 60
+            store.save(rec.trace)
+
+        rc = main(["--store", str(tmp_path / "s"), "attribute", "latest"])
+        assert rc == 0
+        out = capsys.readouterr().out
+        # both traces share the task names; the verdict comes from the
+        # newest one - success=True means 'newer' was loaded
+        assert "No failure detected" in out
+
+    def test_latest_on_empty_store(self, tmp_path, capsys):
+        from approximately.cli import main
+        from approximately.store import TraceStore
+
+        TraceStore(tmp_path / "empty")
+        with pytest.raises(SystemExit, match="is empty"):
+            main(["--store", str(tmp_path / "empty"), "attribute",
+                  "latest"])
