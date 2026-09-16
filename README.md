@@ -195,7 +195,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.10** — LlamaIndex Dispatcher seam (structured spans) · `benchmark --html` attribution leaderboard · per-serving-stack distillation recipes
 - ✅ **v0.11** — evidence ledger (rollback detection: an older *validly-signed* snapshot no longer passes) · cross-store fleet merge with evidence refusal
 - ✅ **v0.12** — fleet dashboard (multi-store aggregation) · MAD latency anomalies in reports and CI · fixed before-position `--store`
-- 🔜 **next** — MAST-Data real benchmark run published · HMAC signature counter · fleet trend alerts
+- ✅ **v0.13** — fleet trend alerts (`--fail-on-worsening` CI gate) · MAST-Data annotation pipeline + first real-data benchmark published ([docs/LEADERBOARD.md](docs/LEADERBOARD.md))
+- 🔜 **next** — prose-level detector family for chat-shaped corpora · HMAC signature counter · fleet trend webhooks
 
 Full design document: [docs/PLAN.md](docs/PLAN.md).
 
