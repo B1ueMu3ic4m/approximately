@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.10.0 — 2026-09-16
+
+- **LlamaIndex Dispatcher seam** (`contrib/llamaindex.py`): a
+  duck-typed `BaseSpanHandler` for `llama_index.core.instrumentation` —
+  structured spans (LLM prompt/completion, retrievals, tool calls,
+  agent runs) with dropped spans becoming error steps carrying the
+  exception; a finer layer alongside the callback seam
+- **`benchmark --html` leaderboard**: renders a BenchmarkResult as a
+  self-contained HTML page (KPI cards, per-mode F1-sorted table with
+  clamped bars); dataset-supplied strings HTML-escaped, non-finite
+  metrics clamp instead of leaking `nan`; unknown mode ids fall back
+  to the OTHER label
+- **Distillation recipes** (`docs/DISTILLATION.md`): per-serving-stack
+  paths (Ollama, llama.cpp, vLLM LoRA, TGI, OpenAI fine-tunes) with the
+  export -> train -> serve -> benchmark loop and honest per-mode
+  expectations for small judges
+
 ## 0.9.0 — 2026-09-15
 
 - **LlamaIndex adapter** (`contrib/llamaindex.py`): a duck-typed
