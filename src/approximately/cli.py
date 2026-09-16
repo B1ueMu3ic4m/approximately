@@ -409,6 +409,21 @@ def cmd_merge(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_fleet(args: argparse.Namespace) -> int:
+    from .fleet import render_fleet_html, survey
+
+    summaries = survey([Path(d) for d in args.stores])
+    for s in summaries:
+        flag = "" if s.ledger_intact is not False else "  [LEDGER BROKEN]"
+        print(f"{s.name}: {s.traces} traces, "
+              f"failure rate {s.failure_rate:.0%}{flag}")
+    if args.fleet_html:
+        out = Path(args.fleet_html)
+        out.write_text(render_fleet_html(summaries), encoding="utf-8")
+        print(f"wrote fleet dashboard: {out}")
+    return 0
+
+
 def cmd_clean(args: argparse.Namespace) -> int:
     store = TraceStore(args.store)
     removed = store.clean(keep_days=args.keep_days)
@@ -771,6 +786,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--key-file",
                    help="signing key file for HMAC-keyed traces")
     p.set_defaults(func=cmd_verify)
+
+    p = sub.add_parser("fleet", help="aggregate several stores into one "
+                                     "dashboard page")
+    p.add_argument("stores", nargs="+", help="store directories to survey")
+    p.add_argument("--fleet-html", help="also write a self-contained HTML "
+                                        "dashboard to this path")
+    p.set_defaults(func=cmd_fleet)
 
     p = sub.add_parser("merge", parents=[common],
                        help="import another store's traces into this one")
