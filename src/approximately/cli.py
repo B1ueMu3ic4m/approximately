@@ -387,8 +387,9 @@ def cmd_verify(args: argparse.Namespace) -> int:
 
     rollback = audit_rollback(trace, store.directory)
     if rollback:
+        root = result.actual_final or "?"
         print(f"ROLLED-BACK: an older signed state of this trace is in "
-              f"the evidence ledger ({result.actual_final[:12]}…); newer "
+              f"the evidence ledger ({root[:12]}…); newer "
               f"saves were recorded afterwards — the file was rolled "
               f"back, the hashes are valid but the state is stale")
         return 4
