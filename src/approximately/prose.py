@@ -60,13 +60,25 @@ def _first_turns(trace: Trace) -> List[str]:
             for s in trace.steps if s.thought]
 
 
+_PLACEHOLDER = re.compile(
+    r"^(observation|update|status)\b[^\n]*->\s*\S+"
+    r"[:.]?\s*(observation|update|status)?[.!:\s]*$", re.IGNORECASE)
+
+
+def _is_placeholder(turn: str) -> bool:
+    """Routing placeholder (e.g. 'Observation Editor->Planner:
+    Observation') — harness transport, not task work. FM-1.3 means
+    repeated *work*; repeating a routing line is not a failure."""
+    return bool(_PLACEHOLDER.fullmatch(turn.strip()))
+
+
 class ProseRepeatDetector:
     """FM-1.3 in prose: near-verbatim assistant turns repeated."""
 
     min_turns = 4
 
     def detect(self, trace: Trace) -> Optional["object"]:
-        turns = _turns(trace)
+        turns = [t for t in _turns(trace) if not _is_placeholder(t)]
         if len(turns) < self.min_turns:
             return None
         for i in range(len(turns)):

@@ -168,6 +168,26 @@ class TestGating:
         assert report.primary_mode.id != "OTHER"
 
 
+class TestPlaceholderFilter:
+    def test_routing_placeholders_not_repetition(self):
+        turns = ["Observation Editor->Planner: Observation",
+                 "Real analysis of the redirect chain behaviour here.",
+                 "Observation Editor->Planner: Observation",
+                 "More genuine work on the redirect handling follows.",
+                 "Observation Editor->Planner: Observation",
+                 "Final pass over the redirect chain logic."]
+        det = ProseRepeatDetector().detect(_prose_trace(TASK, turns))
+        assert det is None  # repeated routing lines are not step repetition
+
+    def test_real_work_repetition_still_fires(self):
+        turn = ("The problem cannot be solved: the ribbon length per bow "
+                "is not specified anywhere in the statement.")
+        trace = _prose_trace(TASK, ["first turn text about the ribbon",
+                                    turn, "another turn about gifts",
+                                    turn])
+        assert ProseRepeatDetector().detect(trace) is not None
+
+
 class TestShingleRestart:
     def test_paraphrase_restart_flagged(self):
         opening = ("Thought: To address this GitHub issue, we need to "
