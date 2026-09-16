@@ -87,18 +87,33 @@ class TraceStore:
             return None
         return Trace.from_json(path.read_text(encoding="utf-8"))
 
-    def list_traces(self) -> List[Trace]:
+    def list_traces(self, since_days: Optional[int] = None) -> List[Trace]:
+        """List traces oldest-first, optionally limited to a time window.
+
+        ``since_days`` filters on the trace's own ``created_at`` (falling
+        back to the file's mtime when created_at is unset) — triage
+        almost always means "the last N days", not "everything ever".
+        """
         import sys
 
+        cutoff = (time.time() - since_days * 86400) if since_days else None
         out = []
         for path in sorted(self.directory.glob("*.json"),
                            key=lambda p: p.stat().st_mtime):
             try:
-                out.append(Trace.from_json(path.read_text(encoding="utf-8")))
+                trace = Trace.from_json(path.read_text(encoding="utf-8"))
             except Exception as exc:
                 print(f"approximately: skipping unreadable trace {path.name}: "
                       f"{exc}", file=sys.stderr)
+                continue
+            if cutoff is None or self._created(trace, path) >= cutoff:
+                out.append(trace)
         return out
+
+    @staticmethod
+    def _created(trace: Trace, path) -> float:
+        """Trace's own creation time, falling back to file mtime."""
+        return trace.created_at or path.stat().st_mtime
 
     def clean(self, keep_days: int) -> int:
         """Delete traces older than *keep_days*; returns the count removed."""
