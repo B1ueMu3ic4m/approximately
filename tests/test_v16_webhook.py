@@ -112,6 +112,12 @@ class TestDelivery:
             notify_webhook(populated, "http://10.255.255.1/nope",
                            timeout=1.0)
 
+    def test_non_http_scheme_refused(self, populated, tmp_path):
+        secret = tmp_path / "secrets.txt"
+        secret.write_text("should never be sent anywhere")
+        with pytest.raises(RuntimeError, match="must be http"):
+            notify_webhook(populated, f"file://{secret}")
+
     def test_http_error_reported(self, populated, server):
         class Rejecting(BaseHTTPRequestHandler):
             def do_POST(self):

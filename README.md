@@ -130,6 +130,7 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 🛡️ Tamper-evident evidence | Per-step hash chain + optional HMAC; `verify` detects edits, and the opt-in evidence ledger catches **rolled-back** traces that still verify | `approximately verify` |
 | 🧩 Fleet merge | Union another team's store, refusing broken evidence; id conflicts via skip/replace/rename | `approximately merge <source>` |
 | 🗺️ Fleet dashboard | All your stores on one page: failure rates, trend sparklines, top modes, broken ledgers | `approximately fleet <dir>... --fleet-html` |
+| 🔔 Fleet alerts | HMAC-signed JSON webhooks when a store's trend turns worse — receivers authenticate alerts like evidence | `approximately fleet --webhook URL` |
 | ⏱️ Latency anomalies | Median/MAD modified z-score — flags slow *and* fast outlier steps without being fooled by tails | `approximately anomalies <trace>` |
 | 🔁 Step-level replay | Verify fixes without re-running the task; A/B compare original vs patched executors | `approximately replay --patched` |
 | 🧪 Regression guards | Failed runs become pytest tests that live in CI | `approximately test` |

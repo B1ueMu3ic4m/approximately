@@ -410,27 +410,35 @@ def cmd_merge(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_fleet(args: argparse.Namespace) -> int:
-    from .fleet import notify_webhook, render_fleet_html, survey
-
-    summaries = survey([Path(d) for d in args.stores])
+def _print_fleet(summaries) -> None:
     for s in summaries:
         flag = "" if s.ledger_intact is not False else "  [LEDGER BROKEN]"
         print(f"{s.name}: {s.traces} traces, "
               f"failure rate {s.failure_rate:.0%}{flag}")
+
+
+def _fleet_notify(summaries, url: str) -> None:
+    from .fleet import notify_webhook
+    from .integrity import load_key
+
+    try:
+        status = notify_webhook(summaries, url, signing_key=load_key())
+        print(f"webhook notified: HTTP {status}")
+    except RuntimeError as exc:
+        print(f"webhook failed: {exc}", file=sys.stderr)
+
+
+def cmd_fleet(args: argparse.Namespace) -> int:
+    from .fleet import render_fleet_html, survey
+
+    summaries = survey([Path(d) for d in args.stores])
+    _print_fleet(summaries)
     if args.fleet_html:
         out = Path(args.fleet_html)
         out.write_text(render_fleet_html(summaries), encoding="utf-8")
         print(f"wrote fleet dashboard: {out}")
     if getattr(args, "webhook", None):
-        from .integrity import load_key
-
-        try:
-            status = notify_webhook(summaries, args.webhook,
-                                    signing_key=load_key())
-            print(f"webhook notified: HTTP {status}")
-        except RuntimeError as exc:
-            print(f"webhook failed: {exc}", file=sys.stderr)
+        _fleet_notify(summaries, args.webhook)
     if args.fail_on_worsening:
         worsening = [s.name for s in summaries if s.worsening]
         if worsening:

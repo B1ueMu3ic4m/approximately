@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.0 — 2026-09-17
+
+- **Fleet webhooks** (`fleet.py` + `approximately fleet --webhook`):
+  signed JSON fleet summaries to any notification endpoint — per-store
+  trend verdicts, failure rates, ledger state, top modes; HMAC-SHA256
+  body signature in `X-Approximately-Signature` when
+  APPROXIMATELY_SIGNING_KEY is set. Composable with
+  `--fail-on-worsening`; FM-3.2 outcome-level analysis deliberately
+  deferred (documented in docs/LEADERBOARD.md)
+
 ## 0.15.0 — 2026-09-17
 
 - **Shingle-overlap restart** (FM-2.1): character-trigram Jaccard

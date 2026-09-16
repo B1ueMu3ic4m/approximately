@@ -139,7 +139,14 @@ def notify_webhook(summaries: List[StoreSummary], url: str,
     import hmac as _hmac
     import json as _json
     import urllib.error
+    import urllib.parse
     import urllib.request
+
+    scheme = urllib.parse.urlparse(url).scheme.lower()
+    if scheme not in ("http", "https"):
+        # also blocks file:// and custom schemes from sneaking in
+        # through configuration
+        raise RuntimeError(f"webhook URL must be http(s), got {scheme!r}")
 
     body = _json.dumps(webhook_payload(summaries),
                        sort_keys=True).encode("utf-8")
@@ -150,6 +157,7 @@ def notify_webhook(summaries: List[StoreSummary], url: str,
     request = urllib.request.Request(url, data=body, headers=headers,
                                      method="POST")
     try:
+        # nosec B310: scheme validated to http/https above
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return f"{response.status}"
     except urllib.error.HTTPError as exc:
