@@ -440,6 +440,17 @@ def cmd_anomalies(args: argparse.Namespace) -> int:
     return 0 if not anomalies else 1
 
 
+def cmd_convert_mast(args: argparse.Namespace) -> int:
+    from .mastdata import convert_mast
+
+    stats = convert_mast(Path(args.source), Path(args.output))
+    print(stats.summary())
+    for mode_id, count in sorted(stats.labels.items()):
+        print(f"  {mode_id}: {count} traces")
+    print(f"wrote {args.output}")
+    return 0 if stats.converted else 1
+
+
 def cmd_clean(args: argparse.Namespace) -> int:
     store = TraceStore(args.store)
     removed = store.clean(keep_days=args.keep_days)
@@ -805,6 +816,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--key-file",
                    help="signing key file for HMAC-keyed traces")
     p.set_defaults(func=cmd_verify)
+
+    p = sub.add_parser("convert-mast",
+                       help="convert MAST-Data annotations to labeled "
+                            "benchmark JSONL")
+    p.add_argument("source", help="MAST-Data checkout directory")
+    p.add_argument("output", help="output JSONL path")
+    p.set_defaults(func=cmd_convert_mast)
 
     p = sub.add_parser("fleet", help="aggregate several stores into one "
                                      "dashboard page")
