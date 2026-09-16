@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.23.0 — 2026-09-17
+
+- **`--since DAYS` time-window queries**: `TraceStore.list_traces`
+  filters on the trace's own `created_at` (mtime fallback); `--since`
+  reaches `stats`, `cluster` (composes with `--last`), `attribute
+  --all` and `verify --all` — triage means "the last N days", and now
+  every store command agrees
+- Scheduled fleet digest pattern documented (docs/FLEET-DIGEST.md):
+  GitHub Actions cron + signed webhook + receiver verification
+
 ## 0.21.0 — 2026-09-17
 
 - **Restart-owns-opening-cycle precedence** (FM-1.3 precision): a
