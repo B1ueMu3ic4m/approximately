@@ -424,6 +424,16 @@ def cmd_fleet(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_anomalies(args: argparse.Namespace) -> int:
+    from .anomaly import detect_latency_anomalies, summarize_anomalies
+
+    store = TraceStore(args.store)
+    trace = _load_trace(args.trace, store)
+    anomalies = detect_latency_anomalies(trace, threshold=args.threshold)
+    print(summarize_anomalies(anomalies))
+    return 0 if not anomalies else 1
+
+
 def cmd_clean(args: argparse.Namespace) -> int:
     store = TraceStore(args.store)
     removed = store.clean(keep_days=args.keep_days)
@@ -631,9 +641,12 @@ def build_parser() -> argparse.ArgumentParser:
                                         "(default ~/.approximately/traces)")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    # --store is accepted both before and after the subcommand
+    # --store is accepted both before and after the subcommand.
+    # SUPPRESS default: without it the subparser's None default clobbers
+    # the top-level value when --store precedes the subcommand.
     common = argparse.ArgumentParser(add_help=False)
-    common.add_argument("--store", help=argparse.SUPPRESS)
+    common.add_argument("--store", default=argparse.SUPPRESS,
+                        help=argparse.SUPPRESS)
 
     p = sub.add_parser("demo", parents=[common],
                        help="run the built-in failing agent (30s tour)")
@@ -793,6 +806,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--fleet-html", help="also write a self-contained HTML "
                                         "dashboard to this path")
     p.set_defaults(func=cmd_fleet)
+
+    p = sub.add_parser("anomalies", parents=[common],
+                       help="robust latency anomalies (median/MAD z-score)")
+    p.add_argument("trace", help="trace id (or 'latest')")
+    p.add_argument("--threshold", type=float, default=3.5,
+                   help="modified z-score threshold (default 3.5, "
+                        "Iglewicz & Hoaglin)")
+    p.set_defaults(func=cmd_anomalies)
 
     p = sub.add_parser("merge", parents=[common],
                        help="import another store's traces into this one")
