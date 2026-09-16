@@ -16,6 +16,12 @@ def _record(options, trajectory=None, correct=False, instance="x-1"):
             {"role": "user", "name": "planner", "content": ["go"]},
             {"role": "assistant", "name": "worker",
              "content": ["step one", "step one"]},
+            {"role": "assistant", "name": "worker",
+             "content": ["step two proceeds"]},
+            {"role": "assistant", "name": "worker",
+             "content": ["step three proceeds further"]},
+            {"role": "assistant", "name": "worker",
+             "content": ["step four concludes the work"]},
         ],
         "note": {"text": ["..."], "options": options},
     }
@@ -41,7 +47,9 @@ class TestConversion:
             {"Derailing from task objectives": "yes"})))
         convert_mast(src, tmp_path / "out.jsonl")
         row = json.loads((tmp_path / "out.jsonl").read_text())
-        assert "step one step one" in row["steps"][-1]["result"]
+        results = [st["result"] for st in row["steps"]
+                   if st["kind"] == "tool_call"]
+        assert "step one step one" in results[0]
 
     def test_multi_label_excluded(self, tmp_path):
         src = tmp_path / "src"
@@ -67,6 +75,17 @@ class TestConversion:
             {"problem_statement": ["t"], "trajectory": []}))
         stats = convert_mast(src, tmp_path / "out.jsonl")
         assert stats.excluded_no_annotation == 1
+
+    def test_no_signal_excluded(self, tmp_path):
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "a.json").write_text(json.dumps(_record(
+            {"Step repetition": "yes"}, trajectory=[
+                {"role": "user", "content": ["go"]},
+                {"role": "assistant", "content": ["one"]},
+            ])))
+        stats = convert_mast(src, tmp_path / "out.jsonl")
+        assert stats.excluded_no_signal == 1 and stats.converted == 0
 
     def test_unreadable_counted_not_fatal(self, tmp_path):
         src = tmp_path / "src"
