@@ -366,7 +366,8 @@ def cmd_verify(args: argparse.Namespace) -> int:
     store = TraceStore(args.store)
     if getattr(args, "all", None):
         return _verify_all(store, key=load_key(args.key_file),
-                           as_json=getattr(args, "json", False))
+                           as_json=getattr(args, "json", False),
+                           since_days=getattr(args, "since", None))
     if not args.trace:
         print("provide a trace id, or use --all")
         return 2
@@ -474,23 +475,30 @@ def cmd_anomalies(args: argparse.Namespace) -> int:
     return 0 if not anomalies else 1
 
 
-def _verify_all(store, key, as_json: bool = False) -> int:
+def _audit_row(store, trace, key, counts: dict) -> dict:
+    """Verify one trace and tally its verdict into counts."""
+    from .integrity import verify
+    from .ledger import audit_rollback
+
+    result = verify(trace, key=key)
+    verdict = result.verdict
+    if verdict == "intact" and audit_rollback(trace, store.directory):
+        verdict = "rolled-back"
+    counts[verdict if verdict in counts else "problem"] += 1
+    return {"trace_id": trace.id, "verdict": verdict,
+            "detail": result.detail}
+
+
+def _verify_all(store, key, as_json: bool = False,
+                since_days: Optional[int] = None) -> int:
     """Batch integrity audit; exit 1 when any trace fails."""
     import json as _json
 
-    from .integrity import verify
-    from .ledger import audit_rollback, verify_ledger
+    from .ledger import verify_ledger
 
     counts = {"intact": 0, "unsigned": 0, "keyed": 0, "problem": 0}
-    rows = []
-    for trace in store.list_traces():
-        result = verify(trace, key=key)
-        verdict = result.verdict
-        if verdict == "intact" and audit_rollback(trace, store.directory):
-            verdict = "rolled-back"
-        counts[verdict if verdict in counts else "problem"] += 1
-        rows.append({"trace_id": trace.id, "verdict": verdict,
-                     "detail": result.detail})
+    rows = [_audit_row(store, trace, key, counts)
+            for trace in store.list_traces(since_days=since_days)]
     ledger_check = verify_ledger(store.directory)
     ledger_broken = bool(ledger_check.entries) and not ledger_check.intact
     if ledger_broken:
@@ -536,13 +544,12 @@ def cmd_stats(args: argparse.Namespace) -> int:
     from .cluster import store_stats
 
     store = TraceStore(args.store)
-    traces = store.list_traces()
+    traces = store.list_traces(since_days=getattr(args, "since", None))
     stats = store_stats(traces)
     if args.trend:
         from .cluster import trend
 
-        buckets = trend(store.list_traces(),
-                        bucket_days=args.trend_bucket_days)
+        buckets = trend(traces, bucket_days=args.trend_bucket_days)
         if args.json:
             print(json.dumps(buckets, indent=2))
             return 0
@@ -577,7 +584,7 @@ def cmd_attribute(args: argparse.Namespace) -> int:
         return 0
     if args.all:
         results = []
-        for trace in store.list_traces():
+        for trace in store.list_traces(since_days=args.since):
             report = attribute(trace, use_judge=args.judge)
             entry = report.to_dict()
             entry["trace"] = {"id": trace.id, "task": trace.task,
@@ -605,7 +612,7 @@ def cmd_cluster(args: argparse.Namespace) -> int:
     from .cluster import cluster
 
     store = TraceStore(args.store)
-    traces = store.list_traces()
+    traces = store.list_traces(since_days=getattr(args, "since", None))
     if args.last:
         traces = traces[-args.last:]
     if args.json:
@@ -764,6 +771,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="attribute every trace in the store (JSON output)")
     p.add_argument("--sarif", help="write attribution as SARIF 2.1.0 "
                                    "(GitHub code scanning)")
+    p.add_argument("--since", type=int, metavar="DAYS",
+                   help="with --all: only traces created in the last "
+                        "DAYS days")
     p.add_argument("--explain", action="store_true",
                    help="print the fusion arithmetic: prior log-odds and "
                         "LLR per detection")
@@ -902,6 +912,9 @@ def build_parser() -> argparse.ArgumentParser:
                         "omitted)")
     p.add_argument("--json", action="store_true",
                    help="emit machine-readable audit JSON (with --all)")
+    p.add_argument("--since", type=int, metavar="DAYS",
+                   help="with --all: only traces created in the last "
+                        "DAYS days")
     p.set_defaults(func=cmd_verify)
 
     p = sub.add_parser("convert-mast",
@@ -954,6 +967,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="failure-rate history over time instead of totals")
     p.add_argument("--trend-bucket-days", type=int, default=7,
                    help="trend bucket size in days (default 7)")
+    p.add_argument("--since", type=int, metavar="DAYS",
+                   help="only traces created in the last DAYS days")
     p.add_argument("--json", action="store_true", help="emit JSON")
     p.set_defaults(func=cmd_stats)
 
@@ -963,6 +978,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="cluster size threshold for recidivists (default 2)")
     p.add_argument("--last", type=int,
                    help="only consider the N most recent traces")
+    p.add_argument("--since", type=int, metavar="DAYS",
+                   help="only traces created in the last DAYS days")
     p.add_argument("--json", action="store_true", help="emit JSON")
     p.set_defaults(func=cmd_cluster)
 
