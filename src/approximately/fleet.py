@@ -13,6 +13,7 @@ everything user-controlled is escaped before it touches markup.
 
 from __future__ import annotations
 
+import datetime
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional
@@ -94,6 +95,67 @@ def _ledger_state(directory: Path) -> Optional[bool]:
     if not (directory / "ledger.jsonl").is_file():
         return None
     return verify_ledger(directory).intact
+
+
+def webhook_payload(summaries: List[StoreSummary]) -> dict:
+    """JSON-serializable fleet summary for a notification endpoint."""
+    return {
+        "generated_at": datetime.datetime.now(
+            datetime.timezone.utc).isoformat(timespec="seconds"),
+        "stores": [
+            {
+                "name": s.name,
+                "path": s.path,
+                "traces": s.traces,
+                "failure_rate": round(s.failure_rate, 4),
+                "trend_verdict": s.trend_verdict,
+                "trend_slope": round(s.trend_slope, 4),
+                "worsening": s.worsening,
+                "ledger_intact": s.ledger_intact,
+                "top_modes": [
+                    {"mode": mode, "count": count}
+                    for mode, count in s.top_modes
+                ],
+            }
+            for s in summaries
+        ],
+        "worsening_stores": [s.name for s in summaries if s.worsening],
+    }
+
+
+def notify_webhook(summaries: List[StoreSummary], url: str,
+                   signing_key: Optional[bytes] = None,
+                   timeout: float = 10.0) -> str:
+    """POST the fleet summary as JSON; returns the response status.
+
+    When a signing key is configured (APPROXIMATELY_SIGNING_KEY), the
+    body is HMAC-signed and the hex digest travels in the
+    ``X-Approximately-Signature`` header, so a receiver can authenticate
+    the alert the same way the evidence chain authenticates traces.
+    Transport errors raise - the caller decides whether notification
+    failure is fatal for their pipeline.
+    """
+    import hashlib
+    import hmac as _hmac
+    import json as _json
+    import urllib.error
+    import urllib.request
+
+    body = _json.dumps(webhook_payload(summaries),
+                       sort_keys=True).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+    if signing_key:
+        digest = _hmac.new(signing_key, body, hashlib.sha256).hexdigest()
+        headers["X-Approximately-Signature"] = f"sha256={digest}"
+    request = urllib.request.Request(url, data=body, headers=headers,
+                                     method="POST")
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return f"{response.status}"
+    except urllib.error.HTTPError as exc:
+        return f"HTTP {exc.code}"
+    except (urllib.error.URLError, OSError) as exc:
+        raise RuntimeError(f"webhook delivery failed: {exc}") from exc
 
 
 def survey(stores: List[Path]) -> List[StoreSummary]:
