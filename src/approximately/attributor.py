@@ -198,6 +198,41 @@ def score_modes(trace: Trace) -> Dict[str, float]:
     return scores
 
 
+def explain_fusion(detections: List[Detection]) -> str:
+    """Human-readable account of the Bayesian fusion ranking.
+
+    For each detection: the MAST base-rate prior (as log-odds), the
+    log-likelihood-ratio its confidence contributes, and the fused
+    score that determines the order — so a verdict can be audited as
+    arithmetic, not vibes. Detections below the confidence floor are
+    shown as excluded, with the reason.
+    """
+    import math
+
+    if not detections:
+        return "no detections to explain"
+    priors = mast_priors()
+    lines = ["fusion ranking (score = prior log-odds + sum of LLR):"]
+    scores: Dict[str, float] = {}
+    prior_odds: Dict[str, float] = {}
+    for det in detections:
+        if det.mode_id not in scores:
+            prior = priors.get(det.mode_id, 1.0 / UNIFORM_PRIOR)
+            prior_odds[det.mode_id] = math.log(prior * UNIFORM_PRIOR)
+            scores[det.mode_id] = prior_odds[det.mode_id]
+        scores[det.mode_id] += _llr(det.confidence)
+        lines.append(
+            f"  {det.mode_id} [{det.source}] conf {det.confidence:.2f}: "
+            f"prior(p={priors.get(det.mode_id, 1.0 / UNIFORM_PRIOR):.3f}, "
+            f"log-odds {prior_odds[det.mode_id]:+.2f})"
+            f" + LLR {_llr(det.confidence):+.2f}"
+            f" = {scores[det.mode_id]:+.2f}  (step #{det.step_index})"
+        )
+    ranked = sorted(scores.items(), key=lambda kv: -kv[1])
+    lines.append("  => verdict: " + " > ".join(m for m, _ in ranked))
+    return "\n".join(lines)
+
+
 def fuse_evidence(detections: List[Detection]) -> List[Detection]:
     """Re-rank detections by Bayesian score: MAST prior odds + summed LLR.
 

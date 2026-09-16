@@ -538,6 +538,10 @@ def cmd_attribute(args: argparse.Namespace) -> int:
         note = "" if report.judge_used or not args.judge else \
             "(judge requested but unavailable — rules only)"
         _print_report(report, note)
+    if getattr(args, "explain", None):
+        from .attributor import explain_fusion
+
+        print(explain_fusion(report.detections))
     return 0
 
 
@@ -704,6 +708,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="attribute every trace in the store (JSON output)")
     p.add_argument("--sarif", help="write attribution as SARIF 2.1.0 "
                                    "(GitHub code scanning)")
+    p.add_argument("--explain", action="store_true",
+                   help="print the fusion arithmetic: prior log-odds and "
+                        "LLR per detection")
     p.set_defaults(func=cmd_attribute)
 
     p = sub.add_parser("replay", parents=[common],
