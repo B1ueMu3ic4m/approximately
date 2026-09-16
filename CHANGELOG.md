@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.25.0 — 2026-09-17
+
+- **Webhook bounded retry**: transport failures retry once with brief
+  backoff; endpoint error codes (4xx/5xx) are definite answers and are
+  not retried. urllib imports hoisted to module level for testability
+- FM-2.3 prose derailment diagnosed structurally: keyword persistence
+  on goal-drift golds means progress-level features are required;
+  documented as deferred in docs/LEADERBOARD.md instead of fitted
+
 ## 0.23.0 — 2026-09-17
 
 - **`--since DAYS` time-window queries**: `TraceStore.list_traces`

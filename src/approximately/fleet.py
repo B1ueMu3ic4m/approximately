@@ -14,6 +14,10 @@ everything user-controlled is escaped before it touches markup.
 from __future__ import annotations
 
 import datetime
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional
@@ -136,11 +140,8 @@ def notify_webhook(summaries: List[StoreSummary], url: str,
     failure is fatal for their pipeline.
     """
     import hashlib
-    import hmac as _hmac
+    import hmac
     import json as _json
-    import urllib.error
-    import urllib.parse
-    import urllib.request
 
     scheme = urllib.parse.urlparse(url).scheme.lower()
     if scheme not in ("http", "https"):
@@ -152,18 +153,28 @@ def notify_webhook(summaries: List[StoreSummary], url: str,
                        sort_keys=True).encode("utf-8")
     headers = {"Content-Type": "application/json"}
     if signing_key:
-        digest = _hmac.new(signing_key, body, hashlib.sha256).hexdigest()
+        digest = hmac.new(signing_key, body, hashlib.sha256).hexdigest()
         headers["X-Approximately-Signature"] = f"sha256={digest}"
     request = urllib.request.Request(url, data=body, headers=headers,
                                      method="POST")
-    try:
-        with urllib.request.urlopen(  # nosec B310: scheme checked above
-                request, timeout=timeout) as response:
-            return f"{response.status}"
-    except urllib.error.HTTPError as exc:
-        return f"HTTP {exc.code}"
-    except (urllib.error.URLError, OSError) as exc:
-        raise RuntimeError(f"webhook delivery failed: {exc}") from exc
+    attempts = 2  # one retry for transient transport failures
+    last_error: Exception = RuntimeError("no attempt made")
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(  # nosec B310: scheme checked above
+                    request, timeout=timeout) as response:
+                return f"{response.status}"
+        except urllib.error.HTTPError as exc:
+            # a definite answer from the endpoint: retrying a 4xx/5xx
+            # would just re-announce the same summary
+            return f"HTTP {exc.code}"
+        except (urllib.error.URLError, OSError) as exc:
+            last_error = exc
+            if attempt < attempts:
+                time.sleep(0.5 * attempt)  # brief backoff, bounded
+    raise RuntimeError(
+        f"webhook delivery failed after {attempts} attempts: "
+        f"{last_error}") from last_error
 
 
 def survey(stores: List[Path]) -> List[StoreSummary]:

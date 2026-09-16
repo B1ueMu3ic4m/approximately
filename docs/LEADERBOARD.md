@@ -71,7 +71,7 @@ repetition.
 | FM-1.3 | 0 golds | **0 false predictions** - placeholder filter + restart precedence cleaned both |
 | FM-3.2 | 6 | verification is *discussed* in these SWE runs; the annotation judges whether the *outcome* was verified. All 6 golds contain both verification and execution language - regex cannot cross that semantic gap on n=6 without gold-fitting, so outcome-level analysis is **deliberately deferred** |
 | FM-2.2 | 2 | agents asked a clarifying question, correctly suppressing the detector |
-| FM-2.3 | 2 | trailing-window keyword loss did not fire; window shape mismatch |
+| FM-2.3 | 2 | diagnosed (v0.25): task keywords persist in *every* turn of both golds — the annotated derailment is goal-progress drift, not vocabulary drift; keyword-based windows are structurally inadequate and a progress-level feature is deferred rather than fitted on n=2 |
 | FM-2.6 | 1 | thought/action entity divergence not present in the single gold |
 
 Conversion accounting (unchanged, everything counted):
