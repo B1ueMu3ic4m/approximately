@@ -148,3 +148,26 @@ class TestCli:
         assert rc == 0
         assert "webhook notified: HTTP 200" in capsys.readouterr().out
         assert len(_Capture.received) == 1
+
+
+class TestFleetJson:
+    def test_fleet_json_output(self, populated, tmp_path, capsys):
+        from approximately.cli import main
+
+        store_dir = tmp_path / "s1"
+        rc = main(["fleet", str(store_dir), "--json"])
+        assert rc == 0
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["stores"][0]["traces"] == 1
+        assert "worsening_stores" in payload
+
+    def test_webhook_and_json_share_payload(self, populated, tmp_path,
+                                            server, capsys):
+        from approximately.cli import main
+
+        main(["fleet", str(tmp_path / "s1"), "--json"])
+        cli_payload = json.loads(capsys.readouterr().out)
+        main(["fleet", str(tmp_path / "s1"), "--webhook", server])
+        posted = json.loads(_Capture.received[-1]["body"])
+        for key in ("stores", "worsening_stores"):
+            assert cli_payload[key] == posted[key]

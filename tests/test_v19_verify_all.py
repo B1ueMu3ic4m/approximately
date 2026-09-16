@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from approximately.cli import main
 from approximately.integrity import sign
 from approximately.ledger import EvidenceLedger
@@ -91,3 +93,28 @@ class TestVerifyAll:
         rc = main(["--store", str(tmp_path / "empty"), "verify", "--all"])
         assert rc == 0
         assert "0 intact" in capsys.readouterr().out
+
+
+class TestVerifyAllJson:
+    def test_json_output(self, tmp_path, capsys):
+        store = _store(tmp_path, {"a": _clean, "b": _clean})
+        rc = main(["--store", str(store.directory), "verify", "--all",
+                   "--json"])
+        assert rc == 0
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["summary"]["intact"] == 2
+        assert payload["ledger_broken"] is False
+        assert len(payload["traces"]) == 2
+        assert all(t["verdict"] == "intact" for t in payload["traces"])
+
+    def test_json_exit_code_on_problem(self, tmp_path, capsys):
+        def forge(rec):
+            rec.trace.steps[0].result = "edited after signing"
+
+        store = _store(tmp_path, {"a": _clean, "bad": forge})
+        rc = main(["--store", str(store.directory), "verify", "--all",
+                   "--json"])
+        assert rc == 1
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["summary"]["problem"] == 1
+        assert any(t["verdict"] == "TAMPERED" for t in payload["traces"])
