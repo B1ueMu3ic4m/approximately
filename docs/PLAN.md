@@ -326,9 +326,17 @@ framework adapters import lazily and degrade when the framework is absent.
       real-data run (463 files -> 13 single-label records -> 0.00)
       published with structural analysis in docs/LEADERBOARD.md
 
+### v0.14.0 ✅ (delivered) — prose family + benchmark v2
+- [x] Five prose detectors with exclusive family gating; a-priori
+      thresholds (never fitted on the benchmark)
+- [x] MAST-Data v2: HyperAgent log parser, harness filtering, signal
+      floor, annotated-failure semantics; real run published with
+      per-mode structural diagnosis (0.00, honestly explained)
+- [x] re-sign counter in integrity blocks
+
 ### next
-- prose-level detector family for chat-shaped annotated corpora
-- HMAC signature counter (rollback anchor hardening)
+- paraphrase-level restart detection (embeddings or dependency parse)
+- outcome-level verification analysis for FM-3.2
 - fleet trend webhooks/notifications
 
 ---

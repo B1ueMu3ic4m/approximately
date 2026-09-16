@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.14.0 — 2026-09-17
+
+- **Prose detector family** (`prose.py`): five detectors over agent
+  turns for chat-shaped trajectories — repetition, restart
+  (opening-turn recurrence / task re-statement), keyword-loss
+  derailment, absent verification language, insufficiency-then-proceed.
+  Families are exclusive: prose traces run prose detectors only
+- **MAST-Data v2** (`mastdata.py`): HyperAgent log-line schema parser;
+  harness-boilerplate filtering; 2-signal-turn floor; yes-annotated
+  behaviours force `success=False` (task correctness must not mask
+  annotated failures — this had hidden every prediction). Real
+  benchmark v2 published with per-mode structural diagnosis
+  (docs/LEADERBOARD.md)
+- **Re-sign counter** (`integrity.py`): every integrity block carries
+  a monotonic resign_count; `verify` reports "re-signed Nx" — evidence
+  provenance in the block itself
+
 ## 0.13.0 — 2026-09-16
 
 - **Fleet trend alerts**: `survey()` computes the Theil-Sen verdict

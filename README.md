@@ -196,7 +196,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.11** — evidence ledger (rollback detection: an older *validly-signed* snapshot no longer passes) · cross-store fleet merge with evidence refusal
 - ✅ **v0.12** — fleet dashboard (multi-store aggregation) · MAD latency anomalies in reports and CI · fixed before-position `--store`
 - ✅ **v0.13** — fleet trend alerts (`--fail-on-worsening` CI gate) · MAST-Data annotation pipeline + first real-data benchmark published ([docs/LEADERBOARD.md](docs/LEADERBOARD.md))
-- 🔜 **next** — prose-level detector family for chat-shaped corpora · HMAC signature counter · fleet trend webhooks
+- ✅ **v0.14** — prose detector family for chat-shaped trajectories (5 detectors, exclusive gating) · MAST-Data v2 with HyperAgent parser + per-mode failure diagnosis · re-sign counter
+- 🔜 **next** — paraphrase-level restart detection · outcome-level verification analysis · fleet trend webhooks
 
 Full design document: [docs/PLAN.md](docs/PLAN.md).
 
