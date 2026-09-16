@@ -1,4 +1,4 @@
-# Real-data benchmark: MAST annotated trajectories (v5 pipeline)
+# Real-data benchmark: MAST annotated trajectories (v6 pipeline)
 
 Source: [multi-agent-systems-failure-taxonomy/MAST](https://github.com/multi-agent-systems-failure-taxonomy/MAST)
 (annotated trajectories of "Why Do Multi-Agent LLM Systems Fail?",
@@ -42,15 +42,15 @@ gold distribution: FM-3.2 x6, FM-2.1 x2, FM-2.2 x2, FM-2.3 x2, FM-2.6 x1
 | v2 (0.14) | prose family, SequenceMatcher restart | 0.00 | 0.00 | 0/2 | 0 |
 | v3 (0.15) | + shingle-overlap restart, conf 0.6 | 0.00 | 0.00 | fires, below labeler floor | 2 |
 | v4 (0.15) | shingle conf 0.7 | 0.08 | 0.07 | P .50 R .50 F1 .50 | 2 |
-| **v5 (0.17, shipped)** | + routing-placeholder filter | **0.08** | **0.07** | **P .50 R .50 F1 .50** | **1** |
+| v5 (0.17) | + routing-placeholder filter | 0.08 | 0.07 | P .50 R .50 F1 .50 | 1 |
+| **v6 (0.17, shipped)** | + restart-owns-opening-cycle | **0.08** | **0.08** | **P .50 R .50 F1 .50** | **0** |
 
-The v4 -> v5 gain is one fewer false prediction: the FM-1.3 echo on an
-FM-3.2 gold came from a repeated *routing placeholder*
-(`Observation Editor->Planner: Observation`) - harness transport
-noise, not repeated work. FM-1.3 means repeated *task work*; routing
-lines are filtered before repetition analysis (shape-matched, with a
-regression test and a negative test that real-work repetition still
-fires).
+v5 -> v6: a repetition cycle **anchored at the opening turn** is a
+trajectory restart (the agent re-runs the same approach from the
+start), not an independent repetition failure - the restart detector
+owns that signal, and ProseRepeat now yields it (specificity
+precedence). FM-1.3's false predictions went to zero; FM-2.1 holds
+P 0.50 / R 0.50 / F1 0.50.
 
 ## The calibration lesson (v3 -> v4, kept for the record)
 
@@ -63,13 +63,13 @@ path carries 0.7: majority character-trigram overlap on turns of
 500+ chars is evidence of the same strength as near-verbatim
 repetition.
 
-## Per-mode state after v5
+## Per-mode state after v6
 
 | gold | n | state |
 |---|---|---|
-| FM-2.1 | 2 | **1 hit** (opening-turn shingle recurrence), 1 miss: semantic restart at J 0.55 + the fused ranking prefers FM-1.3's 17% base rate on multi-signal records |
-| FM-1.3 | 0 golds | 1 false prediction remains: genuine planner/executor echo pairs clear the 0.92 floor - harness echo vs agent pathology is still unresolved |
-| FM-3.2 | 6 | verification is *discussed* in these SWE runs; the annotation judges whether the *outcome* was verified. All 6 golds contain both verification and execution language - regex cannot cross that semantic gap on n=6 without gold-fitting, so outcome-level analysis is **deliberately deferred**, not attempted |
+| FM-2.1 | 2 | **1 hit** (opening-turn shingle recurrence); 1 miss: semantic restart at J 0.55 borderline loses the fused ranking to a co-occurring signal |
+| FM-1.3 | 0 golds | **0 false predictions** - placeholder filter + restart precedence cleaned both |
+| FM-3.2 | 6 | verification is *discussed* in these SWE runs; the annotation judges whether the *outcome* was verified. All 6 golds contain both verification and execution language - regex cannot cross that semantic gap on n=6 without gold-fitting, so outcome-level analysis is **deliberately deferred** |
 | FM-2.2 | 2 | agents asked a clarifying question, correctly suppressing the detector |
 | FM-2.3 | 2 | trailing-window keyword loss did not fire; window shape mismatch |
 | FM-2.6 | 1 | thought/action entity divergence not present in the single gold |
