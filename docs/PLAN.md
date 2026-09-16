@@ -305,10 +305,17 @@ framework adapters import lazily and degrade when the framework is absent.
       llama.cpp, vLLM LoRA, TGI, OpenAI fine-tunes) + honest
       per-mode expectations
 
+### v0.11.0 ✅ (delivered) — evidence ledger + fleet merge
+- [x] Self-chained append-only ledger of integrity roots (opt-in);
+      `verify` flags rolled-back-but-validly-signed traces and a broken
+      ledger, with distinct exit codes
+- [x] `approximately merge`: fleet imports that refuse TAMPERED /
+      wrong-key evidence; skip/replace/rename conflict policies
+
 ### next
+- fleet dashboard: aggregate multiple stores into one HTML page
+- MAD-based latency-anomaly detection in reports
 - MAST-Data leaderboard page (real benchmark run published in-repo)
-- signature counter for the HMAC chain (rollback detection)
-- fleet-mode cross-store merge for multi-team stores
 
 ---
 

@@ -127,7 +127,8 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 |---|---|---|
 | 📼 Flight recorder | Zero-dependency recording of every agent step — including inter-agent messages — any framework | `Recorder` / adapters |
 | 🔍 Failure attribution | **All 14 MAST modes** covered by rule detectors; Bayesian fusion ranks verdicts by MAST base rates × evidence likelihood | `approximately attribute` |
-| 🛡️ Tamper-evident evidence | Every save stamps a per-step hash chain; `verify` detects and localizes any post-hoc edit | `approximately verify` |
+| 🛡️ Tamper-evident evidence | Per-step hash chain + optional HMAC; `verify` detects edits, and the opt-in evidence ledger catches **rolled-back** traces that still verify | `approximately verify` |
+| 🧩 Fleet merge | Union another team's store, refusing broken evidence; id conflicts via skip/replace/rename | `approximately merge <source>` |
 | 🔁 Step-level replay | Verify fixes without re-running the task; A/B compare original vs patched executors | `approximately replay --patched` |
 | 🧪 Regression guards | Failed runs become pytest tests that live in CI | `approximately test` |
 | 📉 Context budgeting | "Where does a shrinking budget start losing facts?" — guarded in CI | `approximately context` / `test --budget` |
@@ -190,7 +191,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.8** — AutoGen adapter (event log + model-client proxy) · failure-rate trend with Theil–Sen verdict in HTML reports · full complexity audit (all C-rank blocks refactored below a strict bar) · security fuzzing of the new surfaces
 - ✅ **v0.9** — LlamaIndex adapter (callback-handler seam) · HMAC key-ID + rotation counter with the honest `wrong-key` verdict (no more false TAMPERED after key rotation)
 - ✅ **v0.10** — LlamaIndex Dispatcher seam (structured spans) · `benchmark --html` attribution leaderboard · per-serving-stack distillation recipes
-- 🔜 **next** — MAST-Data leaderboard page (real benchmark run published) · HMAC signature counter · fleet-mode cross-store merge
+- ✅ **v0.11** — evidence ledger (rollback detection: an older *validly-signed* snapshot no longer passes) · cross-store fleet merge with evidence refusal
+- 🔜 **next** — fleet dashboard (multi-store aggregation page) · MAD latency-anomaly detection · MAST-Data real run published
 
 Full design document: [docs/PLAN.md](docs/PLAN.md).
 

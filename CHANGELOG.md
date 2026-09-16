@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.11.0 — 2026-09-16
+
+- **Evidence ledger** (`ledger.py`, opt-in via `APPROXIMATELY_LEDGER=1`):
+  every save appends the trace's chain-final hash to an append-only,
+  itself hash-chained ledger — `verify` now detects a trace file rolled
+  back to an older *correctly-signed* snapshot (exit 4) and a broken
+  ledger (exit 5). Closes the "hashes all check out but the state is
+  stale" gap; threat-model limits documented in the module
+- **Cross-store merge** (`merge.py` + `approximately merge`): fleet
+  imports with evidence refusal — traces whose integrity fails
+  (TAMPERED / wrong-key) are never imported; id conflicts resolve via
+  `--on-conflict skip|replace|rename`; per-trace atomic saves keep an
+  interrupted merge harmless
+
 ## 0.10.0 — 2026-09-16
 
 - **LlamaIndex Dispatcher seam** (`contrib/llamaindex.py`): a
