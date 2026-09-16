@@ -9,6 +9,7 @@ from approximately.prose import (
     ProseNoVerifyDetector,
     ProseRepeatDetector,
     ProseRestartDetector,
+    ProseThoughtActionDetector,
 )
 from approximately.recorder import Recorder
 
@@ -165,3 +166,75 @@ class TestGating:
         report = attribute(trace)
         assert report.failed
         assert report.primary_mode.id != "OTHER"
+
+
+class TestShingleRestart:
+    def test_paraphrase_restart_flagged(self):
+        opening = ("Thought: To address this GitHub issue, we need to "
+                   "investigate the resolve_redirects method in the "
+                   "Requests library and understand its redirect chain.")
+        later = ("Thought: To address this GitHub issue, we need to "
+                 "investigate the resolve_redirects method in the "
+                 "Requests library and see how its redirect chain "
+                 "behaves in practice.")
+        trace = _prose_trace(TASK, [opening, "digging into details now",
+                                    "still examining the code paths",
+                                    later, "continuing the analysis"])
+        det = ProseRestartDetector().detect(trace)
+        assert det is not None and det.mode_id == "FM-2.1"
+        assert det.confidence == 0.7  # paraphrase strength, at the labeler floor
+
+    def test_verbatim_still_stronger(self):
+        turn = ("Thought: addressing the issue about ribbon lengths for "
+                "the twelve gift bows in detail.")
+        trace = _prose_trace(TASK, [turn, "middle work happens here",
+                                    "more middle work happens too",
+                                    turn, "then it continues again"])
+        det = ProseRestartDetector().detect(trace)
+        assert det is not None and det.confidence == 0.75
+
+    def test_unrelated_turns_clean(self):
+        turns = [
+            ("Reading the redirect handling code revealed that copies "
+             "of the original request keep their method untouched."),
+            ("A quick benchmark shows the cache lookup happens before "
+             "authentication, which changes the ordering assumptions."),
+            ("Discussed with the maintainer: the packaging metadata was "
+             "stale and needed regeneration before release."),
+            ("Monitor dashboards indicate latency spikes only during "
+             "cold starts, so pooling is probably fine here."),
+            ("The documentation gap around retry semantics explains "
+             "most of the user reports we have been seeing."),
+        ]
+        assert ProseRestartDetector().detect(_prose_trace(TASK,
+                                                          turns)) is None
+
+
+class TestThoughtAction:
+    def test_divergent_action_flagged(self):
+        turn = ("Thought: I need to examine `resolve_redirects` and "
+                "`Session.redirect_cache` in the sessions module. "
+                "Action: get_folder_contents(path='/tmp') returned the "
+                "listing successfully.")
+        det = ProseThoughtActionDetector().detect(_prose_trace(
+            TASK, ["earlier unrelated analysis text", turn,
+                   "afterward more analysis text"]))
+        assert det is not None and det.mode_id == "FM-2.6"
+
+    def test_aligned_action_clean(self):
+        turn = ("Thought: I need to examine `resolve_redirects` closely "
+                "before changing it. Action: opened resolve_redirects in "
+                "the editor and read its body.")
+        assert ProseThoughtActionDetector().detect(_prose_trace(
+            TASK, [turn, "more analysis", "even more analysis"])) is None
+
+    def test_requires_two_entities(self):
+        turn = ("Thought: check `one_method` here. Action: ran the "
+                "build and tests for the whole project instead.")
+        assert ProseThoughtActionDetector().detect(_prose_trace(
+            TASK, [turn, "more text", "yet more text"])) is None
+
+    def test_turn_without_action_shape_ignored(self):
+        turn = "Thought: only thoughts here, no action segment at all."
+        assert ProseThoughtActionDetector().detect(_prose_trace(
+            TASK, [turn, "more text", "yet more text"])) is None
