@@ -294,9 +294,21 @@ framework adapters import lazily and degrade when the framework is absent.
 - [x] Adapters now: LangChain/LangGraph, OpenAI Agents SDK, CrewAI,
       AutoGen v0.4+, LlamaIndex
 
+### v0.10.0 ✅ (delivered) — Dispatcher seam + leaderboard + recipes
+- [x] LlamaIndex Dispatcher span handler: structured spans (LLM,
+      retrieval, tool call, agent run) mapped to recorder steps;
+      dropped spans carry the exception into attribution
+- [x] `benchmark --html`: self-contained leaderboard page, F1-sorted
+      per-mode table, escaping + clamping hardened, unknown mode ids
+      fall back to OTHER
+- [x] docs/DISTILLATION.md: per-serving-stack recipes (Ollama,
+      llama.cpp, vLLM LoRA, TGI, OpenAI fine-tunes) + honest
+      per-mode expectations
+
 ### next
-- MAST-Data leaderboard page; per-serving-stack distillation recipes
-- LlamaIndex Dispatcher (span-level) seam alongside the callback seam
+- MAST-Data leaderboard page (real benchmark run published in-repo)
+- signature counter for the HMAC chain (rollback detection)
+- fleet-mode cross-store merge for multi-team stores
 
 ---
 

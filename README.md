@@ -146,7 +146,7 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 🔧 Repair search | Smallest validated intervention set that clears attribution (or honest "unrepairable") | `approximately repair` |
 | 📊 Prometheus export | Agent reliability on your Grafana dashboards, with per-mode counters | `approximately metrics --prometheus` |
 
-Advanced: **local small-model judge** (`distill` exports training data — distill to your own 1–7B model and skip the API bill), **attribution benchmark** (`benchmark`, per-mode precision/recall/F1), **cost-vs-recall curve reports** (`curve`), **threat model** ([docs/SECURITY.md](docs/SECURITY.md)).
+Advanced: **local small-model judge** (`distill` exports training data; per-serving-stack recipes in [docs/DISTILLATION.md](docs/DISTILLATION.md) — Ollama, llama.cpp, vLLM, TGI, OpenAI fine-tunes), **attribution benchmark** (`benchmark`, per-mode precision/recall/F1, `--html` renders a shareable leaderboard page), **cost-vs-recall curve reports** (`curve`), **threat model** ([docs/SECURITY.md](docs/SECURITY.md)).
 
 ## Design principles
 
@@ -189,7 +189,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.7** — streaming reliability monitor (live risk with hysteresis) · concurrent-safe store (atomic writes + per-id locks) · concurrency threat model
 - ✅ **v0.8** — AutoGen adapter (event log + model-client proxy) · failure-rate trend with Theil–Sen verdict in HTML reports · full complexity audit (all C-rank blocks refactored below a strict bar) · security fuzzing of the new surfaces
 - ✅ **v0.9** — LlamaIndex adapter (callback-handler seam) · HMAC key-ID + rotation counter with the honest `wrong-key` verdict (no more false TAMPERED after key rotation)
-- 🔜 **next** — MAST-Data leaderboard page · per-serving-stack distillation recipes · LlamaIndex Dispatcher (span-level) seam
+- ✅ **v0.10** — LlamaIndex Dispatcher seam (structured spans) · `benchmark --html` attribution leaderboard · per-serving-stack distillation recipes
+- 🔜 **next** — MAST-Data leaderboard page (real benchmark run published) · HMAC signature counter · fleet-mode cross-store merge
 
 Full design document: [docs/PLAN.md](docs/PLAN.md).
 
