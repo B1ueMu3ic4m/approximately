@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.21.0 — 2026-09-17
+
+- **Restart-owns-opening-cycle precedence** (FM-1.3 precision): a
+  repetition cycle anchored at the opening turn is a trajectory
+  restart and belongs to the restart detector — FM-1.3 false
+  predictions on the real benchmark: 2 → 0, FM-2.1 holds
+  P 0.50 · R 0.50 · F1 0.50. LEADERBOARD run-history table extended
+  (v2 → v6)
+
 ## 0.19.0 — 2026-09-17
 
 - **`verify --all`**: batch integrity audit over a whole store —
