@@ -411,7 +411,7 @@ def cmd_merge(args: argparse.Namespace) -> int:
 
 
 def cmd_fleet(args: argparse.Namespace) -> int:
-    from .fleet import render_fleet_html, survey
+    from .fleet import notify_webhook, render_fleet_html, survey
 
     summaries = survey([Path(d) for d in args.stores])
     for s in summaries:
@@ -422,6 +422,15 @@ def cmd_fleet(args: argparse.Namespace) -> int:
         out = Path(args.fleet_html)
         out.write_text(render_fleet_html(summaries), encoding="utf-8")
         print(f"wrote fleet dashboard: {out}")
+    if getattr(args, "webhook", None):
+        from .integrity import load_key
+
+        try:
+            status = notify_webhook(summaries, args.webhook,
+                                    signing_key=load_key())
+            print(f"webhook notified: HTTP {status}")
+        except RuntimeError as exc:
+            print(f"webhook failed: {exc}", file=sys.stderr)
     if args.fail_on_worsening:
         worsening = [s.name for s in summaries if s.worsening]
         if worsening:
@@ -833,6 +842,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--fail-on-worsening", action="store_true",
                    help="exit 1 when any store's failure-rate trend is "
                         "worsening (CI gate)")
+    p.add_argument("--webhook", help="POST a JSON fleet summary to this "
+                                     "URL (HMAC-signed when "
+                                     "APPROXIMATELY_SIGNING_KEY is set)")
     p.set_defaults(func=cmd_fleet)
 
     p = sub.add_parser("anomalies", parents=[common],
