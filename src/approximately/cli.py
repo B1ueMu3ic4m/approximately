@@ -21,6 +21,12 @@ from .trace import Trace
 
 
 def _load_trace(spec: str, store: TraceStore) -> Trace:
+    if spec == "latest":
+        files = sorted(store.directory.glob("*.json"),
+                       key=lambda p: p.stat().st_mtime)
+        if not files:
+            raise SystemExit(f"error: the store {store.directory} is empty")
+        spec = files[-1].stem
     trace = store.load(spec)
     if trace is None:
         raise SystemExit(f"error: no trace found for {spec!r} "
@@ -63,7 +69,12 @@ def cmd_demo(args: argparse.Namespace) -> int:
         from .demo_multiagent import run_demo as run_multiagent
         trace, report, path = run_multiagent()
     else:
-        trace, report, path = run_demo()
+        # honor --store (before it was accepted and silently ignored)
+        from .store import TraceStore
+
+        store_dir = (TraceStore(args.store).directory
+                     if getattr(args, "store", None) else None)
+        trace, report, path = run_demo(store_dir)
     print(f"recorded demo trace {trace.id} ({len(trace.steps)} steps)")
     _print_report(report)
 
