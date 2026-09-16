@@ -125,6 +125,26 @@ footer { margin-top: 22px; color: #adb5bd; font-size: 12.5px; text-align: center
 """
 
 
+def _replay_row(step: "StepDiff", b_step: Optional["StepDiff"],
+                show_patched: bool) -> str:
+    import html as _html
+
+    esc = _html.escape
+    cls = "" if step.match else ' class="diverged"'
+    replayed = esc(step.replayed or step.error or "-")
+    patched = ""
+    if show_patched:
+        patched = (f"<td>{esc((b_step.replayed or b_step.error or '-')[:120])}"
+                   "</td>" if b_step else "<td>-</td>")
+    return (
+        f"<tr{cls}><td class=\"mono\">{step.index}</td>"
+        f"<td class=\"mono\">{esc(step.tool or step.kind)}</td>"
+        f"<td>{esc(step.recorded[:120])}</td>"
+        f"<td>{replayed[:120]}</td>{patched}"
+        f"<td class=\"mono\">{step.similarity:.2f}</td></tr>"
+    )
+
+
 def render_replay_html(diff: "ReplayDiff",
                        b_diff: Optional["ReplayDiff"] = None) -> str:
     """Self-contained HTML A/B replay page (no JS, no CDN).
@@ -140,23 +160,10 @@ def render_replay_html(diff: "ReplayDiff",
     status_cls = "ok" if diff.verdict != DIVERGED else "bad"
     extra_head = (
         "<th>patched executor</th>" if b_diff is not None else "")
-    rows = []
     b_by_index = {s.index: s for s in b_diff.steps} if b_diff else {}
-    for step in diff.steps:
-        cls = "" if step.match else ' class="diverged"'
-        replayed = esc(step.replayed or step.error or "-")
-        patched = ""
-        if b_diff is not None:
-            b = b_by_index.get(step.index)
-            patched = esc((b.replayed or b.error or "-")[:120]) if b else "-"
-        rows.append(
-            f"<tr{cls}><td class=\"mono\">{step.index}</td>"
-            f"<td class=\"mono\">{esc(step.tool or step.kind)}</td>"
-            f"<td>{esc(step.recorded[:120])}</td>"
-            f"<td>{replayed[:120]}</td>{('<td>' + patched + '</td>') if b_diff is not None else ''}"
-            f"<td class=\"mono\">{step.similarity:.2f}</td></tr>"
-        )
-    rows_html = "".join(rows)
+    rows_html = "".join(
+        _replay_row(step, b_by_index.get(step.index), b_diff is not None)
+        for step in diff.steps)
     b_meta = (f" · A/B vs {esc('patched executor')}" if b_diff else "")
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">

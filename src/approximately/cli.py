@@ -573,6 +573,10 @@ def cmd_stats(args: argparse.Namespace) -> int:
         if args.json:
             print(json.dumps(buckets, indent=2))
             return 0
+        rates = [b["failure_rate"] for b in buckets]
+        from .cluster import sparkline
+
+        print(f"  failure-rate sparkline: {sparkline(rates)}")
         for b in buckets:
             print(f"  {b['bucket_start']}: {b['total']} runs, "
                   f"{b['failed']} failed ({b['failure_rate']:.0%})")
