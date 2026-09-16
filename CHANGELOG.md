@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.19.0 — 2026-09-17
+
+- **`verify --all`**: batch integrity audit over a whole store —
+  per-trace verdict lines (intact / unsigned / keyed / TAMPERED /
+  rolled-back), broken-ledger surfacing, summary counts, exit 1 on
+  any failure. The whole-store gate for CI nightlies and audit jobs
+
 ## 0.18.0 — 2026-09-17
 
 - **`attribute --explain`** (`attributor.explain_fusion`): auditable
