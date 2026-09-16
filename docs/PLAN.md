@@ -375,9 +375,16 @@ framework adapters import lazily and degrade when the framework is absent.
 - [x] docs/FLEET-DIGEST.md: Actions cron + signed webhook +
       receiver-side verification + exit semantics
 
+### v0.29.0 ✅ (delivered) — multi-label evaluation + replay page
+- [x] Set-based P/R/F1 (sample-averaged) over full gold sets; 27
+      records scored; FM-2.1 F1 0.96 on real annotated data
+- [x] replay --html A/B page; stats terminal sparkline
+- [x] v0.24-v0.28 fixes: demo --store, 'latest' resolution, JSON
+      outputs for verify --all and fleet
+
 ### next
+- FM-2.6 role-aware tightening (14 fp on log traces)
 - FM-3.2 outcome-level verification (embeddings or test-result parsing)
-- paraphrase restart with dependency-order features
 - scheduled fleet digest (webhook + cron pattern documented)
 
 ---
