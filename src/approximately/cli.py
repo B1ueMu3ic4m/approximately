@@ -108,6 +108,7 @@ def cmd_replay(args: argparse.Namespace) -> int:
     trace = _load_trace(args.trace, store)
     executor = _resolve_executor(args.executor)
     diff = replay(trace, executor, threshold=args.threshold)
+    diff_b = None
     if args.patched:
         patched = _resolve_executor(args.patched)
         diff_b = replay(trace, patched, threshold=args.threshold)
@@ -116,9 +117,17 @@ def cmd_replay(args: argparse.Namespace) -> int:
         print(diff.summary())
         print("--- patched:")
         print(diff_b.summary())
-        return 0
-    print(diff.summary())
-    return 0 if diff.verdict != "diverged" else 1
+    else:
+        print(diff.summary())
+    if getattr(args, "html", None):
+        from .replayer import render_replay_html
+
+        out = Path(args.html)
+        out.write_text(render_replay_html(diff, diff_b), encoding="utf-8")
+        print(f"wrote replay page: {out}")
+    if diff.verdict == "diverged" and not args.patched:
+        return 1
+    return 0
 
 
 def cmd_test(args: argparse.Namespace) -> int:
@@ -797,6 +806,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="executor as 'package.module:func' taking a Step")
     p.add_argument("--patched",
                    help="A/B: a second executor to compare against --executor")
+    p.add_argument("--html", help="also write a self-contained HTML A/B "
+                                  "page to this path")
     p.add_argument("--threshold", type=float, default=0.85,
                    help="step-result similarity floor (default 0.85)")
     p.set_defaults(func=cmd_replay)
