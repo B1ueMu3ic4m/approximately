@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.12.0 — 2026-09-16
+
+- **Fleet dashboard** (`fleet.py` + `approximately fleet <dir>...`
+  `--fleet-html`): surveys any number of stores into one self-contained
+  page — fleet KPIs (traces, weighted failure rate, broken ledgers),
+  per-store failure-rate sparklines and top attributed MAST modes.
+  Rule detectors only: a sweep needs no API key or network
+- **Robust latency anomalies** (`anomaly.py` +
+  `approximately anomalies <trace>`): modified z-score (Iglewicz &
+  Hoaglin 1993) over the median absolute deviation (Leys et al. 2013)
+  flags slow *and* fast outlier steps; MAD == 0 and small samples
+  honestly yield nothing. Postmortem reports gain an anomalies card;
+  nonzero exit for CI gates
+- **Fixed**: `--store` placed *before* the subcommand was silently
+  ignored (argparse subparser default clobbered the top-level value) —
+  only the after-position worked. Both now parse correctly
+
 ## 0.11.0 — 2026-09-16
 
 - **Evidence ledger** (`ledger.py`, opt-in via `APPROXIMATELY_LEDGER=1`):
