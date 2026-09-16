@@ -89,17 +89,33 @@ class ProseRepeatDetector:
         )
 
 
+def _shingles(text: str, k: int = 3) -> set:
+    normalized = " ".join(text.lower().split())
+    return {normalized[i:i + k]
+            for i in range(0, max(1, len(normalized) - k + 1))}
+
+
+def _jaccard(a: set, b: set) -> float:
+    union = a | b
+    return len(a & b) / len(union) if union else 0.0
+
+
 class ProseRestartDetector:
     """FM-2.1 in prose: the run starts over.
 
-    Two shapes, by definition of a trajectory restart:
-    - the agent's own **opening turn re-occurs** later (near-verbatim)
-      — the planner starts the approach from scratch;
+    Three shapes, by definition of a trajectory restart:
+    - the agent's own **opening turn re-occurs** later near-verbatim
+      (SequenceMatcher >= 0.9) — the planner starts from scratch;
+    - the opening turn re-occurs as a **shingle-overlap paraphrase**
+      (character-trigram Jaccard >= 0.5) — same subject re-derived in
+      different words, order-tolerant where SequenceMatcher is not;
     - the task statement is re-stated verbatim inside a later turn.
     """
 
     restart_similarity = 0.9
+    restart_jaccard = 0.5
     min_opening = 40  # chars for an opening turn to be distinctive
+    min_shingle_len = 80  # Jaccard on shorter texts is noise
     first_progress_position = 3  # recurrences before this are warm-up
 
     def detect(self, trace: Trace) -> Optional["object"]:
@@ -110,24 +126,42 @@ class ProseRestartDetector:
         return hit or self._task_restated(trace, turns)
 
     def _opening_recurrence(self, turns: List[str]) -> Optional["object"]:
+
         opening = turns[0]
         if len(opening) < self.min_opening:
             return None
+        opening_shingles = _shingles(opening)
+        for idx in range(self.first_progress_position, len(turns)):
+            candidate = turns[idx]
+            if SequenceMatcher(None, opening, candidate).ratio() \
+                    >= self.restart_similarity:
+                return self._detection(idx, candidate, "near-verbatim",
+                                        0.75)
+            jaccard = _jaccard(opening_shingles, _shingles(candidate)) \
+                if len(candidate) >= self.min_shingle_len else 0.0
+            if jaccard >= self.restart_jaccard:
+                # 0.7: majority-trigram overlap on long turns is
+                # evidence of the same strength as near-verbatim
+                # repetition - and it must clear the 0.7 rules-labeler
+                # floor to be usable as a prediction at all
+                return self._detection(idx, candidate,
+                                       f"as a shingle-overlap paraphrase "
+                                       f"(J={jaccard:.2f})", 0.7)
+        return None
+
+    def _detection(self, idx: int, turn: str, shape: str,
+                   confidence: float) -> "object":
         from .detectors import Detection
 
-        for idx in range(self.first_progress_position, len(turns)):
-            if SequenceMatcher(None, opening, turns[idx]).ratio() \
-                    >= self.restart_similarity:
-                return Detection(
-                    "FM-2.1", idx,
-                    [(f"the run's opening turn re-occurs near-verbatim "
-                      f"at position {idx} — the agent restarted its "
-                      "approach instead of progressing"),
-                     f"recurring text: \"{turns[idx][:100]}\""],
-                    0.75,
-                    source="rule:ProseRestartDetector",
-                )
-        return None
+        return Detection(
+            "FM-2.1", idx,
+            [(f"the run's opening turn re-occurs {shape} at position "
+              f"{idx} — the agent restarted its approach instead of "
+              "progressing"),
+             f"recurring text: \"{turn[:100]}\""],
+            confidence,
+            source="rule:ProseRestartDetector",
+        )
 
     def _task_restated(self, trace: Trace,
                        turns: List[str]) -> Optional["object"]:
@@ -244,10 +278,68 @@ class ProseAmbiguityDetector:
         )
 
 
+_IDENTIFIER = re.compile(
+    r"`?[A-Za-z_][A-Za-z0-9_]{2,}(?:\.[A-Za-z_][A-Za-z0-9_]*)+`?"
+    r"|`[^`]{3,60}`")
+
+
+class ProseThoughtActionDetector:
+    """FM-2.6 in prose: the stated thought and the taken action diverge.
+
+    HyperAgent-style turns carry both halves in one message
+    ("Thought: ... Action: ..."). The thought's distinctive entities
+    (dotted identifiers, quoted names — method/file/class references)
+    are what the agent *claims* to work on; if at least two such
+    entities exist and NONE of them appears in the action half, the
+    stated plan and the executed step have parted ways.
+    """
+
+    min_entities = 2
+
+    @staticmethod
+    def _halves(turn: str) -> Optional[tuple]:
+        lowered = turn.lower()
+        tpos = lowered.find("thought:")
+        apos = lowered.find("action:")
+        if tpos == -1 or apos == -1 or apos <= tpos:
+            return None
+        return turn[tpos + 8:apos], turn[apos + 7:]
+
+    def detect(self, trace: Trace) -> Optional["object"]:
+        for step in trace.steps:
+            if step.kind != TOOL_CALL or not step.result:
+                continue
+            turn = " ".join(step.result.split())
+            halves = self._halves(turn)
+            if halves is None:
+                continue
+            thought, action = halves
+            entities = {e.strip("`") for e in
+                        _IDENTIFIER.findall(thought)}
+            if len(entities) < self.min_entities:
+                continue
+            if any(e in action for e in entities):
+                continue
+            from .detectors import Detection
+
+            return Detection(
+                "FM-2.6",
+                step.index,
+                [(f"thought names {sorted(entities)[:3]} but the action "
+                  "half references none of them — stated plan and "
+                  "executed step have diverged"),
+                 f"action: \"{action[:100]}\""],
+                0.55,
+                source="rule:ProseThoughtActionDetector",
+            )
+        return None
+
+
 PROSE_DETECTORS: List[Any] = [
     ProseRepeatDetector(),
     ProseRestartDetector(),
     ProseDerailmentDetector(),
     ProseNoVerifyDetector(),
     ProseAmbiguityDetector(),
+    ProseThoughtActionDetector(),
 ]

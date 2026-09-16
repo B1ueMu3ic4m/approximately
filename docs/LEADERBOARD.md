@@ -1,4 +1,4 @@
-# Real-data benchmark: MAST annotated trajectories (v2)
+# Real-data benchmark: MAST annotated trajectories (v4 pipeline)
 
 Source: [multi-agent-systems-failure-taxonomy/MAST](https://github.com/multi-agent-systems-failure-taxonomy/MAST)
 (annotated trajectories of "Why Do Multi-Agent LLM Systems Fail?",
@@ -35,32 +35,38 @@ converted 13 | excluded: 15 multi-label, 1841 no covered mode,
 gold distribution: FM-3.2 x6, FM-2.1 x2, FM-2.2 x2, FM-2.3 x2, FM-2.6 x1
 ```
 
-## Result: accuracy 0.00, macro-F1 0.00 (rules-only)
+## Result history (all rules-only, same 13 single-label records)
 
-Per-mode diagnosis — each miss is a measured, structural statement:
+| run | pipeline | accuracy | macro-F1 | FM-2.1 |
+|---|---|---|---|---|
+| v2 (0.14) | prose family, SequenceMatcher restart | 0.00 | 0.00 | 0/2 recall |
+| v3 (0.15) | + shingle-overlap restart, conf 0.6 | 0.00 | 0.00 | fires, but 0.6 < labeler floor |
+| **v4 (0.15, shipped)** | shingle conf 0.7 | **0.08** | **0.07** | **P 0.50 · R 0.50 · F1 0.50** |
 
-| gold | n | what the gold actually contains | why the detector stays silent |
-|---|---|---|---|
-| FM-2.1 | 2 | *semantic* restarts: the planner re-derives its plan in different words (max SequenceMatcher ratio 0.28 vs the 0.9 verbatim threshold) | the restart detector requires near-verbatim recurrence; a paraphrase detector is future work |
-| FM-3.2 | 6 | verification *is* discussed/planned ("We should verify…"), the annotation judges the outcome unverified | absence-of-verification-language is the wrong signal when agents talk about verifying; needs outcome-level analysis |
-| FM-2.2 | 2 | ambiguity flagged, agent proceeds after a nudge — but asks a clarifying question first, which correctly suppresses our detector | our suppress-rule (did it ask?) is right for most cases and wrong for these |
-| FM-2.3 | 2 | keyword drift in long SWE trajectories | detector did not fire; trailing-window shape mismatch |
-| FM-2.6 | 1 | thought/message misalignment across planner/executor roles | needs role-attributed turns, not yet modeled |
+The v3->v4 move is the most instructive line in this file: the shingle
+detector fired on a true FM-2.1 at confidence 0.6 in v3 and the
+prediction was still lost - 0.6 clears the attribution floor (0.5) but
+not the rules-labeler floor (0.7), so the evidence existed and was
+unusable. Detector confidence scales must be coordinated with the
+prediction floor, or calibration is a fiction. The shipped shingle
+path carries 0.7: majority character-trigram overlap on turns of
+500+ chars is evidence of the same strength as near-verbatim
+repetition.
 
-The two false predictions are FM-1.3 (echoed planner/executor pairs at
-the 0.92 similarity floor) — and they expose a real property of the
-fusion layer: with FM-1.3's MAST base rate (~17%) an order of magnitude
-above FM-2.1's, a 0.75-confidence restart detection *correctly* loses
-to a 0.7 repetition one. The fix is better evidence, not lower priors.
+Per-mode state after v4:
 
-## What v2 establishes
+| gold | n | state |
+|---|---|---|
+| FM-2.1 | 2 | **1 hit** (opening-turn shingle recurrence), 1 miss: semantic restart at J 0.55 borderline + FM-1.3 prior wins the fused ranking on the 62-turn multi-mode-shaped record |
+| FM-1.3 | 0 golds | 2 false predictions: HyperAgent planner/executor echo pairs clear the 0.92 similarity floor - harness echo vs agent pathology is unresolved |
+| FM-3.2 | 6 | verification is *discussed* in these SWE runs ("we should verify"); absence-of-language is the wrong signal - outcome-level analysis needed |
+| FM-2.2 | 2 | agents asked a clarifying question, correctly suppressing the detector; annotation judges the outcome anyway |
+| FM-2.3 | 2 | trailing-window keyword loss did not fire; window shape mismatch |
+| FM-2.6 | 1 | thought/action entity divergence not present in the single gold |
 
-v1 scored 0.00 on traces that were unconvertible artifacts (empty
-turns). v2 scores 0.00 on a *real, properly converted, single-label*
-subset — with the failure modes named precisely enough to build
-against: paraphrase-level restart detection, outcome-level
-verification analysis, role-attributed turn modeling. The benchmark
-pipeline exists precisely to measure that work when it happens.
+Everything else in the accounting is unchanged: 15 multi-label,
+1841 no covered mode, 87 unannotated, 4 too few agent turns,
+3 unreadable - all counted, none silently dropped.
 
 ## Reproduce
 
