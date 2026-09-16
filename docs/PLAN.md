@@ -341,10 +341,17 @@ framework adapters import lazily and degrade when the framework is absent.
 - [x] ProseThoughtActionDetector for FM-2.6 entity divergence
 - [x] Benchmark v4: first real TP - accuracy 0.08, FM-2.1 F1 0.50
 
+### v0.16.0 ✅ (delivered) — fleet webhooks
+- [x] Signed JSON fleet alerts (--webhook + HMAC signature header)
+- [x] FM-3.2 outcome-level analysis scoped and deferred: all 6 golds
+      contain verification AND execution language; the annotation
+      judges whether the *outcome* was verified - regex cannot cross
+      that semantic gap on n=6 without gold-fitting (documented)
+
 ### next
-- outcome-level verification analysis for FM-3.2 (largest gold pool)
 - harness-echo discrimination for FM-1.3 precision
-- fleet trend webhooks/notifications
+- FM-3.2 outcome-level verification (needs richer features than regex)
+- fleet trend digest scheduling
 
 ---
 
