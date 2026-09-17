@@ -382,10 +382,33 @@ framework adapters import lazily and degrade when the framework is absent.
 - [x] v0.24-v0.28 fixes: demo --store, 'latest' resolution, JSON
       outputs for verify --all and fleet
 
-### next
-- FM-2.6 role-aware tightening (14 fp on log traces)
-- FM-3.2 outcome-level verification (embeddings or test-result parsing)
-- scheduled fleet digest (webhook + cron pattern documented)
+### next (v0.30+ roadmap, in order)
+1. **v0.30 — FM-2.6 action-continuity guards** ✅ (delivered):
+   scaffold-echo guard + entity-token continuity (path/stem/bare-name
+   variants) + thought-context continuity; FM-2.6 precision
+   0.07 → 0.33 (fp 14 → 2), F1 0.12 → 0.40, recall held; corpus
+   sample precision 0.30 → 0.44. Bonus: stress test exposed an
+   O(n²)-backtracking DoS on megabyte turns — prose analysis now
+   bounded at 8k chars/turn (1 MB turn: >20 s → ~1 ms).
+2. **v0.31 — outcome-signal verification (FM-3.2 step 2)**: parse
+   structured outcome signals from tool results (exit codes, test
+   summaries, PASS/FAIL lines, HTTP status) and cross-check them
+   against agent success claims — regex over outcomes, not over
+   semantics, so no gold-fitting.
+3. **v0.32 — paraphrase restart (FM-2.1 step 2)**: order-sensitive
+   similarity (token bigram overlap with position weighting) to catch
+   reworded task restatements the verbatim/shingle gates miss.
+4. **v0.33 — `trace diff` command**: structural A/B diff of two traces
+   (step alignment via SequenceMatcher, verdict/step-count deltas,
+   top divergent steps, --json).
+5. **v0.34 — query DSL**: `query "mode == FM-2.1 and confidence >= 0.7"`
+   — tokenizer + recursive-descent parser + evaluator over the store.
+6. **v0.35 — SARIF export**: `attribute --sarif out.sarif` emitting
+   SARIF 2.1.0 so attributed failures surface in code-scanning UIs.
+7. **v0.36 — fleet watch/digest loop**: `fleet --watch SECONDS
+   --digest-dir DIR` writing timestamped JSONL snapshots with rotation.
+8. **v0.37 — zero-dependency MCP stdio server**: JSON-RPC 2.0 over
+   stdio exposing list/attribute/verify/survey as MCP tools.
 
 ---
 

@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.30.0 — 2026-09-17
+
+- **FM-2.6 action-continuity guards**: the thought/action divergence
+  detector now suppresses three continuation shapes before flagging —
+  prompt-scaffold echo (no action to diverge), entity-token continuity
+  (path/stem/bare-name variants the raw substring test missed:
+  `from_file()` ↔ `grep "def from_file"`, `Permutation` ↔
+  `permutations.py`), and thought-context continuity (plan says
+  "check the backend docs", action opens `backends/`). On real
+  MAST-Data: FM-2.6 precision 0.07 → 0.33 (fp 14 → 2), F1 0.12 →
+  0.40 at unchanged recall; corpus-level sample precision 0.30 →
+  0.44. Confidence raised to the 0.7 rules-evidence floor.
+- **Bounded prose analysis (security)**: stress testing exposed an
+  algorithmic-complexity DoS — a single megabyte turn drove the
+  identifier regex into O(n²) backtracking (>20 s per turn). All
+  prose-family turn text is now whitespace-normalized and capped at
+  8k chars; 1 MB adversarial turns analyze in ~1 ms.
+- 9 new tests (guards + stress probes); 519 passing.
+
 ## 0.29.0 — 2026-09-17
 
 - **Multi-label evaluation**: `convert-mast --multi-label` +
