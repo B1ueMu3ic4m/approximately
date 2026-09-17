@@ -202,7 +202,9 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.14** — prose detector family for chat-shaped trajectories (5 detectors, exclusive gating) · MAST-Data v2 with HyperAgent parser + per-mode failure diagnosis · re-sign counter
 - ✅ **v0.15/v0.16/v0.17** — shingle-overlap restart + FM-2.6 detector (**first real TP**: FM-2.1 F1 0.50) · signed fleet webhooks · routing-placeholder filter (FM-1.3 FP 2 → 0)
 - ✅ **v0.18–v0.23** — `attribute --explain` (auditable fusion arithmetic) · `verify --all` store gate · `verify --all --json` + `fleet --json` machine outputs · `--since` time windows on every store command · scheduled fleet digest pattern
-- 🔜 **next** — paraphrase-level restart detection · outcome-level verification analysis · fleet trend webhooks
+- ✅ **v0.24–v0.29** — multi-label evaluation (set-based P/R/F1; FM-2.1 F1 0.96 on real annotated data) · replay `--html` A/B page · terminal sparkline · bounded webhook retries · doc-artifact pipeline
+- ✅ **v0.30** — FM-2.6 action-continuity guards (real-data precision 0.07 → 0.33, F1 0.12 → 0.40 at unchanged recall) · bounded prose analysis: megabyte-turn DoS fixed (>20 s → ~1 ms)
+- 🔜 **next** — outcome-signal verification analysis · paraphrase-level restart detection · trace diff · query DSL · SARIF export · zero-dep MCP server
 
 Full design document: [docs/PLAN.md](docs/PLAN.md).
 

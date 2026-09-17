@@ -68,17 +68,21 @@ FM-1.3 x7, FM-2.2 x5, FM-2.6 x2, FM-1.2 x4, FM-2.4 x4, FM-2.5 x2, ...
 | mode | precision | recall | F1 |
 |---|---|---|---|
 | **FM-2.1 restart** | **0.93** | **1.00** | **0.96** |
+| FM-2.6 thought/action (v0.30 guards) | 0.33 | 0.50 | 0.40 |
 | FM-1.3 repetition | 1.00 | 0.14 | 0.25 |
-| FM-2.6 thought/action | 0.07 | 0.50 | 0.12 |
 | FM-3.2 verification | 0.00 | 0.00 | 0.00 |
 | others (FM-1.2/2.2/2.3/2.4/2.5/3.1) | 0 | 0 | 0 |
 
 Read of it: the shingle restart detector is *strong* on real annotated
 data (13/13 recall, one false positive across 27 runs); repetition has
 frontier-grade precision but misses echo variants; the thought/action
-divergence heuristic over-fires on log-style traces (14 false
-positives) and needs role-aware tightening; FM-3.2 remains deferred
-(see above). Numbers are n=27 — directional, not decisive.
+divergence heuristic over-fired on log-style traces (14 false
+positives, precision 0.07) until v0.30's action-continuity guards —
+prompt-scaffold echo, entity-token continuity (path/stem/bare-name
+variants), thought-context continuity — cut it to 2 (precision 0.33,
+F1 0.40, recall unchanged) at corpus level sample precision 0.30 →
+0.44; FM-3.2 remains deferred (see above). Numbers are n=27 —
+directional, not decisive.
 
 ## The calibration lesson (v3 -> v4, kept for the record)
 

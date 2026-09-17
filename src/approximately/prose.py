@@ -47,17 +47,33 @@ def _is_harness(turn: str) -> bool:
     return any(lowered.startswith(p) for p in HARNESS_PREFIXES)
 
 
+# Adversarial or buggy agents can emit megabyte turns; the prose
+# family's comparisons are superlinear (SequenceMatcher, backtracking
+# regexes), so every turn is bounded before analysis. Evidence quotes
+# stay short, and 8k chars per turn keeps every real signal observed.
+_TEXT_LIMIT = 8000
+
+
+def _norm(text: str) -> str:
+    """Whitespace-normalized, length-bounded turn text."""
+    return " ".join(text.split())[:_TEXT_LIMIT]
+
+
 def _turns(trace: Trace) -> List[str]:
     """Normalized agent-turn texts, harness boilerplate removed."""
-    return [" ".join(step.result.split()) for step in trace.steps
-            if step.kind == TOOL_CALL and step.result
-            and not _is_harness(" ".join(step.result.split()))]
+    turns = []
+    for step in trace.steps:
+        if step.kind != TOOL_CALL or not step.result:
+            continue
+        text = _norm(step.result)
+        if text and not _is_harness(text):
+            turns.append(text)
+    return turns
 
 
 def _first_turns(trace: Trace) -> List[str]:
     """Normalized user-turn texts (converted plan steps)."""
-    return [" ".join((s.thought or "").split())
-            for s in trace.steps if s.thought]
+    return [_norm(s.thought) for s in trace.steps if s.thought]
 
 
 _PLACEHOLDER = re.compile(
@@ -301,6 +317,58 @@ _IDENTIFIER = re.compile(
     r"`?[A-Za-z_][A-Za-z0-9_]{2,}(?:\.[A-Za-z_][A-Za-z0-9_]*)+`?"
     r"|`[^`]{3,60}`")
 
+# Prompt-scaffold echo: a confused model sometimes repeats the
+# *instructions* describing where an action goes instead of producing
+# an action. Such text is not evidence of thought/action divergence —
+# there is no action to diverge.
+_ACTION_BOILERPLATE = (
+    "the action as block of code",
+    "observation: the result of the action",
+)
+
+_TOKEN_SPLIT = re.compile(r"[\W_]+", re.UNICODE)
+
+# Generic tool-invocation vocabulary — parameter names and shell
+# plumbing that carry no topical signal ("open_file(path=...,
+# start_line=...)") — plus frequent English function words (tokens are
+# kept at 3+ chars, so short stopwords must be listed explicitly).
+_TOPIC_STOP = frozenset({
+    "py", "io", "src", "test", "tests", "def", "init", "run", "result",
+    "print", "open", "path", "line", "start", "end", "python",
+    "python3", "bash", "code", "depth", "relative",
+    "the", "and", "for", "not", "but", "you", "are", "with", "this",
+    "that", "will", "can", "has", "its", "use", "get", "any",
+    "all", "may", "out", "see", "how",
+})
+
+# Shortest actionable content: below this the "action" half is a
+# truncated scaffold echo ("the action") rather than a step.
+_MIN_ACTION_CHARS = 16
+
+
+def _topic_tokens(text: str) -> set:
+    """Lowercased salient words: identifiers split into parts, generic
+    tool plumbing dropped."""
+    return {w for w in _TOKEN_SPLIT.split(text.lower())
+            if len(w) >= 3 and w not in _TOPIC_STOP}
+
+
+def _stem_match(a: str, b: str) -> bool:
+    """Equality or a >=6-char common prefix: ``Permutation`` matches
+    ``permutations``, ``separability`` matches ``separable``."""
+    if a == b:
+        return True
+    shared = 0
+    for x, y in zip(a, b):
+        if x != y:
+            break
+        shared += 1
+    return shared >= 6
+
+
+def _overlaps(left: set, right: set) -> bool:
+    return any(_stem_match(a, b) for a in left for b in right)
+
 
 class ProseThoughtActionDetector:
     """FM-2.6 in prose: the stated thought and the taken action diverge.
@@ -309,8 +377,20 @@ class ProseThoughtActionDetector:
     ("Thought: ... Action: ..."). The thought's distinctive entities
     (dotted identifiers, quoted names — method/file/class references)
     are what the agent *claims* to work on; if at least two such
-    entities exist and NONE of them appears in the action half, the
+    entities exist and the action half is about something else, the
     stated plan and the executed step have parted ways.
+
+    Three a-priori guards keep continuation steps from being flagged:
+
+    1. the action half must not be prompt-scaffold echo (no action at
+       all, so nothing can diverge);
+    2. entity continuity — the action references one of the thought's
+       entities at token level, including path/stem variants the raw
+       substring test misses (``from_file()`` vs ``"def from_file"``,
+       ``Permutation`` vs ``permutations.py``);
+    3. topical continuity — failing (2), the action still shares
+       salient vocabulary with the thought as a whole (the plan says
+       "check the backend docs", the action opens ``backends/``).
     """
 
     min_entities = 2
@@ -324,11 +404,26 @@ class ProseThoughtActionDetector:
             return None
         return turn[tpos + 8:apos], turn[apos + 7:]
 
+    @staticmethod
+    def _on_topic(thought: str, action: str, entities: set) -> bool:
+        lowered = action.lower()
+        if any(b in lowered for b in _ACTION_BOILERPLATE):
+            return True
+        if len(action.strip()) < _MIN_ACTION_CHARS:
+            return True
+        action_tokens = _topic_tokens(action)
+        if not action_tokens:
+            return True
+        if _overlaps(set().union(*[_topic_tokens(e) for e in entities]),
+                     action_tokens):
+            return True
+        return _overlaps(_topic_tokens(thought), action_tokens)
+
     def detect(self, trace: Trace) -> Optional["object"]:
         for step in trace.steps:
             if step.kind != TOOL_CALL or not step.result:
                 continue
-            turn = " ".join(step.result.split())
+            turn = _norm(step.result)
             halves = self._halves(turn)
             if halves is None:
                 continue
@@ -339,16 +434,18 @@ class ProseThoughtActionDetector:
                 continue
             if any(e in action for e in entities):
                 continue
+            if self._on_topic(thought, action, entities):
+                continue
             from .detectors import Detection
 
             return Detection(
                 "FM-2.6",
                 step.index,
                 [(f"thought names {sorted(entities)[:3]} but the action "
-                  "half references none of them — stated plan and "
-                  "executed step have diverged"),
+                  "half shares none of their vocabulary — stated plan "
+                  "and executed step have diverged"),
                  f"action: \"{action[:100]}\""],
-                0.55,
+                0.7,
                 source="rule:ProseThoughtActionDetector",
             )
         return None
