@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.31.0 — 2026-09-17
+
+- **Outcome-level verification analysis (FM-3.2)**: new
+  `ProseOutcomeVerifyDetector` reads the execution record, not the
+  vocabulary — a closing message that asserts resolution with zero
+  outcome signals anywhere in the record (no test summary, pass/fail
+  count, or error trace) is an unchecked claim. Completion-claim
+  vocabulary deliberately excludes execution-shaped language ("the
+  script executed successfully" reports a run, it does not claim the
+  outcome is good). First nonzero FM-3.2 score on real MAST-Data:
+  P 0.54 · R 0.64 · F1 0.58 (was 0.00/0.00/0.00); corpus sample
+  F1 0.29 → 0.43.
+- 8 new tests; suite at 527 passing.
+
 ## 0.30.0 — 2026-09-17
 
 - **FM-2.6 action-continuity guards**: the thought/action divergence
