@@ -16,6 +16,7 @@ the last successful one — the first ``mutated`` is where behavior broke.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from difflib import SequenceMatcher
 from enum import Enum
 from typing import List, Tuple
 
@@ -43,6 +44,7 @@ class DiffEntry:
     a_tool: str | None
     b_tool: str | None
     detail: str = ""
+    similarity: float = 1.0  # char ratio of the paired step results
 
     @property
     def symbol(self) -> str:
@@ -72,6 +74,11 @@ class TraceDiff:
         for entry in self.entries:
             counts[entry.op] += 1
         return counts
+
+    def divergences(self, limit: int = 5) -> List[DiffEntry]:
+        """Differing entries, most-different first (char similarity)."""
+        rows = [e for e in self.entries if e.op != Op.EQUAL]
+        return sorted(rows, key=lambda e: e.similarity)[:limit]
 
     def summary(self) -> str:
         c = self.counts
@@ -127,21 +134,27 @@ def _traceback(dp, toks_a, toks_b, steps_a, steps_b) -> List[DiffEntry]:
                 sa = steps_a[i - 1]
                 sb = steps_b[j - 1]
                 detail = ""
+                similarity = 1.0
                 if op == Op.MUTATED:
                     detail = f"{_preview(sa.result)} vs {_preview(sb.result)}"
+                    similarity = SequenceMatcher(
+                        None, _norm(sa.result), _norm(sb.result)
+                    ).ratio()
                 entries.append(DiffEntry(
-                    op, sa.index, sb.index, sa.tool, sb.tool, detail))
+                    op, sa.index, sb.index, sa.tool, sb.tool, detail,
+                    round(similarity, 3)))
                 i, j = i - 1, j - 1
                 continue
         if i > 0 and dp[i][j] == dp[i - 1][j] + GAP_PENALTY:
             sa = steps_a[i - 1]
             entries.append(DiffEntry(Op.DELETED, sa.index, None,
-                                     sa.tool, None, _preview(sa.result)))
+                                     sa.tool, None, _preview(sa.result),
+                                     0.0))
             i -= 1
             continue
         sb = steps_b[j - 1]
         entries.append(DiffEntry(Op.INSERTED, None, sb.index, None,
-                                 sb.tool, _preview(sb.result)))
+                                 sb.tool, _preview(sb.result), 0.0))
         j -= 1
     entries.reverse()  # traceback walked newest-first
     return entries
@@ -167,5 +180,9 @@ def diff(a: Trace, b: Trace) -> TraceDiff:
 
 
 def _preview(text: str, limit: int = 40) -> str:
-    text = " ".join((text or "").split())
+    text = _norm(text)
     return text[:limit] + ("..." if len(text) > limit else "")
+
+
+def _norm(text: str) -> str:
+    return " ".join((text or "").split())
