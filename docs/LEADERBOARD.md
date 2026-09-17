@@ -73,7 +73,9 @@ FM-1.3 x7, FM-2.2 x5, FM-2.6 x2, FM-1.2 x4, FM-2.4 x4, FM-2.5 x2, ...
 | FM-1.3 repetition | 1.00 | 0.14 | 0.25 |
 | others (FM-1.2/2.2/2.3/2.4/2.5/3.1) | 0 | 0 | 0 |
 
-Read of it: the shingle restart detector is *strong* on real annotated
+Since v0.35 the CLI prints 95% Wilson intervals beside every P and R
+(FM-2.1's P 0.93 is [0.69, 0.99] — strong, but n=27). Read of it: the
+shingle restart detector is *strong* on real annotated
 data (13/13 recall, one false positive across 27 runs); repetition has
 frontier-grade precision but misses echo variants; the thought/action
 divergence heuristic over-fired on log-style traces (14 false

@@ -208,7 +208,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.32** — `diff --json` with per-entry divergence scores: CI can assert "worst mutation still >0.9 similar" instead of eyeballing previews
 - ✅ **v0.33** — query DSL: `query "success == false and task contains 'fix'"` — recursive-descent expression language over the store, eval-free, `--json`
 - ✅ **v0.34** — fleet watch loop: `fleet --watch SECONDS --digest-dir DIR` writes rotating JSONL trend snapshots (`--iterations` for cron)
-- 🔜 **next** — Wilson intervals on benchmark metrics · Mermaid export · zero-dep MCP server
+- ✅ **v0.35** — 95% Wilson intervals on every benchmark P/R (FM-2.1 P 0.93 [0.69, 0.99]) — uncertainty built into the leaderboard, not a footnote
+- 🔜 **next** — Mermaid export · zero-dep MCP server
 
 Full design document: [docs/PLAN.md](docs/PLAN.md).
 
