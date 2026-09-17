@@ -206,7 +206,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.30** — FM-2.6 action-continuity guards (real-data precision 0.07 → 0.33, F1 0.12 → 0.40 at unchanged recall) · bounded prose analysis: megabyte-turn DoS fixed (>20 s → ~1 ms)
 - ✅ **v0.31** — outcome-level verification analysis (FM-3.2 first nonzero on real data: P 0.54 · R 0.64 · F1 0.58 — completion claim + zero outcome signals in the record = unchecked claim)
 - ✅ **v0.32** — `diff --json` with per-entry divergence scores: CI can assert "worst mutation still >0.9 similar" instead of eyeballing previews
-- 🔜 **next** — query DSL · SARIF export · fleet watch loop · zero-dep MCP server
+- ✅ **v0.33** — query DSL: `query "success == false and task contains 'fix'"` — recursive-descent expression language over the store, eval-free, `--json`
+- 🔜 **next** — SARIF export · fleet watch loop · zero-dep MCP server
 
 Full design document: [docs/PLAN.md](docs/PLAN.md).
 
