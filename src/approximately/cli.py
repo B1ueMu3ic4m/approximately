@@ -173,6 +173,13 @@ def cmd_report(args: argparse.Namespace) -> int:
     out = Path(args.output) if args.output else store.directory / f"{trace.id}.report.html"
     out.write_text(render_html(trace, report), encoding="utf-8")
     print(f"wrote {out}")
+    if getattr(args, "mermaid", None):
+        from .mermaid import render_mermaid
+
+        mmd = Path(args.mermaid)
+        mmd.write_text(render_mermaid(trace, report.detections),
+                       encoding="utf-8")
+        print(f"wrote mermaid sequence diagram: {mmd}")
     return 0
 
 
@@ -929,6 +936,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--all", action="store_true",
                    help="render an index page over every trace in the store")
     p.add_argument("-o", "--output", help="output HTML path")
+    p.add_argument("--mermaid", help="also write a mermaid sequence "
+                                     "diagram of the trace to this path "
+                                     "(pastes into GitHub markdown)")
     p.add_argument("--judge", action="store_true")
     p.set_defaults(func=cmd_report)
 

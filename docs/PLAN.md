@@ -421,8 +421,9 @@ framework adapters import lazily and degrade when the framework is absent.
    (delivered): 95% Wilson intervals beside every per-mode P and R in
    text and HTML output — uncertainty is part of the report, not a
    footnote (FM-2.1 P 0.93 [0.69, 0.99]; FM-3.2 R 0.64 [0.35, 0.85]).
-9. **v0.36 — Mermaid export**: `report --mermaid` rendering the
-   attributed trace as a mermaid sequenceDiagram for docs/PRs.
+9. **v0.36 — Mermaid export** ✅ (delivered): `report TRACE
+   --mermaid path.mmd` — sequenceDiagram with failure notes,
+   paste-ready for GitHub markdown.
 10. **v0.37 — zero-dependency MCP stdio server**: JSON-RPC 2.0 over
     stdio exposing list/query/attribute/verify/survey as MCP tools.
 

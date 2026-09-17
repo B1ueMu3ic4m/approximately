@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.36.0 — 2026-09-17
+
+- **Mermaid export**: `report TRACE --mermaid path.mmd` renders the
+  attributed trace as a mermaid `sequenceDiagram` — steps in order,
+  failure detections as ⚠ notes over the offending step — ready to
+  paste into GitHub READMEs, PR descriptions, and issues.
+- 6 new tests; suite at 579 passing.
+
 ## 0.35.0 — 2026-09-17
 
 - **Wilson score intervals on benchmark metrics**: every per-mode
