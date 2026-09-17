@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.33.0 — 2026-09-17
+
+- **Query DSL**: `query "success == false and task contains 'fix'"`
+  — a small expression language over the trace store: recursive-
+  descent parser (precedence `or` < `and` < `not`, parentheses), 9
+  trace fields (`id task success model created steps tokens duration
+  mode`), 7 operators (`== != >= <= > < contains startswith`), and
+  `mode == FM-x.y` membership against detected failure modes.
+  `--json` emits full records. No `eval`: the parser produces
+  comparison closures only; expressions are depth-capped (50) and
+  length-capped (4000 chars) against parser stack attacks.
+- 23 new tests; suite at 557 passing.
+
 ## 0.32.0 — 2026-09-17
 
 - **`diff --json` + per-entry similarity**: every mutated entry in
