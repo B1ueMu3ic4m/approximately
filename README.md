@@ -205,7 +205,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.24–v0.29** — multi-label evaluation (set-based P/R/F1; FM-2.1 F1 0.96 on real annotated data) · replay `--html` A/B page · terminal sparkline · bounded webhook retries · doc-artifact pipeline
 - ✅ **v0.30** — FM-2.6 action-continuity guards (real-data precision 0.07 → 0.33, F1 0.12 → 0.40 at unchanged recall) · bounded prose analysis: megabyte-turn DoS fixed (>20 s → ~1 ms)
 - ✅ **v0.31** — outcome-level verification analysis (FM-3.2 first nonzero on real data: P 0.54 · R 0.64 · F1 0.58 — completion claim + zero outcome signals in the record = unchecked claim)
-- 🔜 **next** — paraphrase-level restart detection · trace diff · query DSL · SARIF export · zero-dep MCP server
+- ✅ **v0.32** — `diff --json` with per-entry divergence scores: CI can assert "worst mutation still >0.9 similar" instead of eyeballing previews
+- 🔜 **next** — query DSL · SARIF export · fleet watch loop · zero-dep MCP server
 
 Full design document: [docs/PLAN.md](docs/PLAN.md).
 
