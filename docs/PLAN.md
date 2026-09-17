@@ -406,8 +406,10 @@ framework adapters import lazily and degrade when the framework is absent.
    "trace diff" already shipped in v0.6 — this round upgrades it
    instead of duplicating it; a duplicate subparser built during the
    round was caught by the new tests before push.)
-5. **v0.34 — query DSL**: `query "mode == FM-2.1 and confidence >= 0.7"`
-   — tokenizer + recursive-descent parser + evaluator over the store.
+5. **v0.33 — query DSL** ✅ (delivered): recursive-descent expression
+   language over the store — `query "mode == FM-2.1 and confidence
+   >= 0.7"`-style selection with `--json`, eval-free closures,
+   depth/length caps against parser attacks.
 6. **v0.35 — SARIF export**: `attribute --sarif out.sarif` emitting
    SARIF 2.1.0 so attributed failures surface in code-scanning UIs.
 7. **v0.36 — fleet watch/digest loop**: `fleet --watch SECONDS
