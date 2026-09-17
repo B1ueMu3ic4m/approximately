@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.32.0 — 2026-09-17
+
+- **`diff --json` + per-entry similarity**: every mutated entry in
+  the Needleman-Wunsch edit script now carries a character-similarity
+  score of the paired step results (gaps score 0.0), and
+  `TraceDiff.divergences()` ranks differing entries worst-first.
+  `diff --json` emits counts, alignment similarity, and all differing
+  entries with scores — CI can now assert "the worst mutation is
+  still >0.9 similar" instead of eyeballing previews.
+- 7 new tests; suite at 534 passing.
+
 ## 0.31.0 — 2026-09-17
 
 - **Outcome-level verification analysis (FM-3.2)**: new
