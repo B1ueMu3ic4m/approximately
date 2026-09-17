@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.34.0 — 2026-09-17
+
+- **Fleet watch loop**: `fleet STORES --watch SECONDS --digest-dir
+  DIR [--iterations N] [--keep-days DAYS]` — polls the fleet and
+  appends one JSONL snapshot per cycle (per-store trace counts,
+  failure rates, trend verdicts, worsening flags) to daily
+  `digest-YYYYMMDD.jsonl` files with automatic retention rotation.
+  `--iterations` makes it cron-friendly (N snapshots then exit);
+  SIGTERM/Ctrl-C stop cleanly. The documented digest pattern
+  (docs/FLEET-DIGEST.md) is now a shipped command.
+- 8 new tests; suite at 564 passing.
+
 ## 0.33.0 — 2026-09-17
 
 - **Query DSL**: `query "success == false and task contains 'fix'"`

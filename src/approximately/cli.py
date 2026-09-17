@@ -498,10 +498,34 @@ def _fleet_notify(summaries, url: str) -> None:
         print(f"webhook failed: {exc}", file=sys.stderr)
 
 
+def _fleet_watch(args: argparse.Namespace, stores) -> int:
+    import signal
+
+    from .fleet import watch_fleet
+
+    def _stop(signum, frame):
+        raise KeyboardInterrupt
+
+    signal.signal(signal.SIGTERM, _stop)
+    try:
+        written = watch_fleet(
+            stores, Path(args.digest_dir), float(args.watch),
+            keep_days=args.keep_days,
+            iterations=getattr(args, "iterations", None))
+    except KeyboardInterrupt:
+        print("watch stopped")
+        return 0
+    print(f"wrote {written} snapshot(s) to {args.digest_dir}")
+    return 0
+
+
 def cmd_fleet(args: argparse.Namespace) -> int:
     from .fleet import render_fleet_html, survey
 
-    summaries = survey([Path(d) for d in args.stores])
+    stores = [Path(d) for d in args.stores]
+    if getattr(args, "watch", None):
+        return _fleet_watch(args, stores)
+    summaries = survey(stores)
     if getattr(args, "json", False):
         from .fleet import webhook_payload
 
@@ -1046,6 +1070,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--webhook", help="POST a JSON fleet summary to this "
                                      "URL (HMAC-signed when "
                                      "APPROXIMATELY_SIGNING_KEY is set)")
+    p.add_argument("--watch", type=float,
+                   help="poll the fleet every SECONDS seconds, appending "
+                        "a JSONL snapshot to --digest-dir each cycle "
+                        "(Ctrl-C to stop)")
+    p.add_argument("--digest-dir",
+                   help="directory for watch-loop JSONL snapshots "
+                        "(required with --watch)")
+    p.add_argument("--keep-days", type=int, default=30,
+                   help="watch loop: delete digest files older than "
+                        "DAYS days (default 30)")
+    p.add_argument("--iterations", type=int,
+                   help="watch loop: stop after N snapshots instead of "
+                        "running until interrupted (cron-friendly)")
     p.set_defaults(func=cmd_fleet)
 
     p = sub.add_parser("anomalies", parents=[common],
