@@ -793,7 +793,10 @@ def _benchmark_multi(labeled, args: argparse.Namespace) -> int:
           f"recall {multi.sample_recall:.2f}, F1 {multi.macro_f1:.2f}")
     for mode_id, m in sorted(multi.per_mode.items()):
         print(f"  {mode_id:<7} P {m['precision']:.2f} "
-              f"R {m['recall']:.2f} F1 {m['f1']:.2f} "
+              f"[{m['precision_ci'][0]:.2f},{m['precision_ci'][1]:.2f}] "
+              f"R {m['recall']:.2f} "
+              f"[{m['recall_ci'][0]:.2f},{m['recall_ci'][1]:.2f}] "
+              f"F1 {m['f1']:.2f} "
               f"(tp {m['tp']} fp {m['fp']} fn {m['fn']})")
     if args.html:
         out = Path(args.html)
