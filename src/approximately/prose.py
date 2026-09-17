@@ -451,6 +451,92 @@ class ProseThoughtActionDetector:
         return None
 
 
+# Outcome signals (v0.31): execution evidence in the record. A turn
+# carries an outcome signal when a tool result shows a test summary,
+# a pass/fail count, or an error trace — the record of *having
+# checked something*, independent of what any prose says.
+_OUTCOME_FAILURE = re.compile(
+    r"\d+ failed|FAILED \[|FAILED \("
+    r"|Traceback \(most recent call last\)|AssertionError")
+_OUTCOME_SUCCESS = re.compile(
+    r"\d+ passed|All tests passed|Ran \d+ tests?[^O]*OK")
+
+# Completion-claim vocabulary: the final message asserts the task
+# itself is resolved. Deliberately excludes execution-shaped language
+# ("the script executed successfully", "the test passed") — those
+# report a run, they do not claim the outcome is good.
+_COMPLETION_CLAIM = re.compile(
+    r"\b("
+    r"(?:we|i|these changes|our changes|modifications?)\s+(?:have\s+"
+    r"|has\s+)?(?:now\s+)?(?:successfully\s+)?"
+    r"(?:resolved|fixed|addressed|solved)"
+    r"|(?:issue|bug|problem)\s+(?:is|has\s+been)\s+(?:now\s+)?"
+    r"(?:resolved|fixed|solved|addressed)"
+    r"|solution\s+(?:successfully\s+)?(?:addresses|works\s+as\s+intended)"
+    r"|all\s+tests?\s+(?:now\s+)?pass(?:ed|ing)?"
+    r"|task\s+is\s+complete"
+    r")\b", re.IGNORECASE)
+
+
+def _closing_messages(trace: Trace) -> List[str]:
+    """The agent's closing words: recorded final output, the last
+    non-empty thought, and the last turn text (converted
+    trajectories put the answer in different homes)."""
+    candidates: List[str] = []
+    if trace.final_output:
+        candidates.append(_norm(trace.final_output))
+    for step in reversed(trace.steps):
+        if step.thought and step.thought.strip():
+            candidates.append(_norm(step.thought))
+            break
+    for step in reversed(trace.steps):
+        if step.kind == TOOL_CALL and step.result and step.result.strip():
+            candidates.append(_norm(step.result))
+            break
+    return candidates
+
+
+class ProseOutcomeVerifyDetector:
+    """FM-3.2 at outcome level: a completion claim, never checked.
+
+    ``ProseNoVerifyDetector`` reads verification *language*; an agent
+    that says "I'll run the tests" satisfies it without running
+    anything. This detector reads the execution record instead: if no
+    turn carries any outcome signal (no test summary, no pass/fail
+    count, no error trace) while the closing message asserts the task
+    is resolved, the claim was never checked — FM-3.2, "no attempt to
+    verify outcome", detected on outcomes rather than vocabulary.
+    """
+
+    def detect(self, trace: Trace) -> Optional["object"]:
+        turns = _turns(trace)
+        if len(turns) < 2:
+            return None
+        if any(_OUTCOME_FAILURE.search(t) or _OUTCOME_SUCCESS.search(t)
+               for t in turns):
+            return None
+        claim = None
+        for text in _closing_messages(trace):
+            claim = _COMPLETION_CLAIM.search(text)
+            if claim:
+                break
+        if not claim:
+            return None
+        from .detectors import Detection
+
+        return Detection(
+            "FM-3.2",
+            len(trace.steps) - 1,
+            [("final message asserts the task is resolved, but no turn "
+              "in the record carries an outcome signal (no test "
+              "summary, pass/fail count, or error trace) — the claim "
+              "was never checked"),
+             f"claim: \"{claim.group(0)}\""],
+            0.7,
+            source="rule:ProseOutcomeVerifyDetector",
+        )
+
+
 PROSE_DETECTORS: List[Any] = [
     ProseRepeatDetector(),
     ProseRestartDetector(),
@@ -458,4 +544,5 @@ PROSE_DETECTORS: List[Any] = [
     ProseNoVerifyDetector(),
     ProseAmbiguityDetector(),
     ProseThoughtActionDetector(),
+    ProseOutcomeVerifyDetector(),
 ]

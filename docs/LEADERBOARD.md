@@ -68,9 +68,9 @@ FM-1.3 x7, FM-2.2 x5, FM-2.6 x2, FM-1.2 x4, FM-2.4 x4, FM-2.5 x2, ...
 | mode | precision | recall | F1 |
 |---|---|---|---|
 | **FM-2.1 restart** | **0.93** | **1.00** | **0.96** |
+| FM-3.2 outcome-verify (v0.31) | 0.54 | 0.64 | 0.58 |
 | FM-2.6 thought/action (v0.30 guards) | 0.33 | 0.50 | 0.40 |
 | FM-1.3 repetition | 1.00 | 0.14 | 0.25 |
-| FM-3.2 verification | 0.00 | 0.00 | 0.00 |
 | others (FM-1.2/2.2/2.3/2.4/2.5/3.1) | 0 | 0 | 0 |
 
 Read of it: the shingle restart detector is *strong* on real annotated
@@ -80,9 +80,13 @@ divergence heuristic over-fired on log-style traces (14 false
 positives, precision 0.07) until v0.30's action-continuity guards —
 prompt-scaffold echo, entity-token continuity (path/stem/bare-name
 variants), thought-context continuity — cut it to 2 (precision 0.33,
-F1 0.40, recall unchanged) at corpus level sample precision 0.30 →
-0.44; FM-3.2 remains deferred (see above). Numbers are n=27 —
-directional, not decisive.
+F1 0.40, recall unchanged); v0.31 added outcome-level verification
+analysis (completion claim + zero outcome signals in the record =
+unchecked claim), the first nonzero FM-3.2 score. Corpus-level sample
+precision 0.30 → 0.54, F1 0.25 → 0.43 across v0.30+v0.31. FM-3.1
+("claiming done while it is not true") remains open — it needs
+ground truth about the claim being false, which no record-level rule
+can have. Numbers are n=27 — directional, not decisive.
 
 ## The calibration lesson (v3 -> v4, kept for the record)
 

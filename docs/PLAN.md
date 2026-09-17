@@ -390,11 +390,11 @@ framework adapters import lazily and degrade when the framework is absent.
    sample precision 0.30 → 0.44. Bonus: stress test exposed an
    O(n²)-backtracking DoS on megabyte turns — prose analysis now
    bounded at 8k chars/turn (1 MB turn: >20 s → ~1 ms).
-2. **v0.31 — outcome-signal verification (FM-3.2 step 2)**: parse
-   structured outcome signals from tool results (exit codes, test
-   summaries, PASS/FAIL lines, HTTP status) and cross-check them
-   against agent success claims — regex over outcomes, not over
-   semantics, so no gold-fitting.
+2. **v0.31 — outcome-signal verification (FM-3.2 step 2)** ✅
+   (delivered): `ProseOutcomeVerifyDetector` — completion-claim
+   vocabulary (execution-shaped language excluded) + zero outcome
+   signals in the record = unchecked claim. First nonzero FM-3.2:
+   P 0.54 · R 0.64 · F1 0.58; corpus sample F1 0.29 → 0.43.
 3. **v0.32 — paraphrase restart (FM-2.1 step 2)**: order-sensitive
    similarity (token bigram overlap with position weighting) to catch
    reworded task restatements the verbatim/shingle gates miss.
