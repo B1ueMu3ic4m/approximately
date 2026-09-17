@@ -505,6 +505,12 @@ def _fleet_notify(summaries, url: str) -> None:
         print(f"webhook failed: {exc}", file=sys.stderr)
 
 
+def cmd_mcp(args: argparse.Namespace) -> int:
+    from .mcp_server import cmd_mcp as _serve_mcp
+
+    return _serve_mcp(args)
+
+
 def _fleet_watch(args: argparse.Namespace, stores) -> int:
     import signal
 
@@ -1097,6 +1103,12 @@ def build_parser() -> argparse.ArgumentParser:
                    help="watch loop: stop after N snapshots instead of "
                         "running until interrupted (cron-friendly)")
     p.set_defaults(func=cmd_fleet)
+
+    p = sub.add_parser("mcp", parents=[common],
+                       help="serve the toolkit as an MCP (Model Context "
+                            "Protocol) stdio server — JSON-RPC 2.0, "
+                            "zero dependencies")
+    p.set_defaults(func=cmd_mcp)
 
     p = sub.add_parser("anomalies", parents=[common],
                        help="robust latency anomalies (median/MAD z-score)")

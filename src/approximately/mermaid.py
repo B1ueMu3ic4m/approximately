@@ -27,8 +27,8 @@ def _step_lines(step, by_step: dict) -> List[str]:
     """Diagram lines for one step (plus a warning note on failure)."""
     idx = step.index
     if step.kind == TOOL_CALL:
-        lines = [f"    A->>A: [{idx}] {_sanitize(step.tool or '')}"
-                 f" {_sanitize(step.result)}"]
+        lines = [(f"    A->>A: [{idx}] {_sanitize(step.tool or '')}"
+                  f" {_sanitize(step.result)}")]
     else:
         note = step.thought or step.result or ""
         lines = ([f"    Note over A: [{idx}] {_sanitize(note)}"]
