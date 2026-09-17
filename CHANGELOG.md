@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.37.0 — 2026-09-17
+
+- **MCP stdio server**: `approximately mcp --store PATH` speaks
+  JSON-RPC 2.0 over line-delimited stdio — the transport Claude
+  Desktop, Zed and other MCP clients use — exposing the toolkit as
+  five tools: `list_traces`, `attribute`, `verify`, `survey`,
+  `query`. Standard library only (no MCP SDK); -32700/-32600/-32601/
+  -32602 error codes; 1 MB line cap against memory ballooning.
+- 15 new tests + subprocess end-to-end; suite at 594 passing.
+
 ## 0.36.0 — 2026-09-17
 
 - **Mermaid export**: `report TRACE --mermaid path.mmd` renders the
