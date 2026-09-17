@@ -343,12 +343,30 @@ def cmd_drift(args: argparse.Namespace) -> int:
 
 
 def cmd_diff(args: argparse.Namespace) -> int:
+    from .diff import Op
     from .diff import diff as trace_diff
 
     store = TraceStore(args.store)
     trace_a = _load_trace(args.trace, store)
     trace_b = _load_trace(args.other, store)
     result = trace_diff(trace_a, trace_b)
+    if getattr(args, "json", None):
+        counts = result.counts
+        print(json.dumps({
+            "a_id": result.a_id, "b_id": result.b_id,
+            "similarity": round(result.similarity, 3),
+            "equal": counts[Op.EQUAL], "mutated": counts[Op.MUTATED],
+            "deleted": counts[Op.DELETED],
+            "inserted": counts[Op.INSERTED],
+            "entries": [{"op": e.symbol,
+                         "a_index": e.a_index, "b_index": e.b_index,
+                         "a_tool": e.a_tool, "b_tool": e.b_tool,
+                         "similarity": e.similarity,
+                         "detail": e.detail}
+                        for e in result.entries
+                        if e.op != Op.EQUAL],
+        }, indent=2))
+        return 0
     print(result.summary())
     return 0
 
@@ -939,6 +957,9 @@ def build_parser() -> argparse.ArgumentParser:
                             "success is the classic use)")
     p.add_argument("trace")
     p.add_argument("other", help="the trace to compare against")
+    p.add_argument("--json", action="store_true",
+                   help="emit counts plus every differing entry (with "
+                        "per-entry similarity) as JSON")
     p.set_defaults(func=cmd_diff)
 
     p = sub.add_parser("repair", parents=[common],

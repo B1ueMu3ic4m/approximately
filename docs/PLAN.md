@@ -395,12 +395,17 @@ framework adapters import lazily and degrade when the framework is absent.
    vocabulary (execution-shaped language excluded) + zero outcome
    signals in the record = unchecked claim. First nonzero FM-3.2:
    P 0.54 · R 0.64 · F1 0.58; corpus sample F1 0.29 → 0.43.
-3. **v0.32 — paraphrase restart (FM-2.1 step 2)**: order-sensitive
-   similarity (token bigram overlap with position weighting) to catch
-   reworded task restatements the verbatim/shingle gates miss.
-4. **v0.33 — `trace diff` command**: structural A/B diff of two traces
-   (step alignment via SequenceMatcher, verdict/step-count deltas,
-   top divergent steps, --json).
+3. **v0.32 — paraphrase restart (FM-2.1 step 2)** — **deferred with
+   reason**: FM-2.1 already measures P 0.93 / R 1.00 on the only
+   human-annotated corpus available; no labeled paraphrase-restart
+   data exists, so tuning order-sensitive similarity would be
+   unfalsifiable (same discipline as the FM-3.1 deferral).
+4. **v0.32 — `diff --json` + divergence ranking** ✅ (delivered):
+   per-entry char similarity on the NW edit script, worst-first
+   `divergences()`, machine output for CI gates. (The planned
+   "trace diff" already shipped in v0.6 — this round upgrades it
+   instead of duplicating it; a duplicate subparser built during the
+   round was caught by the new tests before push.)
 5. **v0.34 — query DSL**: `query "mode == FM-2.1 and confidence >= 0.7"`
    — tokenizer + recursive-descent parser + evaluator over the store.
 6. **v0.35 — SARIF export**: `attribute --sarif out.sarif` emitting
