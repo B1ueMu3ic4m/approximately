@@ -424,8 +424,9 @@ framework adapters import lazily and degrade when the framework is absent.
 9. **v0.36 — Mermaid export** ✅ (delivered): `report TRACE
    --mermaid path.mmd` — sequenceDiagram with failure notes,
    paste-ready for GitHub markdown.
-10. **v0.37 — zero-dependency MCP stdio server**: JSON-RPC 2.0 over
-    stdio exposing list/query/attribute/verify/survey as MCP tools.
+10. **v0.37 — zero-dependency MCP stdio server** ✅ (delivered):
+    `approximately mcp` — JSON-RPC 2.0 over stdio, five tools
+    (list_traces/attribute/verify/survey/query), stdlib-only.
 
 ---
 
