@@ -410,12 +410,21 @@ framework adapters import lazily and degrade when the framework is absent.
    language over the store — `query "mode == FM-2.1 and confidence
    >= 0.7"`-style selection with `--json`, eval-free closures,
    depth/length caps against parser attacks.
-6. **v0.35 — SARIF export**: `attribute --sarif out.sarif` emitting
-   SARIF 2.1.0 so attributed failures surface in code-scanning UIs.
-7. **v0.36 — fleet watch/digest loop**: `fleet --watch SECONDS
-   --digest-dir DIR` writing timestamped JSONL snapshots with rotation.
-8. **v0.37 — zero-dependency MCP stdio server**: JSON-RPC 2.0 over
-   stdio exposing list/attribute/verify/survey as MCP tools.
+6. **v0.34 — SARIF export** — already shipped (v0.4): roadmap audit
+   found `attribute --sarif` live with GitHub code-scanning
+   integration; superseded by the fleet watch loop below.
+7. **v0.34 — fleet watch/digest loop** ✅ (delivered): `fleet
+   --watch SECONDS --digest-dir DIR` polling survey() into daily
+   JSONL snapshots with `--keep-days` rotation and `--iterations`
+   for cron-friendly bounded runs.
+8. **v0.35 — Wilson score intervals on benchmark metrics**: the
+   leaderboard's P/R/F1 are point estimates on small n; report
+   95% Wilson intervals for precision/recall so honesty about
+   uncertainty is built into the benchmark output.
+9. **v0.36 — Mermaid export**: `report --mermaid` rendering the
+   attributed trace as a mermaid sequenceDiagram for docs/PRs.
+10. **v0.37 — zero-dependency MCP stdio server**: JSON-RPC 2.0 over
+    stdio exposing list/query/attribute/verify/survey as MCP tools.
 
 ---
 

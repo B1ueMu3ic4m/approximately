@@ -14,6 +14,7 @@ everything user-controlled is escaped before it touches markup.
 from __future__ import annotations
 
 import datetime
+import json
 import time
 import urllib.error
 import urllib.parse
@@ -267,3 +268,50 @@ by approximately</div>
 <a href="https://github.com/B1ueMu3ic4m/approximately">approximately</a>
 · taxonomy: MAST (arXiv:2503.13657)</footer>
 </main></body></html>"""
+
+
+def digest_snapshot(summaries: List[StoreSummary]) -> dict:
+    """One JSONL line for the watch loop: fleet state at a timestamp."""
+    return {
+        "ts": time.time(),
+        "stores": webhook_payload(summaries)["stores"],
+        "worsening": [s.name for s in summaries if s.worsening],
+    }
+
+
+def append_digest(digest_dir: Path, snapshot: dict) -> Path:
+    """Append one snapshot line to the current day's JSONL file."""
+    digest_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.datetime.now().strftime("%Y%m%d")
+    path = digest_dir / f"digest-{stamp}.jsonl"
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(snapshot, sort_keys=True) + "\n")
+    return path
+
+
+def rotate_digests(digest_dir: Path, keep_days: int) -> List[Path]:
+    """Delete digest files older than ``keep_days``; returns removed."""
+    cutoff = time.time() - keep_days * 86400
+    removed = []
+    for path in digest_dir.glob("digest-*.jsonl"):
+        if path.stat().st_mtime < cutoff:
+            path.unlink()
+            removed.append(path)
+    return removed
+
+
+def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
+                keep_days: int = 30, iterations: Optional[int] = None,
+                sleep=time.sleep) -> int:
+    """Poll the fleet forever (or ``iterations`` times), appending
+    snapshots. Returns the number of snapshots written. ``sleep`` is
+    injectable so tests run instantly."""
+    written = 0
+    rotate_digests(digest_dir, keep_days)
+    for _ in (range(iterations) if iterations is not None
+              else iter(int, 1)):
+        snapshot = digest_snapshot(survey(stores))
+        append_digest(digest_dir, snapshot)
+        written += 1
+        sleep(interval)
+    return written
