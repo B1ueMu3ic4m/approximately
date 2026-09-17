@@ -109,20 +109,47 @@ class BenchmarkResult:
             f"macro-F1 {self.macro_f1:.2f}")
         ]
         for mode_id, m in sorted(self.per_mode.items()):
+            p_lo, p_hi = m["precision_ci"]
+            r_lo, r_hi = m["recall_ci"]
             lines.append(
                 f"  {mode_id:<7} P {m['precision']:.2f} "
-                f"R {m['recall']:.2f} F1 {m['f1']:.2f} "
+                f"[{p_lo:.2f},{p_hi:.2f}] "
+                f"R {m['recall']:.2f} [{r_lo:.2f},{r_hi:.2f}] "
+                f"F1 {m['f1']:.2f} "
                 f"(tp {m['tp']} fp {m['fp']} fn {m['fn']})"
             )
         return "\n".join(lines)
+
+
+def wilson_interval(successes: int, n: int,
+                    z: float = 1.96) -> tuple:
+    """95% Wilson score interval for a binomial proportion.
+
+    Point estimates on small samples lie; the Wilson interval
+    (Wilson 1927) stays inside [0, 1] and doesn't blow up at 0 or n
+    the way the naive normal approximation does. Returns
+    ``(low, high)``; ``(0.0, 0.0)`` for empty samples.
+    """
+    if n <= 0:
+        return (0.0, 0.0)
+    p = successes / n
+    denom = 1.0 + z * z / n
+    center = (p + z * z / (2 * n)) / denom
+    spread = (z * ((p * (1.0 - p) / n
+                    + z * z / (4.0 * n * n)) ** 0.5)) / denom
+    return (max(0.0, center - spread), min(1.0, center + spread))
 
 
 def _prf(tp: int, fp: int, fn: int) -> dict:
     precision = tp / (tp + fp) if tp + fp else 0.0
     recall = tp / (tp + fn) if tp + fn else 0.0
     f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+    p_lo, p_hi = wilson_interval(tp, tp + fp)
+    r_lo, r_hi = wilson_interval(tp, tp + fn)
     return {"tp": tp, "fp": fp, "fn": fn,
-            "precision": precision, "recall": recall, "f1": f1}
+            "precision": precision, "recall": recall, "f1": f1,
+            "precision_ci": (round(p_lo, 3), round(p_hi, 3)),
+            "recall_ci": (round(r_lo, 3), round(r_hi, 3))}
 
 
 def evaluate(labeled: List[tuple], labeler: Labeler) -> BenchmarkResult:
@@ -313,6 +340,7 @@ td { padding: 7px 10px; border-bottom: 1px solid #eef0f2; }
 .bar { height: 9px; border-radius: 5px; background: #1c7430; opacity: .8;
        min-width: 2px; display: inline-block; vertical-align: middle; }
 .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.ci { display: block; color: #868e96; font-size: 11px; }
 footer { margin-top: 22px; color: #adb5bd; font-size: 12.5px; text-align: center; }
 """
 
@@ -348,12 +376,16 @@ def render_leaderboard_html(result: BenchmarkResult, source: str,
     for mode_id, m in sorted(result.per_mode.items(),
                              key=lambda kv: -kv[1]["f1"]):
         label = get_mode(mode_id).label  # falls back to OTHER's label
+        p_lo, p_hi = m.get("precision_ci", (0.0, 0.0))
+        r_lo, r_hi = m.get("recall_ci", (0.0, 0.0))
         rows.append(
             "<tr>"
             f'<td class="mono">{esc(mode_id)}</td>'
             f"<td>{esc(label)}</td>"
-            f"<td>{_prf_bar(m['precision'])}</td>"
-            f"<td>{_prf_bar(m['recall'])}</td>"
+            f"<td>{_prf_bar(m['precision'])}"
+            f'<span class="ci">{p_lo:.2f}-{p_hi:.2f}</span></td>'
+            f"<td>{_prf_bar(m['recall'])}"
+            f'<span class="ci">{r_lo:.2f}-{r_hi:.2f}</span></td>'
             f"<td>{_prf_bar(m['f1'])}</td>"
             f'<td class="mono">{m["tp"]}/{m["fp"]}/{m["fn"]}</td>'
             "</tr>"
