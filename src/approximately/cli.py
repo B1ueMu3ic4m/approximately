@@ -342,13 +342,51 @@ def cmd_drift(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_query(args: argparse.Namespace) -> int:
+    from .query import QueryError, select
+
+    store = TraceStore(args.store)
+    try:
+        found = select(store.list_traces(), args.expression)
+    except QueryError as exc:
+        raise SystemExit(f"error: {exc}") from exc
+    if getattr(args, "json", None):
+        print(json.dumps([t.to_dict() for t in found],
+                         indent=2, default=str))
+        return 0
+    for trace in found:
+        mark = "ok " if trace.success else "FAIL"
+        task = " ".join((trace.task or "").split())[:52]
+        print(f"{trace.id}  {mark}  {len(trace.steps):>3} steps  {task}")
+    print(f"{len(found)} matching trace(s)")
+    return 0
+
+
 def cmd_diff(args: argparse.Namespace) -> int:
+    from .diff import Op
     from .diff import diff as trace_diff
 
     store = TraceStore(args.store)
     trace_a = _load_trace(args.trace, store)
     trace_b = _load_trace(args.other, store)
     result = trace_diff(trace_a, trace_b)
+    if getattr(args, "json", None):
+        counts = result.counts
+        print(json.dumps({
+            "a_id": result.a_id, "b_id": result.b_id,
+            "similarity": round(result.similarity, 3),
+            "equal": counts[Op.EQUAL], "mutated": counts[Op.MUTATED],
+            "deleted": counts[Op.DELETED],
+            "inserted": counts[Op.INSERTED],
+            "entries": [{"op": e.symbol,
+                         "a_index": e.a_index, "b_index": e.b_index,
+                         "a_tool": e.a_tool, "b_tool": e.b_tool,
+                         "similarity": e.similarity,
+                         "detail": e.detail}
+                        for e in result.entries
+                        if e.op != Op.EQUAL],
+        }, indent=2))
+        return 0
     print(result.summary())
     return 0
 
@@ -939,7 +977,18 @@ def build_parser() -> argparse.ArgumentParser:
                             "success is the classic use)")
     p.add_argument("trace")
     p.add_argument("other", help="the trace to compare against")
+    p.add_argument("--json", action="store_true",
+                   help="emit counts plus every differing entry (with "
+                        "per-entry similarity) as JSON")
     p.set_defaults(func=cmd_diff)
+
+    p = sub.add_parser("query", parents=[common],
+                       help="select traces with an expression, e.g. "
+                            "\"success == false and task contains 'fix'\"")
+    p.add_argument("expression")
+    p.add_argument("--json", action="store_true",
+                   help="emit matching trace records as JSON")
+    p.set_defaults(func=cmd_query)
 
     p = sub.add_parser("repair", parents=[common],
                        help="search the minimal intervention set that "
