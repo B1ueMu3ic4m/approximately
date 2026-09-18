@@ -216,6 +216,11 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.40** — `fleet --trend`: per-day fleet analytics over the digest history — sparkline + Theil-Sen verdict as a CI gate
 - ✅ **v0.41** — `doctor`: store health check — corrupt records, ledger tamper, stale locks, digest gaps (exit 1 = CI gate)
 - ✅ **v0.42** — `query --stats`: aggregate any DSL selection — counts, failure rate, mode totals, means
+- ✅ **v0.43** — attribution regression gate: gold-corpus P/R/F1 floors enforced by a CI job — detector refactors can't silently degrade attribution
+- ✅ **v0.44** — adversarial-input fuzz round: seeded garbage through every parser boundary (DSL, doctor, MCP lines, prose) — documented errors, bounded time
+- ✅ **v0.45** — README walkthrough tests: advertised commands run in CI with their promised outputs
+- ✅ **v0.46** — MCP server grows to 7 tools: bisect (first material divergence) + doctor (store health) join the fleet
+- ✅ **v0.47** — `demo --scenario loop`: a crew stuck in an args-evolving cycle only the cycle detector can catch
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Full design document: [docs/PLAN.md](docs/PLAN.md).

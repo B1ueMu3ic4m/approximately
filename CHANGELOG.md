@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.47.0 — 2026-09-19
+
+- **Demo loop scenario**: `demo --scenario loop` — a planner→
+  navigator→editor crew stuck in an args-evolving cycle that only
+  the cycle detector can catch (v0.38 end to end).
+- **Security model** (`docs/SECURITY.md`) now records the DoS
+  bounds, parser caps, untrusted-input handling, and the
+  attribution-quality gate.
+
+## 0.46.0 — 2026-09-19
+
+- **MCP server grows to 7 tools**: `bisect` (first material
+  divergence between two traces) and `doctor` (store health) join
+  the five existing tools; handlers reuse the CLI modules.
+
+## 0.45.0 — 2026-09-19
+
+- **README walkthrough tests**: every advertised quickstart/
+  capabilities command executed with its promised output asserted —
+  doc drift fails CI.
+
+## 0.44.0 — 2026-09-19
+
+- **Adversarial-input fuzz round**: seeded deterministic garbage
+  through the query DSL, doctor, MCP line protocol, and prose
+  detectors — documented errors or clean verdicts, bounded time.
+- **Attribution regression gate** shipped earlier in 0.44 as
+  `scripts/bench_gate.py` + CI bench-gate job (gold-corpus floors).
+
+## 0.43.0 — 2026-09-19
+
+- **Attribution regression gate**: `bench-gate` CI job runs the
+  rule detectors over the shipped gold corpus; per-mode P/R/F1
+  floors (`docs/bench-floors.json`) must hold or CI fails.
+
 ## 0.42.0 — 2026-09-18
 
 - **`query --stats`**: aggregate a DSL selection instead of listing
