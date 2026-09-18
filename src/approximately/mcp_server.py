@@ -81,6 +81,44 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "bisect",
+        "description": "First material divergence between two traces "
+                       "(failed vs last success is the classic use): "
+                       "the step where the failed run left the "
+                       "successful run's path, with worst-ranked "
+                       "divergences.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "trace": {"type": "string",
+                          "description": "failed trace id"},
+                "other": {"type": "string",
+                          "description": "trace to compare against"},
+                "store": {"type": "string"},
+                "floor": {"type": "number",
+                          "minimum": 0.0, "maximum": 1.01,
+                          "description": "mutations with similarity "
+                                         ">= floor count as noise "
+                                         "(default 0.8)"},
+            },
+            "required": ["trace", "other"],
+        },
+    },
+    {
+        "name": "doctor",
+        "description": "Health check of a trace store: corrupt or "
+                       "misnamed records, evidence-ledger tamper, "
+                       "stale locks, leftover temp files, and (with "
+                       "digest_dir) monitoring gaps.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "digest_dir": {"type": "string"},
+            },
+        },
+    },
+    {
         "name": "query",
         "description": "Select traces with an expression, e.g. "
                        "\"success == false and mode == FM-2.1\".",
@@ -166,12 +204,54 @@ def _tool_query(ctx: ServerContext, args: Dict[str, Any]) -> dict:
             "ids": [t.id for t in found]}
 
 
+def _tool_bisect(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .diff import diff as trace_diff
+    from .diff import first_fault
+
+    store = _store(ctx, args)
+    trace_a = store.load(str(args["trace"]))
+    trace_b = store.load(str(args["other"]))
+    if trace_a is None:
+        raise KeyError(f"no trace {args['trace']!r} in store")
+    if trace_b is None:
+        raise KeyError(f"no trace {args['other']!r} in store")
+    td = trace_diff(trace_a, trace_b)
+    fault = first_fault(td, floor=float(args.get("floor", 0.8)))
+    return {
+        "a_id": td.a_id, "b_id": td.b_id,
+        "similarity": round(td.similarity, 3),
+        "first_fault": None if fault is None else {
+            "op": fault.symbol,
+            "a_index": fault.a_index, "b_index": fault.b_index,
+            "a_tool": fault.a_tool, "b_tool": fault.b_tool,
+            "similarity": fault.similarity,
+            "detail": fault.detail,
+        },
+        "divergences": [{"op": e.symbol,
+                         "a_index": e.a_index, "b_index": e.b_index,
+                         "similarity": e.similarity,
+                         "detail": e.detail}
+                        for e in td.divergences(limit=5)],
+    }
+
+
+def _tool_doctor(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .doctor import doctor
+
+    digest_dir = args.get("digest_dir")
+    report = doctor(_store(ctx, args).directory,
+                    Path(digest_dir) if digest_dir else None)
+    return report.to_dict()
+
+
 _HANDLERS = {
     "list_traces": _tool_list_traces,
     "attribute": _tool_attribute,
     "verify": _tool_verify,
     "survey": _tool_survey,
     "query": _tool_query,
+    "bisect": _tool_bisect,
+    "doctor": _tool_doctor,
 }
 
 
