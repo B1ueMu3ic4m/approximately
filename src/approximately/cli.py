@@ -398,6 +398,51 @@ def cmd_diff(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_bisect(args: argparse.Namespace) -> int:
+    """Locate the first material divergence between two runs."""
+    from .diff import diff as trace_diff
+    from .diff import first_fault
+
+    store = TraceStore(args.store)
+    trace_a = _load_trace(args.trace, store)
+    trace_b = _load_trace(args.other, store)
+    td = trace_diff(trace_a, trace_b)
+    fault = first_fault(td, floor=args.floor)
+    ranked = td.divergences(limit=5)
+    if getattr(args, "json", None):
+        print(json.dumps({
+            "a_id": td.a_id, "b_id": td.b_id,
+            "similarity": round(td.similarity, 3),
+            "floor": args.floor,
+            "first_fault": None if fault is None else {
+                "op": fault.symbol,
+                "a_index": fault.a_index, "b_index": fault.b_index,
+                "a_tool": fault.a_tool, "b_tool": fault.b_tool,
+                "similarity": fault.similarity,
+                "detail": fault.detail,
+            },
+            "divergences": [{"op": e.symbol,
+                             "a_index": e.a_index, "b_index": e.b_index,
+                             "similarity": e.similarity,
+                             "detail": e.detail}
+                            for e in ranked],
+        }, indent=2))
+        return 0 if fault else 1
+    print(f"bisect {td.a_id} vs {td.b_id} - "
+          f"similarity {td.similarity:.0%}")
+    if fault is None:
+        print(f"no material divergence below floor {args.floor:g}")
+        return 1
+    step = fault.a_index if fault.a_index is not None else fault.b_index
+    print(f"first material divergence at step #{step} "
+          f"(similarity {fault.similarity:.2f}):")
+    print(f"  {fault.render()}")
+    print("worst divergences (ranked by similarity):")
+    for entry in ranked:
+        print(f"  {entry.render()}")
+    return 0
+
+
 def cmd_repair(args: argparse.Namespace) -> int:
     from .repair import plan_repair
 
@@ -1024,6 +1069,19 @@ def build_parser() -> argparse.ArgumentParser:
                    help="emit counts plus every differing entry (with "
                         "per-entry similarity) as JSON")
     p.set_defaults(func=cmd_diff)
+
+    p = sub.add_parser("bisect", parents=[common],
+                       help="first material divergence between two runs "
+                            "(failed vs last success is the classic use)")
+    p.add_argument("trace")
+    p.add_argument("other", help="the trace to compare against")
+    p.add_argument("--floor", type=float, default=0.8,
+                   help="mutations with similarity >= FLOOR count as "
+                        "noise, not faults (default 0.8)")
+    p.add_argument("--json", action="store_true",
+                   help="emit the first fault plus ranked divergences "
+                        "as JSON")
+    p.set_defaults(func=cmd_bisect)
 
     p = sub.add_parser("query", parents=[common],
                        help="select traces with an expression, e.g. "
