@@ -18,7 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 from enum import Enum
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from .align import (
     GAP_PENALTY,
@@ -177,6 +177,25 @@ def diff(a: Trace, b: Trace) -> TraceDiff:
     similarity = max(0.0, min(1.0, score / best))
     return TraceDiff(a_id=a.id, b_id=b.id, entries=entries,
                      similarity=similarity)
+
+
+def first_fault(td: TraceDiff, floor: float = 0.8) -> Optional[DiffEntry]:
+    """Earliest *material* divergence in the edit script — where the
+    failed run first leaves the successful run's path.
+
+    A mutated entry only counts once its char similarity drops below
+    ``floor``: timestamp-level result noise mutates entries at
+    similarity ~1.0 without being a fault. Deleted/inserted steps and
+    mutations at or below the floor are material by definition.
+    ``floor=1.01`` makes any non-equal entry qualify.
+    """
+    for entry in td.entries:
+        if entry.op == Op.EQUAL:
+            continue
+        if entry.op == Op.MUTATED and entry.similarity >= floor:
+            continue
+        return entry
+    return None
 
 
 def _preview(text: str, limit: int = 40) -> str:
