@@ -472,6 +472,11 @@ framework adapters import lazily and degrade when the framework is absent.
     files, and digest-history monitoring gaps + torn-line counts.
     Exit 1 on any finding — CI-friendly. 7 tests cover the corrupt/
     tampered/stale/gap paths.
+16. **v0.42 — query --stats** ✅ (delivered): `query EXPRESSION
+    --stats [--json]` — aggregate the selection instead of listing
+    it: count, success split, failure rate, detection-mode totals
+    (from `meta.detections`), mean steps/tokens. Five tests incl.
+    the empty-selection and zero-match paths.
 
 ---
 
