@@ -76,6 +76,65 @@ class RepeatDetector:
         return None
 
 
+class CycleRepeatDetector:
+    """FM-1.3 as cycle-grade repetition — a tool block repeated
+    back-to-back consumes the record's budget going in circles.
+
+    Multi-agent inner loops (planner -> navigator -> editor) evolve
+    their args every turn, so exact-fingerprint repeats never match;
+    the repeated tool *sequence* is the invariant. Scanning periods
+    2..MAX_PERIOD keeps the scan near-linear in call count, and a
+    cycle must consume at least MIN_CYCLE_CALLS calls to count as
+    repetition rather than ordinary iteration.
+    """
+
+    min_period = 2
+    max_period = 6
+    min_cycle_calls = 16
+
+    @classmethod
+    def _longest_cycle(cls, tools: List[str]):
+        """(calls consumed, period, end offset) of the longest run of
+        back-to-back identical blocks."""
+        best_run, best_period, best_end = 0, 0, 0
+        n = len(tools)
+        for period in range(cls.min_period, cls.max_period + 1):
+            run = 0
+            i = 0
+            while i + 2 * period <= n:
+                if tools[i:i + period] == tools[i + period:i + 2 * period]:
+                    run = run + period if run else 2 * period
+                    if run > best_run:
+                        best_run, best_period = run, period
+                        best_end = i + 2 * period
+                    i += period
+                else:
+                    run = 0
+                    i += 1
+        return best_run, best_period, best_end
+
+    def detect(self, trace: Trace) -> Optional[Detection]:
+        calls = [s for s in trace.steps
+                 if s.kind == TOOL_CALL and not s.error]
+        if len(calls) < self.min_cycle_calls:
+            return None
+        tools = [s.tool or "?" for s in calls]
+        run, period, end = self._longest_cycle(tools)
+        if run < self.min_cycle_calls:
+            return None
+        block = tools[end - period:end]
+        start_idx = calls[end - run].index
+        evidence = [
+            (f"{run} calls repeat a {period}-call cycle: "
+             f"{' -> '.join(block)} x{run // period}"),
+            f"cycle ends at tool call step {calls[end - 1].index}",
+            f"first call in final repetition: {calls[end - period].short()}",
+        ]
+        conf = min(0.85, 0.5 + 0.02 * run)
+        return Detection("FM-1.3", start_idx, evidence, conf,
+                         source="rule:CycleRepeatDetector")
+
+
 class NoTerminationDetector:
     """FM-1.5 Unaware of Termination — the run does not know when to stop.
 
@@ -654,6 +713,7 @@ class LostReferenceDetector:
 
 ALL_DETECTORS: list = [
     RepeatDetector(),
+    CycleRepeatDetector(),
     NoTerminationDetector(),
     ConversationResetDetector(),
     PrematureTerminationDetector(),

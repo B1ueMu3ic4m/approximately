@@ -68,16 +68,20 @@ FM-1.3 x7, FM-2.2 x5, FM-2.6 x2, FM-1.2 x4, FM-2.4 x4, FM-2.5 x2, ...
 | mode | precision | recall | F1 |
 |---|---|---|---|
 | **FM-2.1 restart** | **0.93** | **1.00** | **0.96** |
+| FM-1.3 repetition (v0.38 cycle) | 1.00 [0.57,1.00] | 0.71 [0.36,0.92] | 0.83 |
 | FM-3.2 outcome-verify (v0.31) | 0.54 | 0.64 | 0.58 |
 | FM-2.6 thought/action (v0.30 guards) | 0.33 | 0.50 | 0.40 |
-| FM-1.3 repetition | 1.00 | 0.14 | 0.25 |
 | others (FM-1.2/2.2/2.3/2.4/2.5/3.1) | 0 | 0 | 0 |
 
 Since v0.35 the CLI prints 95% Wilson intervals beside every P and R
 (FM-2.1's P 0.93 is [0.69, 0.99] — strong, but n=27). Read of it: the
 shingle restart detector is *strong* on real annotated
 data (13/13 recall, one false positive across 27 runs); repetition has
-frontier-grade precision but misses echo variants; the thought/action
+frontier-grade precision but missed echo variants — v0.38's cycle-grade
+detector reads the repeated tool *sequence* instead of exact
+fingerprints (multi-agent inner loops evolve their args every turn, so
+the sequence is the invariant), lifting recall 0.14 → 0.71 (tp 1 → 5)
+with zero new false positives; the thought/action
 divergence heuristic over-fired on log-style traces (14 false
 positives, precision 0.07) until v0.30's action-continuity guards —
 prompt-scaffold echo, entity-token continuity (path/stem/bare-name
@@ -85,10 +89,11 @@ variants), thought-context continuity — cut it to 2 (precision 0.33,
 F1 0.40, recall unchanged); v0.31 added outcome-level verification
 analysis (completion claim + zero outcome signals in the record =
 unchecked claim), the first nonzero FM-3.2 score. Corpus-level sample
-precision 0.30 → 0.54, F1 0.25 → 0.43 across v0.30+v0.31. FM-3.1
+precision 0.30 → 0.55, F1 0.25 → 0.46 across v0.30+v0.31+v0.38. FM-3.1
 ("claiming done while it is not true") remains open — it needs
 ground truth about the claim being false, which no record-level rule
-can have. Numbers are n=27 — directional, not decisive.
+can have. Numbers are n=27 — directional, not decisive; bracketed
+intervals are Wilson 95% score intervals on the pooled counts.
 
 ## The calibration lesson (v3 -> v4, kept for the record)
 

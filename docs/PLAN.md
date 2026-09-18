@@ -417,16 +417,36 @@ framework adapters import lazily and degrade when the framework is absent.
    --watch SECONDS --digest-dir DIR` polling survey() into daily
    JSONL snapshots with `--keep-days` rotation and `--iterations`
    for cron-friendly bounded runs.
-8. **v0.35 — Wilson score intervals on benchmark metrics** ✅
-   (delivered): 95% Wilson intervals beside every per-mode P and R in
-   text and HTML output — uncertainty is part of the report, not a
-   footnote (FM-2.1 P 0.93 [0.69, 0.99]; FM-3.2 R 0.64 [0.35, 0.85]).
-9. **v0.36 — Mermaid export** ✅ (delivered): `report TRACE
-   --mermaid path.mmd` — sequenceDiagram with failure notes,
-   paste-ready for GitHub markdown.
-10. **v0.37 — zero-dependency MCP stdio server** ✅ (delivered):
-    `approximately mcp` — JSON-RPC 2.0 over stdio, five tools
-    (list_traces/attribute/verify/survey/query), stdlib-only.
+8. **v0.35 — Wilson score intervals on benchmark metrics**: the
+   leaderboard's P/R/F1 are point estimates on small n; report
+   95% Wilson intervals for precision/recall so honesty about
+   uncertainty is built into the benchmark output.
+9. **v0.36 — Mermaid export**: `report --mermaid` rendering the
+   attributed trace as a mermaid sequenceDiagram for docs/PRs.
+10. **v0.37 — zero-dependency MCP stdio server**: JSON-RPC 2.0 over
+    stdio exposing list/query/attribute/verify/survey as MCP tools.
+11. **v0.38 — cycle-grade repetition (FM-1.3 step 2)** ✅ (delivered):
+    longest back-to-back repeated tool block (period 2–6) over
+    non-errored calls; fires when the cycle consumes ≥16 calls.
+    Multi-agent inner loops (planner→navigator→editor) evolve args
+    every turn, so exact fingerprints never match — the cycle is the
+    real signal. Corpus: FM-1.3 R 0.14 → 0.71 at P 1.00 (tp 1→5,
+    fn 6→2, fp 0); corpus sample P 0.55, F1 0.46. Threshold
+    calibrated on the only labeled corpus (n=27, intervals wide).
+    Security: ProseRepeatDetector's O(T²) SequenceMatcher queue was a
+    crafted-record DoS (400 distinct 1.5k turns → 36.6 s); a
+    shingle-Jaccard prefilter (floor 0.3, conservative against the
+    0.92 ratio) bounds it to 0.23 s — 157× — with the true-positive
+    path unchanged.
+12. **v0.39 — prose derailment rework (FM-2.3)**: ProseDerailmentDetector
+    fires 0/7 on the gold corpus; redesign against the multi-agent
+    gold records.
+13. **v0.40 — first-fault bisect**: `bisect FAILED SUCCESS` — earliest
+    irreversible divergence from the NW edit script, ranked.
+14. **v0.41 — digest trend analytics**: `fleet --trend` reading the
+    daily JSONL snapshots — per-day per-mode counts, worsening streaks.
+15. **v0.42 — store doctor (stretch)**: JSONL integrity check, orphan
+    artifacts, digest-gap report.
 
 ---
 
