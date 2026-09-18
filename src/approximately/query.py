@@ -21,7 +21,7 @@ only comparisons against trace fields are ever executed.
 from __future__ import annotations
 
 import re
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, Optional, Sequence
 
 from .trace import Trace
 
@@ -240,6 +240,43 @@ def _comparator(getter, op: str, value: Any) -> Callable:
 def parse(text: str) -> Callable[[Trace], bool]:
     """Compile an expression into a predicate over traces."""
     return _Parser(tokenize(text)).parse()
+
+
+def _count_modes(trace: Trace, modes: dict) -> None:
+    """Tally detection modes recorded on the trace's meta."""
+    for det in (trace.meta or {}).get("detections") or []:
+        mode = det.get("mode") if isinstance(det, dict) else str(det)
+        if mode:
+            modes[mode] = modes.get(mode, 0) + 1
+
+
+def _mean(values: Sequence[float]) -> float:
+    return round(sum(values) / len(values), 1) if values else 0.0
+
+
+def summarize(traces: List[Trace]) -> dict:
+    """Aggregate stats over a selection — the `query --stats` payload.
+
+    Counts, success split, mode totals (rule + fused attributions from
+    ``meta["detections"]``/meta when present), and step/token means.
+    """
+    total = len(traces)
+    ok = sum(1 for t in traces if t.success is True)
+    failed = sum(1 for t in traces if t.success is False)
+    modes: dict = {}
+    for t in traces:
+        _count_modes(t, modes)
+    steps = [len(t.steps) for t in traces]
+    tokens = [sum(s.tokens for s in t.steps) for t in traces]
+    return {
+        "count": total,
+        "success": ok,
+        "failed": failed,
+        "failure_rate": round(failed / total, 4) if total else 0.0,
+        "modes": dict(sorted(modes.items(), key=lambda kv: -kv[1])),
+        "mean_steps": _mean(steps),
+        "mean_tokens": _mean(tokens),
+    }
 
 
 def select(traces: List[Trace], expression: str) -> List[Trace]:

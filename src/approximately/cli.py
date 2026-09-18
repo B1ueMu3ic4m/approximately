@@ -356,6 +356,24 @@ def cmd_drift(args: argparse.Namespace) -> int:
     return 0
 
 
+def _print_query_stats(found, stats_json: bool) -> int:
+    from .query import summarize
+
+    stats = summarize(found)
+    if stats_json:
+        print(json.dumps(stats, indent=2))
+        return 0
+    print(f"count {stats['count']}  "
+          f"ok {stats['success']}  failed {stats['failed']}  "
+          f"failure rate {stats['failure_rate'] * 100:.1f}%")
+    if stats["modes"]:
+        modes = ", ".join(f"{m} x{c}" for m, c in stats["modes"].items())
+        print(f"modes: {modes}")
+    print(f"mean steps {stats['mean_steps']}  "
+          f"mean tokens {stats['mean_tokens']}")
+    return 0
+
+
 def cmd_query(args: argparse.Namespace) -> int:
     from .query import QueryError, select
 
@@ -364,6 +382,8 @@ def cmd_query(args: argparse.Namespace) -> int:
         found = select(store.list_traces(), args.expression)
     except QueryError as exc:
         raise SystemExit(f"error: {exc}") from exc
+    if getattr(args, "stats", False):
+        return _print_query_stats(found, stats_json=bool(args.json))
     if getattr(args, "json", None):
         print(json.dumps([t.to_dict() for t in found],
                          indent=2, default=str))
@@ -1073,6 +1093,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("expression")
     p.add_argument("--json", action="store_true",
                    help="emit matching trace records as JSON")
+    p.add_argument("--stats", action="store_true",
+                   help="aggregate the selection instead of listing it: "
+                        "counts, failure rate, mode totals, means")
     p.set_defaults(func=cmd_query)
 
     p = sub.add_parser("repair", parents=[common],
