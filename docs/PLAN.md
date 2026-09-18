@@ -473,6 +473,13 @@ framework adapters import lazily and degrade when the framework is absent.
     Exit 1 on any finding — CI-friendly. 7 tests cover the corrupt/
     tampered/stale/gap paths.
 
+16. **v0.45 — adversarial-input fuzz round** ✅ (delivered): seeded,
+  deterministic fuzz over every parser boundary — 300 random query
+  expressions (QueryError or callable, never leaks), 5000-deep
+  nesting (cap, not RecursionError), corrupt/bytes store records
+  through the doctor, 200+ protocol-edge MCP lines, random prose
+  turn soup under a timing bound. Fixed seeds reproduce failures.
+
 ---
 
 ## 4. Launch plan
