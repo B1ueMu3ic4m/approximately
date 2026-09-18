@@ -448,6 +448,13 @@ framework adapters import lazily and degrade when the framework is absent.
 15. **v0.42 — store doctor (stretch)**: JSONL integrity check, orphan
     artifacts, digest-gap report.
 
+17. **v0.47 — demo loop scenario** ✅ (delivered):
+    `demo --scenario loop` — a payment-refactor crew stuck in a
+    planner→navigator→editor cycle (args evolve every turn, so the
+    exact-fingerprint RepeatDetector stays quiet and the cycle
+    detector is the only thing that can catch it); showcases the
+    v0.38 signal end to end with an HTML report.
+
 ---
 
 ## 4. Launch plan
