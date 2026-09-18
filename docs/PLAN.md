@@ -417,14 +417,16 @@ framework adapters import lazily and degrade when the framework is absent.
    --watch SECONDS --digest-dir DIR` polling survey() into daily
    JSONL snapshots with `--keep-days` rotation and `--iterations`
    for cron-friendly bounded runs.
-8. **v0.35 — Wilson score intervals on benchmark metrics**: the
-   leaderboard's P/R/F1 are point estimates on small n; report
-   95% Wilson intervals for precision/recall so honesty about
-   uncertainty is built into the benchmark output.
-9. **v0.36 — Mermaid export**: `report --mermaid` rendering the
-   attributed trace as a mermaid sequenceDiagram for docs/PRs.
-10. **v0.37 — zero-dependency MCP stdio server**: JSON-RPC 2.0 over
-    stdio exposing list/query/attribute/verify/survey as MCP tools.
+8. **v0.35 — Wilson score intervals on benchmark metrics** ✅
+   (delivered): 95% Wilson intervals beside every per-mode P and R in
+   text and HTML output — uncertainty is part of the report, not a
+   footnote (FM-2.1 P 0.93 [0.69, 0.99]; FM-3.2 R 0.64 [0.35, 0.85]).
+9. **v0.36 — Mermaid export** ✅ (delivered): `report TRACE
+   --mermaid path.mmd` — sequenceDiagram with failure notes,
+   paste-ready for GitHub markdown.
+10. **v0.37 — zero-dependency MCP stdio server** ✅ (delivered):
+    `approximately mcp` — JSON-RPC 2.0 over stdio, five tools
+    (list_traces/attribute/verify/survey/query), stdlib-only.
 
 ---
 

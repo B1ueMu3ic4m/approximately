@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.37.0 — 2026-09-17
+
+- **MCP stdio server**: `approximately mcp --store PATH` speaks
+  JSON-RPC 2.0 over line-delimited stdio — the transport Claude
+  Desktop, Zed and other MCP clients use — exposing the toolkit as
+  five tools: `list_traces`, `attribute`, `verify`, `survey`,
+  `query`. Standard library only (no MCP SDK); -32700/-32600/-32601/
+  -32602 error codes; 1 MB line cap against memory ballooning.
+- 15 new tests + subprocess end-to-end; suite at 594 passing.
+
+## 0.36.0 — 2026-09-17
+
+- **Mermaid export**: `report TRACE --mermaid path.mmd` renders the
+  attributed trace as a mermaid `sequenceDiagram` — steps in order,
+  failure detections as ⚠ notes over the offending step — ready to
+  paste into GitHub READMEs, PR descriptions, and issues.
+- 6 new tests; suite at 579 passing.
+
+## 0.35.0 — 2026-09-17
+
+- **Wilson score intervals on benchmark metrics**: every per-mode
+  precision and recall in `benchmark` output (text, `--multi-label`,
+  and the HTML leaderboard) now carries a 95% Wilson interval
+  (Wilson 1927) — point estimates on n=27 lie, and the interval
+  communicates that honestly (FM-2.1's P 0.93 reads as [0.69, 0.99];
+  FM-3.2's R 0.64 as [0.36, 0.85]). Intervals stay inside [0, 1] and
+  do not degenerate at 0 or n successes.
+- 9 new tests; suite at 573 passing.
+
 ## 0.34.0 — 2026-09-17
 
 - **Fleet watch loop**: `fleet STORES --watch SECONDS --digest-dir

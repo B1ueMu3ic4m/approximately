@@ -173,6 +173,13 @@ def cmd_report(args: argparse.Namespace) -> int:
     out = Path(args.output) if args.output else store.directory / f"{trace.id}.report.html"
     out.write_text(render_html(trace, report), encoding="utf-8")
     print(f"wrote {out}")
+    if getattr(args, "mermaid", None):
+        from .mermaid import render_mermaid
+
+        mmd = Path(args.mermaid)
+        mmd.write_text(render_mermaid(trace, report.detections),
+                       encoding="utf-8")
+        print(f"wrote mermaid sequence diagram: {mmd}")
     return 0
 
 
@@ -498,6 +505,12 @@ def _fleet_notify(summaries, url: str) -> None:
         print(f"webhook failed: {exc}", file=sys.stderr)
 
 
+def cmd_mcp(args: argparse.Namespace) -> int:
+    from .mcp_server import cmd_mcp as _serve_mcp
+
+    return _serve_mcp(args)
+
+
 def _fleet_watch(args: argparse.Namespace, stores) -> int:
     import signal
 
@@ -793,7 +806,10 @@ def _benchmark_multi(labeled, args: argparse.Namespace) -> int:
           f"recall {multi.sample_recall:.2f}, F1 {multi.macro_f1:.2f}")
     for mode_id, m in sorted(multi.per_mode.items()):
         print(f"  {mode_id:<7} P {m['precision']:.2f} "
-              f"R {m['recall']:.2f} F1 {m['f1']:.2f} "
+              f"[{m['precision_ci'][0]:.2f},{m['precision_ci'][1]:.2f}] "
+              f"R {m['recall']:.2f} "
+              f"[{m['recall_ci'][0]:.2f},{m['recall_ci'][1]:.2f}] "
+              f"F1 {m['f1']:.2f} "
               f"(tp {m['tp']} fp {m['fp']} fn {m['fn']})")
     if args.html:
         out = Path(args.html)
@@ -926,6 +942,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--all", action="store_true",
                    help="render an index page over every trace in the store")
     p.add_argument("-o", "--output", help="output HTML path")
+    p.add_argument("--mermaid", help="also write a mermaid sequence "
+                                     "diagram of the trace to this path "
+                                     "(pastes into GitHub markdown)")
     p.add_argument("--judge", action="store_true")
     p.set_defaults(func=cmd_report)
 
@@ -1084,6 +1103,12 @@ def build_parser() -> argparse.ArgumentParser:
                    help="watch loop: stop after N snapshots instead of "
                         "running until interrupted (cron-friendly)")
     p.set_defaults(func=cmd_fleet)
+
+    p = sub.add_parser("mcp", parents=[common],
+                       help="serve the toolkit as an MCP (Model Context "
+                            "Protocol) stdio server — JSON-RPC 2.0, "
+                            "zero dependencies")
+    p.set_defaults(func=cmd_mcp)
 
     p = sub.add_parser("anomalies", parents=[common],
                        help="robust latency anomalies (median/MAD z-score)")
