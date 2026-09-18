@@ -21,7 +21,7 @@ only comparisons against trace fields are ever executed.
 from __future__ import annotations
 
 import re
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, Optional, Sequence
 
 from .trace import Trace
 
@@ -250,7 +250,7 @@ def _count_modes(trace: Trace, modes: dict) -> None:
             modes[mode] = modes.get(mode, 0) + 1
 
 
-def _mean(values: List[float]) -> float:
+def _mean(values: Sequence[float]) -> float:
     return round(sum(values) / len(values), 1) if values else 0.0
 
 
