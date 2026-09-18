@@ -480,6 +480,13 @@ framework adapters import lazily and degrade when the framework is absent.
   through the doctor, 200+ protocol-edge MCP lines, random prose
   turn soup under a timing bound. Fixed seeds reproduce failures.
 
+16. **v0.46 — README walkthrough regression tests** ✅ (delivered):
+    every quickstart/capabilities command executed against a fresh
+    demo-seeded store with its promised output asserted — doc drift
+    fails CI. Found and fixed real walkthrough pollution on the way:
+    `test` generates guard files in the CWD, so the walkthrough now
+    runs it from a scratch directory.
+
 ---
 
 ## 4. Launch plan
