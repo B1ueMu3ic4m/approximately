@@ -25,10 +25,14 @@ import re
 from difflib import SequenceMatcher
 from typing import Any, List, Optional
 
+from .detectors import CycleRepeatDetector as _CycleRepeatDetector
 from .mastdata import HARNESS_PREFIXES
 from .trace import TOOL_CALL, Trace
 
 _SIMILARITY = 0.92
+# Pairs below this shingle Jaccard cannot plausibly reach _SIMILARITY
+# char ratio; the floor only prunes the SequenceMatcher queue.
+_JACCARD_FLOOR = 0.3
 _INSUFFICIENCY = (
     "insufficient", "not specified", "cannot be solved", "unclear",
     "more context", "not enough information", "missing information",
@@ -97,8 +101,15 @@ class ProseRepeatDetector:
         turns = [t for t in _turns(trace) if not _is_placeholder(t)]
         if len(turns) < self.min_turns:
             return None
+        shingles = [_shingles(t) for t in turns]
         for i in range(len(turns)):
             for j in range(i + 1, len(turns)):
+                # Shingle overlap upper-bounds char similarity, so a
+                # low Jaccard rules the pair out without the O(len^2)
+                # SequenceMatcher scan — a crafted record with no
+                # repeated turns would otherwise cost |turns|^2 scans.
+                if _jaccard(shingles[i], shingles[j]) < _JACCARD_FLOOR:
+                    continue
                 if SequenceMatcher(None, turns[i], turns[j]).ratio() \
                         >= _SIMILARITY:
                     if i == 0:
@@ -545,4 +556,8 @@ PROSE_DETECTORS: List[Any] = [
     ProseAmbiguityDetector(),
     ProseThoughtActionDetector(),
     ProseOutcomeVerifyDetector(),
+    # Multi-agent prose records carry their inner harness calls as
+    # tool steps, where cycle-grade repetition lives (args evolve,
+    # the tool sequence loops).
+    _CycleRepeatDetector(),
 ]

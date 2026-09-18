@@ -84,7 +84,7 @@ def test_attribution_performance_5k_steps():
     # the trace genuinely contains a giant repeat loop AND an unverified
     # mutating call AND a premature stop; LLR fusion may legitimately pick
     # any of the three as primary
-    assert report.primary_mode.id in ("FM-1.5", "FM-3.1", "FM-3.2")
+    assert report.primary_mode.id in ("FM-1.3", "FM-1.5", "FM-3.1", "FM-3.2")
     assert elapsed < 5.0, f"attribution took {elapsed:.2f}s"
 
 
@@ -174,6 +174,6 @@ def test_stress_20k_steps_attribution_and_forecast():
     time.perf_counter()
     fc = forecast(trace, budget=4000, facts=default_facts(trace))
     elapsed = time.perf_counter() - start
-    assert report.primary_mode.id in ("FM-1.5", "FM-3.1", "FM-3.2")
+    assert report.primary_mode.id in ("FM-1.3", "FM-1.5", "FM-3.1", "FM-3.2")
     assert fc.evicted_count > 0
     assert elapsed < 15.0, f"20k-step attribution+forecast took {elapsed:.1f}s"

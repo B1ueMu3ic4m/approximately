@@ -82,7 +82,7 @@ def test_rule_coverage_spans_all_categories():
     """Smoke: the rule registry keeps growing, not shrinking."""
     from approximately.detectors import ALL_DETECTORS
 
-    assert len(ALL_DETECTORS) == 14
+    assert len(ALL_DETECTORS) == 15
 
 
 def test_full_coverage_on_rich_failure_trace():
