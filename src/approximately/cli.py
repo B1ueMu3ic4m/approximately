@@ -68,13 +68,6 @@ def cmd_demo(args: argparse.Namespace) -> int:
     if args.scenario == "multi-agent":
         from .demo_multiagent import run_demo as run_multiagent
         trace, report, path = run_multiagent()
-    elif args.scenario == "loop":
-        from .demo_loop import run_demo as run_loop
-        from .store import TraceStore
-
-        store_dir = (TraceStore(args.store).directory
-                     if getattr(args, "store", None) else None)
-        trace, report, path = run_loop(store_dir)
     else:
         # honor --store (before it was accepted and silently ignored)
         from .store import TraceStore
@@ -356,24 +349,6 @@ def cmd_drift(args: argparse.Namespace) -> int:
     return 0
 
 
-def _print_query_stats(found, stats_json: bool) -> int:
-    from .query import summarize
-
-    stats = summarize(found)
-    if stats_json:
-        print(json.dumps(stats, indent=2))
-        return 0
-    print(f"count {stats['count']}  "
-          f"ok {stats['success']}  failed {stats['failed']}  "
-          f"failure rate {stats['failure_rate'] * 100:.1f}%")
-    if stats["modes"]:
-        modes = ", ".join(f"{m} x{c}" for m, c in stats["modes"].items())
-        print(f"modes: {modes}")
-    print(f"mean steps {stats['mean_steps']}  "
-          f"mean tokens {stats['mean_tokens']}")
-    return 0
-
-
 def cmd_query(args: argparse.Namespace) -> int:
     from .query import QueryError, select
 
@@ -382,8 +357,6 @@ def cmd_query(args: argparse.Namespace) -> int:
         found = select(store.list_traces(), args.expression)
     except QueryError as exc:
         raise SystemExit(f"error: {exc}") from exc
-    if getattr(args, "stats", False):
-        return _print_query_stats(found, stats_json=bool(args.json))
     if getattr(args, "json", None):
         print(json.dumps([t.to_dict() for t in found],
                          indent=2, default=str))
@@ -559,26 +532,25 @@ def _fleet_watch(args: argparse.Namespace, stores) -> int:
     return 0
 
 
-def _fleet_trend(args: argparse.Namespace) -> int:
-    from .fleet import render_trend, summarize_trend, trend_days
+def cmd_doctor(args: argparse.Namespace) -> int:
+    from .doctor import doctor
 
-    days = trend_days(Path(args.digest_dir))
-    summary = summarize_trend(days)
+    report = doctor(Path(args.store),
+                    Path(args.digest_dir) if args.digest_dir else None)
     if getattr(args, "json", False):
-        print(json.dumps(summary, indent=2))
+        print(json.dumps(report.to_dict(), indent=2))
     else:
-        print(render_trend(summary))
-    if getattr(args, "fail_on_worsening", False) \
-            and summary["verdict"] == "worsening":
-        print("fleet trend is worsening", file=sys.stderr)
-        return 1
-    return 0
+        print(report.render())
+    return 0 if report.healthy else 1
 
 
-def _fleet_survey(args: argparse.Namespace) -> int:
+def cmd_fleet(args: argparse.Namespace) -> int:
     from .fleet import render_fleet_html, survey
 
-    summaries = survey([Path(d) for d in args.stores])
+    stores = [Path(d) for d in args.stores]
+    if getattr(args, "watch", None):
+        return _fleet_watch(args, stores)
+    summaries = survey(stores)
     if getattr(args, "json", False):
         from .fleet import webhook_payload
 
@@ -598,27 +570,6 @@ def _fleet_survey(args: argparse.Namespace) -> int:
                   f"{', '.join(worsening)}")
             return 1
     return 0
-
-
-def cmd_doctor(args: argparse.Namespace) -> int:
-    from .doctor import doctor
-
-    report = doctor(Path(args.store),
-                    Path(args.digest_dir) if args.digest_dir else None)
-    if getattr(args, "json", False):
-        print(json.dumps(report.to_dict(), indent=2))
-    else:
-        print(report.render())
-    return 0 if report.healthy else 1
-
-
-def cmd_fleet(args: argparse.Namespace) -> int:
-    stores = [Path(d) for d in args.stores]
-    if getattr(args, "watch", None):
-        return _fleet_watch(args, stores)
-    if getattr(args, "trend", False):
-        return _fleet_trend(args)
-    return _fleet_survey(args)
 
 
 def cmd_anomalies(args: argparse.Namespace) -> int:
@@ -949,8 +900,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--open", action="store_true", help="open the HTML report")
     p.add_argument("--context-budget", type=int, default=60,
                    help="token budget for the context-runtime demo (default 60)")
-    p.add_argument("--scenario",
-                   choices=["booking", "multi-agent", "loop"],
+    p.add_argument("--scenario", choices=["booking", "multi-agent"],
                    default="booking",
                    help="demo scenario (default booking)")
     p.set_defaults(func=cmd_demo)
@@ -1093,9 +1043,6 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("expression")
     p.add_argument("--json", action="store_true",
                    help="emit matching trace records as JSON")
-    p.add_argument("--stats", action="store_true",
-                   help="aggregate the selection instead of listing it: "
-                        "counts, failure rate, mode totals, means")
     p.set_defaults(func=cmd_query)
 
     p = sub.add_parser("repair", parents=[common],
@@ -1167,9 +1114,6 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--iterations", type=int,
                    help="watch loop: stop after N snapshots instead of "
                         "running until interrupted (cron-friendly)")
-    p.add_argument("--trend", action="store_true",
-                   help="summarize the digest history in --digest-dir: "
-                        "per-day fleet state, sparkline, verdict")
     p.set_defaults(func=cmd_fleet)
 
     p = sub.add_parser("mcp", parents=[common],
