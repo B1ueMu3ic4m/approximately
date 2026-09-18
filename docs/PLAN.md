@@ -473,14 +473,27 @@ framework adapters import lazily and degrade when the framework is absent.
     Exit 1 on any finding — CI-friendly. 7 tests cover the corrupt/
     tampered/stale/gap paths.
 
-16. **v0.45 — adversarial-input fuzz round** ✅ (delivered): seeded,
+17b. **v0.47 — demo loop scenario** ✅ (delivered): `demo --scenario
+     loop` — a planner→navigator→editor crew stuck in an args-evolving
+     cycle; the exact-fingerprint RepeatDetector cannot fire, so the
+     cycle detector is the only thing that catches it (v0.38 end to
+     end), HTML report included.
+
+17. **v0.43 — MCP bisect + doctor tools** (queued — depends on the
+    two tools above; branch ready).
+18. **v0.44 — attribution regression gate** ✅ (delivered):
+    `scripts/bench_gate.py` + `docs/bench-floors.json` — gold-corpus
+    per-mode P/R/F1 floors enforced by the CI bench-gate job; a
+    detector refactor that silently degrades attribution fails CI
+    (provably fires on pre-v0.38 main: FM-1.3 R 0.14 < 0.60).
+19. **v0.45 — adversarial-input fuzz round** ✅ (delivered): seeded,
   deterministic fuzz over every parser boundary — 300 random query
   expressions (QueryError or callable, never leaks), 5000-deep
   nesting (cap, not RecursionError), corrupt/bytes store records
   through the doctor, 200+ protocol-edge MCP lines, random prose
   turn soup under a timing bound. Fixed seeds reproduce failures.
 
-16. **v0.46 — README walkthrough regression tests** ✅ (delivered):
+20. **v0.46 — README walkthrough regression tests** ✅ (delivered):
     every quickstart/capabilities command executed against a fresh
     demo-seeded store with its promised output asserted — doc drift
     fails CI. Found and fixed real walkthrough pollution on the way:
