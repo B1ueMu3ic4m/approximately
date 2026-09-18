@@ -48,9 +48,13 @@ def _write_day(digest_dir, stamp, base_ts, stores, worsening=()):
 def test_trend_days_last_snapshot_per_day(tmp_path):
     a = _summary("core", 10, 4, [("FM-2.1", 2)], False)
     b = _summary("core", 12, 5, [("FM-2.1", 3)], False)
-    _write_day(tmp_path, "20260916", 1_000_000, [a])
-    _write_day(tmp_path, "20260917", 1_900_000, [a])
-    _write_day(tmp_path, "20260917", 1_950_000, [b])  # later same day
+    # noon-anchored epochs: the paired snapshots stay on one calendar
+    # day in every timezone
+    day_a = 86400 * 100 + 43200
+    day_b = 86400 * 200 + 43200
+    _write_day(tmp_path, "20260916", day_a, [a])
+    _write_day(tmp_path, "20260917", day_b, [a])
+    _write_day(tmp_path, "20260917", day_b + 3600, [b])  # later same day
     days = trend_days(tmp_path)
     assert len(days) == 2
     assert days[0]["snapshots"] == 1
