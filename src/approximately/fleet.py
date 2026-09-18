@@ -300,6 +300,116 @@ def rotate_digests(digest_dir: Path, keep_days: int) -> List[Path]:
     return removed
 
 
+def _file_day(path: Path) -> Optional[str]:
+    """YYYY-MM-DD from a digest file name, e.g. digest-20260918.jsonl."""
+    stamp = path.stem.replace("digest-", "")
+    if len(stamp) == 8 and stamp.isdigit():
+        return f"{stamp[:4]}-{stamp[4:6]}-{stamp[6:8]}"
+    return None
+
+
+def _snapshot_day(snap: dict, fallback: Optional[str]) -> str:
+    """Day label for a snapshot; corrupt timestamps fall back to the
+    file-name stamp, then to the epoch — digest files are untrusted
+    input (tamper evidence lives in the ledger, not here)."""
+    try:
+        return datetime.datetime.fromtimestamp(
+            float(snap.get("ts", time.time()))).strftime("%Y-%m-%d")
+    except (TypeError, ValueError, OSError, OverflowError):
+        return fallback or "1970-01-01"
+
+
+def trend_days(digest_dir: Path) -> List[dict]:
+    """One row per digest day: snapshot count plus the day's last
+    snapshot as the day's fleet state."""
+    seen: dict = {}
+    order: List[str] = []
+    for path in sorted(digest_dir.glob("digest-*.jsonl")):
+        file_day = _file_day(path)
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line:
+                continue
+            try:
+                snap = json.loads(line)
+            except json.JSONDecodeError:
+                continue  # torn tail line from an interrupted write
+            day = _snapshot_day(snap, file_day)
+            if day in seen:
+                seen[day]["snapshots"] += 1
+                seen[day]["last"] = snap
+            else:
+                order.append(day)
+                seen[day] = {"day": day, "snapshots": 1, "last": snap}
+    return [seen[day] for day in order]
+
+
+def _trend_row(entry: dict) -> dict:
+    """Fleet state for one digest day (trace-weighted failure rate)."""
+    snap = entry["last"]
+    stores = snap.get("stores") or []
+    traces = sum(s.get("traces", 0) for s in stores)
+    weighted = sum(s.get("failure_rate", 0.0) * s.get("traces", 0)
+                   for s in stores)
+    modes: dict = {}
+    for s in stores:
+        for m in s.get("top_modes") or []:
+            modes[m.get("mode", "?")] = (
+                modes.get(m.get("mode", "?"), 0) + m.get("count", 0))
+    return {
+        "day": entry["day"],
+        "snapshots": entry["snapshots"],
+        "stores": len(stores),
+        "traces": traces,
+        "failure_rate": round(weighted / traces, 4) if traces else 0.0,
+        "worsening": snap.get("worsening") or [],
+        "top_modes": sorted(modes.items(), key=lambda kv: -kv[1])[:3],
+    }
+
+
+def summarize_trend(days: List[dict]) -> dict:
+    """Fleet-level per-day series for the trend report.
+
+    Failure rate is the trace-weighted mean across stores; verdict is
+    the same Theil-Sen judgement the survey uses, applied to the day
+    rates.
+    """
+    rows = [_trend_row(entry) for entry in days]
+    verdict, slope = trend_verdict([r["failure_rate"] for r in rows])
+    return {"days": rows, "verdict": verdict, "slope": round(slope, 4),
+            "snapshots": sum(r["snapshots"] for r in rows)}
+
+
+def render_trend(summary: dict) -> str:
+    """Terminal trend table with a fleet failure-rate sparkline."""
+    from .cluster import sparkline
+
+    days = summary["days"]
+    lines = [(f"fleet trend - {len(days)} day(s), "
+              f"{summary['snapshots']} snapshot(s)")]
+    if not days:
+        lines.append("  (no digest snapshots found)")
+        return "\n".join(lines)
+    lines.append("  day          snaps stores traces fail%  worsening  "
+                 "top modes")
+    for row in days:
+        modes = ", ".join(f"{m} x{c}" for m, c in row["top_modes"]) or "-"
+        worsen = ",".join(row["worsening"]) or "-"
+        lines.append(
+            f"  {row['day']}   {row['snapshots']:>5} {row['stores']:>6} "
+            f"{row['traces']:>6} {row['failure_rate'] * 100:>5.1f}  "
+            f"{worsen:<9}  {modes}")
+    rates = [r["failure_rate"] for r in days]
+    lines.append(f"  failure-rate sparkline: {sparkline(rates)}")
+    last = days[-1]["failure_rate"]
+    prev = days[-2]["failure_rate"] if len(days) > 1 else None
+    tail = (f" (last day {prev * 100:.1f}% -> {last * 100:.1f}%)"
+            if prev is not None else "")
+    lines.append(f"  verdict: {summary['verdict']} "
+                 f"(slope {summary['slope']:+.4f}/day){tail}")
+    return "\n".join(lines)
+
+
 def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
                 keep_days: int = 30, iterations: Optional[int] = None,
                 sleep=time.sleep) -> int:

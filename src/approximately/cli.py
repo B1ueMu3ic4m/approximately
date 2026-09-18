@@ -532,13 +532,26 @@ def _fleet_watch(args: argparse.Namespace, stores) -> int:
     return 0
 
 
-def cmd_fleet(args: argparse.Namespace) -> int:
+def _fleet_trend(args: argparse.Namespace) -> int:
+    from .fleet import render_trend, summarize_trend, trend_days
+
+    days = trend_days(Path(args.digest_dir))
+    summary = summarize_trend(days)
+    if getattr(args, "json", False):
+        print(json.dumps(summary, indent=2))
+    else:
+        print(render_trend(summary))
+    if getattr(args, "fail_on_worsening", False) \
+            and summary["verdict"] == "worsening":
+        print("fleet trend is worsening", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _fleet_survey(args: argparse.Namespace) -> int:
     from .fleet import render_fleet_html, survey
 
-    stores = [Path(d) for d in args.stores]
-    if getattr(args, "watch", None):
-        return _fleet_watch(args, stores)
-    summaries = survey(stores)
+    summaries = survey([Path(d) for d in args.stores])
     if getattr(args, "json", False):
         from .fleet import webhook_payload
 
@@ -558,6 +571,15 @@ def cmd_fleet(args: argparse.Namespace) -> int:
                   f"{', '.join(worsening)}")
             return 1
     return 0
+
+
+def cmd_fleet(args: argparse.Namespace) -> int:
+    stores = [Path(d) for d in args.stores]
+    if getattr(args, "watch", None):
+        return _fleet_watch(args, stores)
+    if getattr(args, "trend", False):
+        return _fleet_trend(args)
+    return _fleet_survey(args)
 
 
 def cmd_anomalies(args: argparse.Namespace) -> int:
@@ -1102,6 +1124,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--iterations", type=int,
                    help="watch loop: stop after N snapshots instead of "
                         "running until interrupted (cron-friendly)")
+    p.add_argument("--trend", action="store_true",
+                   help="summarize the digest history in --digest-dir: "
+                        "per-day fleet state, sparkline, verdict")
     p.set_defaults(func=cmd_fleet)
 
     p = sub.add_parser("mcp", parents=[common],
