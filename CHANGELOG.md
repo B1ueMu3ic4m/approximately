@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.42.0 — 2026-09-18
+
+- **`query --stats`**: aggregate a DSL selection instead of listing
+  it — count, success split, failure rate, detection-mode totals
+  (from `meta.detections`), mean steps/tokens; `--json` for scripts.
+
+## 0.41.0 — 2026-09-18
+
+- **Store doctor**: `doctor STORE [--digest-dir DIR] [--json]` —
+  parseable-record walk (corrupt files, id/filename mismatches,
+  unsigned records), evidence-ledger chain verification, stale
+  writer locks and leftover temp files, digest-history monitoring
+  gaps. Exit 1 on any finding (CI gate).
+
+## 0.40.0 — 2026-09-18
+
+- **`fleet --trend`**: day-level analytics over the JSONL digest
+  history — per-day fleet state, trace-weighted failure rate, top
+  modes, sparkline, Theil-Sen verdict; `--json`; the existing
+  `--fail-on-worsening` doubles as the trend CI gate. Digest files
+  parse as untrusted input (torn lines skipped, corrupt timestamps
+  fall back to the file-name day).
+
+## 0.39.0 — 2026-09-18
+
+- **First-fault bisect**: `bisect FAILED SUCCESS [--floor F]
+  [--json]` — the earliest *material* divergence on the NW edit
+  script (mutations at similarity ≥ floor count as timestamp noise;
+  deletions/insertions always material), with worst-5 ranking.
+  3000×3000-step stress: 2.0 s, fault pinned at the exact flip step.
+
+## 0.38.0 — 2026-09-18
+
+- **Cycle-grade repetition (FM-1.3)**: `CycleRepeatDetector` — the
+  longest back-to-back repeated tool block (period 2–6) over
+  non-errored calls; fires at ≥16 consumed calls. Multi-agent inner
+  loops evolve args every turn, so the repeated *sequence* is the
+  signal. Gold corpus: FM-1.3 R 0.14 → 0.71 at P 1.00 (tp 1→5,
+  fp 0); corpus sample F1 0.43 → 0.46.
+- **Security**: `ProseRepeatDetector`'s O(T²) SequenceMatcher queue
+  was a crafted-record DoS (400 distinct 1.5k-char turns → 36.6 s);
+  a shingle-Jaccard prefilter (floor 0.3) bounds it to 0.23 s — 157×
+  — with the true-positive path unchanged.
+
 ## 0.37.0 — 2026-09-17
 
 - **MCP stdio server**: `approximately mcp --store PATH` speaks

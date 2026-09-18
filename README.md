@@ -211,6 +211,11 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.35** — 95% Wilson intervals on every benchmark P/R (FM-2.1 P 0.93 [0.69, 0.99]) — uncertainty built into the leaderboard, not a footnote
 - ✅ **v0.36** — Mermaid export: `report --mermaid` renders attributed traces as sequenceDiagrams for READMEs/PRs
 - ✅ **v0.37** — MCP server: `approximately mcp` speaks JSON-RPC 2.0 over stdio — agent failures queryable from Claude Desktop, Zed, any MCP client (zero deps)
+- ✅ **v0.38** — cycle-grade repetition: FM-1.3 recall 0.14 → 0.71 at precision 1.00 on multi-agent gold data · prose-repeat DoS fixed (36.6 s → 0.23 s, 157×)
+- ✅ **v0.39** — `bisect FAILED SUCCESS`: first *material* divergence between two runs (timestamp-noise floor, `--json` for CI)
+- ✅ **v0.40** — `fleet --trend`: per-day fleet analytics over the digest history — sparkline + Theil-Sen verdict as a CI gate
+- ✅ **v0.41** — `doctor`: store health check — corrupt records, ledger tamper, stale locks, digest gaps (exit 1 = CI gate)
+- ✅ **v0.42** — `query --stats`: aggregate any DSL selection — counts, failure rate, mode totals, means
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Full design document: [docs/PLAN.md](docs/PLAN.md).
