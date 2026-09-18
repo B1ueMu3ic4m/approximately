@@ -465,8 +465,13 @@ framework adapters import lazily and degrade when the framework is absent.
     existing `--fail-on-worsening` doubles as the trend CI gate.
     Digest files are treated as untrusted input: torn tail lines and
     corrupt timestamps fall back to the file-name day stamp.
-15. **v0.41 — store doctor (stretch)**: JSONL integrity check, orphan
-    artifacts, digest-gap report.
+15. **v0.41 — store doctor** ✅ (delivered): `doctor STORE
+    [--digest-dir DIR] [--json]` — parseable-record walk (corrupt
+    files, id/filename mismatches, unsigned records), evidence-ledger
+    chain verification, stale writer locks (>1 h) and leftover temp
+    files, and digest-history monitoring gaps + torn-line counts.
+    Exit 1 on any finding — CI-friendly. 7 tests cover the corrupt/
+    tampered/stale/gap paths.
 
 ---
 

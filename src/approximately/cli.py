@@ -580,6 +580,18 @@ def _fleet_survey(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_doctor(args: argparse.Namespace) -> int:
+    from .doctor import doctor
+
+    report = doctor(Path(args.store),
+                    Path(args.digest_dir) if args.digest_dir else None)
+    if getattr(args, "json", False):
+        print(json.dumps(report.to_dict(), indent=2))
+    else:
+        print(report.render())
+    return 0 if report.healthy else 1
+
+
 def cmd_fleet(args: argparse.Namespace) -> int:
     stores = [Path(d) for d in args.stores]
     if getattr(args, "watch", None):
@@ -1142,6 +1154,16 @@ def build_parser() -> argparse.ArgumentParser:
                             "Protocol) stdio server — JSON-RPC 2.0, "
                             "zero dependencies")
     p.set_defaults(func=cmd_mcp)
+
+    p = sub.add_parser("doctor", parents=[common],
+                       help="health check: parseable records, ledger "
+                            "intact, stale locks, digest gaps")
+    p.add_argument("--digest-dir",
+                   help="also report monitoring gaps and torn lines in "
+                        "this digest directory")
+    p.add_argument("--json", action="store_true",
+                   help="emit the full report as JSON")
+    p.set_defaults(func=cmd_doctor)
 
     p = sub.add_parser("anomalies", parents=[common],
                        help="robust latency anomalies (median/MAD z-score)")
