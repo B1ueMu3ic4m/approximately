@@ -262,6 +262,43 @@ def _set_scores(predicted: set, gold_set: set, tp_set: set) -> dict:
     return {"precision": precision, "recall": recall, "f1": f1}
 
 
+def _metric_violations(mode: str, metrics: dict,
+                       spec: dict) -> List[str]:
+    """Per-metric floor breaches for one mode."""
+    out: List[str] = []
+    for metric in ("precision", "recall", "f1"):
+        floor = spec.get(metric)
+        if floor is not None and metrics[metric] < floor:
+            out.append(f"{mode}: {metric} {metrics[metric]:.2f} "
+                       f"< floor {floor:.2f}")
+    return out
+
+
+def check_floors(multi: "MultiLabelResult",
+                floors: dict) -> List[str]:
+    """Compare a multi-label evaluation against regression floors.
+
+    ``floors`` follows docs/bench-floors.json: ``sample_f1`` plus a
+    ``modes`` map of per-metric minimums. Returns human-readable
+    violations — an empty list means the attribution quality did not
+    regress past the slack each floor deliberately carries.
+    """
+    violations: List[str] = []
+    for mode, spec in sorted((floors.get("modes") or {}).items()):
+        metrics = (multi.per_mode or {}).get(mode)
+        if metrics is None:
+            if spec.get("required"):
+                violations.append(f"{mode}: no score (required)")
+            continue
+        violations.extend(_metric_violations(mode, metrics, spec))
+    sample_floor = floors.get("sample_f1")
+    if sample_floor is not None and multi.macro_f1 < sample_floor:
+        violations.append(
+            f"sample macro-F1 {multi.macro_f1:.2f} "
+            f"< floor {sample_floor:.2f}")
+    return violations
+
+
 def evaluate_multi(labeled: List[tuple]) -> "MultiLabelResult":
     """Set-based evaluation over multi-gold records.
 
