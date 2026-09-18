@@ -63,6 +63,20 @@ jobs:
       - name: Adapter tests
         run: pytest tests/test_v02_v03.py -v
 
+  bench-gate:
+    # Attribution-quality regression gate: rule detectors over the
+    # shipped gold corpus must clear docs/bench-floors.json.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e .
+      - name: Attribution floors
+        run: python scripts/bench_gate.py
+
   lint:
     runs-on: ubuntu-latest
     steps:

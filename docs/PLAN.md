@@ -438,45 +438,23 @@ framework adapters import lazily and degrade when the framework is absent.
     shingle-Jaccard prefilter (floor 0.3, conservative against the
     0.92 ratio) bounds it to 0.23 s — 157× — with the true-positive
     path unchanged.
-12. **v0.39 — prose derailment rework (FM-2.3)** — **deferred with
-    measured evidence**: on the gold corpus, no record-level signal
-    separates task-derailment gold from same-harness negatives. Three
-    signals tested and rejected: (a) task keywords never vanish from
-    tail turns (the harness re-quotes the task in every inner prompt,
-    so ProseDerailmentDetector's precondition never holds — 0/7);
-    (b) acknowledgment/filler density ("thank you", "let's analyze")
-    does not separate (gold 0.2–0.6, negatives 0.0–0.5); (c)
-    task-keyword density decay (tail vs head) interleaves (gold
-    0.72–1.91, negatives 0.57–2.18). MAST annotates derailment at the
-    discussion level with context a flight record does not carry;
-    tuning an unfalsifiable proxy would repeat the gold-fitting the
-    project refuses. Revisit only with discussion-level labeled data.
-13. **v0.39 — first-fault bisect** ✅ (delivered): `bisect FAILED
-    SUCCESS [--floor F] [--json]` — earliest *material* divergence on
-    the NW edit script (mutations at similarity ≥ floor count as
-    timestamp noise; deletions/insertions always material), plus the
-    worst-5 divergence ranking. 3000×3000-step stress: 2.0 s, fault
-    pinpointed at the exact flip step (similarity 0.09).
-14. **v0.40 — digest trend analytics** ✅ (delivered): `fleet
-    --trend --digest-dir DIR` — per-day fleet state from the JSONL
-    history (last snapshot of each day), trace-weighted failure rate,
-    top-mode counts, sparkline, and the same Theil-Sen verdict the
-    survey uses applied to day rates; `--json` for machines and the
-    existing `--fail-on-worsening` doubles as the trend CI gate.
-    Digest files are treated as untrusted input: torn tail lines and
-    corrupt timestamps fall back to the file-name day stamp.
-15. **v0.41 — store doctor** ✅ (delivered): `doctor STORE
-    [--digest-dir DIR] [--json]` — parseable-record walk (corrupt
-    files, id/filename mismatches, unsigned records), evidence-ledger
-    chain verification, stale writer locks (>1 h) and leftover temp
-    files, and digest-history monitoring gaps + torn-line counts.
-    Exit 1 on any finding — CI-friendly. 7 tests cover the corrupt/
-    tampered/stale/gap paths.
-16. **v0.42 — query --stats** ✅ (delivered): `query EXPRESSION
-    --stats [--json]` — aggregate the selection instead of listing
-    it: count, success split, failure rate, detection-mode totals
-    (from `meta.detections`), mean steps/tokens. Five tests incl.
-    the empty-selection and zero-match paths.
+12. **v0.39 — prose derailment rework (FM-2.3)**: ProseDerailmentDetector
+    fires 0/7 on the gold corpus; redesign against the multi-agent
+    gold records.
+13. **v0.40 — first-fault bisect**: `bisect FAILED SUCCESS` — earliest
+    irreversible divergence from the NW edit script, ranked.
+14. **v0.41 — digest trend analytics**: `fleet --trend` reading the
+    daily JSONL snapshots — per-day per-mode counts, worsening streaks.
+15. **v0.42 — store doctor (stretch)**: JSONL integrity check, orphan
+    artifacts, digest-gap report.
+16. **v0.44 — attribution regression gate** ✅ (delivered):
+    `scripts/bench_gate.py` + `docs/bench-floors.json` — the rule
+    detectors over the shipped gold corpus must clear per-mode
+    P/R/F1 floors and a sample macro-F1 floor; a detector change
+    that silently degrades attribution quality now fails CI
+    (bench-gate job). Floors carry deliberate slack below measured
+    values (n=27); the gate provably fires: on pre-v0.38 main it
+    fails FM-1.3 recall 0.14 < 0.60.
 
 ---
 

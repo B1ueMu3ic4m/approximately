@@ -1,0 +1,10 @@
+{
+  "_comment": "Regression floors for the attribution-quality CI gate. Measured 2026-09-18 on docs/mast-bench-multi.jsonl (n=27). The corpus is small, so floors sit deliberately below the measured values (FM-2.1 P 0.93/R 1.00, FM-1.3 P 1.00/R 0.71, FM-3.2 P 0.54/R 0.64, FM-2.6 P 0.33/R 0.50, sample macro-F1 0.46); a breach means a real regression, not noise.",
+  "sample_f1": 0.44,
+  "modes": {
+    "FM-2.1": {"precision": 0.90, "recall": 0.90},
+    "FM-1.3": {"precision": 0.90, "recall": 0.60},
+    "FM-3.2": {"precision": 0.45, "recall": 0.55},
+    "FM-2.6": {"precision": 0.25, "recall": 0.40}
+  }
+}
