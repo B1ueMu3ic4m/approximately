@@ -500,6 +500,12 @@ framework adapters import lazily and degrade when the framework is absent.
     `test` generates guard files in the CWD, so the walkthrough now
     runs it from a scratch directory.
 
+21. **v0.48 — MCP trend + stats tools** ✅ (delivered): the MCP
+    server reaches full CLI parity at nine tools — `trend` (day-level
+    digest analytics) and `stats` (query-selection aggregates) reuse
+    the fleet/query modules directly; a missing digest dir reads as
+    an empty history, not an error.
+
 ---
 
 ## 4. Launch plan
