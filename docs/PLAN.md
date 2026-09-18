@@ -511,6 +511,12 @@ framework adapters import lazily and degrade when the framework is absent.
     the fleet/query modules directly; a missing digest dir reads as
     an empty history, not an error.
 
+22. **v0.50 — release readiness** ✅ (delivered): package version
+    aligned to the changelog (0.3.0 → 0.49.0 in pyproject +
+    `__version__`), and `docs/ci-integration.md` now documents the
+    attribution-quality gate and the fleet trend gate alongside the
+    regression-guard workflow.
+
 ---
 
 ## 4. Launch plan
