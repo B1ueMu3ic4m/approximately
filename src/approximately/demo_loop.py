@@ -14,6 +14,7 @@ from typing import Optional, Tuple
 from .attributor import attribute
 from .recorder import Recorder
 from .store import TraceStore
+from .trace import Trace
 
 _TASK = ("Refactor the payment retry logic in the checkout service "
          "(planner/navigator/editor crew).")
@@ -37,7 +38,7 @@ def _crew_turn(rec: Recorder, turn: int) -> None:
 
 
 def run_demo(store_dir: Optional[Path] = None
-             ) -> Tuple[object, object, Optional[Path]]:
+             ) -> Tuple[Trace, object, Optional[Path]]:
     store = TraceStore(store_dir) if store_dir else TraceStore()
     with Recorder(_TASK, model="demo/payment-refactor-crew",
                   store=store) as rec:
