@@ -14,6 +14,10 @@ model: what it protects, what it explicitly does not, and how to report.
 | HTML reports | Injection from untrusted trace content (tool results, thoughts) | Every dynamic value is HTML-escaped (`html.escape`, quotes included); fuzz-tested in `tests/test_report_escapes.py`. |
 | Generated regression tests | Code injection via trace content | Trace content travels as base64, never interpolated into code; the only interpolated values are MAST mode ids from the fixed taxonomy. |
 | Secrets | Leakage | No telemetry, no network calls in the core, no secrets in repo (scanned in CI). |
+| Attribution pipeline | **Algorithmic-DoS via crafted records** (megabyte turns, pathological repetition) | Prose analysis bounded at 8k chars/turn; the O(T²) SequenceMatcher queue is prefiltered by shingle-Jaccard (a crafted 400-turn no-repeat record: 36.6 s → 0.23 s); a 2 MB MCP line is rejected in <1 s. Enforced by seeded fuzz (`tests/test_v45_fuzz.py`) and timing tests. |
+| Query DSL / MCP line protocol | Injection or parser confusion from untrusted expressions/lines | Recursive-descent parser with depth (50) and length (4k) caps, eval-free closures; JSON-RPC envelope validated per field; garbage input answers `-32700`/`-32600`/`-32602` or is silenced, never crashes the loop (fuzz-covered). |
+| Digest files / doctor input | Corrupt or hostile JSONL on disk | Torn tail lines skipped, corrupt timestamps fall back to the file-name day stamp; doctor classifies unparseable/bytes files as corrupt without crashing (fuzz-covered). |
+| Attribution quality | **Silent regression** from a detector refactor | Gold-corpus CI gate (`scripts/bench_gate.py` + `docs/bench-floors.json`): per-mode P/R/F1 floors must hold or CI fails. |
 
 ## Honest limits of the unkeyed chain
 
