@@ -551,6 +551,15 @@ framework adapters import lazily and degrade when the framework is absent.
     payload, so a verdict fetched over MCP is auditable as
     arithmetic, not vibes. Opt-in flag; default payload unchanged.
 
+29. **v0.57 — HyperAgent schema tests** ✅ (delivered): the log-line
+    trajectory parser (`_hyperagent_turns`, the schema behind one of
+    the corpus sources) had zero direct coverage (mastdata 80%);
+    now pinned line-by-line - marker accumulation, continuation
+    lines, pre-marker drops, empty-body markers, dict-schema
+    routing-by-first-element, 2000-char truncation, and a
+    convert_mast end-to-end roundtrip with real annotation options.
+    mastdata coverage 80% -> 99%.
+
 ---
 
 ## 4. Launch plan
