@@ -583,6 +583,15 @@ framework adapters import lazily and degrade when the framework is absent.
     empty-string EOF shutdown path. mcp_server 88% -> 100%; suite
     701 tests.
 
+31b. **v0.61 — adapter dispatch tests (no frameworks)** ✅
+     (delivered): fake crewai event bus + fake SDK spans drive the
+     real dispatch logic locally (the contrib CI job covers the
+     real packages): register/deregister across layouts, tool/llm/
+     kickoff event handling, "outcome owned by the caller" contract,
+     langgraph full callback cycle incl. orphan tool-end and depth
+     floor, agents_sdk span-type routing + trace-name takeover.
+     crewai 66% -> 92%, langgraph 76% -> 92%.
+
 ---
 
 ## 4. Launch plan
