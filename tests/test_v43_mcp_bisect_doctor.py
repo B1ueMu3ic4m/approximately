@@ -123,3 +123,26 @@ def test_mcp_doctor_with_digest_dir(tmp_path):
     payload = json.loads(resp["result"]["content"][0]["text"])
     assert payload["digest_days"] == 1
     assert payload["torn_lines"] == 1
+
+
+def test_mcp_attribute_explain_includes_fusion(tmp_path):
+    store = _store(tmp_path)
+    ctx = ServerContext(str(store.directory))
+    msg = json.loads(_rpc("tools/call", {
+        "name": "attribute",
+        "arguments": {"trace": "m-fail", "explain": True},
+    }))
+    resp = handle_request(msg, ctx)
+    payload = json.loads(resp["result"]["content"][0]["text"])
+    assert "fusion_explanation" in payload
+    assert "prior log-odds" in payload["fusion_explanation"]
+
+
+def test_mcp_attribute_without_explain_omits_fusion(tmp_path):
+    store = _store(tmp_path)
+    ctx = ServerContext(str(store.directory))
+    msg = json.loads(_rpc("tools/call", {
+        "name": "attribute", "arguments": {"trace": "m-fail"}}))
+    resp = handle_request(msg, ctx)
+    payload = json.loads(resp["result"]["content"][0]["text"])
+    assert "fusion_explanation" not in payload
