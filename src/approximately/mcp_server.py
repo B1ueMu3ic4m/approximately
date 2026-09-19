@@ -42,12 +42,18 @@ _TOOLS: List[Dict[str, Any]] = [
     {
         "name": "attribute",
         "description": "Attribute a trace: primary MAST failure mode, "
-                       "confidence, and per-detection evidence.",
+                       "confidence, and per-detection evidence. With "
+                       "explain=true the Bayesian fusion arithmetic "
+                       "(prior log-odds + LLR per detection) rides "
+                       "along, so the verdict is auditable.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "trace": {"type": "string"},
                 "store": {"type": "string"},
+                "explain": {"type": "boolean",
+                            "description": "include the fusion "
+                                           "arithmetic"},
             },
             "required": ["trace"],
         },
@@ -192,7 +198,7 @@ def _tool_attribute(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     report = attribute(trace)
-    return {
+    payload = {
         "trace": trace.id,
         "failed": report.failed,
         "primary_mode": report.primary_mode.id,
@@ -204,6 +210,12 @@ def _tool_attribute(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                         "evidence": d.evidence}
                        for d in report.detections],
     }
+    if args.get("explain"):
+        from .attributor import explain_fusion
+
+        payload["fusion_explanation"] = explain_fusion(
+            report.detections)
+    return payload
 
 
 def _tool_verify(ctx: ServerContext, args: Dict[str, Any]) -> dict:
