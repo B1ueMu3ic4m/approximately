@@ -69,3 +69,51 @@ def test_corpus_clears_floors():
     violations = check_floors(evaluate_multi(pairs),
                               json.loads(FLOORS.read_text(encoding="utf-8")))
     assert violations == []
+
+
+def test_synth_floors_doc_is_valid():
+    floors = json.loads(
+        (CORPUS.parent / "bench-synth-floors.json").read_text(
+            encoding="utf-8"))
+    assert floors["sample_f1"] >= 0.95
+    for mode in ("FM-1.3", "FM-2.1", "FM-2.6", "FM-3.2"):
+        assert floors["modes"][mode]["recall"] >= 0.95
+
+
+def test_synth_corpus_clears_synth_floors():
+    """CI parity for the synthetic fixture gate (large-n canary)."""
+    synth = CORPUS.parent / "mast-bench-synth.jsonl"
+    if not synth.exists():
+        return
+    from approximately.trace import Trace
+
+    pairs = []
+    for line in synth.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        raw = json.loads(line)
+        labels = raw.pop("labels")
+        pairs.append((Trace.from_dict(raw), labels))
+    floors = json.loads(
+        (CORPUS.parent / "bench-synth-floors.json").read_text(
+            encoding="utf-8"))
+    violations = check_floors(evaluate_multi(pairs), floors)
+    assert violations == []
+
+
+def test_synth_generator_is_deterministic(tmp_path):
+    """Regenerating the fixture must be byte-identical (SEED)."""
+    import subprocess
+    import sys
+
+    gen = CORPUS.parent.parent / "scripts" / "make_synth_corpus.py"
+    if not gen.exists():
+        return
+    outs = []
+    for _ in range(2):
+        result = subprocess.run(
+            [sys.executable, str(gen)], capture_output=True, text=True,
+            check=True)
+        outs.append(result.stdout)
+    assert outs[0] == outs[1]
+    assert len(outs[0].splitlines()) == 180
