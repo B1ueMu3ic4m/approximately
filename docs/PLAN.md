@@ -601,6 +601,14 @@ framework adapters import lazily and degrade when the framework is absent.
     (remaining lines need framework-level mocks - diminishing
     value, documented and accepted).
 
+34. **v0.64 — demo verification scenario** ✅ (delivered):
+    `demo --scenario verification` - a checkout fix claimed done with
+    zero outcome signals in the record; the prose outcome-verify
+    detector (v0.31) is the thing that catches the unchecked claim,
+    demonstrated end to end with an HTML report. 4 tests pin the
+    construction (claim present, outcome signals absent, detector
+    fires, CLI wires).
+
 ---
 
 ## 4. Launch plan
