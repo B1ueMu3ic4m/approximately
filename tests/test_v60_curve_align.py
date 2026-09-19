@@ -95,12 +95,11 @@ def test_tokens_non_tool_step_uses_thought_branch():
     # non-tool steps carry a thought/result-derived state token
     rec = Recorder("think first", save=False)
     rec.respond("plan it out", success=True)
-    step = rec.trace.steps[-1]
     toks = tokens(rec.trace)  # empty: contract excludes non-tool steps
     assert toks == []
     # the branch itself is reachable via normalize_step on a plan step
     from approximately.align import normalize_step
-    from approximately.trace import Step, PLAN
+    from approximately.trace import PLAN, Step
 
     head, state = normalize_step(Step(kind=PLAN, thought="Plan the thing"))
     assert head == f"{PLAN}:-"
