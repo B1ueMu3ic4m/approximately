@@ -545,6 +545,13 @@ framework adapters import lazily and degrade when the framework is absent.
     FM-1.3 + FM-2.1, as the real gold double-labels) - documented
     in the generator and LEADERBOARD.
 
+28. **v0.55 — README capabilities completion** ✅ (delivered): the
+    capabilities table now carries every post-v0.34 capability
+    (bisect, doctor, fleet trend gate, query DSL + stats, the
+    9-tool MCP server, attribution quality gates); the stale
+    "7 tools" version-history row corrected to 9 (CLI parity).
+    Taxonomy claim re-verified: 14 real modes + OTHER.
+
 ---
 
 ## 4. Launch plan
