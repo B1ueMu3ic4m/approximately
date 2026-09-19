@@ -68,6 +68,13 @@ def cmd_demo(args: argparse.Namespace) -> int:
     if args.scenario == "multi-agent":
         from .demo_multiagent import run_demo as run_multiagent
         trace, report, path = run_multiagent()
+    elif args.scenario == "verification":
+        from .demo_verification import run_demo as run_verification
+        from .store import TraceStore
+
+        store_dir = (TraceStore(args.store).directory
+                     if getattr(args, "store", None) else None)
+        trace, report, path = run_verification(store_dir)
     elif args.scenario == "loop":
         from .demo_loop import run_demo as run_loop
         from .store import TraceStore
@@ -1008,7 +1015,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--context-budget", type=int, default=60,
                    help="token budget for the context-runtime demo (default 60)")
     p.add_argument("--scenario",
-                   choices=["booking", "multi-agent", "loop"],
+                   choices=["booking", "multi-agent", "loop",
+                            "verification"],
                    default="booking",
                    help="demo scenario (default booking)")
     p.set_defaults(func=cmd_demo)
