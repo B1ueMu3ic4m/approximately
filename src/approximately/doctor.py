@@ -197,3 +197,21 @@ def doctor(store: Path, digest_dir: Optional[Path] = None) -> DoctorReport:
     if digest_dir is not None and digest_dir.is_dir():
         _check_digests(digest_dir, report)
     return report
+
+
+def fix_hygiene(store: Path, report: DoctorReport) -> List[str]:
+    """Remove what the hygiene checks flagged: stale writer locks and
+    leftover temp files. Never touches record data, the ledger, or
+    digests. Returns the names actually removed (skips anything that
+    vanished or refuses to unlink).
+    """
+    candidates = report.stale_locks + report.temp_files
+    return [name for name in candidates if _try_unlink(store / name)]
+
+
+def _try_unlink(path: Path) -> bool:
+    try:
+        path.unlink()
+        return True
+    except OSError:
+        return False

@@ -499,6 +499,11 @@ framework adapters import lazily and degrade when the framework is absent.
     fails CI. Found and fixed real walkthrough pollution on the way:
     `test` generates guard files in the CWD, so the walkthrough now
     runs it from a scratch directory.
+22. **v0.49 — doctor --fix** ✅ (delivered): removes what the
+    hygiene checks flagged — stale writer locks and leftover temp
+    files — and never touches record data, the ledger, or digests;
+    the removal note goes to stderr so --json stdout stays
+    parseable. Exit code flips to healthy when findings clear.
 
 21. **v0.48 — MCP trend + stats tools** ✅ (delivered): the MCP
     server reaches full CLI parity at nine tools — `trend` (day-level
@@ -522,6 +527,7 @@ framework adapters import lazily and degrade when the framework is absent.
 5. **Metrics**: 500 stars / 2k PyPI downloads in month one = healthy;
    the core conversion is demo → own-agent instrumentation, so the
    Recorder API must stay ≤ 5 lines.
+
 
 ## 5. Risks & mitigations
 

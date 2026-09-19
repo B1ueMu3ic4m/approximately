@@ -646,10 +646,19 @@ def _fleet_survey(args: argparse.Namespace) -> int:
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
-    from .doctor import doctor
+    from .doctor import doctor, fix_hygiene
 
     report = doctor(Path(args.store),
                     Path(args.digest_dir) if args.digest_dir else None)
+    if getattr(args, "fix", False):
+        removed = fix_hygiene(Path(args.store), report)
+        report.stale_locks = [n for n in report.stale_locks
+                              if n not in removed]
+        report.temp_files = [n for n in report.temp_files
+                             if n not in removed]
+        # human-readable note on stderr keeps --json stdout parseable
+        print(f"removed {len(removed)} hygiene artifact(s)",
+              file=sys.stderr)
     if getattr(args, "json", False):
         print(json.dumps(report.to_dict(), indent=2))
     else:
@@ -1242,6 +1251,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--digest-dir",
                    help="also report monitoring gaps and torn lines in "
                         "this digest directory")
+    p.add_argument("--fix", action="store_true",
+                   help="remove stale writer locks and leftover temp "
+                        "files (never record data, ledger, or digests)")
     p.add_argument("--json", action="store_true",
                    help="emit the full report as JSON")
     p.set_defaults(func=cmd_doctor)
