@@ -527,6 +527,24 @@ framework adapters import lazily and degrade when the framework is absent.
     framing enforced in docs: a canary for regressions, never
     real-world performance; FM-2.3/FM-3.1 deliberately absent.
 
+25. **v0.52 — packaging CI job** ✅ (delivered, #116): `python -m
+    build` in CI, then a clean-venv smoke install of the wheel
+    (version banner + two-step recording) and artifact upload; the
+    packaging job passed on its own PR. The PyPI path is validated
+    on every PR without tagging - a release is now: Trusted
+    Publishing setting + tag `v0.49.0` + push.
+26. **v0.53 — ARCHITECTURE.md** ✅ (delivered, #117): the module map
+    and evidence pipeline for contributors - recorder -> store ->
+    integrity, the two exclusive detector families, Bayesian fusion,
+    replay/repair, fleet ops, MCP - plus five invariants worth
+    keeping, counts verified against the registries.
+27. **v0.54 — buffer / audit findings** ✅ (consumed): fixture
+    building surfaced real detector-fitness lessons (homogeneous
+    template turns trip the restart detector; harness echoes
+    amplify shingle similarity; a pure loop legitimately exhibits
+    FM-1.3 + FM-2.1, as the real gold double-labels) - documented
+    in the generator and LEADERBOARD.
+
 ---
 
 ## 4. Launch plan
