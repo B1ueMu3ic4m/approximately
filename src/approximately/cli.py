@@ -275,6 +275,10 @@ def cmd_calibrate(args: argparse.Namespace) -> int:
     if len(labeled) < 10:
         print(f"need >= 10 labeled traces, got {len(labeled)}")
         return 1
+    if any(isinstance(gold, list) for _, gold in labeled):
+        print("calibrate scores one gold per trace; this dataset is "
+              "multi-label - use `benchmark --multi-label` for it")
+        return 1
     scored = [(score_modes(t), gold) for t, gold in labeled]
     split = max(1, int(len(scored) * 0.5))
     temperature = fit_temperature(scored[:split])
