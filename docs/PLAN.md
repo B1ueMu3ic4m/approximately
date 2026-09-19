@@ -592,6 +592,14 @@ framework adapters import lazily and degrade when the framework is absent.
      floor, agents_sdk span-type routing + trace-name takeover.
      crewai 66% -> 92%, langgraph 76% -> 92%.
 
+32. **v0.62 — attribution performance gate** ✅ (delivered):
+    `scripts/perf_gate.py` in the bench-gate CI job - attributes all
+    180 synthetic records and asserts the per-record mean stays
+    under 50 ms (~25x observed headroom), so only an
+    algorithmic-complexity regression (the class the fuzz round
+    guards against) can trip it. Provable: `--max-ms-per-record
+    0.5` fails.
+
 ---
 
 ## 4. Launch plan
