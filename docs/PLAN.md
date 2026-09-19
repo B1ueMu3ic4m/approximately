@@ -560,15 +560,13 @@ framework adapters import lazily and degrade when the framework is absent.
     convert_mast end-to-end roundtrip with real annotation options.
     mastdata coverage 80% -> 99%.
 
-29. **v0.58 — CLI sweep tests** ✅ (delivered): every remaining
-    command exercised end to end against a seeded store (similar,
-    calibrate, counterfactual, drift, optimize, repair --apply,
-    verify --all --json, clean, metrics --prometheus, curve,
-    export-dataset, predict, cluster, taxonomy) - argument-wiring
-    drift now fails CI. Found and fixed a real UX bug en route:
-    `calibrate` on a multi-label dataset crashed with a bare
-    TypeError; it now exits 1 with "use benchmark --multi-label".
-    cli.py coverage 86% -> 90%; suite 706 tests.
+30. **v0.59 — MCP server coverage to 100%** ✅ (delivered): the
+    remaining 18 uncovered lines closed - attribute/verify/bisect
+    missing-trace tool errors, the survey and query handlers, the
+    generic (non-KeyError) tool-exception branch, `cmd_mcp`'s
+    scripted-stdio entry with the served-count report, and the
+    empty-string EOF shutdown path. mcp_server 88% -> 100%; suite
+    701 tests.
 
 ---
 
