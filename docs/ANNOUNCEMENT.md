@@ -30,6 +30,17 @@ Neither did we. So we built approximately (open source):
    be — too big wastes money, too small and it starts forgetting
 
 Approximate memory. Exact accountability.
+Approximate memory. Exact accountability.
+
+**Shipped since the draft above (v0.35-v0.49):** the whole toolkit now
+speaks **MCP** — 9 tools over stdio, so Claude Desktop/Zed/any MCP client
+can query failures, bisect a run against its last success, or run a store
+health check without leaving the chat. Plus: first-fault bisect
+(timestamp-noise floored), a self-healing store doctor, fleet trend gates
+that fail CI when your agents get worse, query DSL with aggregates,
+Wilson-scored benchmarks with **CI-enforced attribution floors**, and an
+adversarial fuzz suite over every parser boundary. Still zero dependencies.
+
 
 Free, MIT, zero dependencies — 30-second demo:
 https://github.com/B1ueMu3ic4m/approximately
