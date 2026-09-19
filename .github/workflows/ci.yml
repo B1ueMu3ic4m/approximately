@@ -74,8 +74,10 @@ jobs:
           python-version: "3.12"
       - name: Install
         run: pip install -e .
-      - name: Attribution floors
+      - name: Attribution floors (gold corpus)
         run: python scripts/bench_gate.py
+      - name: Attribution floors (synthetic fixture)
+        run: python scripts/bench_gate.py --synth
 
   lint:
     runs-on: ubuntu-latest

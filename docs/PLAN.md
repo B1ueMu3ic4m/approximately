@@ -517,6 +517,16 @@ framework adapters import lazily and degrade when the framework is absent.
     attribution-quality gate and the fleet trend gate alongside the
     regression-guard workflow.
 
+24. **v0.51 — synthetic attribution regression fixture** ✅
+    (delivered): `scripts/make_synth_corpus.py` (seeded, byte-stable)
+    generates 180 prose records whose failure modes are planted by
+    construction - FM-1.3/2.1/2.6/3.2 at P 1.00 / R 1.00 with tight
+    Wilson intervals; `bench_gate.py --synth` + `bench-synth-floors`
+    (floors at 0.95) fail CI on any detector drop, and a
+    determinism test pins byte-identical regeneration. Honest
+    framing enforced in docs: a canary for regressions, never
+    real-world performance; FM-2.3/FM-3.1 deliberately absent.
+
 ---
 
 ## 4. Launch plan

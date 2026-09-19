@@ -1,0 +1,10 @@
+{
+  "_comment": "Floors for the SYNTHETIC regression fixture (docs/mast-bench-synth.jsonl, 180 records from scripts/make_synth_corpus.py, seed 20260919). Scenarios plant failure modes by construction, so the detectors must score near-perfectly: any drop below these floors is a detector regression, not data noise. These numbers describe the fixture only and must never be quoted as real-world performance - see the gold-corpus floors in bench-floors.json for that (n=27).",
+  "sample_f1": 0.95,
+  "modes": {
+    "FM-1.3": {"precision": 0.95, "recall": 0.95},
+    "FM-2.1": {"precision": 0.95, "recall": 0.95},
+    "FM-2.6": {"precision": 0.95, "recall": 0.95},
+    "FM-3.2": {"precision": 0.95, "recall": 0.95}
+  }
+}
