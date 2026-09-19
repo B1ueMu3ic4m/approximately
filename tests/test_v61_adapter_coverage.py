@@ -15,7 +15,6 @@ from approximately.contrib.agents_sdk import AgentsSDKProcessor
 from approximately.contrib.crewai import CrewAIRecorder, _events_module
 from approximately.contrib.langgraph import ApproximatelyCallbackHandler
 
-
 # -- crewai -------------------------------------------------------------------
 
 def _install_fake_crewai(monkeypatch):
@@ -53,7 +52,6 @@ def test_events_module_finds_fake(monkeypatch):
 
 def test_events_module_absent_returns_none(monkeypatch):
     monkeypatch.setitem(sys.modules, "crewai_events", None)
-    import importlib
 
     monkeypatch.delitem(sys.modules, "crewai_events", raising=False)
     assert _events_module() is None
@@ -145,7 +143,9 @@ def test_agents_sdk_processor_span_dispatch():
     class GenerationSpanData:
         model = "gpt-fake"
         output = "thinking..."
-        usage = {"output_tokens": 17}
+
+        def __init__(self):
+            self.usage = {"output_tokens": 17}
 
     proc.on_span_end(Span(span_id="s1", span_data=FunctionSpanData(),
                           error=None))
