@@ -78,6 +78,8 @@ jobs:
         run: python scripts/bench_gate.py
       - name: Attribution floors (synthetic fixture)
         run: python scripts/bench_gate.py --synth
+      - name: Attribution performance gate
+        run: python scripts/perf_gate.py
 
   packaging:
     # Validate the PyPI path end to end without tagging: build sdist
