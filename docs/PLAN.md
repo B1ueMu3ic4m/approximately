@@ -517,6 +517,21 @@ framework adapters import lazily and degrade when the framework is absent.
     attribution-quality gate and the fleet trend gate alongside the
     regression-guard workflow.
 
+24. **v0.51 — synthetic attribution regression fixture** (tonight):
+    deterministic seeded generator producing ~200 labeled multi-agent
+    traces (repetition cycles, restarts, missing verification,
+    premature termination planted by construction). A large-n
+    companion to the 27-record gold corpus: tight Wilson intervals
+    for detector regression tracking. Honest framing: a synthetic
+    fixture measures detector regressions, never real-world
+    performance — kept in a separate file with separate floors.
+25. **v0.52 — packaging CI job**: sdist+wheel built in CI,
+    wheel smoke-installed in a clean venv (`--version` + demo) —
+    validates the PyPI path without tagging.
+26. **v0.53 — ARCHITECTURE.md**: module map and data flow for
+    contributors.
+27. **v0.54 — buffer / audit findings**.
+
 ---
 
 ## 4. Launch plan
