@@ -119,6 +119,35 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "trend",
+        "description": "Day-level fleet analytics over a watch-loop "
+                       "digest directory: per-day failure rate, top "
+                       "modes, sparkline verdict.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "digest_dir": {"type": "string",
+                               "description": "directory of daily "
+                                              "digest-*.jsonl files"},
+            },
+            "required": ["digest_dir"],
+        },
+    },
+    {
+        "name": "stats",
+        "description": "Aggregate a query selection instead of "
+                       "listing it: count, success split, failure "
+                       "rate, mode totals, mean steps/tokens.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "expression": {"type": "string"},
+                "store": {"type": "string"},
+            },
+            "required": ["expression"],
+        },
+    },
+    {
         "name": "query",
         "description": "Select traces with an expression, e.g. "
                        "\"success == false and mode == FM-2.1\".",
@@ -244,6 +273,21 @@ def _tool_doctor(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     return report.to_dict()
 
 
+def _tool_trend(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .fleet import summarize_trend, trend_days
+
+    days = trend_days(Path(str(args["digest_dir"])))
+    return summarize_trend(days)
+
+
+def _tool_stats(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .query import select, summarize
+
+    found = select(_store(ctx, args).list_traces(),
+                   str(args["expression"]))
+    return summarize(found)
+
+
 _HANDLERS = {
     "list_traces": _tool_list_traces,
     "attribute": _tool_attribute,
@@ -252,6 +296,8 @@ _HANDLERS = {
     "query": _tool_query,
     "bisect": _tool_bisect,
     "doctor": _tool_doctor,
+    "trend": _tool_trend,
+    "stats": _tool_stats,
 }
 
 
