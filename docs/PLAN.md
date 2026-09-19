@@ -545,6 +545,12 @@ framework adapters import lazily and degrade when the framework is absent.
     FM-1.3 + FM-2.1, as the real gold double-labels) - documented
     in the generator and LEADERBOARD.
 
+27b. **v0.55 — README capabilities completion** ✅ (delivered,
+     #119): the capabilities table now carries every post-v0.34
+     capability (bisect, doctor, fleet trend gate, query DSL +
+     stats, the 9-tool MCP server, attribution quality gates);
+     the stale "7 tools" history row corrected to 9 (CLI parity).
+     Taxonomy claim re-verified: 14 real modes + OTHER.
 28. **v0.56 — MCP attribute explain** ✅ (delivered): the attribute
     tool gains `explain: true` - the Bayesian fusion arithmetic
     (prior log-odds + per-detection LLR) rides along in the
@@ -560,6 +566,15 @@ framework adapters import lazily and degrade when the framework is absent.
     convert_mast end-to-end roundtrip with real annotation options.
     mastdata coverage 80% -> 99%.
 
+29b. **v0.58 — CLI sweep tests** ✅ (delivered, #121): every
+     remaining command exercised end to end against a seeded store
+     (similar, calibrate, counterfactual, drift, optimize, repair
+     --apply, verify --all --json, clean, metrics --prometheus,
+     curve, export-dataset, predict, cluster, taxonomy) -
+     argument-wiring drift now fails CI. Real UX bug fixed en
+     route: `calibrate` on a multi-label dataset crashed with a
+     bare TypeError; it now exits 1 with "use benchmark
+     --multi-label". cli.py coverage 86% -> 90%.
 30. **v0.59 — MCP server coverage to 100%** ✅ (delivered): the
     remaining 18 uncovered lines closed - attribute/verify/bisect
     missing-trace tool errors, the survey and query handlers, the
