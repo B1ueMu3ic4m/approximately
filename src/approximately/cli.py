@@ -184,6 +184,14 @@ def cmd_report(args: argparse.Namespace) -> int:
         return 0
     trace = _load_trace(args.trace, store)
     report = attribute(trace, use_judge=args.judge)
+    if getattr(args, "markdown", False):
+        from .markdown_report import render_markdown
+
+        md = Path(args.output) if args.output else \
+            store.directory / f"{trace.id}.report.md"
+        md.write_text(render_markdown(trace, report), encoding="utf-8")
+        print(f"wrote markdown postmortem: {md}")
+        return 0
     out = Path(args.output) if args.output else store.directory / f"{trace.id}.report.html"
     out.write_text(render_html(trace, report), encoding="utf-8")
     print(f"wrote {out}")
@@ -1074,6 +1082,9 @@ def build_parser() -> argparse.ArgumentParser:
                                      "diagram of the trace to this path "
                                      "(pastes into GitHub markdown)")
     p.add_argument("--judge", action="store_true")
+    p.add_argument("--markdown", action="store_true",
+                   help="write the postmortem as issue-ready Markdown "
+                        "instead of HTML")
     p.set_defaults(func=cmd_report)
 
     p = sub.add_parser("context", parents=[common],
