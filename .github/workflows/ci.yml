@@ -100,6 +100,10 @@ jobs:
           smoke/bin/pip install dist/approximately-*.whl
           smoke/bin/approximately --version
           smoke/bin/python -c "from approximately import Recorder; r = Recorder('smoke', save=False); r.tool('bash', {'cmd': 'ls'}, result='ok'); r.respond('done', success=True); assert len(r.trace.steps) == 2; print('wheel smoke OK')"
+      - name: Metadata check (twine)
+        run: |
+          pip install twine
+          twine check dist/*
       - uses: actions/upload-artifact@v7
         with:
           name: dist
