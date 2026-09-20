@@ -615,6 +615,14 @@ framework adapters import lazily and degrade when the framework is absent.
     are data-driven, so every new detector surfaces in the
     Prometheus export automatically - no changes needed.
 
+40b. **v0.72 — example smoke + checkout hygiene** ✅ (delivered):
+     examples/flaky_agent.py wrote its HTML report into the current
+     directory (same pollution class `approximately test` had) - it
+     now writes next to the trace via `TraceStore()` (honors
+     APPROXIMATELY_HOME), and a subprocess smoke test runs the
+     example in isolation asserting FM-1.3 attribution, the report
+     landing in the store, and no checkout leakage.
+
 40. **v0.70 — packaging demo smoke** ✅ (delivered): the packaging
     job's clean-venv smoke now also runs both multi-agent demo
     scenarios through the installed wheel and greps for the

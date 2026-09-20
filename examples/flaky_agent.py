@@ -11,7 +11,6 @@ runs on the rule detectors. It fails in three classic MAST ways:
 - FM-3.1 Premature Termination  — claims success while the harness fails it
 """
 
-from pathlib import Path
 
 from approximately import Recorder, attribute, render_html
 from approximately.store import TraceStore
@@ -32,7 +31,7 @@ def search_flights(origin: str, destination: str, day: str) -> str:
 
 
 def main() -> None:
-    store = TraceStore(Path.home() / ".approximately" / "traces")
+    store = TraceStore()  # honors APPROXIMATELY_HOME
 
     with Recorder("Book the cheapest SFO-NRT flight, seat 12A, under $900.",
                   model="example/flaky-agent", store=store) as rec:
@@ -51,7 +50,9 @@ def main() -> None:
         print(f"  - {det.mode_id} at step #{det.step_index} "
               f"({det.source}, confidence {det.confidence:.2f})")
 
-    out = Path(f"report_{rec.trace.id}.html")
+    # write next to the trace, not into whatever directory you run
+    # the example from (keeps checkouts clean)
+    out = store.directory / f"report_{rec.trace.id}.html"
     out.write_text(render_html(rec.trace, report), encoding="utf-8")
     print(f"HTML report: {out.resolve()}")
 

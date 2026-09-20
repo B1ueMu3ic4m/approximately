@@ -62,3 +62,24 @@ Pair with `--since`-style triage: `stats --since 30` and
 `cluster --since 14 --json` give the same window in machine-readable
 form, so a digest can carry "what changed this month" rather than
 "everything ever".
+
+## Day-level trend report (v0.40)
+
+The digests the watch loop writes are themselves readable. After a
+watch session (or a cron of bounded `--iterations` runs):
+
+```bash
+approximately fleet --trend --digest-dir digests
+approximately fleet --trend --digest-dir digests --fail-on-worsening
+approximately fleet --trend --digest-dir digests --json
+```
+
+- **Per-day fleet state**: the day's last snapshot, trace-weighted
+  failure rate, merged top modes, snapshot counts
+- **Verdict**: the same Theil-Sen judgement the survey uses, applied
+  to the day rates, plus a failure-rate sparkline
+- `--fail-on-worsening` exits 1 when the day-level verdict turns
+  worsening — the scheduled-workflow analogue of the survey gate
+
+Digest files are treated as untrusted input: torn tail lines are
+skipped and corrupt timestamps fall back to the file-name day stamp.
