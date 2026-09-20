@@ -615,6 +615,13 @@ framework adapters import lazily and degrade when the framework is absent.
     are data-driven, so every new detector surfaces in the
     Prometheus export automatically - no changes needed.
 
+39. **v0.69 — agents_sdk edge dispatch** ✅ (delivered):
+    span-without-data and unknown-span-type ignored, handoff spans
+    recorded as observations, response spans captured as final
+    output, unserializable tool input falling back to preview args,
+    generation spans without usage at zero tokens, report() round
+    trip. agents_sdk 84% -> 92%.
+
 ---
 
 ## 4. Launch plan
