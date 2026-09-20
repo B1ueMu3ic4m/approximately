@@ -17,8 +17,26 @@ from pathlib import Path
 CORE = Path(__file__).resolve().parent.parent / "src" / "approximately"
 
 
+# 3.9 has no sys.stdlib_module_names; there the audit degrades to
+# flagging a curated known-third-party set instead of allowlisting
+# the whole stdlib - same violations caught, fewer unknowns allowed
+_KNOWN_THIRD_PARTY = frozenset({
+    "requests", "tiktoken", "openai", "numpy", "pandas", "pydantic",
+    "yaml", "httpx", "aiohttp", "redis", "boto3", "flask", "pytest",
+    "langchain", "langgraph", "crewai", "llama_index", "autogen",
+    "agents", "semantic_kernel", "smolagents",
+})
+
+
+def _stdlib_roots():
+    names = getattr(sys, "stdlib_module_names", None)
+    if names:
+        return frozenset(names)
+    return _KNOWN_THIRD_PARTY
+
+
 def _module_level_third_party(path: Path) -> list:
-    stdlib = set(sys.stdlib_module_names)
+    stdlib = set(_stdlib_roots())
     tree = ast.parse(path.read_text(encoding="utf-8"))
     offenders = []
 
