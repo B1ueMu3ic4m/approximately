@@ -607,13 +607,13 @@ framework adapters import lazily and degrade when the framework is absent.
     the tutorial cannot silently drift from the tool. README links
     it above the design document.
 
-37. **v0.67 — Markdown postmortem export** ✅ (delivered):
-    `report TRACE --markdown` renders the verdict as issue-ready
-    GitHub-flavored Markdown - evidence chain, suggested fixes, and
-    a plain-text timeline (user text escaped, so trace content can
-    never inject formatting). Complements the HTML report for
-    issues/PR descriptions; render split into section helpers to
-    keep xenon B.
+38. **v0.68 — streaming contract + metrics audit** ✅ (delivered):
+    the streaming monitor's verify-step classification pinned
+    directly (meta flag wins, non-tool steps never verify,
+    tool-name markers enumerated, plain mutations excluded) -
+    streaming.py to 100%. metrics.py audited at 100%: mode counters
+    are data-driven, so every new detector surfaces in the
+    Prometheus export automatically - no changes needed.
 
 ---
 
