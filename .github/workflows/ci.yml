@@ -100,6 +100,9 @@ jobs:
           smoke/bin/pip install dist/approximately-*.whl
           smoke/bin/approximately --version
           smoke/bin/python -c "from approximately import Recorder; r = Recorder('smoke', save=False); r.tool('bash', {'cmd': 'ls'}, result='ok'); r.respond('done', success=True); assert len(r.trace.steps) == 2; print('wheel smoke OK')"
+          smoke/bin/python -m approximately.cli demo --scenario loop | grep -q "CycleRepeatDetector"
+          smoke/bin/python -m approximately.cli demo --scenario verification | grep -q "ProseOutcomeVerifyDetector"
+          echo "demo scenarios OK"
       - uses: actions/upload-artifact@v7
         with:
           name: dist

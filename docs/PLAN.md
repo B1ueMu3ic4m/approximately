@@ -615,12 +615,12 @@ framework adapters import lazily and degrade when the framework is absent.
     are data-driven, so every new detector surfaces in the
     Prometheus export automatically - no changes needed.
 
-39. **v0.69 — agents_sdk edge dispatch** ✅ (delivered):
-    span-without-data and unknown-span-type ignored, handoff spans
-    recorded as observations, response spans captured as final
-    output, unserializable tool input falling back to preview args,
-    generation spans without usage at zero tokens, report() round
-    trip. agents_sdk 84% -> 92%.
+40. **v0.70 — packaging demo smoke** ✅ (delivered): the packaging
+    job's clean-venv smoke now also runs both multi-agent demo
+    scenarios through the installed wheel and greps for the
+    expected detector sources - the wheel is proven to carry the
+    demo modules and the newest detectors, not just the core.
+    README quickstart lists all three scenarios.
 
 ---
 
