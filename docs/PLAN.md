@@ -630,6 +630,13 @@ framework adapters import lazily and degrade when the framework is absent.
     demo modules and the newest detectors, not just the core.
     README quickstart lists all three scenarios.
 
+41. **v0.73 — verify exit-code ladder at CLI level** ✅
+    (delivered): all six documented verdicts pinned through the real
+    command - 0 intact, 1 TAMPERED (rewritten step), 2 unsigned, 3
+    KEYED (keyed trace, no key), 4 ROLLED-BACK (ledger audit), 5
+    LEDGER-BROKEN (chain localized) - plus rotate's
+    required-new-key refusal and success path. cli.py 91% -> 93%.
+
 ---
 
 ## 4. Launch plan
