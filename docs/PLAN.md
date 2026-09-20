@@ -607,6 +607,15 @@ framework adapters import lazily and degrade when the framework is absent.
     the tutorial cannot silently drift from the tool. README links
     it above the design document.
 
+36. **v0.66 — zero-dependency guard + metadata check** ✅
+    (delivered): a CI-grade test pins the headline claim
+    mechanically - every module-level import in the core must be
+    stdlib-only (lazy optional imports inside function bodies
+    remain the documented escape hatch; contrib adapters are out of
+    scope), with a self-test proving the auditor catches real
+    violations. The packaging job now also runs `twine check` on
+    the built artifacts (both PASSED locally).
+
 ---
 
 ## 4. Launch plan
