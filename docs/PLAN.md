@@ -647,6 +647,17 @@ framework adapters import lazily and degrade when the framework is absent.
     id list. MCP grows to 10 tools with the same content. 10 new
     tests incl. registry-size drift guards.
 
+43. **v0.50 — the attribution gate ships: `bench-gate` + GitHub
+    Action** ✅ (delivered): gate logic moves from
+    scripts/bench_gate.py into approximately.benchgate with a
+    `bench-gate` CLI command (dataset + floors -> exit 1 on breach);
+    the script stays as a thin shim. A composite action.yml lets any
+    repo gate its own dataset via `uses:
+    B1ueMu3ic4m/approximately@v0` (install-from: source for this
+    repo). CI dogfoods the action both ways on committed fixtures
+    (examples/action/): positive clears, impossible floor fails the
+    step and the job asserts the failure. 6 new tests.
+
 ---
 
 ## 4. Launch plan

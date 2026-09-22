@@ -1,0 +1,22 @@
+{
+  "_comment": "Floors for the action self-test fixture (examples/action/fixture.jsonl, 8 deterministic records excerpted from docs/mast-bench-synth.jsonl, SEED 20260919). Scores are exactly 1.0 on this fixed corpus; floors carry deliberate slack so a breach means a real regression.",
+  "sample_f1": 0.9,
+  "modes": {
+    "FM-1.3": {
+      "precision": 0.9,
+      "recall": 0.9
+    },
+    "FM-2.1": {
+      "precision": 0.9,
+      "recall": 0.9
+    },
+    "FM-2.6": {
+      "precision": 0.9,
+      "recall": 0.9
+    },
+    "FM-3.2": {
+      "precision": 0.9,
+      "recall": 0.9
+    }
+  }
+}

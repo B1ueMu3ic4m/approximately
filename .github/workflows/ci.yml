@@ -74,12 +74,41 @@ jobs:
           python-version: "3.12"
       - name: Install
         run: pip install -e .
-      - name: Attribution floors (gold corpus)
-        run: python scripts/bench_gate.py
-      - name: Attribution floors (synthetic fixture)
+      - name: Attribution floors (gold corpus, package CLI)
+        run: approximately bench-gate docs/mast-bench-multi.jsonl --floors docs/bench-floors.json --label "gold corpus"
+      - name: Attribution floors (synthetic fixture, shim script)
         run: python scripts/bench_gate.py --synth
       - name: Attribution performance gate
         run: python scripts/perf_gate.py
+
+  action-self-test:
+    # Dogfood the reusable attribution-gate action (action.yml) from
+    # this repo: the positive fixture must pass, the impossible-floor
+    # fixture must fail the step.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Positive fixture clears the floors
+        uses: ./
+        with:
+          dataset: examples/action/fixture.jsonl
+          floors: examples/action/floors.json
+          label: selftest
+          install-from: source
+      - name: Impossible floor must fail
+        id: negative
+        continue-on-error: true
+        uses: ./
+        with:
+          dataset: examples/action/fixture.jsonl
+          floors: examples/action/floors-impossible.json
+          label: selftest-negative
+          install-from: source
+      - name: Assert the negative path failed
+        if: steps.negative.outcome == 'success'
+        run: |
+          echo "::error::impossible floors did NOT fail the action"
+          exit 1
 
   packaging:
     # Validate the PyPI path end to end without tagging: build sdist
