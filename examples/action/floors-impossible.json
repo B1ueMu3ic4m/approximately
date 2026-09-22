@@ -1,0 +1,7 @@
+{
+  "_comment": "Negative-path fixture for the action self-test: FM-1.1 has no records in fixture.jsonl, so required+precision must report 'no score' and exit 1.",
+  "sample_f1": 0.9,
+  "modes": {
+    "FM-1.1": {"precision": 0.5, "required": true}
+  }
+}

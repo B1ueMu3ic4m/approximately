@@ -249,6 +249,12 @@ def cmd_explain(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_bench_gate(args: argparse.Namespace) -> int:
+    from .benchgate import run_gate
+
+    return run_gate(Path(args.dataset), Path(args.floors), args.label)
+
+
 def cmd_optimize(args: argparse.Namespace) -> int:
     from .context import optimize_budget
 
@@ -1393,6 +1399,17 @@ def build_parser() -> argparse.ArgumentParser:
                            help="mode id (e.g. FM-1.3); omit for the "
                                 "overview table")
     p_explain.set_defaults(func=cmd_explain)
+    p_gate = sub.add_parser(
+        "bench-gate", parents=[common],
+        help="attribution-quality regression gate: dataset + floors -> "
+             "exit 1 on any P/R/F1 breach")
+    p_gate.add_argument("dataset", help="labeled JSONL dataset "
+                                        "(approx format)")
+    p_gate.add_argument("--floors", required=True,
+                        help="floors JSON (sample_f1 + modes map)")
+    p_gate.add_argument("--label", default="gate",
+                        help="name shown in the log prefix")
+    p_gate.set_defaults(func=cmd_bench_gate)
     return parser
 
 

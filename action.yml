@@ -1,0 +1,59 @@
+# Reusable GitHub Action: the approximately attribution-quality gate.
+#
+# Fails the caller's build when attribution quality over their labeled
+# dataset regresses below the floors file (P/R/F1 per mode + sample
+# macro-F1). The floors format is docs/bench-floors.json in this repo.
+#
+# Usage (dataset + floors are the two required inputs):
+#   - uses: B1ueMu3ic4m/approximately@v0
+#     with:
+#       dataset: eval/attribution.jsonl
+#       floors: eval/floors.json
+#
+# For dogfooding this repo itself, pass install-from: source — the
+# action then `pip install .` from the caller's checkout (which must
+# be this repository) instead of the released PyPI package.
+name: 'Approximately attribution gate'
+description: >-
+  Fail the build when attribution quality over a labeled dataset
+  regresses below per-mode P/R/F1 floors.
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  dataset:
+    description: 'Labeled JSONL dataset (approx format, one trace + labels per line)'
+    required: true
+  floors:
+    description: 'Floors JSON: sample_f1 plus a per-mode minimums map'
+    required: true
+  label:
+    description: 'Name shown in the log prefix'
+    default: 'gate'
+  python-version:
+    description: 'Python version for the gate run'
+    default: '3.12'
+  install-from:
+    description: "Where to install approximately from: 'pypi' (default) or 'source' (pip install . from the caller's checkout)"
+    default: 'pypi'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v7
+      with:
+        python-version: ${{ inputs.python-version }}
+    - shell: bash
+      run: |
+        if [ "${{ inputs.install-from }}" = "source" ]; then
+          pip install .
+        else
+          pip install approximately
+        fi
+    - shell: bash
+      run: >-
+        approximately bench-gate
+        "${{ inputs.dataset }}"
+        --floors "${{ inputs.floors }}"
+        --label "${{ inputs.label }}"
