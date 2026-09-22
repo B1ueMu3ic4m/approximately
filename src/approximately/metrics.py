@@ -57,3 +57,43 @@ def render_prometheus(stats, extra_labels: dict | None = None) -> str:
         ])
     lines.append("")
     return "\n".join(lines)
+
+
+def render_agent_prometheus(rows, extra_labels: dict | None = None) -> str:
+    """Render per-agent scorecard rows (agent_scorecard output) as
+    Prometheus text exposition. Agent names are label values and get
+    the same escaping as everything else untrusted."""
+    labels = ""
+    if extra_labels:
+        pairs = ",".join(
+            f'{k}="{escape_label(str(v))}"' for k, v in extra_labels.items()
+        )
+        labels = "{" + pairs + "}"
+    suffix = "," + labels[1:] if labels else ""
+    lines = []
+    gauges = [
+        ("steps", "approximately_agent_steps_total",
+         "Steps recorded per agent", "counter"),
+        ("tool_calls", "approximately_agent_tool_calls_total",
+         "Tool calls per agent", "counter"),
+        ("errors", "approximately_agent_errors_total",
+         "Error steps per agent", "counter"),
+        ("tokens", "approximately_agent_tokens_total",
+         "Tokens recorded per agent", "counter"),
+        ("failed_traces", "approximately_agent_failed_traces_total",
+         "Failed traces the agent touched", "counter"),
+        ("failure_rate", "approximately_agent_failure_rate",
+         "Share of touched traces that failed", "gauge"),
+    ]
+    for key, metric, help_text, mtype in gauges:
+        lines.extend([
+            f"# HELP {metric} {help_text}",
+            f"# TYPE {metric} {mtype}",
+        ])
+        for row in rows:
+            safe = escape_label(row["agent"])
+            value = f"{row[key]:.6f}" if key == "failure_rate" \
+                else row[key]
+            lines.append(f'{metric}{{agent="{safe}"{suffix}}} {value}')
+    lines.append("")
+    return "\n".join(lines)
