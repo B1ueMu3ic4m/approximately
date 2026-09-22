@@ -26,6 +26,7 @@ def _summary(name, traces, failed, modes, worsening):
     s.failed = failed
     s.failure_rate = failed / traces if traces else 0.0
     s.top_modes = modes
+    s.top_agents = []
     s.trend_verdict = "worsening" if worsening else "stable"
     s.trend_slope = 0.2 if worsening else 0.0
     s.ledger_intact = None
