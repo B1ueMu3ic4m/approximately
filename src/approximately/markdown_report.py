@@ -9,6 +9,7 @@ it can never inject formatting.
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
@@ -41,14 +42,21 @@ def _evidence_lines(report: "FailureReport") -> List[str]:
 
 
 def _timeline_lines(trace: "Trace") -> List[str]:
-    lines = ["### Timeline", "", "```text"]
+    rows: List[str] = []
     for step in trace.steps:
         excerpt = " ".join(str(step.result).split())[:160]
         marker = "!" if step.error else " "
-        lines.append(f"{marker} #{step.index:>3} [{step.kind}] "
-                     f"{step.tool or ''} {excerpt}".rstrip())
-    lines.append("```")
-    return lines
+        who = " ".join(str(step.agent).split()) + " · " \
+            if step.agent else ""
+        rows.append(f"{marker} #{step.index:>3} [{step.kind}] "
+                    f"{who}{step.tool or ''} {excerpt}".rstrip())
+    # CommonMark fence sizing: a body line may itself contain backtick
+    # runs (agent names and tool results are untrusted), so the fence
+    # must be longer than any run inside it — otherwise the body closes
+    # the fence early and the tail renders as live Markdown/HTML.
+    runs = [len(run) for row in rows for run in re.findall(r"`+", row)]
+    fence = "`" * max(3, max(runs, default=0) + 1)
+    return ["### Timeline", "", f"{fence}text", *rows, fence]
 
 
 def render_markdown(trace: "Trace", report: "FailureReport") -> str:

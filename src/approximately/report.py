@@ -156,11 +156,12 @@ def _esc(text: str) -> str:
 def _step_row(step, hot: set) -> str:
     detail = step.error or step.result or step.thought or ""
     detail = _esc(" ".join(detail.split())[:160])
+    who = f"{_esc(step.agent)} · " if step.agent else ""
     head = _esc(step.tool or "-")
     cls = ' class="hot"' if step.index in hot else ""
     return (
         f"<tr{cls}><td>#{step.index}</td><td class=\"k\">{step.kind}</td>"
-        f"<td class=\"k\">{head}</td><td>{detail}</td>"
+        f"<td class=\"k\">{who}{head}</td><td>{detail}</td>"
         f"<td class=\"k\">{step.latency_ms}ms</td></tr>"
     )
 

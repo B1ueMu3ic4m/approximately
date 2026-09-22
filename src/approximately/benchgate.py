@@ -12,10 +12,28 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 
 from .distill import check_floors, evaluate_multi, load_dataset
+
+
+def _non_finite(node, path="$"):
+    """Paths of non-finite numbers in a floors document.
+
+    ``json.loads`` happily accepts NaN/Infinity; a NaN floor would
+    compare False against every score and silently disable the gate.
+    """
+    if isinstance(node, float) and not math.isfinite(node):
+        return [path]
+    if isinstance(node, dict):
+        return [bad for k, v in node.items()
+                for bad in _non_finite(v, f"{path}.{k}")]
+    if isinstance(node, list):
+        return [bad for i, v in enumerate(node)
+                for bad in _non_finite(v, f"{path}[{i}]")]
+    return []
 
 
 def run_gate(dataset: Path, floors_path: Path, label: str = "gate") -> int:
@@ -24,10 +42,17 @@ def run_gate(dataset: Path, floors_path: Path, label: str = "gate") -> int:
         print(f"bench-gate[{label}]: no labeled records found",
               file=sys.stderr)
         return 1
+    floors = json.loads(floors_path.read_text(encoding="utf-8"))
+    corrupt = _non_finite(floors)
+    if corrupt:
+        print(f"bench-gate[{label}]: floors file has non-finite "
+              f"value(s) at {', '.join(corrupt[:5])} — refusing to "
+              "run a gate that cannot fail",
+              file=sys.stderr)
+        return 1
     pairs = [(t, (labels if isinstance(labels, list) else [labels]))
              for t, labels in labeled]
     multi = evaluate_multi(pairs)
-    floors = json.loads(floors_path.read_text(encoding="utf-8"))
 
     print(f"attribution floors [{label}] - "
           f"{len(pairs)} multi-label records")
