@@ -37,7 +37,7 @@ _TOKEN = re.compile(
     re.VERBOSE)
 
 _FIELDS = ("id", "task", "success", "model", "created", "steps",
-           "tokens", "duration", "mode")
+           "tokens", "duration", "mode", "agents")
 
 _MAX_EXPR_CHARS = 4000
 
@@ -83,6 +83,8 @@ def _field_getter(name: str) -> Callable[[Trace], Any]:
             f"unknown field {name!r} (fields: {', '.join(_FIELDS)})")
     if name == "mode":
         return _detected_modes
+    if name == "agents":
+        return _named_agents
     if name == "created":
         return lambda t: getattr(t, "created_at", None) or 0
     if name == "tokens":
@@ -92,6 +94,17 @@ def _field_getter(name: str) -> Callable[[Trace], Any]:
     if name == "steps":
         return lambda t: len(t.steps)
     return lambda t: getattr(t, name)
+
+
+def _named_agents(trace: Trace) -> set:
+    """Distinct named agents that performed a step (Step.agent).
+
+    Multi-agent queries: ``agents contains 'researcher'``. Steps
+    without identity contribute nothing — query "agents == set()"
+    is not the idiom; use ``stats --by-agent`` to see the
+    unattributed bucket instead.
+    """
+    return {s.agent for s in trace.steps if s.agent}
 
 
 def _detected_modes(trace: Trace) -> set:
