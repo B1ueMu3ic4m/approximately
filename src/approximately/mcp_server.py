@@ -217,6 +217,7 @@ def _tool_attribute(ctx: ServerContext, args: Dict[str, Any]) -> dict:
         "trace": trace.id,
         "failed": report.failed,
         "primary_mode": report.primary_mode.id,
+        "runner_ups": report.runner_ups,
         "label": report.category_label,
         "detections": [{"mode": d.mode_id,
                         "step": d.step_index,

@@ -724,6 +724,13 @@ framework adapters import lazily and degrade when the framework is absent.
     zero, zero day = "not observed" documented in help + recipes).
     6 new tests.
 
+51. **v0.50 — runner-up hypotheses** ✅ (delivered): attribution
+    is a ranking, not an oracle - FailureReport now carries
+    `runner_ups` (other modes the detectors fired for, with
+    detection count and max confidence), shown via
+    `attribute --top N`, in `to_dict`, and in the MCP attribute
+    payload. Default output stays quiet. 5 new tests.
+
 ---
 
 ## 4. Launch plan
