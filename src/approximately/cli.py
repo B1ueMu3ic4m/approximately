@@ -42,7 +42,8 @@ def _resolve_executor(expr: str):
     return getattr(module, attr)
 
 
-def _print_report(report, judge_note: str = "") -> None:
+def _print_report(report, judge_note: str = "",
+                  top: int = 0) -> None:
     bar = "─" * 62
     print(bar)
     print(f"  VERDICT  {report.primary_mode.label}")
@@ -50,6 +51,12 @@ def _print_report(report, judge_note: str = "") -> None:
         print(f"  {judge_note}")
     print(f"  {report.summary}")
     print(bar)
+    if top and report.runner_ups:
+        print("  RUNNER-UP HYPOTHESES (detectors also fired for)")
+        for r in report.runner_ups[:top]:
+            print(f"    {r['mode']} {r['label']} - "
+                  f"{r['detections']} detection(s), max confidence "
+                  f"{r['max_confidence']:.2f}")
     for det in report.detections:
         print(f"  · {det.mode_id} via {det.source} "
               f"(confidence {det.confidence:.2f}) — step #{det.step_index}")
@@ -946,7 +953,7 @@ def cmd_attribute(args: argparse.Namespace) -> int:
     else:
         note = "" if report.judge_used or not args.judge else \
             "(judge requested but unavailable — rules only)"
-        _print_report(report, note)
+        _print_report(report, note, top=getattr(args, "top", 0))
     if getattr(args, "explain", None):
         from .attributor import explain_fusion
 
@@ -1164,6 +1171,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--judge", action="store_true",
                    help="add the LLM judge verdict (needs openai + API key)")
     p.add_argument("--json", action="store_true", help="emit JSON")
+    p.add_argument("--top", type=int, default=0, metavar="N",
+                   help="also print up to N runner-up hypotheses the "
+                        "detectors fired for")
     p.add_argument("--all", action="store_true",
                    help="attribute every trace in the store (JSON output)")
     p.add_argument("--sarif", help="write attribution as SARIF 2.1.0 "

@@ -31,6 +31,7 @@ class FailureReport:
     disagreement: Optional[str] = None
     suggested_fixes: List[str] = field(default_factory=list)
     summary: str = ""
+    runner_ups: List[dict] = field(default_factory=list)
 
     @property
     def category_label(self) -> str:
@@ -46,6 +47,7 @@ class FailureReport:
             "judge_used": self.judge_used,
             "disagreement": self.disagreement,
             "suggested_fixes": self.suggested_fixes,
+            "runner_ups": self.runner_ups,
             "detections": [
                 {
                     "mode_id": d.mode_id,
@@ -83,6 +85,32 @@ def _arbitrate(detections: List, verdict) -> Optional[str]:
         f"{verdict.detection.mode_id} "
         f"({verdict.detection.confidence:.2f})"
     )
+
+
+def _runner_ups(meaningful: List, primary_id: str,
+                limit: int = 2) -> List[dict]:
+    """Runner-up hypotheses after the primary verdict.
+
+    Attribution is a ranking, not an oracle: these are the other modes
+    the detectors actually fired for, with their strongest evidence.
+    """
+    groups: Dict[str, List] = {}
+    for det in meaningful:
+        if det.mode_id != primary_id:
+            groups.setdefault(det.mode_id, []).append(det)
+    ranked = sorted(
+        groups.items(),
+        key=lambda kv: (-max(d.confidence for d in kv[1]), len(kv[1])),
+    )
+    return [
+        {
+            "mode": mode_id,
+            "label": get_mode(mode_id).label,
+            "detections": len(dets),
+            "max_confidence": round(max(d.confidence for d in dets), 2),
+        }
+        for mode_id, dets in ranked[:limit]
+    ]
 
 
 def _verdict_summary(failed: bool, meaningful: List) -> tuple:
@@ -136,6 +164,7 @@ def attribute(trace: Trace, use_judge: bool = False, **judge_kwargs) -> FailureR
         disagreement=disagreement,
         suggested_fixes=list(primary.fixes),
         summary=summary,
+        runner_ups=_runner_ups(meaningful, primary.id),
     )
 
 
