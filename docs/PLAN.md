@@ -689,6 +689,14 @@ framework adapters import lazily and degrade when the framework is absent.
     drops per-trace rows for cron mailboxes; JSON gains a `strict`
     field. 4 new tests.
 
+47. **v0.50 — docs/RECIPES.md task cookbook** ✅ (delivered): ten
+    task-shaped recipes (instrument in 5 lines, agent scoreboard,
+    attribute+bisect+explain, regression tests, CI attribution gate
+    via the action, nightly integrity cron with strict verify,
+    fleet trend gate, query DSL, MCP client config, local-model
+    judge). Every command spot-checked against the CLI surface;
+    linked from the README next to the tutorial.
+
 ---
 
 ## 4. Launch plan
