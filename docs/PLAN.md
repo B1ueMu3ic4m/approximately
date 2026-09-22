@@ -715,6 +715,15 @@ framework adapters import lazily and degrade when the framework is absent.
     (steps/errors/touched-fail-rate); `fleet --json` and webhook
     payloads carry `top_agents`. 5 new tests.
 
+50. **v0.50 — per-agent fleet trend** ✅ (delivered): digest
+    snapshots now carry each store's top-3 busiest named agents;
+    `fleet --trend --agent NAME` plots one agent's steps/errors/
+    touched-fail-rate per day with its own Theil-Sen verdict (not
+    the fleet's) and honors --fail-on-worsening. Untrusted-digest
+    discipline kept (torn lines skipped, malformed fields read as
+    zero, zero day = "not observed" documented in help + recipes).
+    6 new tests.
+
 ---
 
 ## 4. Launch plan

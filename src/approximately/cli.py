@@ -667,9 +667,46 @@ def _fleet_watch(args: argparse.Namespace, stores) -> int:
 
 
 def _fleet_trend(args: argparse.Namespace) -> int:
-    from .fleet import render_trend, summarize_trend, trend_days
+    from .fleet import (
+        agent_trend_days,
+        render_trend,
+        summarize_agent_trend,
+        summarize_trend,
+        trend_days,
+    )
+    from .report import TREND_LABELS, render_sparkline
 
+    agent = getattr(args, "agent", None)
     days = trend_days(Path(args.digest_dir))
+    if agent:
+        agent_days = agent_trend_days(Path(args.digest_dir), agent)
+        agent_summary = summarize_agent_trend(agent_days)
+        verdict, slope = agent_summary["verdict"], agent_summary["slope"]
+        spark = render_sparkline(
+            [d["failed_traces"] / d["traces"] * 100
+             for d in agent_days if d["traces"]],
+            width=180, height=34)
+        _, trend_label = TREND_LABELS[verdict]
+        if getattr(args, "json", False):
+            print(json.dumps({"agent": agent, "days": agent_days,
+                              "verdict": verdict, "slope": slope},
+                             indent=2))
+            return 0
+        print(f"agent trend - {agent} - {len(agent_days)} day(s)")
+        for d in agent_days:
+            rate = f"{d['failed_traces'] / d['traces']:.0%}" \
+                if d["traces"] else "-"
+            print(f"  {d['day']}: {d['steps']:>5} steps, "
+                  f"{d['errors']:>3} errors, "
+                  f"{d['failed_traces']:>3}/{d['traces']:<3} failed "
+                  f"({rate})")
+        print(f"  sparkline: {spark}")
+        print(f"  verdict: {trend_label} (slope {slope})")
+        if getattr(args, "fail_on_worsening", False) \
+                and verdict == "worsening":
+            print(f"agent trend is worsening: {agent}", file=sys.stderr)
+            return 1
+        return 0
     summary = summarize_trend(days)
     if getattr(args, "json", False):
         print(json.dumps(summary, indent=2))
@@ -1359,6 +1396,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--trend", action="store_true",
                    help="summarize the digest history in --digest-dir: "
                         "per-day fleet state, sparkline, verdict")
+    p.add_argument("--agent", metavar="NAME",
+                   help="with --trend: per-day analytics for one named "
+                        "agent (observed while among a store's top-3 "
+                        "busiest named agents in the digest snapshots)")
     p.set_defaults(func=cmd_fleet)
 
     p = sub.add_parser("mcp", parents=[common],
