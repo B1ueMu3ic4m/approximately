@@ -731,6 +731,19 @@ framework adapters import lazily and degrade when the framework is absent.
     `attribute --top N`, in `to_dict`, and in the MCP attribute
     payload. Default output stays quiet. 5 new tests.
 
+52. **v0.50 — docs/RELEASE.md runbook** ✅ (delivered): pre-tag
+    checklist (the full local gate list), version-bump contract
+    (pyproject + __init__ must match), tag/push mechanics, what the
+    Release workflow does (Trusted Publishing, no tokens), the
+    clean-venv post-check, and the yank-and-patch rollback path.
+
+53. **v0.50 — query DSL `agents` field** ✅ (delivered):
+    `agents contains 'researcher'` selects traces where a named
+    agent performed a step (distinct Step.agent values; unattributed
+    steps contribute nothing). Composes with the existing
+    predicates; the unknown-field error now lists the new field.
+    5 new tests.
+
 ---
 
 ## 4. Launch plan
