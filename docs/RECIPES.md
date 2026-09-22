@@ -126,6 +126,7 @@ named agents in the snapshot; a zero row means *not observed*.)
 ```console
 $ approximately query "success == false and mode == FM-2.1" --store traces
 $ approximately query "model contains 'gpt' and steps > 40" --stats
+$ approximately query "agents contains 'researcher'" --store traces
 ```
 
 The DSL is a recursive-descent parser with depth/length caps — no
