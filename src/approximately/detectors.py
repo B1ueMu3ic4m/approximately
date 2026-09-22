@@ -48,6 +48,7 @@ def _task_keywords(trace: Trace) -> List[str]:
 
 class RepeatDetector:
     """FM-1.3 Step Repetition — same (tool, args) called again within a window."""
+    mode_id = "FM-1.3"
 
     window = 6
     min_repeats = 2
@@ -87,6 +88,7 @@ class CycleRepeatDetector:
     cycle must consume at least MIN_CYCLE_CALLS calls to count as
     repetition rather than ordinary iteration.
     """
+    mode_id = "FM-1.3"
 
     min_period = 2
     max_period = 6
@@ -146,6 +148,7 @@ class NoTerminationDetector:
     (b) the run declared a ``meta["step_limit"]`` and hit it while still
         planning/acting — the budget cut it off mid-flight.
     """
+    mode_id = "FM-1.5"
 
     min_recurrences = 3
     long_range_span = 6  # beyond RepeatDetector's window
@@ -201,6 +204,7 @@ class NoTerminationDetector:
 
 class ConversationResetDetector:
     """FM-2.1 Conversation Reset — the seed prompt reappears mid-run."""
+    mode_id = "FM-2.1"
 
     def detect(self, trace: Trace) -> Optional[Detection]:
         seed = trace.task.strip().lower()
@@ -224,6 +228,7 @@ class ConversationResetDetector:
 
 class PrematureTerminationDetector:
     """FM-3.1 — run failed and the agent stopped without a repair attempt."""
+    mode_id = "FM-3.1"
 
     def detect(self, trace: Trace) -> Optional[Detection]:
         if trace.success is not False:
@@ -291,6 +296,7 @@ class MissingVerificationDetector:
     O(n log n): verify positions are precomputed once, then each mutating
     step does a single bisect lookup instead of a forward scan.
     """
+    mode_id = "FM-3.2"
 
     VERIFY_MARKERS = VERIFY_MARKERS
 
@@ -326,6 +332,7 @@ class DerailmentDetector:
     Heuristic on purpose: it is a cheap recall net. The LLM judge should be
     used to confirm or reject its verdict.
     """
+    mode_id = "FM-2.3"
 
     min_calls = 3
     relevance_floor = 0.3
@@ -390,6 +397,7 @@ class ReasoningActionMismatchDetector:
     the announced name is a plausible tool (underscore, or seen elsewhere in
     the trace) and differs from the executed tool.
     """
+    mode_id = "FM-2.6"
 
     def detect(self, trace: Trace) -> Optional[Detection]:
         known = {s.tool for s in trace.steps if s.kind == TOOL_CALL and s.tool}
@@ -425,6 +433,7 @@ class WeakVerificationDetector:
     """FM-3.3 Incorrect Verification — verification happened but proved
     nothing: it merely echoed the original claim instead of gathering
     independent evidence."""
+    mode_id = "FM-3.3"
 
     def detect(self, trace: Trace) -> Optional[Detection]:
         from bisect import bisect_right
@@ -467,6 +476,7 @@ class SpecViolationDetector:
 
     Requires ``trace.meta["forbidden_tools"]`` (the task spec's prohibitions).
     """
+    mode_id = "FM-1.1"
 
     def detect(self, trace: Trace) -> Optional[Detection]:
         forbidden = trace.meta.get("forbidden_tools") or []
@@ -489,6 +499,7 @@ class ClarificationDetector:
     """FM-2.2 Fail to Ask for Clarification — the task was ambiguous, no
     question was ever asked, and the agent committed to an irreversible
     action anyway."""
+    mode_id = "FM-2.2"
 
     @staticmethod
     def _is_ambiguous(trace: Trace) -> bool:
@@ -535,6 +546,7 @@ class WithholdingDetector:
     """FM-2.4 Information Withholding — a tool result flagged
     ``meta["share_with"]`` was never sent via a message to the agents that
     needed it, yet those agents kept acting."""
+    mode_id = "FM-2.4"
 
     def detect(self, trace: Trace) -> Optional[Detection]:
         for i, step in enumerate(trace.steps):
@@ -579,6 +591,7 @@ class WithholdingDetector:
 class IgnoredInputDetector:
     """FM-2.5 Ignored Other Agent's Input — a delivered message never
     produced any downstream action by its recipient."""
+    mode_id = "FM-2.5"
 
     @staticmethod
     def _unacked_message(trace: Trace):
@@ -626,6 +639,7 @@ class RoleViolationDetector:
         {"roles": {"writer": ["write_draft", "edit"]},
          "agents": {"writer_1": "writer"}}
     """
+    mode_id = "FM-1.2"
 
     @staticmethod
     def _off_role_step(trace: Trace, role_tools: dict, role_of: dict):
@@ -683,6 +697,7 @@ class LostReferenceDetector:
     """FM-1.4 Loss of Conversation History — the agent references an
     identifier (confirmation code, ticket id) that was never established in
     any earlier step: it is quoting state it no longer has."""
+    mode_id = "FM-1.4"
 
     def detect(self, trace: Trace) -> Optional[Detection]:
         established: set = set()
