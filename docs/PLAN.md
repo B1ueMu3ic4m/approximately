@@ -669,6 +669,18 @@ framework adapters import lazily and degrade when the framework is absent.
     ("unattributed" bucket keeps instrumentation gaps visible).
     8 new tests.
 
+45. **v0.50 — adversarial round: untrusted agent identity + gate
+    integrity** ✅ (delivered): hostile agent names (script payloads,
+    backtick runs, fence-breakers, NUL, homoglyphs, bidi overrides,
+    10k chars, whitespace) driven through HTML reports, markdown
+    reports, the scorecard, detectors, and the store roundtrip -
+    found and fixed a real markdown fence-breaking vector (timeline
+    fence now CommonMark-sized above any backtick run inside) and a
+    silently-unfailable gate (NaN/Infinity floors now refused with
+    offending JSON paths). Agent identity shows in both report
+    renderers. 9 new tests + SECURITY.md rows; 10k-step perf smoke
+    under 5 s.
+
 ---
 
 ## 4. Launch plan
