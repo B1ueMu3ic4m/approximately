@@ -525,14 +525,33 @@ def cmd_repair(args: argparse.Namespace) -> int:
     return 0
 
 
+def _parse_labels(pairs):
+    """--label k=v strings -> dict; the renderers need real labels."""
+    if not pairs:
+        return None
+    out = {}
+    for pair in pairs:
+        key, eq, value = pair.partition("=")
+        if not key or not eq:
+            raise SystemExit(f"error: --label expects k=v, got {pair!r}")
+        out[key] = value
+    return out
+
+
 def cmd_metrics(args: argparse.Namespace) -> int:
-    from .cluster import store_stats
-    from .metrics import render_prometheus
+    from .cluster import agent_scorecard, store_stats
+    from .metrics import render_agent_prometheus, render_prometheus
 
     store = TraceStore(args.store)
-    stats = store_stats(store.list_traces())
+    traces = store.list_traces()
+    stats = store_stats(traces)
+    if args.prometheus and getattr(args, "by_agent", False):
+        rows = agent_scorecard(traces)
+        print(render_agent_prometheus(rows,
+                                      extra_labels=_parse_labels(args.label)))
+        return 0
     if args.prometheus:
-        print(render_prometheus(stats, extra_labels=args.label or None))
+        print(render_prometheus(stats, extra_labels=_parse_labels(args.label)))
         return 0
     print(stats.summary())
     return 0
@@ -899,12 +918,28 @@ def cmd_attribute(args: argparse.Namespace) -> int:
 
 
 def cmd_cluster(args: argparse.Namespace) -> int:
-    from .cluster import cluster
+    from .cluster import agent_scorecard, cluster
 
     store = TraceStore(args.store)
     traces = store.list_traces(since_days=getattr(args, "since", None))
     if args.last:
         traces = traces[-args.last:]
+    if getattr(args, "by_agent", False):
+        rows = [r for r in agent_scorecard(traces)
+                if r["failed_traces"] >= args.min_size]
+        if args.json:
+            print(json.dumps(rows, indent=2))
+            return 0
+        if not rows:
+            print("no recidivist agents at this threshold")
+            return 0
+        print(f"recidivist agents (in >= {args.min_size} failed "
+              "traces):")
+        for r in rows:
+            print(f"  {r['agent']:<24} {r['failed_traces']:>3} failed / "
+                  f"{r['traces']:>3} touched  ({r['failure_rate']:.0%}), "
+                  f"{r['steps']} steps, {r['errors']} errors")
+        return 0
     if args.json:
         report = cluster(traces)
         payload = {
@@ -1257,6 +1292,9 @@ def build_parser() -> argparse.ArgumentParser:
                             "--prometheus)")
     p.add_argument("--prometheus", action="store_true",
                    help="emit Prometheus text exposition format")
+    p.add_argument("--by-agent", action="store_true",
+                   help="with --prometheus: per-agent counters instead "
+                        "of store totals")
     p.add_argument("--label", action="append",
                    help="extra label k=v for the --prometheus output")
     p.set_defaults(func=cmd_metrics)
@@ -1382,6 +1420,9 @@ def build_parser() -> argparse.ArgumentParser:
                        help="cross-trace failure clustering (recidivist modes)")
     p.add_argument("--min-size", type=int, default=2,
                    help="cluster size threshold for recidivists (default 2)")
+    p.add_argument("--by-agent", action="store_true",
+                   help="cluster recidivist AGENTS (failed-trace "
+                        "participation) instead of modes")
     p.add_argument("--last", type=int,
                    help="only consider the N most recent traces")
     p.add_argument("--since", type=int, metavar="DAYS",

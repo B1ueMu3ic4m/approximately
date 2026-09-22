@@ -697,6 +697,17 @@ framework adapters import lazily and degrade when the framework is absent.
     judge). Every command spot-checked against the CLI surface;
     linked from the README next to the tutorial.
 
+48. **v0.50 — per-agent observability: Prometheus counters,
+    recidivist agents, label crash fix** ✅ (delivered):
+    `metrics --prometheus --by-agent` emits per-agent step/tool/
+    error/token/failed-trace counters plus touched-failure-rate
+    gauges (agent names label-escaped); `cluster --by-agent` lists
+    recidivist AGENTS by failed-trace participation with a JSON
+    mode. Found and fixed a pre-existing crash: `metrics
+    --prometheus --label k=v` died with AttributeError because the
+    CLI passed raw strings to a dict API - labels now parse with a
+    real error message for malformed pairs. 7 new tests.
+
 ---
 
 ## 4. Launch plan
