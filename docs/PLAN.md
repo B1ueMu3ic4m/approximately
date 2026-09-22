@@ -658,6 +658,17 @@ framework adapters import lazily and degrade when the framework is absent.
     (examples/action/): positive clears, impossible floor fails the
     step and the job asserts the failure. 6 new tests.
 
+44. **v0.50 — per-agent identity + agent scorecard** ✅ (delivered):
+    `Step.agent` with chain-safe serialization (unset agent omitted
+    from to_dict, so pre-agent stores keep verifying; set agent is
+    hash-covered and edits break the chain). `Recorder(agent=...)` +
+    per-call `agent=` overrides; inter-agent messages stamp the
+    sender. Withholding/ignored-input/role detectors read the field
+    first with meta fallback for old traces. `stats --by-agent`
+    rolls up steps/tokens/errors/touched-trace failure rate per agent
+    ("unattributed" bucket keeps instrumentation gaps visible).
+    8 new tests.
+
 ---
 
 ## 4. Launch plan

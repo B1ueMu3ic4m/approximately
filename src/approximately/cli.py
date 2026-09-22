@@ -797,6 +797,21 @@ def cmd_stats(args: argparse.Namespace) -> int:
 
     store = TraceStore(args.store)
     traces = store.list_traces(since_days=getattr(args, "since", None))
+    if getattr(args, "by_agent", False):
+        from .cluster import agent_scorecard
+
+        rows = agent_scorecard(traces)
+        if args.json:
+            print(json.dumps(rows, indent=2))
+            return 0
+        print(f"  {'agent':<20} {'traces':>6} {'steps':>6} "
+              f"{'tools':>6} {'tokens':>7} {'errors':>6} "
+              f"{'failed':>6} {'rate':>6}")
+        for r in rows:
+            print(f"  {r['agent']:<20} {r['traces']:>6} {r['steps']:>6} "
+                  f"{r['tool_calls']:>6} {r['tokens']:>7} {r['errors']:>6} "
+                  f"{r['failed_traces']:>6} {r['failure_rate']:>5.0%}")
+        return 0
     stats = store_stats(traces)
     if args.trend:
         from .cluster import trend
@@ -1327,6 +1342,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("stats", parents=[common],
                        help="one-glance store health numbers")
+    p.add_argument("--by-agent", action="store_true",
+                   help="per-agent rollup (steps, tokens, errors, "
+                        "touched-trace failure rate) instead of totals")
     p.add_argument("--trend", action="store_true",
                    help="failure-rate history over time instead of totals")
     p.add_argument("--trend-bucket-days", type=int, default=7,

@@ -44,10 +44,12 @@ class Recorder:
         store: Optional[TraceStore] = None,
         save: bool = True,
         step_limit: Optional[int] = None,
+        agent: Optional[str] = None,
     ):
         self.trace = Trace(task=task, model=model)
         if step_limit is not None:
             self.trace.meta["step_limit"] = step_limit
+        self.agent = agent
         self.store = store
         self.save_on_exit = save
         self.saved_path: Optional[Path] = None
@@ -81,12 +83,18 @@ class Recorder:
         # returning None (not True): exceptions are never suppressed
 
     # -- recording API -------------------------------------------------------
-    def plan(self, thought: str, **meta: Any) -> Step:
-        return self.trace.add(Step(kind=PLAN, thought=thought, meta=meta))
+    # Every helper takes an optional explicit `agent` (per-call override,
+    # how multi-agent demos stamp a shared recorder); it defaults to the
+    # recorder-level identity from __init__.
+    def plan(self, thought: str, agent: Optional[str] = None,
+             **meta: Any) -> Step:
+        return self.trace.add(Step(kind=PLAN, thought=thought,
+                                   agent=agent or self.agent, meta=meta))
 
     def tool(self, name: str, args: Optional[Dict[str, Any]] = None,
              result: str = "", thought: Optional[str] = None,
-             error: Optional[str] = None, **meta: Any) -> Step:
+             error: Optional[str] = None, agent: Optional[str] = None,
+             **meta: Any) -> Step:
         return self.trace.add(
             Step(
                 kind=TOOL_CALL,
@@ -96,24 +104,29 @@ class Recorder:
                 thought=thought,
                 error=error,
                 latency_ms=self._elapsed_ms(),
+                agent=agent or self.agent,
                 meta=meta,
             )
         )
 
-    def observe(self, text: str, **meta: Any) -> Step:
+    def observe(self, text: str, agent: Optional[str] = None,
+                **meta: Any) -> Step:
         return self.trace.add(Step(kind=OBSERVATION, result=text,
-                                   latency_ms=self._elapsed_ms(), meta=meta))
+                                   latency_ms=self._elapsed_ms(),
+                                   agent=agent or self.agent, meta=meta))
 
-    def respond(self, text: str, success: bool = True, **meta: Any) -> Step:
+    def respond(self, text: str, success: bool = True,
+                agent: Optional[str] = None, **meta: Any) -> Step:
         step = self.trace.add(
-            Step(kind=RESPONSE, result=text, latency_ms=self._elapsed_ms(), meta=meta)
+            Step(kind=RESPONSE, result=text, latency_ms=self._elapsed_ms(),
+                 agent=agent or self.agent, meta=meta)
         )
         self.trace.success = success
         self.trace.final_output = text
         return step
 
     def message(self, from_agent: str, to_agent: str, text: str,
-                **meta: Any) -> Step:
+                agent: Optional[str] = None, **meta: Any) -> Step:
         """Record an inter-agent message (multi-agent runs).
 
         Detectors use these steps to catch information withholding (FM-2.4)
@@ -125,14 +138,17 @@ class Recorder:
                 tool=f"{from_agent}->{to_agent}",
                 result=text,
                 latency_ms=self._elapsed_ms(),
+                agent=agent or from_agent,
                 meta={"from_agent": from_agent, "to_agent": to_agent, **meta},
             )
         )
 
-    def fail(self, reason: str, **meta: Any) -> Step:
+    def fail(self, reason: str, agent: Optional[str] = None,
+             **meta: Any) -> Step:
         self.trace.success = False
         return self.trace.add(
-            Step(kind=ERROR, error=reason, latency_ms=self._elapsed_ms(), meta=meta)
+            Step(kind=ERROR, error=reason, latency_ms=self._elapsed_ms(),
+                 agent=agent or self.agent, meta=meta)
         )
 
     def _elapsed_ms(self) -> int:

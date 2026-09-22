@@ -570,7 +570,7 @@ class WithholdingDetector:
         acted = [
             s for s in trace.steps[i + 1:]
             if s.kind in (TOOL_CALL, PLAN)
-            and s.meta.get("agent") in share_with
+            and (s.agent or s.meta.get("agent")) in share_with
         ]
         if not acted:
             return None
@@ -603,7 +603,8 @@ class IgnoredInputDetector:
             if not recipient or step.meta.get("requires_ack") is not True:
                 continue
             acted = any(
-                s.meta.get("agent") == recipient and s.kind != MESSAGE
+                (s.agent or s.meta.get("agent")) == recipient
+                and s.kind != MESSAGE
                 for s in trace.steps[i + 1:]
             )
             if not acted:
@@ -634,7 +635,8 @@ class RoleViolationDetector:
     assigned role.
 
     Convention: ``trace.meta["role_tools"]`` maps agent roles to allowed
-    tool names, and steps carry ``meta["agent"]``. Example::
+    tool names, and steps carry their actor in ``Step.agent`` (older
+    traces: ``meta["agent"]``). Example::
 
         {"roles": {"writer": ["write_draft", "edit"]},
          "agents": {"writer_1": "writer"}}
@@ -647,7 +649,7 @@ class RoleViolationDetector:
         for step in trace.steps:
             if step.kind != TOOL_CALL or not step.tool:
                 continue
-            agent = step.meta.get("agent")
+            agent = step.agent or step.meta.get("agent")
             role = role_of.get(agent, agent) if agent else None
             if role is None:
                 continue

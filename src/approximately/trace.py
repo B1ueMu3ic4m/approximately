@@ -41,6 +41,7 @@ class Step:
     error: Optional[str] = None
     index: int = 0
     meta: Dict[str, Any] = field(default_factory=dict)
+    agent: Optional[str] = None
 
     def fingerprint(self) -> str:
         """Stable identity of *what* this step did, ignoring its outcome.
@@ -60,7 +61,13 @@ class Step:
         return f"#{self.index} [{self.kind}] {head}: {text}"
 
     def to_dict(self) -> Dict[str, Any]:
-        return dataclasses.asdict(self)
+        data = dataclasses.asdict(self)
+        # The integrity chain hashes this dict: omitting the unset agent
+        # keeps pre-agent records byte-identical, so their stored chains
+        # still verify. Agent identity on stamped steps is chain-covered.
+        if data.get("agent") is None:
+            data.pop("agent", None)
+        return data
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Step":
