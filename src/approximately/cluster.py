@@ -140,6 +140,52 @@ def store_stats(traces: Iterable[Trace]) -> StoreStats:
     return stats
 
 
+UNATTRIBUTED = "unattributed"
+
+
+def agent_scorecard(traces: Iterable[Trace]) -> List[dict]:
+    """Per-agent rollup across traces.
+
+    Identity comes from ``Step.agent`` (set by ``Recorder(agent=...)``
+    and on inter-agent messages); steps without it roll up under
+    "unattributed" so the instrumentation gap stays visible instead of
+    silently dropping. ``failure_rate`` is the share of traces an agent
+    *touched* that failed — participation, not proven causation.
+    """
+    per: Dict[str, dict] = {}
+    for trace in traces:
+        failed = trace.success is False
+        for step in trace.steps:
+            name = step.agent or UNATTRIBUTED
+            row = per.setdefault(name, {
+                "trace_ids": set(), "steps": 0, "tool_calls": 0,
+                "tokens": 0, "errors": 0, "failed_ids": set(),
+            })
+            row["trace_ids"].add(trace.id)
+            row["steps"] += 1
+            row["tool_calls"] += int(step.kind == TOOL_CALL)
+            row["tokens"] += step.tokens or 0
+            row["errors"] += int(bool(step.error))
+            if failed:
+                row["failed_ids"].add(trace.id)
+    rows = []
+    for name, row in per.items():
+        touched = len(row["trace_ids"])
+        failed_n = len(row["failed_ids"])
+        rows.append({
+            "agent": name,
+            "traces": touched,
+            "steps": row["steps"],
+            "tool_calls": row["tool_calls"],
+            "tokens": row["tokens"],
+            "errors": row["errors"],
+            "failed_traces": failed_n,
+            "failure_rate": round(failed_n / touched, 3) if touched
+                            else 0.0,
+        })
+    return sorted(rows, key=lambda r: (-r["steps"], r["agent"]))
+
+
 SPARK_BLOCKS = "▁▂▃▄▅▆▇█"
 
 

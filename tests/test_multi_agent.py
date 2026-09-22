@@ -101,7 +101,7 @@ def test_multiagent_demo_scenario_attributes_withholding():
     assert report.failed is True
     modes = {d.mode_id for d in report.detections}
     assert "FM-2.4" in modes   # researcher never messaged the writer
-    assert trace.steps[0].meta.get("agent") == "orchestrator"
+    assert trace.steps[0].agent == "orchestrator"
 
 
 def test_recorder_step_limit_enables_fm15_budget_detection():
