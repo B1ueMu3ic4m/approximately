@@ -545,7 +545,9 @@ def cmd_verify(args: argparse.Namespace) -> int:
     if getattr(args, "all", None):
         return _verify_all(store, key=load_key(args.key_file),
                            as_json=getattr(args, "json", False),
-                           since_days=getattr(args, "since", None))
+                           since_days=getattr(args, "since", None),
+                           strict=getattr(args, "strict", False),
+                           quiet=getattr(args, "quiet", False))
     if not args.trace:
         print("provide a trace id, or use --all")
         return 2
@@ -741,8 +743,14 @@ def _audit_row(store, trace, key, counts: dict) -> dict:
 
 
 def _verify_all(store, key, as_json: bool = False,
-                since_days: Optional[int] = None) -> int:
-    """Batch integrity audit; exit 1 when any trace fails."""
+                since_days: Optional[int] = None,
+                strict: bool = False, quiet: bool = False) -> int:
+    """Batch integrity audit; exit 1 when any trace fails.
+
+    ``strict`` also fails on unsigned and keyed-locked records — for
+    cron/CI gates where "every record must carry verifiable evidence"
+    is the policy, not just "nothing is broken".
+    """
     import json as _json
 
     from .ledger import verify_ledger
@@ -758,19 +766,30 @@ def _verify_all(store, key, as_json: bool = False,
         print(_json.dumps({
             "summary": counts, "ledger_broken": ledger_broken,
             "ledger_detail": ledger_check.detail,
+            "strict": strict,
             "traces": rows,
         }, indent=2))
-        return 1 if counts["problem"] else 0
-    for row in rows:
-        flag = {"intact": "", "unsigned": " (unsigned)",
-                "keyed": " (keyed, no key)"}.get(row["verdict"],
-                                                 " <-- " + row["verdict"])
-        print(f"{row['trace_id']}: {row['verdict']}{flag}")
+        return 1 if _verify_fails(counts, strict) else 0
+    if not quiet:
+        for row in rows:
+            flag = {"intact": "", "unsigned": " (unsigned)",
+                    "keyed": " (keyed, no key)"}.get(
+                        row["verdict"], " <-- " + row["verdict"])
+            print(f"{row['trace_id']}: {row['verdict']}{flag}")
     if ledger_broken:
         print(f"LEDGER BROKEN: {ledger_check.detail}")
     print(f"\n{counts['intact']} intact · {counts['unsigned']} unsigned · "
-          f"{counts['keyed']} keyed (locked) · {counts['problem']} failed")
-    return 1 if counts["problem"] else 0
+          f"{counts['keyed']} keyed (locked) · {counts['problem']} failed"
+          + ("  [strict]" if strict else ""))
+    return 1 if _verify_fails(counts, strict) else 0
+
+
+def _verify_fails(counts: dict, strict: bool) -> bool:
+    """Strict mode treats unsigned/keyed-locked records as failures."""
+    if strict:
+        return bool(counts["problem"] or counts["unsigned"]
+                    or counts["keyed"])
+    return bool(counts["problem"])
 
 
 def cmd_convert_mast(args: argparse.Namespace) -> int:
@@ -1256,6 +1275,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--since", type=int, metavar="DAYS",
                    help="with --all: only traces created in the last "
                         "DAYS days")
+    p.add_argument("--strict", action="store_true",
+                   help="with --all: unsigned and keyed-locked records "
+                        "also fail the audit (cron/CI policy gate)")
+    p.add_argument("--quiet", action="store_true",
+                   help="with --all: summary line only, no per-trace rows")
     p.set_defaults(func=cmd_verify)
 
     p = sub.add_parser("convert-mast",

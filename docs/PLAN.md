@@ -681,6 +681,14 @@ framework adapters import lazily and degrade when the framework is absent.
     renderers. 9 new tests + SECURITY.md rows; 10k-step perf smoke
     under 5 s.
 
+46. **v0.50 — `verify --all --strict` / `--quiet`** ✅ (delivered):
+    default batch semantics stay "nothing is broken" (unsigned
+    records pass with a note); strict mode enforces "every record
+    must carry verifiable evidence" and fails on unsigned and
+    keyed-locked records too - the cron/CI policy gate. `--quiet`
+    drops per-trace rows for cron mailboxes; JSON gains a `strict`
+    field. 4 new tests.
+
 ---
 
 ## 4. Launch plan
