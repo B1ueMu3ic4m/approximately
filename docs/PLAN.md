@@ -637,6 +637,16 @@ framework adapters import lazily and degrade when the framework is absent.
     LEDGER-BROKEN (chain localized) - plus rotate's
     required-new-key refusal and success path. cli.py 91% -> 93%.
 
+42. **v0.50 — `approximately explain` mode deep dives** ✅
+    (delivered): per-mode "what does this mean for my agent" pages -
+    definition, published MAST share, watching detectors, engineering
+    fixes - with the detector column derived from live registries
+    (every detector class now carries its `mode_id`, so the bridge
+    cannot drift from the code). `explain` prints an overview table;
+    `explain FM-1.3` the deep dive; unknown ids exit 1 with the valid
+    id list. MCP grows to 10 tools with the same content. 10 new
+    tests incl. registry-size drift guards.
+
 ---
 
 ## 4. Launch plan

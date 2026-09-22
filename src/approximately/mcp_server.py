@@ -140,6 +140,21 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "explain",
+        "description": "Deep dive on a MAST failure mode: definition, "
+                       "published share, the mechanical detectors that "
+                       "watch for it, and engineering fixes. Omit the "
+                       "mode for the overview table of all 14 modes.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "mode": {"type": "string",
+                         "description": "mode id such as FM-1.3 "
+                                        "(optional)"},
+            },
+        },
+    },
+    {
         "name": "stats",
         "description": "Aggregate a query selection instead of "
                        "listing it: count, success split, failure "
@@ -300,6 +315,18 @@ def _tool_stats(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     return summarize(found)
 
 
+def _tool_explain(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .explain import explain_overview, explain_text
+    from .taxonomy import FAILURE_MODES
+
+    mode = args.get("mode")
+    if not mode:
+        return {"overview": explain_overview()}
+    if str(mode) not in FAILURE_MODES:
+        raise KeyError(f"unknown failure mode {mode!r}")
+    return {"mode": str(mode), "text": explain_text(str(mode))}
+
+
 _HANDLERS = {
     "list_traces": _tool_list_traces,
     "attribute": _tool_attribute,
@@ -310,6 +337,7 @@ _HANDLERS = {
     "doctor": _tool_doctor,
     "trend": _tool_trend,
     "stats": _tool_stats,
+    "explain": _tool_explain,
 }
 
 

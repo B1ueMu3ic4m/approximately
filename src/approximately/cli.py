@@ -233,6 +233,22 @@ def cmd_taxonomy(_args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_explain(args: argparse.Namespace) -> int:
+    from .explain import explain_overview, explain_text
+    from .taxonomy import FAILURE_MODES
+
+    if not args.mode:
+        print(explain_overview())
+        return 0
+    if args.mode not in FAILURE_MODES:
+        valid = ", ".join(sorted(FAILURE_MODES))
+        print(f"unknown failure mode {args.mode!r}; valid ids: {valid}",
+              file=sys.stderr)
+        return 1
+    print(explain_text(args.mode))
+    return 0
+
+
 def cmd_optimize(args: argparse.Namespace) -> int:
     from .context import optimize_budget
 
@@ -1369,6 +1385,14 @@ def build_parser() -> argparse.ArgumentParser:
                    help="print the MAST failure taxonomy").set_defaults(
         func=cmd_taxonomy
     )
+    p_explain = sub.add_parser(
+        "explain", parents=[common],
+        help="deep dive on a MAST failure mode: definition, share, "
+             "watching detectors, fixes")
+    p_explain.add_argument("mode", nargs="?", default=None,
+                           help="mode id (e.g. FM-1.3); omit for the "
+                                "overview table")
+    p_explain.set_defaults(func=cmd_explain)
     return parser
 
 

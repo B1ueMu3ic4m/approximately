@@ -94,6 +94,7 @@ def _is_placeholder(turn: str) -> bool:
 
 class ProseRepeatDetector:
     """FM-1.3 in prose: near-verbatim assistant turns repeated."""
+    mode_id = "FM-1.3"
 
     min_turns = 4
 
@@ -157,6 +158,7 @@ class ProseRestartDetector:
       different words, order-tolerant where SequenceMatcher is not;
     - the task statement is re-stated verbatim inside a later turn.
     """
+    mode_id = "FM-2.1"
 
     restart_similarity = 0.9
     restart_jaccard = 0.5
@@ -232,6 +234,7 @@ class ProseRestartDetector:
 
 class ProseDerailmentDetector:
     """FM-2.3 in prose: task keywords vanish from the trailing turns."""
+    mode_id = "FM-2.3"
 
     min_turns = 5
     trailing = 3
@@ -270,6 +273,7 @@ class ProseDerailmentDetector:
 
 class ProseNoVerifyDetector:
     """FM-3.2 in prose: a conclusion is produced, verification never."""
+    mode_id = "FM-3.2"
 
     min_turns = 4
 
@@ -294,6 +298,7 @@ class ProseNoVerifyDetector:
 
 class ProseAmbiguityDetector:
     """FM-2.2 in prose: insufficiency named, then proceeded anyway."""
+    mode_id = "FM-2.2"
 
     def detect(self, trace: Trace) -> Optional["object"]:
         turns = _turns(trace)
@@ -403,6 +408,7 @@ class ProseThoughtActionDetector:
        salient vocabulary with the thought as a whole (the plan says
        "check the backend docs", the action opens ``backends/``).
     """
+    mode_id = "FM-2.6"
 
     min_entities = 2
 
@@ -518,6 +524,7 @@ class ProseOutcomeVerifyDetector:
     is resolved, the claim was never checked — FM-3.2, "no attempt to
     verify outcome", detected on outcomes rather than vocabulary.
     """
+    mode_id = "FM-3.2"
 
     def detect(self, trace: Trace) -> Optional["object"]:
         turns = _turns(trace)
