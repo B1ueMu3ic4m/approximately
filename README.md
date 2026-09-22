@@ -232,6 +232,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.45** — README walkthrough tests: advertised commands run in CI with their promised outputs
 - ✅ **v0.46** — MCP server grows to 9 tools: bisect, doctor, fleet trend, and query stats — full CLI parity over stdio
 - ✅ **v0.47** — `demo --scenario loop`: a crew stuck in an args-evolving cycle only the cycle detector can catch
+- ✅ **v0.50** — `approximately explain FM-x.y`: per-mode deep dives with a live detector bridge (MCP grows to 10 tools) · the attribution gate ships as `bench-gate` + a reusable GitHub Action · per-agent identity (`Step.agent`) with the `stats --by-agent` scoreboard · adversarial round: markdown fence-breaking fixed, NaN floors refused, agent names proven injection-safe · `verify --all --strict/--quiet` policy gates · [docs/RECIPES.md](docs/RECIPES.md) cookbook
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
