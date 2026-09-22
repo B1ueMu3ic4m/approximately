@@ -708,6 +708,13 @@ framework adapters import lazily and degrade when the framework is absent.
     CLI passed raw strings to a dict API - labels now parse with a
     real error message for malformed pairs. 7 new tests.
 
+49. **v0.50 — agent wave completion: agents in the HTML surfaces**
+    ✅ (delivered): single-trace reports gain an "Agents in this
+    run" card (hidden for single-identity runs, names escaped);
+    the fleet dashboard grows a "Busiest agents" table per store
+    (steps/errors/touched-fail-rate); `fleet --json` and webhook
+    payloads carry `top_agents`. 5 new tests.
+
 ---
 
 ## 4. Launch plan

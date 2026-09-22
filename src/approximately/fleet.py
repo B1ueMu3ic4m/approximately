@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from .attributor import attribute
-from .cluster import trend
+from .cluster import UNATTRIBUTED, agent_scorecard, trend
 from .ledger import verify_ledger
 from .report import TREND_LABELS, render_sparkline, trend_verdict
 from .store import TraceStore
@@ -68,6 +68,7 @@ class StoreSummary:
     failed: int = 0
     failure_rate: float = 0.0
     top_modes: List[tuple] = field(default_factory=list)
+    top_agents: List[dict] = field(default_factory=list)
     trend_rows: List[dict] = field(default_factory=list)
     ledger_intact: Optional[bool] = None  # None: no ledger in use
     trend_verdict: str = "stable"
@@ -82,6 +83,12 @@ def _verdict(trend_rows: List[dict]) -> tuple:
     """Theil-Sen verdict over the store's failure-rate history."""
     rates = [r["failed"] / r["total"] for r in trend_rows if r.get("total")]
     return trend_verdict(rates)
+
+
+def _top_agents(traces) -> List[dict]:
+    """Busiest named agents across the store (scorecard order)."""
+    return [r for r in agent_scorecard(traces)
+            if r["agent"] != UNATTRIBUTED][:3]
 
 
 def _top_failure_modes(traces) -> List[tuple]:
@@ -120,6 +127,12 @@ def webhook_payload(summaries: List[StoreSummary]) -> dict:
                 "top_modes": [
                     {"mode": mode, "count": count}
                     for mode, count in s.top_modes
+                ],
+                "top_agents": [
+                    {k: r[k] for k in ("agent", "steps", "tool_calls",
+                                       "errors", "tokens", "failed_traces",
+                                       "failure_rate")}
+                    for r in s.top_agents
                 ],
             }
             for s in summaries
@@ -198,6 +211,7 @@ def survey(stores: List[Path]) -> List[StoreSummary]:
             failed=failed,
             failure_rate=failed / len(traces) if traces else 0.0,
             top_modes=_top_failure_modes(traces),
+            top_agents=_top_agents(traces),
             trend_rows=rows,
             ledger_intact=_ledger_state(store.directory),
             trend_verdict=verdict,
@@ -223,6 +237,12 @@ def _store_card(s: StoreSummary) -> str:
         f"<tr><td class='mono'>{esc(mode)}</td><td>{count}</td></tr>"
         for mode, count in s.top_modes
     ) or "<tr><td>no attributed failures</td></tr>"
+    agents_html = "".join(
+        "<tr><td class='mono'>" + esc(r["agent"]) + "</td>"
+        f"<td>{r['steps']}</td><td>{r['errors']}</td>"
+        f"<td>{r['failure_rate']:.0%}</td></tr>"
+        for r in s.top_agents
+    ) or "<tr><td>no named agents recorded</td></tr>"
     return (
         f'<div class="store"><h2>{esc(s.name)}</h2>'
         f'<div class="sub">{esc(s.path)} · '
@@ -232,7 +252,13 @@ def _store_card(s: StoreSummary) -> str:
         f"{spark}"
         f'<span class="badge {badge_cls}">{esc(trend_label)}</span>'
         "</div>"
-        f"<table>{modes_html}</table></div>"
+        "<h3>Top failure modes</h3>"
+        f"<table>{modes_html}</table>"
+        "<h3>Busiest agents</h3>"
+        "<table>"
+        "<tr><th>agent</th><th>steps</th><th>errors</th>"
+        "<th>fail-rate</th></tr>"
+        + agents_html + "</table></div>"
     )
 
 
