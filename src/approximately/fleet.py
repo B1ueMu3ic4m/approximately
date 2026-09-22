@@ -406,6 +406,45 @@ def summarize_trend(days: List[dict]) -> dict:
             "snapshots": sum(r["snapshots"] for r in rows)}
 
 
+AGENT_TREND_KEYS = ("steps", "tool_calls", "errors",
+                    "traces", "failed_traces")
+
+
+def agent_trend_days(digest_dir: Path, agent: str) -> List[dict]:
+    """Per-day rollup for one named agent from digest snapshots.
+
+    Digest snapshots carry each store's top-3 busiest named agents
+    (see webhook_payload); a day contributes an agent's row only while
+    the agent stays among them — a zero row means "not observed", not
+    "perfect". Digest files are untrusted input: missing or malformed
+    fields read as zero.
+    """
+    days = []
+    for day_row in trend_days(digest_dir):
+        totals = dict.fromkeys(AGENT_TREND_KEYS, 0)
+        for store in (day_row["last"].get("stores") or []):
+            if not isinstance(store, dict):
+                continue
+            for row in (store.get("top_agents") or []):
+                if not isinstance(row, dict) or row.get("agent") != agent:
+                    continue
+                for key in AGENT_TREND_KEYS:
+                    value = row.get(key)
+                    if isinstance(value, (int, float)) and value >= 0:
+                        totals[key] += int(value)
+        days.append({"day": day_row["day"], **totals})
+    return days
+
+
+def summarize_agent_trend(days: List[dict]) -> dict:
+    """Verdict + sparkline inputs for one agent's touched-fail rate."""
+    rates = [d["failed_traces"] / d["traces"] for d in days if d["traces"]]
+    verdict, slope = trend_verdict(rates) if len(rates) >= 3 \
+        else ("stable", 0.0)
+    return {"days": days, "verdict": verdict, "slope": round(slope, 4),
+            "observed_days": len(rates)}
+
+
 def render_trend(summary: dict) -> str:
     """Terminal trend table with a fleet failure-rate sparkline."""
     from .cluster import sparkline

@@ -112,7 +112,14 @@ $ approximately fleet --trend --digest-dir digests --fail-on-worsening
 
 The watch loop appends daily JSONL snapshots; the trend gate computes
 a Theil–Sen verdict over the history and fails CI when the fleet is
-getting worse.
+getting worse. One agent's trajectory over the same history:
+
+```console
+$ approximately fleet --trend --agent researcher --digest-dir digests
+```
+
+(A day shows an agent while it is among that store's top-3 busiest
+named agents in the snapshot; a zero row means *not observed*.)
 
 ## 8. Query failures without loading anything
 
