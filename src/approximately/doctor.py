@@ -38,6 +38,7 @@ class DoctorReport:
     digest_gaps: List[str] = field(default_factory=list)
     torn_lines: int = 0
     unsigned: int = 0
+    legacy_agents: List[str] = field(default_factory=list)
 
     @property
     def healthy(self) -> bool:
@@ -62,6 +63,7 @@ class DoctorReport:
             "digest_gaps": self.digest_gaps,
             "torn_lines": self.torn_lines,
             "unsigned": self.unsigned,
+            "legacy_agents": self.legacy_agents,
         }
 
     def render(self) -> str:
@@ -76,6 +78,10 @@ class DoctorReport:
         lines.append(self._render_ledger())
         if self.unsigned:
             lines.append(f"  unsigned records: {self.unsigned}")
+        if self.legacy_agents:
+            lines.append(
+                f"  legacy meta['agent'] on {len(self.legacy_agents)} "
+                "trace(s) - re-save to migrate to Step.agent")
         lines.extend(f"    stale lock: {name}"
                      for name in self.stale_locks[:5])
         lines.extend(f"    leftover temp: {name}"
@@ -114,6 +120,16 @@ def _check_records(directory: Path, report: DoctorReport) -> None:
         meta = payload.get("meta")
         if not isinstance(meta, dict) or not meta.get("integrity"):
             report.unsigned += 1
+        steps = payload.get("steps")
+        if isinstance(steps, list) and any(
+            isinstance(s, dict) and isinstance(s.get("meta"), dict)
+            and s["meta"].get("agent") and "agent" not in s
+            for s in steps
+        ):
+            # pre-v0.50 identity lived in step meta; Step.agent is the
+            # field detectors and the scorecard read first. Re-saving
+            # the trace migrates it.
+            report.legacy_agents.append(path.name)
 
 
 def _check_ledger(directory: Path, report: DoctorReport) -> None:
