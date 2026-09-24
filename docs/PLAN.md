@@ -811,6 +811,18 @@ framework adapters import lazily and degrade when the framework is absent.
     `fleet --trend --agent`; without the param the fleet-level
     summary is unchanged. 1 new test. This merge releases v0.56.0.
 
+
+66. **v0.57 — runner-up hypotheses carry their fixes** ✅
+    (delivered): the HTML Runner-up card grows a collapsible
+    `<details>` block per runner-up ("If it was actually FM-x.y")
+    listing that mode's engineering fixes - the next-best
+    hypothesis now comes with its own action list. 2 new tests.
+66. **v0.57 — runner-up hypotheses carry their fixes** ✅
+    (delivered): the HTML Runner-up card grows a collapsible
+    `<details>` block per runner-up ("If it was actually FM-x.y")
+    listing that mode's engineering fixes - the next-best
+    hypothesis now comes with its own action list. 2 new tests.
+
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a

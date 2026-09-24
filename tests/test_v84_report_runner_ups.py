@@ -60,3 +60,25 @@ def test_markdown_hides_section_for_single_mode():
     rec.respond("gave up", success=False)
     md = render_markdown(rec.trace, attribute(rec.trace))
     assert "Runner-up" not in md
+
+
+def test_html_runner_ups_carry_collapsible_fixes():
+    trace = _two_mode_trace()
+    report = attribute(trace)
+    html = render_html(trace, report)
+    assert "<details>" in html
+    assert "If it was actually" in html
+    # every runner-up with fixes gets a collapsible block
+    from approximately.taxonomy import FAILURE_MODES
+
+    for r in report.runner_ups:
+        if FAILURE_MODES[r["mode"]].fixes:
+            assert f"If it was actually {r['mode']}" in html
+
+
+def test_markdown_runner_ups_stay_table_only():
+    # markdown keeps the compact section; fixes remain one `explain`
+    # away (no fenced-block duplication)
+    trace = _two_mode_trace()
+    md = render_markdown(trace, attribute(trace))
+    assert md.count("Runner-up") == 1
