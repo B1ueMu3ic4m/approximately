@@ -126,15 +126,21 @@ _TOOLS: List[Dict[str, Any]] = [
     },
     {
         "name": "trend",
-        "description": "Day-level fleet analytics over a watch-loop "
-                       "digest directory: per-day failure rate, top "
-                       "modes, sparkline verdict.",
+        "description": "Day-level analytics over a watch-loop digest "
+                       "directory: per-day failure rate, sparkline, "
+                       "Theil-Sen verdict. With an agent name, the "
+                       "per-day rollup for that one agent instead "
+                       "(visible while it stays among a store's "
+                       "top-N busiest agents in the snapshots).",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "digest_dir": {"type": "string",
                                "description": "directory of daily "
                                               "digest-*.jsonl files"},
+                "agent": {"type": "string",
+                          "description": "per-day analytics for one "
+                                         "named agent (optional)"},
             },
             "required": ["digest_dir"],
         },
@@ -341,9 +347,15 @@ def _tool_doctor(ctx: ServerContext, args: Dict[str, Any]) -> dict:
 
 
 def _tool_trend(ctx: ServerContext, args: Dict[str, Any]) -> dict:
-    from .fleet import summarize_trend, trend_days
+    from .fleet import agent_trend_days, summarize_agent_trend, summarize_trend, trend_days
 
     days = trend_days(Path(str(args["digest_dir"])))
+    agent = args.get("agent")
+    if agent:
+        agent_days = agent_trend_days(Path(str(args["digest_dir"])),
+                                      str(agent))
+        summary = summarize_agent_trend(agent_days)
+        return {"agent": str(agent), **summary}
     return summarize_trend(days)
 
 

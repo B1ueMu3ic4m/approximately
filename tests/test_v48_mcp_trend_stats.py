@@ -56,7 +56,15 @@ def _digest_dir(tmp_path):
                             "trend_verdict": "stable",
                             "trend_slope": 0.0, "worsening": False,
                             "top_modes": [{"mode": "FM-2.1",
-                                           "count": day + 1}]}]}
+                                           "count": day + 1}],
+                            "top_agents": [{"agent": "worker",
+                                            "steps": 3,
+                                            "tool_calls": 2,
+                                            "errors": day,
+                                            "tokens": 30,
+                                            "traces": traces,
+                                            "failed_traces": day + 1,
+                                            "failure_rate": rate}]}]}
         (digests / f"digest-{stamp}.jsonl").write_text(
             json.dumps(snap, sort_keys=True) + "\n", encoding="utf-8")
     return digests
@@ -120,3 +128,29 @@ def test_mcp_stats_zero_matches(tmp_path):
     resp = handle_request(msg, ServerContext(str(store.directory)))
     payload = json.loads(resp["result"]["content"][0]["text"])
     assert payload["count"] == 0
+
+
+def test_mcp_trend_agent_param(tmp_path):
+    """v0.56: trend accepts an agent name — per-day rollup with its
+    own Theil-Sen verdict, mirroring fleet --trend --agent."""
+    digests = _digest_dir(tmp_path)
+    resp = handle_request({
+        "jsonrpc": "2.0", "id": 9, "method": "tools/call",
+        "params": {"name": "trend",
+                   "arguments": {"digest_dir": str(digests),
+                                 "agent": "worker"}},
+    }, ServerContext("."))
+    payload = json.loads(resp["result"]["content"][0]["text"])
+    assert payload["agent"] == "worker"
+    assert [d["steps"] for d in payload["days"]] == [3, 3]
+    assert [d["failed_traces"] for d in payload["days"]] == [1, 2]
+    assert payload["verdict"] in ("stable", "improving", "worsening")
+
+    # no agent: fleet-level summary unchanged
+    resp = handle_request({
+        "jsonrpc": "2.0", "id": 10, "method": "tools/call",
+        "params": {"name": "trend",
+                   "arguments": {"digest_dir": str(digests)}},
+    }, ServerContext("."))
+    payload = json.loads(resp["result"]["content"][0]["text"])
+    assert "agent" not in payload and "days" in payload
