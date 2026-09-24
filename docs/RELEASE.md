@@ -1,14 +1,27 @@
 # Release runbook
 
-Everything here is mechanical; the discipline is in the order. The
-rule this repo works by: **main is always releasable** — a release is
-a tag, not an event.
+**Releases are fully automatic.** When a merge to main changes
+`pyproject.toml`'s version, `autotag.yml` tags it and dispatches
+`release.yml`, which creates the GitHub Release (auto-generated notes
+from merged PRs, sdist + wheel attached) and attempts the PyPI
+publish. The rule this repo works by holds: **main is always
+releasable** — a release is a tag, and tags happen by themselves.
 
-## 0. One-time setup (repo owner, already documented in release.yml)
+## 0. PyPI (the only piece that needs credentials, once)
 
-PyPI Trusted Publishing: pypi.org → your project → Publishing →
-GitHub publisher, workflow name `release.yml`, environment `pypi`.
-No API token lives anywhere.
+Without credentials, everything above works and only the `pypi-publish`
+job shows a notice (it is `continue-on-error` by design). To light up
+PyPI, either works:
+
+- **Trusted Publishing** (no token anywhere): pypi.org → your project
+  → Publishing → GitHub publisher, workflow `release.yml`,
+  environment `pypi`; or
+- hand the owner's PyPI API token to the repo as the
+  `PYPI_API_TOKEN` secret — the publish job picks it up
+  automatically.
+
+The PyPI name `approximately` is free (checked 2026-09-23); the
+first successful publish claims it.
 
 ## 1. Pre-tag checklist (all gates locally, so CI is a formality)
 
@@ -30,14 +43,11 @@ wheel, so a mismatch ships silently wrong metadata). Update the
 README roadmap line for the release, and make sure
 [docs/PLAN.md](PLAN.md) items delivered in this release are marked ✅.
 
-## 3. Tag and push
+## 3. Tag and push (only if autotag did not already do it)
 
-```console
-$ git tag vX.Y.Z && git push origin vX.Y.Z
-```
-
-The tag must equal the `pyproject.toml` version with a `v` prefix —
-there is no automation enforcing this today, so the checklist does.
+Manual tagging still works — `release.yml` triggers on any `v*` tag
+push. The tag must equal the `pyproject.toml` version with a `v`
+prefix; autotag enforces that by construction for its own tags.
 
 ## 4. What CI does from here
 

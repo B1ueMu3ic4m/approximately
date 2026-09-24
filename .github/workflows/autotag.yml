@@ -1,0 +1,42 @@
+name: Autotag
+
+# Fully automatic releases: when main's pyproject version changes and
+# no matching v* tag exists, create the tag and dispatch the Release
+# pipeline. No human step anywhere.
+#
+# The tag is pushed with GITHUB_TOKEN, whose events do not trigger
+# other workflows — hence the explicit `gh workflow run` dispatch of
+# release.yml (which listens for workflow_dispatch for exactly this).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "pyproject.toml"
+  workflow_dispatch:
+
+jobs:
+  autotag:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Tag the version and dispatch the Release pipeline
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml | head -1)
+          TAG="v$VERSION"
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "tag $TAG already exists — nothing to release"
+            exit 0
+          fi
+          git tag "$TAG" "$GITHUB_SHA"
+          git push origin "$TAG"
+          gh workflow run release.yml --ref "$TAG"
+          echo "dispatched release pipeline for $TAG"
