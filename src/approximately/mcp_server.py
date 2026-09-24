@@ -21,7 +21,19 @@ from typing import Any, Dict, List, Optional
 
 MAX_LINE = 1_000_000
 PROTOCOL_VERSION = "2024-11-05"
-SERVER_INFO = {"name": "approximately", "version": "0.37.0"}
+
+
+def _package_version() -> str:
+    """Installed distribution version, so the handshake never lies."""
+    from importlib import metadata
+
+    try:
+        return metadata.version("approximately")
+    except Exception:
+        return "unknown"
+
+
+SERVER_INFO = {"name": "approximately", "version": _package_version()}
 
 _TOOLS: List[Dict[str, Any]] = [
     {
@@ -152,7 +164,8 @@ _TOOLS: List[Dict[str, Any]] = [
                        "the touched-trace failure rate per agent "
                        "(steps without identity roll up under "
                        "unattributed). Optional query-expression "
-                       "filter, e.g. \"success == false\".",
+                       "filter, e.g. \"success == false\". "
+                       "min_failed keeps only repeat offenders.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -161,6 +174,10 @@ _TOOLS: List[Dict[str, Any]] = [
                 "top": {"type": "number",
                         "description": "keep the first N rows "
                                        "(default: all)"},
+                "min_failed": {"type": "number",
+                               "description": "keep only agents with "
+                                              "at least N failed "
+                                              "traces (default: all)"},
             },
         },
     },
@@ -375,7 +392,11 @@ def _tool_scoreboard(ctx: ServerContext, args: Dict[str, Any]) -> dict:
         from .query import select
 
         traces = select(traces, str(args["expression"]))
-    rows = agent_scorecard(traces)
+    min_failed = args.get("min_failed")
+    rows = agent_scorecard(
+        traces,
+        min_failed=int(min_failed) if min_failed is not None else None,
+    )
     top = args.get("top")
     if top is not None:
         rows = rows[:max(0, int(top))]

@@ -839,6 +839,15 @@ framework adapters import lazily and degrade when the framework is absent.
     listing that mode's engineering fixes - the next-best
     hypothesis now comes with its own action list. 2 new tests.
 
+69. **v0.60 - the recidivist filter** ✅ (delivered): `agent_scorecard(min_failed=)`
+    keeps only agents with at least N failed traces - one flaky run is
+    noise, a repeat offender is a fleet problem. Exposed as
+    `stats --by-agent --min-failed N` on the CLI and
+    `scoreboard.min_failed` on MCP, so every surface asks the same
+    question. The MCP handshake version now reads the installed
+    distribution instead of a hardcoded 0.37.0 that had gone stale.
+    7 new tests.
+
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a

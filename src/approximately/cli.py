@@ -892,7 +892,8 @@ def cmd_stats(args: argparse.Namespace) -> int:
     if getattr(args, "by_agent", False):
         from .cluster import agent_scorecard
 
-        rows = agent_scorecard(traces)
+        rows = agent_scorecard(
+            traces, min_failed=getattr(args, "min_failed", None))
         if args.json:
             print(json.dumps(rows, indent=2))
             return 0
@@ -1480,6 +1481,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--by-agent", action="store_true",
                    help="per-agent rollup (steps, tokens, errors, "
                         "touched-trace failure rate) instead of totals")
+    p.add_argument("--min-failed", type=int, metavar="N",
+                   help="with --by-agent, keep only agents with at "
+                        "least N failed traces (recidivist filter)")
     p.add_argument("--trend", action="store_true",
                    help="failure-rate history over time instead of totals")
     p.add_argument("--trend-bucket-days", type=int, default=7,
