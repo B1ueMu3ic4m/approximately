@@ -47,6 +47,19 @@ and readers never observe partial writes.
 - The host OS account's permissions bound the tool's; approximately never
   elevates.
 
+## Release provenance
+
+Tags are created by `autotag.yml` (repo-scoped `GITHUB_TOKEN`,
+`contents: write`) from main's `pyproject.toml` version; releases are
+built and published by `release.yml` from the tagged commit. Third
+-party actions are limited to the well-known GitHub-owned steps
+(checkout, setup-python, artifact upload/download) and
+`pypa/gh-action-pypi-publish`. The PyPI publish runs OIDC Trusted
+Publishing or an API-token secret — no long-lived credentials in the
+repo. A malicious change to either workflow lands through a reviewed
+PR like any other code change; the tag history and Release assets
+are the audit trail.
+
 ## Reporting
 
 Open a private security advisory via GitHub → Security → Report a

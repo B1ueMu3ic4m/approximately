@@ -796,6 +796,14 @@ framework adapters import lazily and degrade when the framework is absent.
     Theil-Sen verdict badge with slope, per-day traces/rate table.
     Without a digest dir the page is unchanged. 5 new tests.
 
+64. **v0.55 — perf gate covers the agent wave + release
+    provenance documented** ✅ (delivered): perf_gate gains an
+    agent-wave section (scorecard + markdown render on a 10k-step
+    trace, 5 s budget - observed 0.08 s) alongside the attribution
+    budget; SECURITY.md documents release provenance (autotag/
+    release workflows, scoped tokens, OIDC, the short allow-list of
+    actions). 1 new test. This merge releases v0.55.0.
+
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a

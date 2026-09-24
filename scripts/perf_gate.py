@@ -33,7 +33,9 @@ def main() -> int:
                         help="per-record attribution budget in "
                              "milliseconds (default 50, ~25x headroom)")
     args = parser.parse_args()
+    return attribution_gate(args) + agent_wave_gate()
 
+def attribution_gate(args) -> int:
     labeled = load_dataset(SYNTH, fmt="approx")
     if not labeled:
         print("perf-gate: no records found", file=sys.stderr)
@@ -57,6 +59,35 @@ def main() -> int:
         return 1
     print("PASS - attribution performance within budget")
     return 0
+
+
+def agent_wave_gate(budget_s: float = 5.0) -> int:
+    """Scorecard + markdown + fleet render on a 10k-step trace.
+
+    The agent wave (v0.50) walks every step per agent and renders
+    timelines; this keeps the whole pass linear and bounded.
+    """
+    from approximately.attributor import attribute
+    from approximately.cluster import agent_scorecard
+    from approximately.markdown_report import render_markdown
+    from approximately.recorder import Recorder
+
+    rec = Recorder("perf: agent wave", save=False, agent="worker")
+    rec.tool("bash", {"cmd": "prime"}, result="ok", agent="worker")
+    for i in range(10_000):
+        rec.tool("bash", {"cmd": f"c{i}"}, result="r", thought="t")
+    rec.respond("done", success=False)
+    trace = rec.trace
+
+    start = time.perf_counter()
+    rows = agent_scorecard([trace])
+    render_markdown(trace, attribute(trace))
+    elapsed = time.perf_counter() - start
+    ok = rows[0]["steps"] == 10_002 and elapsed < budget_s
+    print(f"perf-gate[agent-wave]: scorecard+markdown on 10k steps "
+          f"in {elapsed:.2f}s (budget {budget_s:.0f}s) - "
+          f"{'PASS' if ok else 'FAIL'}")
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":
