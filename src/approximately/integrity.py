@@ -243,3 +243,47 @@ def _tamper_result(block: dict, actual: List[str],
         detail=(f"step #{first_bad} no longer matches its recorded hash; "
                 "everything after it is also untrusted"),
     )
+
+
+def verdict_payload(trace: Trace, directory, key: Optional[bytes] = None) -> dict:
+    """The verification ladder as one machine-readable object.
+
+    Shared by the CLI (``verify <id> --json``) and the MCP ``verify``
+    tool so both surfaces answer with the same data. Rungs:
+    ``intact``, ``tampered``, ``unsigned``, ``keyed``, ``wrong-key``,
+    ``rolled-back``, ``ledger-broken`` — a wrong-key match lands with
+    the locked-not-broken family instead of masquerading as tampered.
+    """
+    result = verify(trace, key=key)
+    if result.verdict == "unsigned":
+        return {"verdict": "unsigned", "intact": False,
+                "detail": result.detail}
+    if result.verdict in ("keyed", "wrong-key"):
+        return {"verdict": result.verdict, "intact": False,
+                "detail": result.detail}
+    if not result.intact:
+        return {"verdict": "tampered", "intact": False,
+                "detail": result.detail,
+                "expected_final": result.expected_final,
+                "actual_final": result.actual_final}
+
+    from .ledger import audit_rollback, verify_ledger
+
+    ledger_check = verify_ledger(directory)
+    if audit_rollback(trace, directory):
+        return {"verdict": "rolled-back", "intact": True,
+                "detail": ("an older signed state of this trace is in "
+                           "the evidence ledger; newer saves were "
+                           "recorded afterwards"),
+                "actual_final": result.actual_final}
+    if ledger_check.entries and not ledger_check.intact:
+        return {"verdict": "ledger-broken", "intact": True,
+                "detail": ledger_check.detail,
+                "actual_final": result.actual_final}
+    return {"verdict": "intact", "intact": True,
+            "detail": result.detail,
+            "actual_final": result.actual_final,
+            "authenticated": bool(key),
+            "rollback": False,
+            "ledger": {"entries": ledger_check.entries,
+                       "intact": ledger_check.intact}}

@@ -580,78 +580,57 @@ def cmd_verify(args: argparse.Namespace) -> int:
     return _verify_one(args, store, load_key(args.key_file))
 
 
-def _verify_one(args: argparse.Namespace, store, key) -> int:
-    """Single-trace verification with the documented exit ladder.
+_VERIFY_EXIT = {"intact": 0, "tampered": 1, "unsigned": 2,
+                "keyed": 3, "wrong-key": 3, "rolled-back": 4,
+                "ledger-broken": 5}
 
-    ``--json`` (the flag the --all audit already takes) turns this
-    into one machine-readable object per branch, so a CI job can
-    script against ``verdict`` instead of parsing prose. Text output
-    is unchanged.
-    """
-    from .integrity import verify
-    from .ledger import audit_rollback, verify_ledger
 
-    as_json = getattr(args, "json", False)
-    trace = _load_trace(args.trace, store)
-    result = verify(trace, key=key)
-
-    def emit(payload: dict, code: int) -> int:
-        if as_json:
-            print(json.dumps({"trace": trace.id, **payload}, indent=2))
-        return code
-
-    if result.verdict == "unsigned":
-        if not as_json:
-            print("unsigned: trace carries no integrity block "
-                  "(recorded before v0.3.1)")
-        return emit({"verdict": "unsigned", "intact": False,
-                     "detail": result.detail}, 2)
-    if result.verdict == "keyed":
-        if not as_json:
-            print(f"KEYED: {result.detail}")
-        return emit({"verdict": "keyed", "intact": False,
-                     "detail": result.detail}, 3)
-    if not result.intact:
-        if not as_json:
-            print(f"TAMPERED: {result.detail}")
-            print(f"  expected chain final: {result.expected_final}")
-            print(f"  actual chain final:   {result.actual_final}")
-        return emit({"verdict": "tampered", "intact": False,
-                     "detail": result.detail,
-                     "expected_final": result.expected_final,
-                     "actual_final": result.actual_final}, 1)
-
-    rollback = audit_rollback(trace, store.directory)
-    ledger_check = verify_ledger(store.directory)
-    kind = "HMAC-authenticated" if key else "intact"
-    if not as_json:
-        print(f"{kind}: {result.detail}")
-        print(f"  chain final: {result.actual_final}")
-    if rollback:
-        root = result.actual_final or "?"
-        if not as_json:
+def _verify_prose(verdict: str, payload: dict, key) -> None:
+    """The historical human-readable rendering of a verdict."""
+    detail = payload.get("detail", "")
+    if verdict == "unsigned":
+        print("unsigned: trace carries no integrity block "
+              "(recorded before v0.3.1)")
+    elif verdict in ("keyed", "wrong-key"):
+        tag = "KEYED" if verdict == "keyed" else "WRONG-KEY"
+        print(f"{tag}: {detail}")
+    elif verdict == "tampered":
+        print(f"TAMPERED: {detail}")
+        print(f"  expected chain final: {payload.get('expected_final')}")
+        print(f"  actual chain final:   {payload.get('actual_final')}")
+    else:
+        kind = "HMAC-authenticated" if key else "intact"
+        print(f"{kind}: {detail}")
+        print(f"  chain final: {payload.get('actual_final')}")
+        if verdict == "rolled-back":
+            root = payload.get("actual_final") or "?"
             print(f"ROLLED-BACK: an older signed state of this trace is in "
                   f"the evidence ledger ({root[:12]}…); newer "
                   f"saves were recorded afterwards — the file was rolled "
                   f"back, the hashes are valid but the state is stale")
-        return emit({"verdict": "rolled-back", "intact": True,
-                     "detail": "an older signed state of this trace is "
-                               "in the evidence ledger; newer saves "
-                               "were recorded afterwards",
-                     "actual_final": result.actual_final}, 4)
-    if ledger_check.entries and not ledger_check.intact:
-        if not as_json:
-            print(f"LEDGER-BROKEN: {ledger_check.detail}")
-        return emit({"verdict": "ledger-broken", "intact": True,
-                     "detail": ledger_check.detail,
-                     "actual_final": result.actual_final}, 5)
-    return emit({"verdict": "intact", "intact": True,
-                 "detail": result.detail,
-                 "actual_final": result.actual_final,
-                 "authenticated": bool(key),
-                 "rollback": False,
-                 "ledger": {"entries": ledger_check.entries,
-                            "intact": ledger_check.intact}}, 0)
+        elif verdict == "ledger-broken":
+            print(f"LEDGER-BROKEN: {detail}")
+
+
+def _verify_one(args: argparse.Namespace, store, key) -> int:
+    """Single-trace verification: one payload, two renderings.
+
+    ``verdict_payload()`` is the single source of truth (shared with
+    the MCP ``verify`` tool); ``--json`` prints it as-is while the
+    default path keeps the documented prose and exit ladder
+    (0 intact, 1 tampered, 2 unsigned, 3 keyed/wrong-key,
+    4 rolled-back, 5 ledger-broken).
+    """
+    from .integrity import verdict_payload
+
+    trace = _load_trace(args.trace, store)
+    payload = verdict_payload(trace, store.directory, key=key)
+    verdict = payload["verdict"]
+    if not getattr(args, "json", False):
+        _verify_prose(verdict, payload, key)
+    else:
+        print(json.dumps({"trace": trace.id, **payload}, indent=2))
+    return _VERIFY_EXIT[verdict]
 
 
 def cmd_merge(args: argparse.Namespace) -> int:
