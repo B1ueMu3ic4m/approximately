@@ -744,6 +744,14 @@ framework adapters import lazily and degrade when the framework is absent.
     predicates; the unknown-field error now lists the new field.
     5 new tests.
 
+57. **v0.50 — doctor detects legacy agent identity** ✅
+    (delivered): stores recorded before v0.50 carry the actor in
+    step `meta["agent"]`; the doctor now lists affected files
+    (informational, never an unhealthy verdict) with the migration
+    hint - re-saving the trace moves identity to `Step.agent`,
+    which detectors, scorecard, and reports read first. 4 new
+    tests.
+
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a
