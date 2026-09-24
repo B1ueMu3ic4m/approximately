@@ -826,7 +826,15 @@ framework adapters import lazily and degrade when the framework is absent.
     - scorecard, reports, digest snapshots - on every run. Labels
     and floors untouched: attribution is mode-level and no synth
     scenario keys the identity-reading detectors. 3 new tests.66. **v0.57 — runner-up hypotheses carry their fixes** ✅
-    (delivered): the HTML Runner-up card grows a collapsible
+
+
+68. **v0.59 — attribute --min-confidence** ✅ (delivered): the
+    per-detection admission floor is tunable for noisy
+    environments; the knob can only raise it (max with the
+    built-in 0.5), so a caller cannot weaken attribution by
+    accident. Above every confidence the report falls back to the
+    honest OTHER verdict. Wired through the CLI (single + --all)
+    and the API. 4 new tests.    (delivered): the HTML Runner-up card grows a collapsible
     `<details>` block per runner-up ("If it was actually FM-x.y")
     listing that mode's engineering fixes - the next-best
     hypothesis now comes with its own action list. 2 new tests.
