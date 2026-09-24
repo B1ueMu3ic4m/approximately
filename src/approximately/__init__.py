@@ -7,7 +7,7 @@ sampled traces. Approximately makes those approximations safe —
 
 from __future__ import annotations
 
-__version__ = "0.53.0"
+__version__ = "0.54.0"
 
 from .attributor import FailureReport, attribute
 from .context import (
