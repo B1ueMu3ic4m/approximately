@@ -363,6 +363,8 @@ def trend_days(digest_dir: Path) -> List[dict]:
                 snap = json.loads(line)
             except json.JSONDecodeError:
                 continue  # torn tail line from an interrupted write
+            if not isinstance(snap, dict):
+                continue  # valid JSON, wrong shape: untrusted input
             day = _snapshot_day(snap, file_day)
             if day in seen:
                 seen[day]["snapshots"] += 1
@@ -425,7 +427,10 @@ def agent_trend_days(digest_dir: Path, agent: str) -> List[dict]:
     days = []
     for day_row in trend_days(digest_dir):
         totals = dict.fromkeys(AGENT_TREND_KEYS, 0)
-        for store in (day_row["last"].get("stores") or []):
+        last = day_row["last"]
+        if not isinstance(last, dict):
+            continue
+        for store in (last.get("stores") or []):
             if not isinstance(store, dict):
                 continue
             for row in (store.get("top_agents") or []):

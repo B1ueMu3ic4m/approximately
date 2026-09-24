@@ -47,6 +47,8 @@ def gate_result(dataset: Path, floors_path: Path) -> dict:
     if not labeled:
         raise ValueError(f"no labeled records found in {dataset}")
     floors = json.loads(floors_path.read_text(encoding="utf-8"))
+    if not isinstance(floors, dict):
+        raise ValueError("floors file must be a JSON object")
     corrupt = _non_finite(floors)
     if corrupt:
         raise ValueError("floors file has non-finite value(s) at "

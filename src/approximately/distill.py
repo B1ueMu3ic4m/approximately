@@ -262,13 +262,30 @@ def _set_scores(predicted: set, gold_set: set, tp_set: set) -> dict:
     return {"precision": precision, "recall": recall, "f1": f1}
 
 
+def _finite(value) -> Optional[float]:
+    """The floor as a finite float, or None (bools/strings/NaN etc.
+    are corruption, not floors — json.loads happily parses NaN)."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    value = float(value)
+    return value if value == value and abs(value) != float("inf") \
+        else None
+
+
 def _metric_violations(mode: str, metrics: dict,
                        spec: dict) -> List[str]:
-    """Per-metric floor breaches for one mode."""
+    """Per-metric floor breaches for one mode. Non-numeric floors
+    read as violations — a corrupt floors file must fail loudly,
+    never compare garbage against scores."""
     out: List[str] = []
     for metric in ("precision", "recall", "f1"):
-        floor = spec.get(metric)
-        if floor is not None and metrics[metric] < floor:
+        floor = _finite(spec.get(metric))
+        if floor is None:
+            if spec.get(metric) is not None:
+                out.append(f"{mode}: {metric} floor is not a finite "
+                           "number")
+            continue
+        if metrics[metric] < floor:
             out.append(f"{mode}: {metric} {metrics[metric]:.2f} "
                        f"< floor {floor:.2f}")
     return out
@@ -291,8 +308,10 @@ def check_floors(multi: "MultiLabelResult",
                 violations.append(f"{mode}: no score (required)")
             continue
         violations.extend(_metric_violations(mode, metrics, spec))
-    sample_floor = floors.get("sample_f1")
-    if sample_floor is not None and multi.macro_f1 < sample_floor:
+    sample_floor = _finite(floors.get("sample_f1"))
+    if floors.get("sample_f1") is not None and sample_floor is None:
+        violations.append("sample_f1: not a finite number")
+    elif sample_floor is not None and multi.macro_f1 < sample_floor:
         violations.append(
             f"sample macro-F1 {multi.macro_f1:.2f} "
             f"< floor {sample_floor:.2f}")

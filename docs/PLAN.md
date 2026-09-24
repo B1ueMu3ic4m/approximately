@@ -767,6 +767,19 @@ framework adapters import lazily and degrade when the framework is absent.
     --trend --agent` sees only agents inside the window. 4 new
     tests.
 
+60. **v0.50 — fuzz round 3: two real crashes found and fixed** ✅
+    (delivered): seeded garbage through the newest boundaries
+    (digest snapshots, floors JSON, DSL agents field, MCP
+    bench_gate). Found: a valid-JSON-but-list digest line crashed
+    trend_days (only JSONDecodeError was guarded), and a
+    string-typed sample_f1 / mode floor crashed check_floors with
+    TypeError instead of failing the gate. Fixes: non-object
+    snapshots skipped, every floor value coerced through a finite
+    -number check (non-numeric floors are violations, never
+    comparisons), bench-gate demands a floors JSON object. Floors
+    files can no longer crash or silently pass. 4 new tests
+    (858 total).
+
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a
