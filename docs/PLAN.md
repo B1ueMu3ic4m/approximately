@@ -780,6 +780,9 @@ framework adapters import lazily and degrade when the framework is absent.
     files can no longer crash or silently pass. 4 new tests
     (858 total).
 
+61. **v0.52 — release** ✅ (delivered): this merge. 859 tests,
+    11-tool MCP, gates green, autotag releases it on merge.
+
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a
