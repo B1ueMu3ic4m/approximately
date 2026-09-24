@@ -759,6 +759,14 @@ framework adapters import lazily and degrade when the framework is absent.
     version bump. Tutorial refresh covers explain, runner-ups,
     agent identity, and the bench-gate action.
 
+59. **v0.50 — configurable busiest-agents window** ✅
+    (delivered): `fleet --top-agents N` sizes the per-store
+    busiest-agents snapshot (default 3) for watch digests,
+    dashboards, and fleet JSON; `survey(top_agents=N)` in the API.
+    The trend visibility limit is restated in help text: `fleet
+    --trend --agent` sees only agents inside the window. 4 new
+    tests.
+
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a

@@ -665,7 +665,8 @@ def _fleet_watch(args: argparse.Namespace, stores) -> int:
         written = watch_fleet(
             stores, Path(args.digest_dir), float(args.watch),
             keep_days=args.keep_days,
-            iterations=getattr(args, "iterations", None))
+            iterations=getattr(args, "iterations", None),
+            top_agents=getattr(args, "top_agents", 3))
     except KeyboardInterrupt:
         print("watch stopped")
         return 0
@@ -729,7 +730,8 @@ def _fleet_trend(args: argparse.Namespace) -> int:
 def _fleet_survey(args: argparse.Namespace) -> int:
     from .fleet import render_fleet_html, survey
 
-    summaries = survey([Path(d) for d in args.stores])
+    summaries = survey([Path(d) for d in args.stores],
+                       top_agents=getattr(args, "top_agents", 3))
     if getattr(args, "json", False):
         from .fleet import webhook_payload
 
@@ -1406,6 +1408,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--trend", action="store_true",
                    help="summarize the digest history in --digest-dir: "
                         "per-day fleet state, sparkline, verdict")
+    p.add_argument("--top-agents", type=int, default=3, metavar="N",
+                   help="busiest named agents kept per store in "
+                        "digest snapshots and dashboards (default 3; "
+                        "fleet --trend --agent can only see agents "
+                        "inside this window)")
     p.add_argument("--agent", metavar="NAME",
                    help="with --trend: per-day analytics for one named "
                         "agent (observed while among a store's top-3 "
