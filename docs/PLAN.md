@@ -755,6 +755,13 @@ framework adapters import lazily and degrade when the framework is absent.
     instead of a failure until credentials land. RELEASE.md
     rewritten around the no-human-steps flow.
 
+56. **v0.50 — runner-up hypotheses in the human-facing reports**
+    ✅ (delivered): HTML reports gain a "Runner-up Hypotheses"
+    card and Markdown reports a matching section (mode, label,
+    detection count, max confidence) - completing v82, where only
+    the CLI/JSON/MCP surfaces carried them. Hidden when the
+    detectors fired for the primary mode alone. 4 new tests.
+
 54. **v0.50 — the Release workflow creates the GitHub Release**
     ✅ (delivered): pushing a v* tag now produces BOTH the PyPI
     publication and the Releases-page entry (auto-generated notes

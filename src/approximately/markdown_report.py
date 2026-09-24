@@ -73,6 +73,15 @@ def render_markdown(trace: "Trace", report: "FailureReport") -> str:
         "",
     ]
     lines.extend(_evidence_lines(report))
+    runner_ups = getattr(report, "runner_ups", None)
+    if runner_ups:
+        lines += ["", "### Runner-up hypotheses", "",
+                  ("*Attribution is a ranking, not an oracle — the "
+                   "detectors also fired for:*"), ""]
+        lines.extend(
+            f"- `{r['mode']}` {_esc(r['label'])} — {r['detections']} "
+            f"detection(s), max confidence {r['max_confidence']:.2f}"
+            for r in runner_ups)
     if report.suggested_fixes:
         lines += ["", "### Suggested fixes", ""]
         lines.extend(f"{i}. {_esc(fix)}"
