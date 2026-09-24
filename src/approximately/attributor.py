@@ -128,12 +128,16 @@ def _verdict_summary(failed: bool, meaningful: List) -> tuple:
     return primary, f"{primary.label}{where}: {primary.definition}"
 
 
-def attribute(trace: Trace, use_judge: bool = False, **judge_kwargs) -> FailureReport:
+def attribute(trace: Trace, use_judge: bool = False,
+              min_confidence: Optional[float] = None,
+              **judge_kwargs) -> FailureReport:
     """Produce a FailureReport for *trace*.
 
     ``use_judge=True`` adds the LLM verdict; when the judge is unavailable
     (no openai package, no API key, network error) attribution silently
     degrades to rules-only — attribution must never hard-fail.
+    ``min_confidence`` raises the per-detection admission floor above
+    the built-in 0.5 for noisy environments; it never lowers it.
     """
     failed = trace.success is False
     detections = run_rules(trace)
@@ -150,7 +154,9 @@ def attribute(trace: Trace, use_judge: bool = False, **judge_kwargs) -> FailureR
             judge_used = True
             disagreement = _arbitrate(detections, verdict)
 
-    meaningful = [d for d in detections if d.confidence >= MIN_CONFIDENCE]
+    floor = MIN_CONFIDENCE if min_confidence is None \
+        else max(MIN_CONFIDENCE, float(min_confidence))
+    meaningful = [d for d in detections if d.confidence >= floor]
     meaningful = fuse_evidence(meaningful)
     primary, summary = _verdict_summary(failed, meaningful)
 

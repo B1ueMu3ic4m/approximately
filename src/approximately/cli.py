@@ -190,7 +190,8 @@ def cmd_report(args: argparse.Namespace) -> int:
               f"({written} individual reports generated)")
         return 0
     trace = _load_trace(args.trace, store)
-    report = attribute(trace, use_judge=args.judge)
+    report = attribute(trace, use_judge=args.judge,
+                       min_confidence=args.min_confidence)
     if getattr(args, "markdown", False):
         from .markdown_report import render_markdown
 
@@ -948,7 +949,8 @@ def cmd_attribute(args: argparse.Namespace) -> int:
     if args.all:
         results = []
         for trace in store.list_traces(since_days=args.since):
-            report = attribute(trace, use_judge=args.judge)
+            report = attribute(trace, use_judge=args.judge,
+                               min_confidence=args.min_confidence)
             entry = report.to_dict()
             entry["trace"] = {"id": trace.id, "task": trace.task,
                               "success": trace.success,
@@ -1184,6 +1186,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--top", type=int, default=0, metavar="N",
                    help="also print up to N runner-up hypotheses the "
                         "detectors fired for")
+    p.add_argument("--min-confidence", type=float, default=None,
+                   metavar="X",
+                   help="raise the per-detection admission floor above "
+                        "the built-in 0.5 (noisy environments); never "
+                        "lowers it")
     p.add_argument("--all", action="store_true",
                    help="attribute every trace in the store (JSON output)")
     p.add_argument("--sarif", help="write attribution as SARIF 2.1.0 "
