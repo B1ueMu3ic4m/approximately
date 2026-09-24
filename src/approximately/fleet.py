@@ -85,10 +85,10 @@ def _verdict(trend_rows: List[dict]) -> tuple:
     return trend_verdict(rates)
 
 
-def _top_agents(traces) -> List[dict]:
+def _top_agents(traces, n: int = 3) -> List[dict]:
     """Busiest named agents across the store (scorecard order)."""
     return [r for r in agent_scorecard(traces)
-            if r["agent"] != UNATTRIBUTED][:3]
+            if r["agent"] != UNATTRIBUTED][:n]
 
 
 def _top_failure_modes(traces) -> List[tuple]:
@@ -191,11 +191,14 @@ def notify_webhook(summaries: List[StoreSummary], url: str,
         f"{last_error}") from last_error
 
 
-def survey(stores: List[Path]) -> List[StoreSummary]:
+def survey(stores: List[Path], top_agents: int = 3) -> List[StoreSummary]:
     """Compute fleet health numbers for each store directory.
 
     Attribution runs on the rule detectors only — a fleet sweep must
-    not need an API key or make network calls.
+    not need an API key or make network calls. ``top_agents`` sizes
+    the per-store busiest-agents snapshot (digest snapshots inherit
+    it, and ``fleet --trend --agent`` can only see agents inside
+    it).
     """
     summaries: List[StoreSummary] = []
     for path in stores:
@@ -211,7 +214,7 @@ def survey(stores: List[Path]) -> List[StoreSummary]:
             failed=failed,
             failure_rate=failed / len(traces) if traces else 0.0,
             top_modes=_top_failure_modes(traces),
-            top_agents=_top_agents(traces),
+            top_agents=_top_agents(traces, top_agents),
             trend_rows=rows,
             ledger_intact=_ledger_state(store.directory),
             trend_verdict=verdict,
@@ -477,7 +480,7 @@ def render_trend(summary: dict) -> str:
 
 def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
                 keep_days: int = 30, iterations: Optional[int] = None,
-                sleep=time.sleep) -> int:
+                top_agents: int = 3, sleep=time.sleep) -> int:
     """Poll the fleet forever (or ``iterations`` times), appending
     snapshots. Returns the number of snapshots written. ``sleep`` is
     injectable so tests run instantly."""
@@ -485,7 +488,7 @@ def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
     rotate_digests(digest_dir, keep_days)
     for _ in (range(iterations) if iterations is not None
               else iter(int, 1)):
-        snapshot = digest_snapshot(survey(stores))
+        snapshot = digest_snapshot(survey(stores, top_agents))
         append_digest(digest_dir, snapshot)
         written += 1
         sleep(interval)
