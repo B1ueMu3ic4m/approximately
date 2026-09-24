@@ -140,6 +140,26 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "bench_gate",
+        "description": "Attribution-quality regression gate: run the "
+                       "rule detectors over a labeled JSONL dataset "
+                       "and compare per-mode P/R/F1 plus sample "
+                       "macro-F1 against a floors file. Reports "
+                       "violations instead of exiting nonzero.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "dataset": {"type": "string",
+                            "description": "labeled JSONL dataset "
+                                           "(approx format)"},
+                "floors": {"type": "string",
+                           "description": "floors JSON (sample_f1 + "
+                                          "per-mode minimums)"},
+            },
+            "required": ["dataset", "floors"],
+        },
+    },
+    {
         "name": "explain",
         "description": "Deep dive on a MAST failure mode: definition, "
                        "published share, the mechanical detectors that "
@@ -316,6 +336,16 @@ def _tool_stats(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     return summarize(found)
 
 
+def _tool_bench_gate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .benchgate import gate_result
+
+    for key in ("dataset", "floors"):
+        if not args.get(key):
+            raise KeyError(f"bench_gate requires {key!r}")
+    return gate_result(Path(str(args["dataset"])),
+                       Path(str(args["floors"])))
+
+
 def _tool_explain(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .explain import explain_overview, explain_text
     from .taxonomy import FAILURE_MODES
@@ -339,6 +369,7 @@ _HANDLERS = {
     "trend": _tool_trend,
     "stats": _tool_stats,
     "explain": _tool_explain,
+    "bench_gate": _tool_bench_gate,
 }
 
 
