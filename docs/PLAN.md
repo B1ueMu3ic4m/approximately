@@ -752,6 +752,13 @@ framework adapters import lazily and degrade when the framework is absent.
     which detectors, scorecard, and reports read first. 4 new
     tests.
 
+58. **v0.51 — automatic releases shipped + v0.51 itself** ✅
+    (delivered): v0.50.0 was released end-to-end by the new
+    pipeline (tag → build → GitHub Release with generated notes
+    and dist assets); autotag now fires on this very merge's
+    version bump. Tutorial refresh covers explain, runner-ups,
+    agent identity, and the bench-gate action.
+
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a
