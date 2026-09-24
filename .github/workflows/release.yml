@@ -39,6 +39,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      # --generate-notes needs a repository context (it diffs against
+      # the previous tag); artifact-only jobs have no .git.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@v8
         with:
           name: dist
