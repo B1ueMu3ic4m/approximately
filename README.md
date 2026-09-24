@@ -240,6 +240,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.59** — `attribute --min-confidence X`: tunable admission floor for noisy environments (can only raise, never lower)
 - ✅ **v0.60** — the recidivist filter: `stats --by-agent --min-failed N` / MCP `scoreboard.min_failed` surfaces repeat-offender agents in one query
 - ✅ **v0.61** — `verify <id> --json`: the six-exit-code integrity ladder as machine-readable verdicts for CI
+- ✅ **v0.62** — one verdict payload everywhere: MCP `verify` returns the full ladder object (finals, rollback, ledger) and supports keyed traces; wrong-key no longer masquerades as TAMPERED
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

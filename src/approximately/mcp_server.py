@@ -72,14 +72,19 @@ _TOOLS: List[Dict[str, Any]] = [
     },
     {
         "name": "verify",
-        "description": "Verify the HMAC evidence chain of a trace; "
-                       "returns the verdict (intact, tampered, "
-                       "wrong-key, unsigned, rolled-back).",
+        "description": "Verify the HMAC evidence chain of a trace. "
+                       "Returns the full verdict payload: verdict "
+                       "(intact, tampered, unsigned, keyed, wrong-key, "
+                       "rolled-back, ledger-broken), detail, chain "
+                       "finals, rollback flag and ledger health.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "trace": {"type": "string"},
                 "store": {"type": "string"},
+                "key_file": {"type": "string",
+                             "description": "signing key file for "
+                                            "HMAC-keyed traces"},
             },
             "required": ["trace"],
         },
@@ -297,14 +302,16 @@ def _tool_attribute(ctx: ServerContext, args: Dict[str, Any]) -> dict:
 
 
 def _tool_verify(ctx: ServerContext, args: Dict[str, Any]) -> dict:
-    from .integrity import verify
+    from .integrity import load_key, verdict_payload
 
     store = _store(ctx, args)
     trace = store.load(str(args["trace"]))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
-    result = verify(trace)
-    return {"trace": trace.id, "verdict": result.verdict}
+    key = (load_key(str(args["key_file"]))
+           if args.get("key_file") else None)
+    return {"trace": trace.id,
+            **verdict_payload(trace, store.directory, key=key)}
 
 
 def _tool_survey(ctx: ServerContext, args: Dict[str, Any]) -> dict:

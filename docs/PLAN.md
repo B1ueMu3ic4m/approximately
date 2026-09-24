@@ -834,10 +834,7 @@ framework adapters import lazily and degrade when the framework is absent.
     built-in 0.5), so a caller cannot weaken attribution by
     accident. Above every confidence the report falls back to the
     honest OTHER verdict. Wired through the CLI (single + --all)
-    and the API. 4 new tests.    (delivered): the HTML Runner-up card grows a collapsible
-    `<details>` block per runner-up ("If it was actually FM-x.y")
-    listing that mode's engineering fixes - the next-best
-    hypothesis now comes with its own action list. 2 new tests.
+    and the API. 4 new tests.
 
 69. **v0.60 - the recidivist filter** ✅ (delivered): `agent_scorecard(min_failed=)`
     keeps only agents with at least N failed traces - one flaky run is
@@ -855,6 +852,16 @@ framework adapters import lazily and degrade when the framework is absent.
     rolled-back / ledger-broken) - a CI job can branch on the verdict
     instead of grepping prose. Text output unchanged. 5 new tests,
     including a deterministic rolled-back fixture.
+
+71. **v0.62 - one verdict payload everywhere** ✅ (delivered):
+    `integrity.verdict_payload()` is now the single source of truth
+    for the verification ladder; the CLI (`verify <id> --json`) and
+    the MCP `verify` tool render the same object — detail, chain
+    finals, rollback flag, ledger health — instead of the MCP tool's
+    bare `{trace, verdict}`. The MCP tool gains `key_file` for
+    HMAC-keyed traces, and a wrong-key match is honestly
+    `wrong-key` (exit 3, locked-not-broken) instead of masquerading
+    as TAMPERED. 6 new tests.
 
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
