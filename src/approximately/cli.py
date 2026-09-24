@@ -581,41 +581,77 @@ def cmd_verify(args: argparse.Namespace) -> int:
 
 
 def _verify_one(args: argparse.Namespace, store, key) -> int:
+    """Single-trace verification with the documented exit ladder.
+
+    ``--json`` (the flag the --all audit already takes) turns this
+    into one machine-readable object per branch, so a CI job can
+    script against ``verdict`` instead of parsing prose. Text output
+    is unchanged.
+    """
     from .integrity import verify
     from .ledger import audit_rollback, verify_ledger
 
+    as_json = getattr(args, "json", False)
     trace = _load_trace(args.trace, store)
     result = verify(trace, key=key)
-    if result.verdict == "unsigned":
-        print("unsigned: trace carries no integrity block "
-              "(recorded before v0.3.1)")
-        return 2
-    if result.verdict == "keyed":
-        print(f"KEYED: {result.detail}")
-        return 3
-    if not result.intact:
-        print(f"TAMPERED: {result.detail}")
-        print(f"  expected chain final: {result.expected_final}")
-        print(f"  actual chain final:   {result.actual_final}")
-        return 1
 
-    kind = "HMAC-authenticated" if key else "intact"
-    print(f"{kind}: {result.detail}")
-    print(f"  chain final: {result.actual_final}")
+    def emit(payload: dict, code: int) -> int:
+        if as_json:
+            print(json.dumps({"trace": trace.id, **payload}, indent=2))
+        return code
+
+    if result.verdict == "unsigned":
+        if not as_json:
+            print("unsigned: trace carries no integrity block "
+                  "(recorded before v0.3.1)")
+        return emit({"verdict": "unsigned", "intact": False,
+                     "detail": result.detail}, 2)
+    if result.verdict == "keyed":
+        if not as_json:
+            print(f"KEYED: {result.detail}")
+        return emit({"verdict": "keyed", "intact": False,
+                     "detail": result.detail}, 3)
+    if not result.intact:
+        if not as_json:
+            print(f"TAMPERED: {result.detail}")
+            print(f"  expected chain final: {result.expected_final}")
+            print(f"  actual chain final:   {result.actual_final}")
+        return emit({"verdict": "tampered", "intact": False,
+                     "detail": result.detail,
+                     "expected_final": result.expected_final,
+                     "actual_final": result.actual_final}, 1)
 
     rollback = audit_rollback(trace, store.directory)
+    ledger_check = verify_ledger(store.directory)
+    kind = "HMAC-authenticated" if key else "intact"
+    if not as_json:
+        print(f"{kind}: {result.detail}")
+        print(f"  chain final: {result.actual_final}")
     if rollback:
         root = result.actual_final or "?"
-        print(f"ROLLED-BACK: an older signed state of this trace is in "
-              f"the evidence ledger ({root[:12]}…); newer "
-              f"saves were recorded afterwards — the file was rolled "
-              f"back, the hashes are valid but the state is stale")
-        return 4
-    ledger_check = verify_ledger(store.directory)
+        if not as_json:
+            print(f"ROLLED-BACK: an older signed state of this trace is in "
+                  f"the evidence ledger ({root[:12]}…); newer "
+                  f"saves were recorded afterwards — the file was rolled "
+                  f"back, the hashes are valid but the state is stale")
+        return emit({"verdict": "rolled-back", "intact": True,
+                     "detail": "an older signed state of this trace is "
+                               "in the evidence ledger; newer saves "
+                               "were recorded afterwards",
+                     "actual_final": result.actual_final}, 4)
     if ledger_check.entries and not ledger_check.intact:
-        print(f"LEDGER-BROKEN: {ledger_check.detail}")
-        return 5
-    return 0
+        if not as_json:
+            print(f"LEDGER-BROKEN: {ledger_check.detail}")
+        return emit({"verdict": "ledger-broken", "intact": True,
+                     "detail": ledger_check.detail,
+                     "actual_final": result.actual_final}, 5)
+    return emit({"verdict": "intact", "intact": True,
+                 "detail": result.detail,
+                 "actual_final": result.actual_final,
+                 "authenticated": bool(key),
+                 "rollback": False,
+                 "ledger": {"entries": ledger_check.entries,
+                            "intact": ledger_check.intact}}, 0)
 
 
 def cmd_merge(args: argparse.Namespace) -> int:
@@ -1374,7 +1410,8 @@ def build_parser() -> argparse.ArgumentParser:
                         "TAMPERED or rolled-back trace; then trace id is "
                         "omitted)")
     p.add_argument("--json", action="store_true",
-                   help="emit machine-readable audit JSON (with --all)")
+                   help="emit machine-readable JSON (a single object "
+                        "per trace, or the audit array with --all)")
     p.add_argument("--since", type=int, metavar="DAYS",
                    help="with --all: only traces created in the last "
                         "DAYS days")
