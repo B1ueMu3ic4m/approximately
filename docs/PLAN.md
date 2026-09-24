@@ -790,13 +790,11 @@ framework adapters import lazily and degrade when the framework is absent.
     `agents contains ...` included) and optional top-N. Tool count
     11 -> 12; 5 new tests.
 
-62. **v0.53 — MCP tool #12 `scoreboard`** ✅ (delivered): the
-    agent wave reaches stdio clients - per-agent steps/tool calls/
-    errors/tokens/failed-traces/touched-failure-rate for a store,
-    with an optional query-expression filter (the full DSL,
-    `agents contains ...` included) and optional top-N. Tool count
-    11 -> 12; 5 new tests. This merge releases v0.53.0 via
-    autotag.
+63. **v0.54 — fleet dashboard embeds the digest trend** ✅
+    (delivered): `fleet --fleet-html --digest-dir DIR` renders the
+    day-level fleet trend above the store cards - sparkline,
+    Theil-Sen verdict badge with slope, per-day traces/rate table.
+    Without a digest dir the page is unchanged. 5 new tests.
 
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
