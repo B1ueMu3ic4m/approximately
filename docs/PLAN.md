@@ -744,6 +744,15 @@ framework adapters import lazily and degrade when the framework is absent.
     predicates; the unknown-field error now lists the new field.
     5 new tests.
 
+54. **v0.50 — the Release workflow creates the GitHub Release**
+    ✅ (delivered): pushing a v* tag now produces BOTH the PyPI
+    publication and the Releases-page entry (auto-generated notes
+    from merged PRs, sdist + wheel attached) - previously the
+    workflow only published to PyPI, so the Releases page would
+    have stayed empty even after tagging. RELEASE.md documents the
+    empty-page cause honestly: versions were bumped in code, tags
+    were never pushed.
+
 ---
 
 ## 4. Launch plan

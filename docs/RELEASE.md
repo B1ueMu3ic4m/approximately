@@ -43,7 +43,14 @@ there is no automation enforcing this today, so the checklist does.
 
 1. `build` job: sdist + wheel, uploaded as an artifact.
 2. `publish` job: Trusted-Publishes both artifacts to PyPI
-   (environment `pypi`, OIDC, no token).
+   (environment `pypi`, OIDC, no token), then creates the GitHub
+   Release for the tag — notes auto-assembled from the merged PRs,
+   sdist + wheel attached as assets. The Releases page is generated
+   from tags: if it looks empty, no tag has been pushed yet.
+
+> Historical note: until v0.50.0 the versions bumped only in code —
+> `git tag` was never pushed, so the Releases page stayed empty even
+> though main carried 53 delivered roadmap items.
 
 Watch the Release run; if `publish` fails on a trust-setup error it
 is always the one-time setup, never the code.

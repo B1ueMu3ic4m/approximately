@@ -34,6 +34,7 @@ jobs:
     environment: pypi
     permissions:
       id-token: write
+      contents: write
     steps:
       - uses: actions/download-artifact@v8
         with:
@@ -41,3 +42,13 @@ jobs:
           path: dist/
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Create the GitHub Release
+        # The Releases page entry is generated from the tag itself:
+        # notes auto-assembled from the merged PRs, sdist + wheel
+        # attached as assets.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME" dist/*
+          --title "approximately $GITHUB_REF_NAME"
+          --generate-notes
