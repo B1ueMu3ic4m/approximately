@@ -817,7 +817,15 @@ framework adapters import lazily and degrade when the framework is absent.
     `<details>` block per runner-up ("If it was actually FM-x.y")
     listing that mode's engineering fixes - the next-best
     hypothesis now comes with its own action list. 2 new tests.
-66. **v0.57 — runner-up hypotheses carry their fixes** ✅
+
+
+67. **v0.58 — the synthetic corpus carries agent identity** ✅
+    (delivered): every step in docs/mast-bench-synth.jsonl is
+    stamped agent=hyperagent (generator change + regeneration,
+    same SEED), so the CI bench runs exercise the Step.agent paths
+    - scorecard, reports, digest snapshots - on every run. Labels
+    and floors untouched: attribution is mode-level and no synth
+    scenario keys the identity-reading detectors. 3 new tests.66. **v0.57 — runner-up hypotheses carry their fixes** ✅
     (delivered): the HTML Runner-up card grows a collapsible
     `<details>` block per runner-up ("If it was actually FM-x.y")
     listing that mode's engineering fixes - the next-best

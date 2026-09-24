@@ -36,15 +36,19 @@ SEED = 20260919
 SCENARIOS_PER_KIND = 30
 
 
+AGENT = "hyperagent"
+
+
 def _turn(i, tool, args, thought, observation):
     text = f"Thought: {thought} Action: {tool} {args}. {observation}"
     return {"kind": "tool_call", "tool": tool, "args": args,
-            "result": text, "index": i, "tokens": 40}
+            "result": text, "index": i, "tokens": 40,
+            "agent": AGENT}
 
 
 def _finish(steps, response, success, labels, task):
     steps.append({"kind": "response", "result": response,
-                  "index": len(steps), "tokens": 30})
+                  "index": len(steps), "tokens": 30, "agent": AGENT})
     return {"task": task, "model": "synthetic/fixture",
             "success": success, "final_output": response,
             "meta": {"prose": True}, "steps": steps, "labels": labels}
