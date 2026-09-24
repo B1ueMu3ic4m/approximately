@@ -370,7 +370,8 @@ def _runner_ups_card(report: FailureReport) -> str:
         for r in report.runner_ups)
     details = ""
     for r in report.runner_ups:
-        fixes = FAILURE_MODES.get(r["mode"]).fixes
+        mode = FAILURE_MODES.get(r["mode"])
+        fixes = mode.fixes if mode else []
         if not fixes:
             continue
         items = "".join(f"<li>{_esc(f)}</li>" for f in fixes)
