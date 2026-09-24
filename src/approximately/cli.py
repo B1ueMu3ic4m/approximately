@@ -732,6 +732,12 @@ def _fleet_survey(args: argparse.Namespace) -> int:
 
     summaries = survey([Path(d) for d in args.stores],
                        top_agents=getattr(args, "top_agents", 3))
+    trend_summary = None
+    digest_dir = getattr(args, "digest_dir", None)
+    if args.fleet_html and digest_dir and Path(digest_dir).is_dir():
+        from .fleet import summarize_trend, trend_days
+
+        trend_summary = summarize_trend(trend_days(Path(digest_dir)))
     if getattr(args, "json", False):
         from .fleet import webhook_payload
 
@@ -740,7 +746,9 @@ def _fleet_survey(args: argparse.Namespace) -> int:
     _print_fleet(summaries)
     if args.fleet_html:
         out = Path(args.fleet_html)
-        out.write_text(render_fleet_html(summaries), encoding="utf-8")
+        out.write_text(render_fleet_html(summaries,
+                                         trend_summary=trend_summary),
+                       encoding="utf-8")
         print(f"wrote fleet dashboard: {out}")
     if getattr(args, "webhook", None):
         _fleet_notify(summaries, args.webhook)
