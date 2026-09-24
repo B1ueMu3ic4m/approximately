@@ -804,6 +804,13 @@ framework adapters import lazily and degrade when the framework is absent.
     release workflows, scoped tokens, OIDC, the short allow-list of
     actions). 1 new test. This merge releases v0.55.0.
 
+65. **v0.56 — MCP trend gains the agent dimension** ✅
+    (delivered): the `trend` tool accepts an optional `agent` name
+    and returns that agent's per-day rollup (steps/errors/
+    failed-of-touched) with its own Theil-Sen verdict - parity with
+    `fleet --trend --agent`; without the param the fleet-level
+    summary is unchanged. 1 new test. This merge releases v0.56.0.
+
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a
