@@ -848,6 +848,14 @@ framework adapters import lazily and degrade when the framework is absent.
     distribution instead of a hardcoded 0.37.0 that had gone stale.
     7 new tests.
 
+70. **v0.61 - `verify <id> --json`** ✅ (delivered): the single-trace
+    integrity check joins the --all audit in speaking machine. Every
+    rung of the six-exit-code ladder now emits one JSON object with a
+    `verdict` field (intact / unsigned / keyed / tampered /
+    rolled-back / ledger-broken) - a CI job can branch on the verdict
+    instead of grepping prose. Text output unchanged. 5 new tests,
+    including a deterministic rolled-back fixture.
+
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a

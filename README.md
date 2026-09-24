@@ -239,6 +239,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.58** — the synthetic bench corpus is agent-stamped: CI fixtures exercise Step.agent paths on every run
 - ✅ **v0.59** — `attribute --min-confidence X`: tunable admission floor for noisy environments (can only raise, never lower)
 - ✅ **v0.60** — the recidivist filter: `stats --by-agent --min-failed N` / MCP `scoreboard.min_failed` surfaces repeat-offender agents in one query
+- ✅ **v0.61** — `verify <id> --json`: the six-exit-code integrity ladder as machine-readable verdicts for CI
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
