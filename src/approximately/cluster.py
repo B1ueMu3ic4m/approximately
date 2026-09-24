@@ -12,7 +12,7 @@ to the same MAST mode and their failing steps touch the same tools.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 from .attributor import attribute
 from .detectors import args_hash
@@ -143,7 +143,8 @@ def store_stats(traces: Iterable[Trace]) -> StoreStats:
 UNATTRIBUTED = "unattributed"
 
 
-def agent_scorecard(traces: Iterable[Trace]) -> List[dict]:
+def agent_scorecard(traces: Iterable[Trace],
+                    min_failed: Optional[int] = None) -> List[dict]:
     """Per-agent rollup across traces.
 
     Identity comes from ``Step.agent`` (set by ``Recorder(agent=...)``
@@ -151,6 +152,10 @@ def agent_scorecard(traces: Iterable[Trace]) -> List[dict]:
     "unattributed" so the instrumentation gap stays visible instead of
     silently dropping. ``failure_rate`` is the share of traces an agent
     *touched* that failed — participation, not proven causation.
+
+    ``min_failed`` keeps only agents with at least that many failed
+    traces — the recidivist filter: one flaky run is noise, a repeat
+    offender is a fleet problem.
     """
     per: Dict[str, dict] = {}
     for trace in traces:
@@ -183,6 +188,8 @@ def agent_scorecard(traces: Iterable[Trace]) -> List[dict]:
             "failure_rate": round(failed_n / touched, 3) if touched
                             else 0.0,
         })
+    if min_failed is not None:
+        rows = [r for r in rows if r["failed_traces"] >= min_failed]
     return sorted(rows, key=lambda r: (-r["steps"], r["agent"]))
 
 
