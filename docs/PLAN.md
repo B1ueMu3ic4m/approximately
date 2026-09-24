@@ -783,6 +783,14 @@ framework adapters import lazily and degrade when the framework is absent.
 61. **v0.52 — release** ✅ (delivered): this merge. 859 tests,
     11-tool MCP, gates green, autotag releases it on merge.
 
+62. **v0.53 — MCP tool #12 `scoreboard`** ✅ (delivered): the
+    agent wave reaches stdio clients - per-agent steps/tool calls/
+    errors/tokens/failed-traces/touched-failure-rate for a store,
+    with an optional query-expression filter (the full DSL,
+    `agents contains ...` included) and optional top-N. Tool count
+    11 -> 12; 5 new tests. This merge releases v0.53.0 via
+    autotag.
+
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a
