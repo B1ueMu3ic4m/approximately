@@ -190,8 +190,7 @@ def cmd_report(args: argparse.Namespace) -> int:
               f"({written} individual reports generated)")
         return 0
     trace = _load_trace(args.trace, store)
-    report = attribute(trace, use_judge=args.judge,
-                       min_confidence=args.min_confidence)
+    report = attribute(trace, use_judge=args.judge)
     if getattr(args, "markdown", False):
         from .markdown_report import render_markdown
 
@@ -959,7 +958,8 @@ def cmd_attribute(args: argparse.Namespace) -> int:
         print(json.dumps(results, indent=2))
         return 0
     trace = _load_trace(args.trace, store)
-    report = attribute(trace, use_judge=args.judge)
+    report = attribute(trace, use_judge=args.judge,
+                       min_confidence=args.min_confidence)
     if args.json:
         print(json.dumps(report.to_dict(), indent=2))
     else:
