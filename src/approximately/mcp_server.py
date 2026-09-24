@@ -140,6 +140,25 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "scoreboard",
+        "description": "Per-agent rollup for a store: steps, tool "
+                       "calls, errors, tokens, failed traces, and "
+                       "the touched-trace failure rate per agent "
+                       "(steps without identity roll up under "
+                       "unattributed). Optional query-expression "
+                       "filter, e.g. \"success == false\".",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "expression": {"type": "string"},
+                "top": {"type": "number",
+                        "description": "keep the first N rows "
+                                       "(default: all)"},
+            },
+        },
+    },
+    {
         "name": "bench_gate",
         "description": "Attribution-quality regression gate: run the "
                        "rule detectors over a labeled JSONL dataset "
@@ -336,6 +355,21 @@ def _tool_stats(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     return summarize(found)
 
 
+def _tool_scoreboard(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .cluster import agent_scorecard
+
+    traces = _store(ctx, args).list_traces()
+    if args.get("expression"):
+        from .query import select
+
+        traces = select(traces, str(args["expression"]))
+    rows = agent_scorecard(traces)
+    top = args.get("top")
+    if top is not None:
+        rows = rows[:max(0, int(top))]
+    return {"agents": rows, "traces_scanned": len(traces)}
+
+
 def _tool_bench_gate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .benchgate import gate_result
 
@@ -370,6 +404,7 @@ _HANDLERS = {
     "stats": _tool_stats,
     "explain": _tool_explain,
     "bench_gate": _tool_bench_gate,
+    "scoreboard": _tool_scoreboard,
 }
 
 
