@@ -40,6 +40,9 @@ table.steps { width: 100%; border-collapse: collapse; font-size: 13px; }
 table.steps th { text-align: left; color: #868e96; font-weight: 600; padding: 6px 8px;
                  border-bottom: 2px solid #e4e7eb; }
 table.steps td { padding: 7px 8px; border-bottom: 1px solid #eef0f2; vertical-align: top; }
+details { margin: 8px 0 0; }
+details summary { cursor: pointer; color: #364fc7; font-size: 13px; }
+details[open] summary { margin-bottom: 4px; }
 tr.hot td { background: #fff3bf66; }
 tr.hot td:first-child { border-left: 3px solid #f08c00; }
 .k { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
@@ -357,19 +360,34 @@ def _agents_card(trace: Trace) -> str:
 def _runner_ups_card(report: FailureReport) -> str:
     if not getattr(report, "runner_ups", None):
         return ""
+    from .taxonomy import FAILURE_MODES
+
     rows = "".join(
         f"<tr><td class=\"k\">{_esc(r['mode'])}</td>"
         f"<td>{_esc(r['label'])}</td>"
         f"<td>{r['detections']}</td>"
         f"<td>{r['max_confidence']:.2f}</td></tr>"
         for r in report.runner_ups)
+    details = ""
+    for r in report.runner_ups:
+        fixes = FAILURE_MODES.get(r["mode"]).fixes
+        if not fixes:
+            continue
+        items = "".join(f"<li>{_esc(f)}</li>" for f in fixes)
+        details += (
+            f"<details><summary>If it was actually "
+            f"{_esc(r['mode'])}</summary><ol class=\"fixes\">{items}"
+            "</ol></details>")
     return ('<div class="card"><h2>Runner-up Hypotheses</h2>'
             '<p style="margin:4px 0 10px;color:#6c757d;font-size:13px">'
             "Attribution is a ranking, not an oracle — the detectors "
             "also fired for:</p>"
             '<table class="steps"><tr><th>mode</th><th>label</th>'
             "<th>detections</th><th>max confidence</th></tr>"
-            + rows + "</table></div>")
+            + rows + "</table>"
+            + ('<div class="alt-fixes">' + details + "</div>"
+               if details else "")
+            + "</div>")
 
 
 def _fixes_card(report: FailureReport) -> str:
