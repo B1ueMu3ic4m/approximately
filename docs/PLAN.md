@@ -788,6 +788,13 @@ framework adapters import lazily and degrade when the framework is absent.
     errors/tokens/failed-traces/touched-failure-rate for a store,
     with an optional query-expression filter (the full DSL,
     `agents contains ...` included) and optional top-N. Tool count
+    11 -> 12; 5 new tests.
+
+62. **v0.53 — MCP tool #12 `scoreboard`** ✅ (delivered): the
+    agent wave reaches stdio clients - per-agent steps/tool calls/
+    errors/tokens/failed-traces/touched-failure-rate for a store,
+    with an optional query-expression filter (the full DSL,
+    `agents contains ...` included) and optional top-N. Tool count
     11 -> 12; 5 new tests. This merge releases v0.53.0 via
     autotag.
 
