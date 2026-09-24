@@ -744,6 +744,17 @@ framework adapters import lazily and degrade when the framework is absent.
     predicates; the unknown-field error now lists the new field.
     5 new tests.
 
+55. **v0.50 — fully automatic releases** ✅ (delivered): a new
+    `autotag.yml` watches main - when a merge changes the pyproject
+    version it tags it and dispatches `release.yml` (which gained a
+    `workflow_dispatch` trigger for exactly this; a GITHUB_TOKEN tag
+    push cannot trigger workflows, hence the explicit dispatch).
+    The pipeline now creates the GitHub Release first and treats
+    PyPI as best-effort (`continue-on-error`): token path if
+    PYPI_API_TOKEN exists, Trusted Publishing fallback, a notice
+    instead of a failure until credentials land. RELEASE.md
+    rewritten around the no-human-steps flow.
+
 54. **v0.50 — the Release workflow creates the GitHub Release**
     ✅ (delivered): pushing a v* tag now produces BOTH the PyPI
     publication and the Releases-page entry (auto-generated notes

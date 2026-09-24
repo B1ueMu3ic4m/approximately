@@ -1,15 +1,20 @@
 name: Release
 
-# Publishes to PyPI when a v* tag is pushed.
+# Publishes when a v* tag appears — pushed manually, or automatically
+# by autotag.yml whenever main's version changes.
 #
-# One-time setup (repo owner): configure Trusted Publishing on PyPI —
-# pypi.org → your project → Publishing → GitHub publisher, with this
-# workflow name ("release.yml") and environment "pypi". No API token
-# needed. Then: git tag v0.3.0 && git push origin v0.3.0
+# The GitHub Release (Releases page entry with auto-generated notes
+# and the dist assets) is always created. The PyPI publish is
+# best-effort until publish credentials exist: it uses the
+# PYPI_API_TOKEN secret if set, else Trusted Publishing (which needs
+# the one-time pypi.org → project → Publishing setup). An
+# unconfigured PyPI marks this job with a notice — it never blocks
+# the GitHub Release.
 
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -28,27 +33,44 @@ jobs:
           name: dist
           path: dist/
 
-  publish:
+  github-release:
     needs: build
     runs-on: ubuntu-latest
-    environment: pypi
     permissions:
-      id-token: write
       contents: write
     steps:
       - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
       - name: Create the GitHub Release
-        # The Releases page entry is generated from the tag itself:
-        # notes auto-assembled from the merged PRs, sdist + wheel
-        # attached as assets.
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
           gh release create "$GITHUB_REF_NAME" dist/*
           --title "approximately $GITHUB_REF_NAME"
           --generate-notes
+
+  pypi-publish:
+    needs: github-release
+    runs-on: ubuntu-latest
+    environment: pypi
+    # Best-effort until credentials exist; the Release stands either way.
+    continue-on-error: true
+    permissions:
+      id-token: write
+    env:
+      PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - name: Publish to PyPI (API token, if configured)
+        if: env.PYPI_TOKEN != ''
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+      - name: Publish to PyPI (Trusted Publishing fallback)
+        if: env.PYPI_TOKEN == ''
+        uses: pypa/gh-action-pypi-publish@release/v1
