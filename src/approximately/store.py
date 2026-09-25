@@ -17,6 +17,27 @@ def default_store_dir() -> Path:
     return Path.home() / ".approximately" / "traces"
 
 
+def _replace_bounded(tmp: Path, path: Path,
+                     attempts: int = 20, pause_s: float = 0.002) -> None:
+    """``os.replace`` with a bounded retry for Windows sharing clashes.
+
+    POSIX replaces a file even while another handle has it open; Windows
+    refuses with ``PermissionError`` (WinError 5) for as long as the
+    reader holds it. A reader's ``read_text`` window is microseconds,
+    so a short bounded retry absorbs the clash without masking a real
+    failure — after ``attempts`` it raises through.
+    """
+    for attempt in range(attempts):
+        try:
+            os.replace(tmp, path)
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(pause_s)
+
+
+
 class TraceStore:
     def __init__(self, directory: Optional[Path] = None):
         self.directory = Path(directory) if directory else default_store_dir()
@@ -53,7 +74,7 @@ class TraceStore:
                     time.sleep(0.005)
             tmp = self.directory / f".{trace.id}.{os.getpid()}.tmp"
             tmp.write_text(payload, encoding="utf-8")
-            os.replace(tmp, path)
+            _replace_bounded(tmp, path)
         finally:
             if fd is not None:
                 os.close(fd)

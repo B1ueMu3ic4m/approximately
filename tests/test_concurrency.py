@@ -31,13 +31,18 @@ def test_save_is_atomic_reader_never_sees_partial(store, failing_trace):
                 except json.JSONDecodeError:
                     observed.append("PARTIAL")
 
-    thread = threading.Thread(target=reader)
+    # daemon + try/finally: if a save ever raises (it must not), the
+    # loop never strands a live non-daemon thread — that hung pytest
+    # on Windows for 40 minutes while the error sat unprinted.
+    thread = threading.Thread(target=reader, daemon=True)
     thread.start()
-    for i in range(30):
-        failing_trace.meta["iteration"] = i
-        store.save(failing_trace)
-    stop.set()
-    thread.join()
+    try:
+        for i in range(30):
+            failing_trace.meta["iteration"] = i
+            store.save(failing_trace)
+    finally:
+        stop.set()
+        thread.join(timeout=5)
     assert observed and "PARTIAL" not in observed
 
 
@@ -127,3 +132,42 @@ def test_concurrent_readers_during_lock_waits(store, failing_trace):
     thread.join()
     saver_thread.join()
     assert results and results[0].exists()
+
+
+def test_replace_survives_windows_sharing_clash(store, failing_trace,
+                                                 monkeypatch):
+    """Windows-only semantics, regression-pinned everywhere.
+
+    On Windows, os.replace refuses with PermissionError while another
+    handle holds the destination. The bounded retry must absorb the
+    clash (reader closes within microseconds) and still raise through
+    when it persists.
+    """
+    import os as _os
+
+    from approximately import store as store_module
+
+    store.save(failing_trace)
+    real_replace = _os.replace
+    calls = {"n": 0}
+
+    def flaky_replace(src, dst):
+        calls["n"] += 1
+        if calls["n"] in (1, 2):
+            raise PermissionError(5, "Access is denied")
+        return real_replace(src, dst)
+
+    monkeypatch.setattr(store_module.os, "replace", flaky_replace)
+    failing_trace.meta["iteration"] = "clash"
+    assert store.save(failing_trace).exists()
+    assert calls["n"] == 3
+
+    def dead_replace(src, dst):
+        raise PermissionError(5, "Access is denied")
+
+    monkeypatch.setattr(store_module.os, "replace", dead_replace)
+    failing_trace.meta["iteration"] = "permanent"
+    import pytest
+
+    with pytest.raises(PermissionError):
+        store.save(failing_trace)
