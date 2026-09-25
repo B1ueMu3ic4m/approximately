@@ -59,6 +59,31 @@ def _timeline_lines(trace: "Trace") -> List[str]:
     return ["### Timeline", "", f"{fence}text", *rows, fence]
 
 
+def _counterfactual_lines(trace) -> list:
+    """Root-cause section, affordance-gated like the HTML card."""
+    if len(trace.steps) > 200:
+        return []
+    try:
+        from .counterfactual import counterfactual
+
+        cf = counterfactual(trace)
+    except Exception:
+        return []
+    if not cf.interventions and not cf.distributed_causes:
+        return []
+    roots = [i for i in cf.interventions if i.eliminated]
+    if not roots and not cf.distributed_causes:
+        return []
+    lines = ["", "### Root cause (counterfactual)", ""]
+    for i in roots[:5]:
+        suffix = " — primary" if i.was_primary else ""
+        lines.append(f"- {i.label}{suffix}")
+    if cf.distributed_causes:
+        lines.append("- distributed: "
+                     + ", ".join(cf.distributed_causes[:5]))
+    return lines
+
+
 def render_markdown(trace: "Trace", report: "FailureReport",
                     store=None) -> str:
     """Issue-ready Markdown postmortem for one attributed trace."""
@@ -88,6 +113,7 @@ def render_markdown(trace: "Trace", report: "FailureReport",
         lines.extend(f"{i}. {_esc(fix)}"
                      for i, fix in enumerate(report.suggested_fixes, 1))
     lines.append("")
+    lines.extend(_counterfactual_lines(trace))
     lines.extend(_timeline_lines(trace))
     if store is not None:
         try:
