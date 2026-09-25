@@ -111,8 +111,20 @@ class ProseRepeatDetector:
                 # repeated turns would otherwise cost |turns|^2 scans.
                 if _jaccard(shingles[i], shingles[j]) < _JACCARD_FLOOR:
                     continue
-                if SequenceMatcher(None, turns[i], turns[j]).ratio() \
-                        >= _SIMILARITY:
+                a, b = turns[i], turns[j]
+                # ratio <= 2*min/max, so a length gap alone can rule a
+                # pair out before any scan
+                if 2.0 * min(len(a), len(b)) \
+                        < _SIMILARITY * (len(a) + len(b)):
+                    continue
+                matcher = SequenceMatcher(None, a, b)
+                # difflib's own O(1)/O(n) upper bounds: skip the
+                # quadratic ratio() scan unless they still leave room
+                if matcher.real_quick_ratio() < _SIMILARITY:
+                    continue
+                if matcher.quick_ratio() < _SIMILARITY:
+                    continue
+                if matcher.ratio() >= _SIMILARITY:
                     if i == 0:
                         # a repetition cycle anchored at the opening turn
                         # is a trajectory RESTART (the agent re-runs the
@@ -181,8 +193,20 @@ class ProseRestartDetector:
         opening_shingles = _shingles(opening)
         for idx in range(self.first_progress_position, len(turns)):
             candidate = turns[idx]
-            if SequenceMatcher(None, opening, candidate).ratio() \
-                    >= self.restart_similarity:
+            # cheap upper bounds gate ONLY the near-verbatim branch;
+            # the jaccard paraphrase check below must still see every
+            # candidate (a length gap rules out verbatim repetition
+            # but not shingle-overlap paraphrase)
+            near = False
+            if 2.0 * min(len(opening), len(candidate)) \
+                    >= self.restart_similarity \
+                    * (len(opening) + len(candidate)):
+                matcher = SequenceMatcher(None, opening, candidate)
+                if matcher.real_quick_ratio() >= self.restart_similarity \
+                        and matcher.quick_ratio() >= self.restart_similarity \
+                        and matcher.ratio() >= self.restart_similarity:
+                    near = True
+            if near:
                 return self._detection(idx, candidate, "near-verbatim",
                                         0.75)
             jaccard = _jaccard(opening_shingles, _shingles(candidate)) \
