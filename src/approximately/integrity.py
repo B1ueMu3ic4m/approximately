@@ -46,13 +46,29 @@ def _mac(key: bytes, data: bytes) -> str:
     return hmac.new(key, data, hashlib.sha256).hexdigest()
 
 
+MAX_KEY_FILE_BYTES = 4096
+
+
 def load_key(key_file: Optional[str] = None) -> Optional[bytes]:
-    """Signing key: explicit file, else APPROXIMATELY_SIGNING_KEY (hex or text)."""
+    """Signing key: explicit file, else APPROXIMATELY_SIGNING_KEY (hex or text).
+
+    The file read is capped at ``MAX_KEY_FILE_BYTES``: a key is tiny,
+    so a bigger file is a mistake or a resource-exhaustion attempt
+    (point the flag at a multi-gigabyte file and an unbounded read
+    would balloon memory) — refuse it instead.
+    """
     if key_file:
         path = Path(key_file)
         if not path.is_file():
             return None
-        return path.read_bytes().strip()
+        with path.open("rb") as fh:
+            data = fh.read(MAX_KEY_FILE_BYTES + 1)
+        if len(data) > MAX_KEY_FILE_BYTES:
+            raise ValueError(
+                f"key file {key_file!r} is larger than "
+                f"{MAX_KEY_FILE_BYTES} bytes — that is not a key; "
+                "refusing to read it")
+        return data.strip()
     env = os.environ.get("APPROXIMATELY_SIGNING_KEY")
     if not env:
         return None

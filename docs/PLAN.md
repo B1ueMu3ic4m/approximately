@@ -871,6 +871,34 @@ framework adapters import lazily and degrade when the framework is absent.
     through which tools / which agents" without shelling out. 7 new
     tests.
 
+73. **v0.64 - fuzz round 4 + bounded key reads** ✅ (delivered): the
+    newest surfaces (recidivist filter, shared verdict ladder, MCP
+    cluster tool) fuzzed with garbage thresholds, corrupted integrity
+    blocks and hostile key paths — every probe contained, corpus
+    pinned as a regression gate. One real find: `--key-file` had no
+    size bound, so a pointer at a huge regular file was read whole
+    into memory; `load_key` now refuses anything over 4096 bytes
+    (device nodes were already excluded by `is_file`). 6 new tests;
+    SECURITY.md documents the cap and the fuzz doctrine.
+
+74. **v0.64 - Windows correctness: the sharing clash, fixed at the
+    root** ✅ (delivered): the mystery "Windows runners keep wedging"
+    was two real bugs in a chain. (1) `store.save` used a bare
+    `os.replace`; on Windows that refuses with PermissionError while
+    any reader holds the destination (POSIX allows it) — the
+    concurrent-save test hit it every few CI runs. Now replaced by
+    `_replace_bounded`, a bounded retry that absorbs the
+    microsecond-wide reader window and still raises through when the
+    clash persists. (2) When that error escaped, the test's reader
+    thread - non-daemon, never signalled - kept pytest from exiting
+    for 40+ minutes: the "hang" was a zombie interpreter, not a slow
+    suite. The test now runs its reader as a daemon inside
+    try/finally. (3) Belt and braces: pytest `faulthandler_timeout`
+    dumps every thread's stack if any test stalls; CI Test step gets
+    `timeout-minutes: 12` and the Demo smoke step 5. 2 new tests,
+    including a flaky-replace simulation that pins the retry
+    semantics cross-platform.
+
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a
