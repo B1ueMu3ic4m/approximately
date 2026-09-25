@@ -735,7 +735,8 @@ def _fleet_watch(args: argparse.Namespace, stores) -> int:
             keep_days=args.keep_days,
             iterations=getattr(args, "iterations", None),
             top_agents=getattr(args, "top_agents", 3),
-            webhook_url=getattr(args, "webhook", None))
+            webhook_url=getattr(args, "webhook", None),
+            alert_worse_than=getattr(args, "alert_worse_than", None))
     except KeyboardInterrupt:
         print("watch stopped")
         return 0
@@ -1519,6 +1520,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--digest-dir",
                    help="directory for watch-loop JSONL snapshots "
                         "(required with --watch)")
+    p.add_argument("--alert-worse-than", type=float, metavar="RATE",
+                   help="with --watch --webhook: POST only when a "
+                        "store is worsening or its failure rate is at "
+                        "or above RATE (default: post every cycle)")
     p.add_argument("--keep-days", type=int, default=30,
                    help="watch loop: delete digest files older than "
                         "DAYS days (default 30)")
