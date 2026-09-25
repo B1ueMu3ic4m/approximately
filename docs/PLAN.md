@@ -1067,6 +1067,15 @@ framework adapters import lazily and degrade when the framework is absent.
     it. Same honesty contract as the agent card: participation, not
     proven causation. 4 new tests.
 
+94. **v0.84 - counterfactual root-cause card in the reports** ✅
+    (delivered): the strongest causal language in the toolkit joins
+    the postmortem. HTML reports gain a "Root cause (counterfactual)"
+    card and Markdown a matching section - which step's removal
+    eliminates the mode, or the honest distributed-causes verdict.
+    Affordance-gated: traces over 200 steps skip the card (the
+    leave-one-out render stays linear; the standalone
+    `counterfactual` surface remains for those). 4 new tests.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
