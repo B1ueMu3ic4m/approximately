@@ -59,10 +59,21 @@ def render_prometheus(stats, extra_labels: dict | None = None) -> str:
     return "\n".join(lines)
 
 
+def render_tool_prometheus(rows, extra_labels: dict | None = None) -> str:
+    """Render per-tool scorecard rows (tool_scorecard output) as
+    Prometheus text exposition, with the same label escaping."""
+    return _render_entity_prometheus(rows, "tool", extra_labels)
+
+
 def render_agent_prometheus(rows, extra_labels: dict | None = None) -> str:
     """Render per-agent scorecard rows (agent_scorecard output) as
     Prometheus text exposition. Agent names are label values and get
     the same escaping as everything else untrusted."""
+    return _render_entity_prometheus(rows, "agent", extra_labels)
+
+
+def _render_entity_prometheus(rows, entity: str,
+                              extra_labels: dict | None = None) -> str:
     labels = ""
     if extra_labels:
         pairs = ",".join(
@@ -72,18 +83,18 @@ def render_agent_prometheus(rows, extra_labels: dict | None = None) -> str:
     suffix = "," + labels[1:] if labels else ""
     lines = []
     gauges = [
-        ("steps", "approximately_agent_steps_total",
-         "Steps recorded per agent", "counter"),
-        ("tool_calls", "approximately_agent_tool_calls_total",
-         "Tool calls per agent", "counter"),
-        ("errors", "approximately_agent_errors_total",
-         "Error steps per agent", "counter"),
-        ("tokens", "approximately_agent_tokens_total",
-         "Tokens recorded per agent", "counter"),
-        ("failed_traces", "approximately_agent_failed_traces_total",
-         "Failed traces the agent touched", "counter"),
-        ("failure_rate", "approximately_agent_failure_rate",
-         "Share of touched traces that failed", "gauge"),
+        ("steps", f"approximately_{entity}_steps_total",
+         f"Steps recorded per {entity}", "counter"),
+        ("tool_calls", f"approximately_{entity}_tool_calls_total",
+         f"Tool calls per {entity}", "counter"),
+        ("errors", f"approximately_{entity}_errors_total",
+         f"Error steps per {entity}", "counter"),
+        ("tokens", f"approximately_{entity}_tokens_total",
+         f"Tokens recorded per {entity}", "counter"),
+        ("failed_traces", f"approximately_{entity}_failed_traces_total",
+         f"Failed traces the {entity} touched", "counter"),
+        ("failure_rate", f"approximately_{entity}_failure_rate",
+         f"Share of touched traces that failed", "gauge"),
     ]
     for key, metric, help_text, mtype in gauges:
         lines.extend([
@@ -91,9 +102,10 @@ def render_agent_prometheus(rows, extra_labels: dict | None = None) -> str:
             f"# TYPE {metric} {mtype}",
         ])
         for row in rows:
-            safe = escape_label(row["agent"])
+            safe = escape_label(row[entity])
             value = f"{row[key]:.6f}" if key == "failure_rate" \
                 else row[key]
-            lines.append(f'{metric}{{agent="{safe}"{suffix}}} {value}')
+            lines.append(
+                f'{metric}{{{entity}="{safe}"{suffix}}} {value}')
     lines.append("")
     return "\n".join(lines)

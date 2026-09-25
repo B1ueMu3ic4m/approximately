@@ -61,3 +61,16 @@ def test_ranking_top_one_and_all():
     assert len(one) == 1
     everything = rank_similar(target, traces, top=99)
     assert len(everything) == 9  # includes zero-score candidates
+
+
+def test_tool_prometheus_grouping():
+    from approximately.cluster import tool_scorecard
+    from approximately.metrics import render_tool_prometheus
+
+    shapes = [["search", "book"], ["search", "book", "pay"],
+              ["deploy"]]
+    traces = [_trace(i, shapes[i % 3]) for i in range(6)]
+    rows = tool_scorecard(traces)
+    text = render_tool_prometheus(rows)
+    assert "approximately_tool_failure_rate{tool=" in text
+    assert "search" in text and "deploy" in text

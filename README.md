@@ -291,6 +291,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.4** — rank_similar pruning: identical ranking, quadratic DP skipped below the top-N threshold
 - ✅ **v1.5** — fourth perf gate: similar's 2000-trace ranking pinned in budget
 - ✅ **v1.6** — postmortems show their nearest neighbours (top-3 same-store alignment ranking)
+- ✅ **v1.7** — per-tool Prometheus metrics (`metrics --by-tool` / MCP `group_by: "tool"`)
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

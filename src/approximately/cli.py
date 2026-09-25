@@ -619,6 +619,14 @@ def cmd_metrics(args: argparse.Namespace) -> int:
     store = TraceStore(args.store)
     traces = store.list_traces()
     stats = store_stats(traces)
+    if args.prometheus and getattr(args, "by_tool", False):
+        from .cluster import tool_scorecard
+        from .metrics import render_tool_prometheus
+
+        rows = tool_scorecard(traces)
+        print(render_tool_prometheus(rows,
+                                     extra_labels=_parse_labels(args.label)))
+        return 0
     if args.prometheus and getattr(args, "by_agent", False):
         rows = agent_scorecard(traces)
         print(render_agent_prometheus(rows,
