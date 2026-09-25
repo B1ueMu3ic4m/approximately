@@ -254,6 +254,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.73** — query DSL `tools contains 'deploy'` / `errors >= 1`: action-side fields in the eval-free grammar
 - ✅ **v0.74** — CLI `--json` for `similar`/`drift`/`counterfactual`/`predict`: CLI and MCP render the identical payload from shared constructors
 - ✅ **v0.75** — analyst annotations: append-only sidecar notes (chain untouched) across CLI / MCP / reports, 20 tools
+- ✅ **v0.76** — fuzz round 5: query fields, payload constructors, annotations sidecar — all contained
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
