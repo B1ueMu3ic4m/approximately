@@ -141,12 +141,13 @@ Claude Desktop / Zed / any MCP client config:
     {"command": "approximately", "args": ["mcp", "--store", "/path/traces"]}}}
 ```
 
-Nineteen tools: store access (list_traces, query, stats, trend,
+Twenty tools: store access (list_traces, query, stats, trend,
 survey), attribution and explanation (attribute, explain, cluster,
 bench_gate), verification (verify — the full verdict ladder),
 comparison (bisect, similar), prediction and analysis (predict,
-counterfactual, drift, context, curve), and fleet health (doctor,
-scoreboard) — the whole toolkit, stdio JSON-RPC, zero deps.
+counterfactual, drift, context, curve), fleet health (doctor,
+scoreboard), and triage (annotate — write with a note, read
+without) — the whole toolkit, stdio JSON-RPC, zero deps.
 
 ## 10. Local-model judge (sensitive runs)
 
@@ -189,3 +190,30 @@ The Population Stability Index comes with a verdict and the biggest
 shifted actions — "deploy went from 2% to 18% of actions" is a
 behaviour change, not noise. Pair it with `fleet --trend
 --fail-on-worsening` in CI for a drift tripwire.
+
+## 13. Watch the fleet and page only on signal
+
+Continuous monitoring with digest history, and a webhook that fires
+only when something is actually wrong — a worsening trend or a
+failure rate at/above the line:
+
+```bash
+approximately fleet storeA storeB \
+  --watch 300 --digest-dir digests \
+  --webhook https://hooks.example/teams/agents \
+  --alert-worse-than 0.3
+```
+
+Snapshots land in `digests/` every cycle no matter what (the trend
+history is never gated); the webhook POSTs the HMAC-signed summary
+only on signal. Pair with `--iterations` for cron-driven batches:
+
+```bash
+approximately fleet storeA --watch 300 --digest-dir digests \
+  --webhook $URL --alert-worse-than 0.3 --iterations 288
+```
+
+288 iterations x 5 minutes = a full day, then the cron starts a new
+watch. A torn digest line, a dead endpoint, or a crashed writer must
+never stop the loop — the toolkit treats the watch itself as the
+thing that has to survive the night.
