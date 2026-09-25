@@ -1001,6 +1001,15 @@ framework adapters import lazily and degrade when the framework is absent.
     `confirmed` / `false-positive` are the documented triage
     verdicts. 6 new tests.
 
+86. **v0.76 - fuzz round 5** ✅ (delivered): tonight's surfaces under
+    garbage - the query DSL's new tools/errors fields (hostile
+    expressions incl. unicode tool names and unknown-set literals),
+    the four shared payload constructors (similarity tops, PSI
+    windows, precursor probabilities over degenerate stores), the
+    annotations sidecar (truncated lines, wrong shapes, wrong types,
+    writes surviving garbage), and the annotate tool. Every probe
+    contained; corpus pinned as a regression gate. 4 new tests.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
