@@ -674,13 +674,11 @@ def cmd_annotations(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_status(args: argparse.Namespace) -> int:
-    """One-glance ops overview: health, last failure, triage, trend."""
-    from .cluster import store_stats
-    from .integrity import verify
+def _status_payload(store, traces, digest_dir):
+    """Build the status overview data (shared by text and JSON)."""
+    from .cluster import agent_scorecard, store_stats
+    from .ledger import verify_ledger
 
-    store = TraceStore(args.store)
-    traces = store.list_traces(since_days=getattr(args, "since", None))
     stats = store_stats(traces)
     annotations = store.annotations()
     confirmed = [a for a in annotations
@@ -692,21 +690,17 @@ def cmd_status(args: argparse.Namespace) -> int:
             break
     chain = None
     if last_failed is not None:
-        result = verify(last_failed)
-        chain = result.verdict
+        from .integrity import verify
+
+        chain = verify(last_failed).verdict
     trend = None
-    digest_dir = getattr(args, "digest_dir", None)
     if digest_dir and Path(digest_dir).is_dir():
         from .fleet import summarize_trend, trend_days
 
         trend = summarize_trend(trend_days(Path(digest_dir)))
-    from .cluster import agent_scorecard
-    from .ledger import verify_ledger
-
-    recidivists = agent_scorecard(traces,
-                             min_failed=2)
+    recidivists = agent_scorecard(traces, min_failed=2)
     ledger = verify_ledger(store.directory)
-    payload = {
+    return {
         "store": str(store.directory),
         "traces": stats.traces,
         "failures": stats.failures,
@@ -720,41 +714,44 @@ def cmd_status(args: argparse.Namespace) -> int:
             "chain": chain,
         },
         "trend": trend,
-        "ledger_intact": None if not ledger.entries
-        else ledger.intact,
+        "ledger_intact": None if not ledger.entries else ledger.intact,
         "top_recidivist": (recidivists[0]["agent"]
                            if recidivists else None),
     }
+
+
+def cmd_status(args: argparse.Namespace) -> int:
+    """One-glance ops overview: health, last failure, triage, trend."""
+    store = TraceStore(args.store)
+    traces = store.list_traces(since_days=getattr(args, "since", None))
+    payload = _status_payload(store, traces,
+                              getattr(args, "digest_dir", None))
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2))
         return 0
-    rate = f"{stats.failure_rate:.0%}" if stats.traces else "-"
-    print(f"{store.directory}: {stats.traces} traces, "
-          f"{stats.failures} failed ({rate})")
-    if trend:
-        print(f"  fleet trend: {trend['verdict']}")
-    if ledger.entries:
-        if ledger.intact:
-            print("  ledger: intact")
-        else:
-            print("  ledger: BROKEN")
-        print("  ledger: intact")
-    else:
-        print("  ledger: BROKEN")
-    if recidivists:
-        print(f"  top recidivist: {recidivists[0]['agent']} "
-              f"({recidivists[0]['failed_traces']} failed)")
-    if stats.mode_counts:
+    rate = f"{payload['failure_rate']:.0%}" if payload["traces"] else "-"
+    print(f"{payload['store']}: {payload['traces']} traces, "
+          f"{payload['failures']} failed ({rate})")
+    if payload["top_modes"]:
         top = ", ".join(f"{m} x{c}"
-                        for m, c in list(stats.mode_counts.items())[:3])
+                        for m, c in payload["top_modes"].items())
         print(f"  top modes: {top}")
-    print(f"  annotations: {len(annotations)} "
-          f"({len(confirmed)} confirmed)")
-    if last_failed is not None:
-        print(f"  last failure: {last_failed.id} "
-              f"chain={chain} — {(last_failed.task or '')[:60]}")
+    print(f"  annotations: {payload['annotations']} "
+          f"({payload['annotations_confirmed']} confirmed)")
+    last = payload["last_failure"]
+    if last is not None:
+        print(f"  last failure: {last['id']} chain={last['chain']} "
+              f"— {(last['task'] or '')[:60]}")
     else:
         print("  last failure: none")
+    if payload["trend"]:
+        print(f"  fleet trend: {payload['trend']['verdict']}")
+    ledger_intact = payload["ledger_intact"]
+    if ledger_intact is not None:
+        print("  ledger: "
+              + ("intact" if ledger_intact else "BROKEN"))
+    if payload["top_recidivist"]:
+        print(f"  top recidivist: {payload['top_recidivist']}")
     return 0
 
 
