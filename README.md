@@ -127,6 +127,7 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 
 | Capability | In one sentence | Command / API |
 |---|---|---|
+| 🩺 `status` | One-glance ops overview: store health, top failure modes, triage tallies, last failing trace — `--json` for dashboards | `approximately status` |
 | 📼 Flight recorder | Zero-dependency recording of every agent step — including inter-agent messages — any framework | `Recorder` / adapters |
 | 🔍 Failure attribution | **All 14 MAST modes** covered by rule detectors; Bayesian fusion ranks verdicts by MAST base rates × evidence likelihood | `approximately attribute` |
 | 🛡️ Tamper-evident evidence | Per-step hash chain + optional HMAC; `verify` detects edits, the ledger catches **rolled-back** traces, and `verify --all` gates a whole store in CI | `approximately verify [--all]` |
@@ -273,6 +274,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.92** — docs: count-proof tool inventories (grouped by concern, `tools/list` as authority)
 - ✅ **v0.93** — attribution 7× faster (difflib upper-bound pruning, zero verdict drift; bench-gate caught the first attempt's regression)
 - ✅ **v0.94** — toolscan self-test: every shipped tool description passes our own injection scanner; adapter map synced
+- ✅ **v0.95** — `approximately status`: one-glance ops overview (health, top modes, triage, last failure + chain verdict)
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

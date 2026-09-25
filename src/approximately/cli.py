@@ -621,6 +621,60 @@ def cmd_annotations(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_status(args: argparse.Namespace) -> int:
+    """One-glance ops overview: health, last failure, triage, trend."""
+    from .cluster import store_stats
+    from .integrity import verify
+
+    store = TraceStore(args.store)
+    traces = store.list_traces(since_days=getattr(args, "since", None))
+    stats = store_stats(traces)
+    annotations = store.annotations()
+    confirmed = [a for a in annotations
+                 if a.get("verdict") == "confirmed"]
+    last_failed = None
+    for trace in reversed(traces):
+        if trace.success is False:
+            last_failed = trace
+            break
+    chain = None
+    if last_failed is not None:
+        result = verify(last_failed)
+        chain = result.verdict
+    payload = {
+        "store": str(store.directory),
+        "traces": stats.traces,
+        "failures": stats.failures,
+        "failure_rate": round(stats.failure_rate, 4),
+        "top_modes": dict(list(stats.mode_counts.items())[:3]),
+        "annotations": len(annotations),
+        "annotations_confirmed": len(confirmed),
+        "last_failure": None if last_failed is None else {
+            "id": last_failed.id,
+            "task": (last_failed.task or "")[:80],
+            "chain": chain,
+        },
+    }
+    if getattr(args, "json", False):
+        print(json.dumps(payload, indent=2))
+        return 0
+    rate = f"{stats.failure_rate:.0%}" if stats.traces else "-"
+    print(f"{store.directory}: {stats.traces} traces, "
+          f"{stats.failures} failed ({rate})")
+    if stats.mode_counts:
+        top = ", ".join(f"{m} x{c}"
+                        for m, c in list(stats.mode_counts.items())[:3])
+        print(f"  top modes: {top}")
+    print(f"  annotations: {len(annotations)} "
+          f"({len(confirmed)} confirmed)")
+    if last_failed is not None:
+        print(f"  last failure: {last_failed.id} "
+              f"chain={chain} — {(last_failed.task or '')[:60]}")
+    else:
+        print("  last failure: none")
+    return 0
+
+
 def cmd_verify(args: argparse.Namespace) -> int:
     from .integrity import load_key
 
@@ -1406,6 +1460,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("trace", nargs="?")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_annotations)
+
+    p = sub.add_parser("status", parents=[common],
+                       help="one-glance ops overview: health, last "
+                            "failure, triage, trend")
+    p.add_argument("--since", type=int, metavar="DAYS",
+                   help="only traces created in the last DAYS days")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_status)
 
     p = sub.add_parser("rotate", parents=[common],
                        help="re-key a signed trace (old key must verify)")

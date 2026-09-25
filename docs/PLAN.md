@@ -1164,6 +1164,14 @@ framework adapters import lazily and degrade when the framework is absent.
      entry lists all seven adapters and the two capture styles.
      3 new tests.
 
+105. **v0.95 - `approximately status`** ✅ (delivered): the
+     daily-driver ops overview one command used to require five.
+     Totals and failure rate, top failure modes, triage tallies
+     (annotations and confirmed count), and the most recent failing
+     trace with its evidence-chain verdict. `--json` for dashboards,
+     `--since` scopes the window, empty stores render honestly
+     (zeros, no last failure). 3 new tests.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
