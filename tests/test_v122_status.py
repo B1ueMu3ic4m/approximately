@@ -95,3 +95,21 @@ def test_status_with_trend(tmp_path, capsys):
     assert cmd_status(args) == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["trend"] and payload["trend"]["verdict"]
+
+
+def test_mcp_annotate_list_all(tmp_path):
+    """v1.16: MCP annotate without trace+note lists the store."""
+    import json as _json
+
+    from approximately.mcp_server import ServerContext, handle_request
+
+    store = _store(tmp_path)
+    store.annotate("ok-1", "another note")
+    resp = handle_request({
+        "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+        "params": {"name": "annotate", "arguments": {
+            "store": str(store.directory)}},
+    }, ServerContext("."))
+    assert resp["result"]["isError"] is False
+    payload = _json.loads(resp["result"]["content"][0]["text"])
+    assert len(payload["annotations"]) == 2
