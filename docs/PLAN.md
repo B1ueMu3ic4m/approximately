@@ -987,6 +987,20 @@ framework adapters import lazily and degrade when the framework is absent.
     object - a CI job can shell the CLI and parse the identical JSON
     an MCP client sees. 4 new tests pin byte-level CLI==MCP.
 
+85. **v0.75 - analyst annotations (MCP tool #20)** ✅ (delivered):
+    the triage loop closes. `annotate` attaches analyst notes to a
+    trace WITHOUT touching the trace file - notes live in an
+    append-only `annotations.jsonl` sidecar, so the tamper-evident
+    chain stays intact and the notes themselves are an audit log
+    (never edited or removed, only superseded; corrupt lines from a
+    partial write are skipped, not fatal). Surfaces: library
+    (store.annotate / store.annotations), CLI `annotate` /
+    `annotations [--json]`, MCP tool #20 (write with a note, read
+    without), and both report renderers show the notes when a store
+    is handed in (hidden otherwise - render stays a pure function).
+    `confirmed` / `false-positive` are the documented triage
+    verdicts. 6 new tests.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped

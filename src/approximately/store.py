@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import time
 from pathlib import Path
@@ -84,6 +85,48 @@ class TraceStore:
                     pass
         self._ledger_append(trace)
         return path
+
+    def annotate(self, trace_id: str, note: str,
+                 author: str = "", verdict: str = "") -> dict:
+        """Attach an analyst annotation to a trace (append-only).
+
+        Annotations live in a sidecar ``annotations.jsonl`` — never in
+        the trace file, so the tamper-evident hash chain stays intact
+        and notes are themselves an append-only audit log (a note is
+        never edited or removed, only superseded by later ones).
+        ``verdict`` is free-form; ``confirmed`` and ``false-positive``
+        are the idioms for triage workflow.
+        """
+        entry = {"ts": time.time(), "trace_id": trace_id,
+                 "author": author, "verdict": verdict, "note": note}
+        path = self.directory / "annotations.jsonl"
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        return entry
+
+    def annotations(self, trace_id: Optional[str] = None) -> list:
+        """Annotations for one trace, or all of them, oldest first.
+
+        Corrupt lines (partial write, hand editing) are skipped, not
+        fatal — a triage log must survive a truncated tail.
+        """
+        path = self.directory / "annotations.jsonl"
+        if not path.exists():
+            return []
+        out = []
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(entry, dict):
+                continue
+            if trace_id is None or entry.get("trace_id") == trace_id:
+                out.append(entry)
+        return out
 
     def _ledger_append(self, trace: Trace) -> None:
         """Opt-in evidence ledger (APPROXIMATELY_LEDGER=1).
