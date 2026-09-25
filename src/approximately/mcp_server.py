@@ -651,7 +651,7 @@ def _tool_predict(ctx: ServerContext, args: Dict[str, Any]) -> dict:
 
 
 def _tool_context(ctx: ServerContext, args: Dict[str, Any]) -> dict:
-    from .context import default_facts, forecast
+    from .context import default_facts, forecast, forecast_payload
 
     store = _store(ctx, args)
     trace = store.load(str(args["trace"]))
@@ -660,30 +660,17 @@ def _tool_context(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     budget = int(args["budget"]) if args.get("budget") else 4000
     fc = forecast(trace, budget=max(1, budget),
                   facts=default_facts(trace))
-    return {"trace": fc.trace_id, "budget": fc.budget,
-            "full_context_tokens": fc.full_context_tokens,
-            "budgeted_tokens": fc.budgeted_tokens,
-            "tokens_saved": (fc.full_context_tokens
-                             - fc.budgeted_tokens),
-            "evicted_steps": fc.evicted_count,
-            "final_recall": round(fc.final_recall, 4),
-            "facts_kept": len(fc.facts)}
+    return forecast_payload(fc)
 
 
 def _tool_curve(ctx: ServerContext, args: Dict[str, Any]) -> dict:
-    from .curve import budget_curve
+    from .curve import budget_curve, curve_payload
 
     store = _store(ctx, args)
     trace = store.load(str(args["trace"]))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
-    curve = budget_curve(trace)
-    return {"trace": curve.trace_id,
-            "full_tokens": curve.full_tokens,
-            "points": [{"budget": p.budget,
-                        "tokens_used": p.tokens_used,
-                        "recall": round(p.recall, 4)}
-                       for p in curve.points]}
+    return curve_payload(budget_curve(trace))
 
 
 def _tool_annotate(ctx: ServerContext, args: Dict[str, Any]) -> dict:

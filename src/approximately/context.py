@@ -406,3 +406,15 @@ def optimize_budget(trace: Trace, min_recall: float = 1.0,
                           recall=fc.final_probe.recall,
                           tokens_used=fc.budgeted_tokens, probes=probes,
                           lost_facts=list(fc.final_probe.lost))
+
+
+def forecast_payload(fc: "ContextForecast") -> dict:
+    """A ContextForecast as data (shared by CLI --json and MCP)."""
+    return {"trace": fc.trace_id, "budget": fc.budget,
+            "full_context_tokens": fc.full_context_tokens,
+            "budgeted_tokens": fc.budgeted_tokens,
+            "tokens_saved": max(0, fc.full_context_tokens
+                                - fc.budgeted_tokens),
+            "evicted_steps": fc.evicted_count,
+            "final_recall": round(fc.final_recall, 4),
+            "facts_kept": len(fc.facts)}

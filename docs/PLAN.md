@@ -1037,6 +1037,14 @@ framework adapters import lazily and degrade when the framework is absent.
     unreadable-line tallies; a torn tail is advisory and does not
     flip `healthy` (notes are triage, not evidence). 6 new tests.
 
+90. **v0.80 - context/curve --json parity** ✅ (delivered): the
+    budget-pressure commands join the machine-readable story.
+    Payload construction moves into the library
+    (context.forecast_payload, curve.curve_payload) and the CLI
+    (`context --json`, `curve --json` - which no longer writes the
+    HTML page) and the MCP tools (#18/#19) render the identical
+    object. 2 new parity tests pin CLI==MCP byte-for-byte.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
