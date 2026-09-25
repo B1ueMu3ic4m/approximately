@@ -1283,6 +1283,12 @@ framework adapters import lazily and degrade when the framework is absent.
      `--json`, and the `annotate` read path gains a verdict filter.
      2 new tests.
 
+121. **v1.11 - bench-gate min_records** ✅ (delivered): floors guard
+     quality, but nothing guarded *sample size* - a dataset that
+     shrank could pass any floor by luck. floors JSON gains
+     `min_records`: below it the gate fails with a violation that
+     names the shrinkage. 1 new test.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
