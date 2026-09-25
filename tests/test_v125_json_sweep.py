@@ -6,9 +6,10 @@ output path; the docs audit found these four were the last
 prose-only holdouts.
 """
 
+import argparse
 import json
 
-from approximately.cli import build_parser
+from approximately.cli import build_parser, cmd_annotations
 
 
 def _run(*args):
@@ -63,7 +64,6 @@ def test_explain_json_includes_fixes_and_detectors(capsys):
 
 
 def test_annotations_verdict_filter(tmp_path, capsys):
-    from approximately.cli import cmd_annotations
     from approximately.recorder import Recorder
     from approximately.store import TraceStore
 

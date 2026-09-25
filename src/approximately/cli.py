@@ -252,8 +252,7 @@ def cmd_taxonomy(args: argparse.Namespace) -> int:
 
 
 def cmd_explain(args: argparse.Namespace) -> int:
-    from .explain import (detectors_for_mode, explain_overview,
-                          explain_text)
+    from .explain import detectors_for_mode, explain_overview, explain_text
     from .taxonomy import FAILURE_MODES, all_modes
 
     if getattr(args, "json", False):
