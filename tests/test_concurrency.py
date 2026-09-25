@@ -118,7 +118,16 @@ def test_concurrent_readers_during_lock_waits(store, failing_trace):
 
     def hold_then_release():
         release.wait(timeout=2)
-        lock.unlink(missing_ok=True)
+        # Windows: the saver may still hold the lock file open for a
+        # beat after O_EXCL succeeds - retry the removal briefly
+        for _ in range(50):
+            try:
+                lock.unlink()
+                break
+            except PermissionError:
+                time.sleep(0.002)
+            except FileNotFoundError:
+                break
 
     thread = threading.Thread(target=hold_then_release)
     thread.start()
