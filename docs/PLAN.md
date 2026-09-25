@@ -1053,6 +1053,13 @@ framework adapters import lazily and degrade when the framework is absent.
     the threshold gates the notification, never the recording.
     5 new tests.
 
+92. **v0.82 - docs: 20-tool inventory + quiet-alerting recipe** ✅
+    (delivered): RECIPES' MCP inventory says twenty and names
+    `annotate`; new recipe 13 walks the quiet-by-default watch -
+    digest history every cycle, webhook only on signal, cron-batch
+    arithmetic, and the survival doctrine (a dead endpoint or a torn
+    digest line must never stop the watch). No code changes.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
