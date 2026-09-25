@@ -947,6 +947,16 @@ framework adapters import lazily and degrade when the framework is absent.
     call, not a shell-out. 5 new tests incl. tight-vs-loose budget
     eviction ordering and curve monotonicity.
 
+80. **v0.70 - docs catch-up round** ✅ (delivered): the written
+    surface catches up with the shipped one. ARCHITECTURE's
+    mcp_server entry now describes the real 19-tool inventory (grouped
+    by concern); TUTORIAL's MCP section lists the tool surface with
+    the recidivist/drift entry points; RECIPES gains two recipes -
+    alignment neighbours (similar) for "which run is this one like?"
+    and PSI drift windows for "is the fleet changing behaviour?". No
+    code changes; docs validated against the tool list the tests
+    pin.
+
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a

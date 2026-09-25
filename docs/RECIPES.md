@@ -141,8 +141,12 @@ Claude Desktop / Zed / any MCP client config:
     {"command": "approximately", "args": ["mcp", "--store", "/path/traces"]}}}
 ```
 
-Ten tools: list/attribute/verify/survey/query/bisect/doctor/trend/
-stats/explain — the whole toolkit, stdio JSON-RPC, zero deps.
+Nineteen tools: store access (list_traces, query, stats, trend,
+survey), attribution and explanation (attribute, explain, cluster,
+bench_gate), verification (verify — the full verdict ladder),
+comparison (bisect, similar), prediction and analysis (predict,
+counterfactual, drift, context, curve), and fleet health (doctor,
+scoreboard) — the whole toolkit, stdio JSON-RPC, zero deps.
 
 ## 10. Local-model judge (sensitive runs)
 
@@ -155,3 +159,33 @@ Per-serving-stack recipes (Ollama, llama.cpp, vLLM, TGI, OpenAI
 fine-tunes) live in [DISTILLATION.md](DISTILLATION.md). The judge
 endpoint sees your trace content — use a local model for sensitive
 runs (see [SECURITY.md](SECURITY.md)).
+
+## 11. Which run is this one like? (alignment neighbours)
+
+A run just failed. Before reading the whole report, ask which past
+runs it structurally resembles — known failure shapes surface
+immediately:
+
+```bash
+approximately similar <trace-id> --top 5
+# or over MCP: tools/call similar {trace, store, top}
+```
+
+Scores are structure-aware sequence alignment over steps (in [0, 1]),
+best first. A 0.9 neighbour that failed last Tuesday is the fastest
+diagnosis you will ever get.
+
+## 12. Is the fleet drifting? (PSI between windows)
+
+Split the store's history into an old baseline and a recent window
+and measure how far the action histogram has moved:
+
+```bash
+approximately drift --baseline-ratio 0.6
+# or over MCP: tools/call drift {store, baseline_ratio}
+```
+
+The Population Stability Index comes with a verdict and the biggest
+shifted actions — "deploy went from 2% to 18% of actions" is a
+behaviour change, not noise. Pair it with `fleet --trend
+--fail-on-worsening` in CI for a drift tripwire.
