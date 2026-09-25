@@ -959,6 +959,17 @@ framework adapters import lazily and degrade when the framework is absent.
     covers the real package. ``record_pydantic_result`` is the
     one-liner for the common case. 6 new tests.
 
+82. **v0.72 - Google ADK adapter** ✅ (delivered): the seventh
+    framework adapter. A google-adk run is a list of Events;
+    ``trace_from_adk_events`` transcribes that history (function_call
+    -> tool call, function_response -> tool result with
+    usage_metadata token counts, text -> plan from the user side /
+    response from the agent side, last agent text becomes
+    final_output) with zero imports from the framework - duck-typing
+    on part attributes, control events (yield/transfer/auth) with no
+    content skipped. ``record_adk_events`` is the one-liner. 5 new
+    tests on fakes; the contrib CI job covers the real package.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
