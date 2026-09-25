@@ -970,6 +970,14 @@ framework adapters import lazily and degrade when the framework is absent.
     content skipped. ``record_adk_events`` is the one-liner. 5 new
     tests on fakes; the contrib CI job covers the real package.
 
+83. **v0.73 - query DSL: tools and errors fields** ✅ (delivered):
+    two action-side fields join the grammar. ``tools`` is the set of
+    tool names a run invoked (``tools contains 'deploy'`` asks "did
+    this run ever touch deploy?") and ``errors`` counts steps that
+    errored (``errors >= 1``). Same eval-free parser, same
+    depth/length caps; ``contains`` already speaks set membership
+    via the agents precedent. 2 new tests.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
