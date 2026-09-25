@@ -920,6 +920,15 @@ framework adapters import lazily and degrade when the framework is absent.
     budget). 4 new tests, including a detector-call counter that
     pins 3 traces x 2 mentions = 3 runs, not 6.
 
+77. **v0.67 - MCP similar + drift (tools #14 and #15)** ✅
+    (delivered): the last CLI/MCP surface gaps close. `similar`
+    returns the alignment-nearest traces to a given run (structure
+    aware sequence alignment, score in [0,1]); `drift` computes the
+    Population Stability Index between the oldest and newest windows
+    of a store with the biggest shifted actions. An MCP client can
+    now ask "what does this run look like?" and "is the fleet's
+    behaviour shifting?" without shelling out. 6 new tests.
+
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a
