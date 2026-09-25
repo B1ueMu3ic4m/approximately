@@ -248,6 +248,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.67** — MCP `similar` + `drift` (15 tools): alignment-nearest runs and PSI behaviour drift over stdio
 - ✅ **v0.68** — MCP `counterfactual` + `predict` (17 tools): leave-one-out root cause and failure-precursor probability over stdio
 - ✅ **v0.69** — MCP `context` + `curve` (19 tools): budgeted-runtime forecasts and recall-vs-budget sweeps over stdio
+- ✅ **v0.70** — docs catch-up: 19-tool inventory in ARCHITECTURE/TUTORIAL, new `similar`/`drift` recipes in RECIPES
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

@@ -115,7 +115,9 @@ approximately fleet --trend --digest-dir digests --fail-on-worsening
 
 `--trend` prints per-day failure rates, a sparkline, and a Theil–Sen
 verdict; `--fail-on-worsening` turns "the agents are getting worse" into
-a red build.
+a red build. The same surfaces exist over MCP (19 tools — see
+[RECIPES.md](RECIPES.md) §9), including `scoreboard.min_failed` for
+repeat offenders and `drift` for behaviour shifts.
 
 ## 7. Pin attribution quality itself
 
