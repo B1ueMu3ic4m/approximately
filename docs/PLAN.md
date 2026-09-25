@@ -1226,6 +1226,14 @@ framework adapters import lazily and degrade when the framework is absent.
      pulse. Fleet watch shifts to 7, quality floors to 8. No code
      changes.
 
+113. **v1.3 - the operator journey, end to end** ✅ (delivered): one
+     subprocess-driven test walks the whole story through the real
+     CLI - record, attribute, report (HTML+Markdown), cluster, mint
+     a regression guard, annotate, status, verify --all, fleet
+     survey + digest + trend. Each hand-off is a seam a regression
+     would break; now they are all watched. 1 new test (the
+     longest in the suite).
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
