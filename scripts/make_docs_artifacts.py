@@ -39,6 +39,13 @@ def main() -> int:
         subprocess.run([sys.executable, "-m", "approximately.cli",
                         "fleet", store, "--fleet-html",
                         DOCS / "fleet.html"], check=True)
+        # the MAST leaderboard the README links to
+        root = Path(__file__).resolve().parent.parent
+        subprocess.run([sys.executable, "-m", "approximately.cli",
+                        "benchmark", str(root / "docs"
+                                         / "mast-bench-multi.jsonl"),
+                        "--multi-label", "--html",
+                        str(DOCS / "leaderboard.html")], check=True)
     print(f"artifacts written to {DOCS}")
     return 0
 
