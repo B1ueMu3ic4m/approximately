@@ -1019,6 +1019,15 @@ framework adapters import lazily and degrade when the framework is absent.
     floor. A mode the detector stops finding fails its floors loudly
     (missing scores never pass). 5 new tests.
 
+88. **v0.78 - fleet watch webhook** ✅ (delivered): `--webhook` used
+    to apply only to one-shot surveys; the watch loop ignored it.
+    Now every digest cycle also POSTs the same HMAC-signed fleet
+    summary, and delivery failure is a stderr warning - never a
+    stopped watch, because an ops loop must survive its notification
+    endpoint being down (that is exactly when it needs to keep
+    watching). The poster is injectable so tests run on a fake; the
+    URL never leaks into logs. 4 new tests.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
