@@ -23,8 +23,8 @@ jobs:
           - os: windows-latest
             python-version: "3.9"
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install
@@ -40,8 +40,8 @@ jobs:
     # Judge integration tests: real openai client vs a local fake server.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.12"
       - name: Install with llm extra
@@ -51,13 +51,35 @@ jobs:
       - name: Full suite (judge paths included)
         run: pytest -q
 
+  security:
+    # Supply-chain + static security gate. Actions are SHA-pinned
+    # (third-party code can't drift behind a mutable tag); bandit runs
+    # with zero findings expected — intentional fallbacks carry a
+    # reasoned `# nosec B110`; a regex secret scan guards the repo and
+    # the packaging metadata.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e . bandit
+      - name: Bandit (no findings expected)
+        run: bandit -r src -q
+      - name: Secret scan
+        run: |
+          ! grep -rInE "(api[_-]?key|secret|token|password)["' ]*[:=]["' ]*[A-Za-z0-9+/]{16,}" \
+            src .github pyproject.toml \
+            | grep -v "PYPI_API_TOKEN"
+
   test-contrib:
     # Framework adapters against the real packages (LangChain/LangGraph and
     # OpenAI Agents SDK); CrewAI adapter is covered by graceful-skip tests.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.12"
       - name: Install with contrib frameworks
@@ -70,8 +92,8 @@ jobs:
     # shipped gold corpus must clear docs/bench-floors.json.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.12"
       - name: Install
@@ -89,7 +111,7 @@ jobs:
     # fixture must fail the step.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Positive fixture clears the floors
         uses: ./
         with:
@@ -117,8 +139,8 @@ jobs:
     # + wheel, then smoke-install the wheel into a clean venv.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.12"
       - name: Build sdist and wheel
@@ -134,7 +156,7 @@ jobs:
           smoke/bin/python -m approximately.cli demo --scenario loop | grep -q "CycleRepeatDetector"
           smoke/bin/python -m approximately.cli demo --scenario verification | grep -q "ProseOutcomeVerifyDetector"
           echo "demo scenarios OK"
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: dist
           path: dist/
@@ -142,8 +164,8 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.12"
       - name: Compile all sources
