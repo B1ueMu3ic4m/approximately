@@ -127,8 +127,9 @@ def webhook_payload(summaries: List[StoreSummary]) -> dict:
                 "trend_slope": round(s.trend_slope, 4),
                 "worsening": s.worsening,
                 "ledger_intact": s.ledger_intact,
-                "annotations": s.annotations,
-                "annotations_confirmed": s.annotations_confirmed,
+                "annotations": getattr(s, "annotations", 0),
+                "annotations_confirmed":
+                    getattr(s, "annotations_confirmed", 0),
                 "top_modes": [
                     {"mode": mode, "count": count}
                     for mode, count in s.top_modes
@@ -260,8 +261,8 @@ def _store_card(s: StoreSummary) -> str:
         f'<div class="store"><h2>{esc(s.name)}</h2>'
         f'<div class="sub">{esc(s.path)} · '
         f'{s.traces} traces · ledger: {ledger_note} · '
-        f'notes: {s.annotations} ({s.annotations_confirmed} '
-        'confirmed)</div>'
+        f'notes: {getattr(s, "annotations", 0)} '
+        f'({getattr(s, "annotations_confirmed", 0)} confirmed)</div>'
         '<div class="row">'
         f'<span class="rate {rate_cls}">{s.failure_rate:.0%}</span>'
         f"{spark}"
