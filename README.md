@@ -175,7 +175,7 @@ Advanced: **local small-model judge** (`distill` exports training data; per-serv
 ## FAQ
 
 **Q: Does it work with my framework?**
-Yes. The core recording API is framework-agnostic — if your code can call a function, it can be recorded. Official adapters cover LangChain / LangGraph (callback handler), OpenAI Agents SDK (tracing processor), CrewAI (event bus), AutoGen v0.4+ (event-log handler plus a transparent model-client proxy), and LlamaIndex (callback-handler seam: LLM, function-call, retrieval and exception events).
+Yes. The core recording API is framework-agnostic — if your code can call a function, it can be recorded. Official adapters cover LangChain / LangGraph (callback handler), OpenAI Agents SDK (tracing processor), CrewAI (event bus), AutoGen v0.4+ (event-log handler plus a transparent model-client proxy), LlamaIndex (callback-handler seam: LLM, function-call, retrieval and exception events), Pydantic AI (post-hoc message transcription), and Google ADK (post-hoc event transcription).
 
 **Q: Does the LLM judge require internet? Does it cost money?**
 No and no. The rule engine covers most mechanical failure modes offline and free (repeated steps, missing verification, premature termination…). The judge is an optional enhancement that speaks any OpenAI-compatible endpoint — including local Ollama/llama.cpp — and you can distill it down to a local small model with `distill`.
@@ -250,6 +250,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.69** — MCP `context` + `curve` (19 tools): budgeted-runtime forecasts and recall-vs-budget sweeps over stdio
 - ✅ **v0.70** — docs catch-up: 19-tool inventory in ARCHITECTURE/TUTORIAL, new `similar`/`drift` recipes in RECIPES
 - ✅ **v0.71** — pydantic-ai adapter (#6): post-hoc message transcription, zero framework imports, both Usage eras
+- ✅ **v0.72** — Google ADK adapter (#7): post-hoc event transcription, control events skipped, usage_metadata tokens
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
