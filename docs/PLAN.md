@@ -1118,6 +1118,13 @@ framework adapters import lazily and degrade when the framework is absent.
     now covers the fleet-ops and forensics pair completely. 4 new
     tests.
 
+100. **v0.90 - MCP regression_test (tool #23)** ✅ (delivered): the
+     "guard it forever" promise becomes a tool call. An agent that
+     just failed can mint its own self-contained pytest file - the
+     trace rides along as base64, budget and fact-recall guards
+     configurable - and commit it where its tests live. The failure
+     can never silently return. 4 new tests; tool count 23.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
