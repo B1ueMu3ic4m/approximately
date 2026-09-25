@@ -1076,6 +1076,13 @@ framework adapters import lazily and degrade when the framework is absent.
     leave-one-out render stays linear; the standalone
     `counterfactual` surface remains for those). 4 new tests.
 
+95. **v0.85 - bench-gate --json, merge --json** ✅ (delivered): the
+    last CI-facing prose-only commands join the machine-readable
+    story. `bench-gate --json` emits the structured gate result
+    (records/modes/sample_f1/violations, exit 1 on any violation);
+    `merge --json` emits the merge report including the annotation
+    sidecar count. Text output unchanged. 4 new tests.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped

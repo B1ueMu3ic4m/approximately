@@ -136,3 +136,12 @@ def merge_store(source: Path, target: TraceStore,
             carried_notes += 1
     report.annotations_carried = carried_notes
     return report
+
+
+def report_payload(report: MergeReport) -> dict:
+    """A MergeReport as machine-readable data (CLI --json)."""
+    return {"imported": report.imported,
+            "skipped_conflicts": report.skipped_conflicts,
+            "refused_tampered": report.refused_tampered,
+            "renamed": report.renamed,
+            "annotations_carried": report.annotations_carried}

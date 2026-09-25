@@ -262,8 +262,12 @@ def cmd_explain(args: argparse.Namespace) -> int:
 
 
 def cmd_bench_gate(args: argparse.Namespace) -> int:
-    from .benchgate import run_gate
+    from .benchgate import gate_result, run_gate
 
+    if getattr(args, "json", False):
+        result = gate_result(Path(args.dataset), Path(args.floors))
+        print(json.dumps(result, indent=2))
+        return 0 if result["passed"] else 1
     return run_gate(Path(args.dataset), Path(args.floors), args.label,
                     junit_path=(Path(args.junit)
                                 if getattr(args, "junit", None) else None))
@@ -687,11 +691,14 @@ def _verify_one(args: argparse.Namespace, store, key) -> int:
 
 
 def cmd_merge(args: argparse.Namespace) -> int:
-    from .merge import merge_store
+    from .merge import merge_store, report_payload
 
     store = TraceStore(args.store)
     report = merge_store(Path(args.source), store,
                          on_conflict=args.on_conflict)
+    if getattr(args, "json", False):
+        print(json.dumps(report_payload(report), indent=2))
+        return 0
     print(report.summary())
     return 0
 
@@ -1592,6 +1599,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--on-conflict", choices=["skip", "replace", "rename"],
                    default="skip",
                    help="same-id policy (default: skip, target wins)")
+    p.add_argument("--json", action="store_true",
+                   help="emit the merge report as JSON")
     p.set_defaults(func=cmd_merge)
 
     p = sub.add_parser("clean", parents=[common],
@@ -1702,6 +1711,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_gate.add_argument("--junit", metavar="PATH",
                         help="also write the gate result as JUnit XML "
                              "(CI test reporters render it natively)")
+    p_gate.add_argument("--json", action="store_true",
+                        help="emit the structured gate result instead "
+                             "of the log (exit 1 on any violation)")
     p_gate.set_defaults(func=cmd_bench_gate)
     return parser
 
