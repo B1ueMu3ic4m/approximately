@@ -1234,6 +1234,16 @@ framework adapters import lazily and degrade when the framework is absent.
      would break; now they are all watched. 1 new test (the
      longest in the suite).
 
+114. **v1.4 - rank_similar pruning** ✅ (delivered): similar's
+     ranking normalized the target's tokens once per candidate and
+     ran the quadratic DP for every one. Now the target normalizes
+     once, and a candidate whose length-ratio upper bound
+     (similarity <= 2*min/max) sits strictly below the current
+     Nth-best score skips its DP - provably unable to enter the top
+     N, so the ranking is byte-identical (ids and scores pinned
+     against a brute-force reference). 2000-trace store: 0.20 s.
+     2 new tests.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
