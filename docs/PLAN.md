@@ -1094,6 +1094,14 @@ framework adapters import lazily and degrade when the framework is absent.
     distribution (the same source the MCP handshake uses), so all
     three version surfaces can never disagree again. 6 new tests.
 
+97. **v0.87 - fuzz round 6** ✅ (delivered): the resources surface
+    and its friends under garbage - scoreboard.group_by (wrong enum
+    values, NUL, nested lists), resources/read (truncated URIs,
+    foreign stores, empty/NUL schemes), the watch alert threshold
+    (negative/overshoot rates), and merge's sidecar carry (garbage
+    lines flowing through all three conflict policies). Every probe
+    contained. 4 new tests; corpus pinned.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
