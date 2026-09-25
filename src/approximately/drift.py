@@ -92,3 +92,14 @@ def detect_drift(baseline_traces: Iterable[Trace],
     return DriftReport(psi=psi, verdict=verdict,
                        baseline_actions=base_total,
                        current_actions=cur_total, top_shifted=top)
+
+
+def report_payload(report: DriftReport) -> dict:
+    """A DriftReport as machine-readable data (CLI --json and MCP)."""
+    return {"psi": round(report.psi, 4), "verdict": report.verdict,
+            "baseline_actions": report.baseline_actions,
+            "current_actions": report.current_actions,
+            "top_shifted": [{"action": a,
+                             "baseline_share": round(b, 4),
+                             "current_share": round(c, 4)}
+                            for a, b, c in report.top_shifted]}

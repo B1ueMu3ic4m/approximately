@@ -978,6 +978,15 @@ framework adapters import lazily and degrade when the framework is absent.
     depth/length caps; ``contains`` already speaks set membership
     via the agents precedent. 2 new tests.
 
+84. **v0.74 - CLI --json parity: similar / drift / counterfactual /
+    predict** ✅ (delivered): the MCP tools returned structured data
+    while the CLI only printed prose. Payload construction now lives
+    in the library modules (align.similar_payload,
+    drift.report_payload, counterfactual.report_payload,
+    precursor.score_payload) and both surfaces render THE SAME
+    object - a CI job can shell the CLI and parse the identical JSON
+    an MCP client sees. 4 new tests pin byte-level CLI==MCP.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped

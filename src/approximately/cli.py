@@ -277,17 +277,21 @@ def cmd_optimize(args: argparse.Namespace) -> int:
 
 
 def cmd_similar(args: argparse.Namespace) -> int:
-    from .align import rank_similar
+    from .align import similar_payload
 
     store = TraceStore(args.store)
     trace = _load_trace(args.trace, store)
-    ranked = rank_similar(trace, store.list_traces(), top=args.top)
-    if not ranked:
+    payload = similar_payload(trace, store.list_traces(), top=args.top)
+    if getattr(args, "json", False):
+        print(json.dumps(payload, indent=2))
+        return 0
+    if not payload["matches"]:
         print("no other traces in the store to compare against")
         return 0
     print(f"most alignment-similar traces to {trace.id}:")
-    for candidate, score in ranked:
-        print(f"  {score:.2f}  {candidate.id}  {candidate.task[:56]}")
+    for m in payload["matches"]:
+        print(f"  {m['similarity']:.2f}  {m['id']}  "
+              f"{(m['task'] or '')[:56]}")
     return 0
 
 
@@ -300,7 +304,12 @@ def cmd_predict(args: argparse.Namespace) -> int:
     for t in store.list_traces():
         if t.id != trace.id:
             model.observe(t)
+    from .precursor import score_payload
+
     score = model.probability(trace)
+    if getattr(args, "json", False):
+        print(json.dumps(score_payload(trace, score), indent=2))
+        return 0
     print(score.summary())
     return 0
 
@@ -379,11 +388,14 @@ def cmd_scan_tool(args: argparse.Namespace) -> int:
 
 
 def cmd_counterfactual(args: argparse.Namespace) -> int:
-    from .counterfactual import counterfactual
+    from .counterfactual import counterfactual, report_payload
 
     store = TraceStore(args.store)
     trace = _load_trace(args.trace, store)
     report = counterfactual(trace)
+    if getattr(args, "json", False):
+        print(json.dumps(report_payload(report), indent=2))
+        return 0
     print(report.summary())
     return 0
 
@@ -399,7 +411,12 @@ def cmd_drift(args: argparse.Namespace) -> int:
         print("need traces in both windows "
               "(baseline = oldest, current = newest)")
         return 1
+    from .drift import report_payload
+
     report = detect_drift(baseline, current)
+    if getattr(args, "json", False):
+        print(json.dumps(report_payload(report), indent=2))
+        return 0
     print(report.summary())
     return 0
 
@@ -1276,12 +1293,16 @@ def build_parser() -> argparse.ArgumentParser:
                             "to a trace")
     p.add_argument("trace")
     p.add_argument("--top", type=int, default=5)
+    p.add_argument("--json", action="store_true",
+                   help="emit the same payload as the MCP similar tool")
     p.set_defaults(func=cmd_similar)
 
     p = sub.add_parser("predict", parents=[common],
                        help="failure-probability early warning from "
                             "store history")
     p.add_argument("trace")
+    p.add_argument("--json", action="store_true",
+                   help="emit the same payload as the MCP predict tool")
     p.set_defaults(func=cmd_predict)
 
     p = sub.add_parser("optimize", parents=[common],
@@ -1316,6 +1337,9 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("counterfactual", parents=[common],
                        help="do(step=∅) experiments: root causes vs symptoms")
     p.add_argument("trace")
+    p.add_argument("--json", action="store_true",
+                   help="emit the same payload as the MCP "
+                        "counterfactual tool")
     p.set_defaults(func=cmd_counterfactual)
 
     p = sub.add_parser("drift", parents=[common],
@@ -1323,6 +1347,8 @@ def build_parser() -> argparse.ArgumentParser:
                             "newest traces")
     p.add_argument("--baseline-ratio", type=float, default=0.5,
                    help="share of oldest traces used as baseline (default 0.5)")
+    p.add_argument("--json", action="store_true",
+                   help="emit the same payload as the MCP drift tool")
     p.set_defaults(func=cmd_drift)
 
     p = sub.add_parser("diff", parents=[common],
