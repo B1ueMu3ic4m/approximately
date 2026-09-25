@@ -94,7 +94,7 @@ def _render_entity_prometheus(rows, entity: str,
         ("failed_traces", f"approximately_{entity}_failed_traces_total",
          f"Failed traces the {entity} touched", "counter"),
         ("failure_rate", f"approximately_{entity}_failure_rate",
-         f"Share of touched traces that failed", "gauge"),
+         "Share of touched traces that failed", "gauge"),
     ]
     for key, metric, help_text, mtype in gauges:
         lines.extend([
@@ -103,8 +103,10 @@ def _render_entity_prometheus(rows, entity: str,
         ])
         for row in rows:
             safe = escape_label(row[entity])
-            value = f"{row[key]:.6f}" if key == "failure_rate" \
-                else row[key]
+            # tool rows have no tool_calls key (every row IS tool calls)
+            value = row.get(key, 0) if key != "failure_rate" \
+                else row.get(key, 0.0)
+            value = f"{value:.6f}" if key == "failure_rate" else value
             lines.append(
                 f'{metric}{{{entity}="{safe}"{suffix}}} {value}')
     lines.append("")
