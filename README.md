@@ -257,6 +257,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.76** — fuzz round 5: query fields, payload constructors, annotations sidecar — all contained
 - ✅ **v0.77** — bench-gate JUnit export: `--junit PATH` renders one testcase per guarded floor for CI reporters
 - ✅ **v0.78** — fleet watch posts the HMAC-signed summary every cycle (`--webhook`); delivery failure warns, never stops the loop
+- ✅ **v0.79** — annotations hygiene: `merge` carries the sidecar (rename-aware, deduped), `doctor` tallies unreadable lines
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

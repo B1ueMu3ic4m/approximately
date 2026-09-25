@@ -1028,6 +1028,15 @@ framework adapters import lazily and degrade when the framework is absent.
     watching). The poster is injectable so tests run on a fake; the
     URL never leaks into logs. 4 new tests.
 
+89. **v0.79 - annotations hygiene: merge carries the sidecar, doctor
+    reads it** ✅ (delivered): notes about a run belong to the run.
+    `merge` now transports the annotation sidecar to the target
+    store - re-anchored to renamed trace ids, deduped on semantic
+    identity (trace/author/verdict/note; the wall-clock ts is noise),
+    append order preserved. `doctor` reports the sidecar's line and
+    unreadable-line tallies; a torn tail is advisory and does not
+    flip `healthy` (notes are triage, not evidence). 6 new tests.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped

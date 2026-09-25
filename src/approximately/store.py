@@ -86,6 +86,26 @@ class TraceStore:
         self._ledger_append(trace)
         return path
 
+    def annotations_health(self) -> dict:
+        """Sidecar hygiene: total and unreadable line counts (absent
+        sidecar is 0/0 — no annotations is not a problem)."""
+        path = self.directory / "annotations.jsonl"
+        if not path.exists():
+            return {"present": False, "total": 0, "corrupt": 0}
+        total = corrupt = 0
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line:
+                continue
+            total += 1
+            try:
+                entry = json.loads(line)
+                if not isinstance(entry, dict):
+                    corrupt += 1
+            except json.JSONDecodeError:
+                corrupt += 1
+        return {"present": True, "total": total, "corrupt": corrupt}
+
     def annotate(self, trace_id: str, note: str,
                  author: str = "", verdict: str = "") -> dict:
         """Attach an analyst annotation to a trace (append-only).

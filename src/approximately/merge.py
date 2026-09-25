@@ -20,6 +20,7 @@ forged evidence does not.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List
@@ -34,6 +35,7 @@ CONFLICT_POLICIES = ("skip", "replace", "rename")
 @dataclass
 class MergeReport:
     imported: List[str] = field(default_factory=list)
+    annotations_carried: int = 0
     skipped_conflicts: List[str] = field(default_factory=list)
     refused_tampered: List[str] = field(default_factory=list)
     renamed: Dict[str, str] = field(default_factory=dict)
@@ -88,6 +90,7 @@ def merge_store(source: Path, target: TraceStore,
         raise ValueError("source and target store are the same directory")
 
     report = MergeReport()
+    carried_notes = 0
     for trace in source_store.list_traces():
         if not _check_evidence(trace):
             report.refused_tampered.append(trace.id)
@@ -108,4 +111,28 @@ def merge_store(source: Path, target: TraceStore,
             target.save(trace)
             report.renamed[old_id] = new_id
             report.imported.append(new_id)
+    # the annotation sidecar travels with the traces: notes about a
+    # run belong to the run, wherever it lives. Re-anchored to the
+    # (possibly renamed) trace id; append order preserved.
+    source_notes = source_store.annotations()
+    if source_notes:
+        def _key(entry):
+            # semantic identity: ts is wall-clock noise, content is not
+            return json.dumps(
+                {k: entry.get(k) for k in
+                 ("trace_id", "author", "verdict", "note")},
+                sort_keys=True)
+
+        seen = {_key(e) for e in target.annotations()}
+        for note in source_notes:
+            entry = dict(note)
+            entry["trace_id"] = report.renamed.get(entry["trace_id"],
+                                                   entry["trace_id"])
+            if _key(entry) in seen:
+                continue
+            target.annotate(entry["trace_id"], entry.get("note", ""),
+                            author=entry.get("author", ""),
+                            verdict=entry.get("verdict", ""))
+            carried_notes += 1
+    report.annotations_carried = carried_notes
     return report
