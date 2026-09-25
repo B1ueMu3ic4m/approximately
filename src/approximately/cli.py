@@ -959,6 +959,21 @@ def cmd_stats(args: argparse.Namespace) -> int:
 
     store = TraceStore(args.store)
     traces = store.list_traces(since_days=getattr(args, "since", None))
+    if getattr(args, "by_tool", False):
+        from .cluster import tool_scorecard
+
+        rows = tool_scorecard(traces)
+        if args.json:
+            print(json.dumps(rows, indent=2))
+            return 0
+        print(f"  {'tool':<20} {'traces':>6} {'steps':>6} "
+              f"{'errors':>6} {'tokens':>7} "
+              f"{'failed':>6} {'rate':>6}")
+        for r in rows:
+            print(f"  {r['tool']:<20} {r['traces']:>6} {r['steps']:>6} "
+                  f"{r['errors']:>6} {r['tokens']:>7} "
+                  f"{r['failed_traces']:>6} {r['failure_rate']:>5.0%}")
+        return 0
     if getattr(args, "by_agent", False):
         from .cluster import agent_scorecard
 
@@ -1593,6 +1608,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--min-failed", type=int, metavar="N",
                    help="with --by-agent, keep only agents with at "
                         "least N failed traces (recidivist filter)")
+    p.add_argument("--by-tool", action="store_true",
+                   help="per-tool rollup (steps, errors, touched-trace "
+                        "failure rate) instead of totals")
     p.add_argument("--trend", action="store_true",
                    help="failure-rate history over time instead of totals")
     p.add_argument("--trend-bucket-days", type=int, default=7,
