@@ -73,3 +73,39 @@ def test_cli_query_agents(tmp_path, capsys):
     assert args.func(args) == 0
     out = capsys.readouterr().out
     assert "1 matching trace(s)" in out
+
+
+def test_query_tools_field(store, failing_trace):
+    """v0.73: `tools contains 'X'` — did this run ever touch X?"""
+    from approximately.query import select
+
+    failing_trace.steps[0].tool = "deploy"
+    store.save(failing_trace)
+    from approximately.recorder import Recorder
+
+    clean = Recorder("clean", save=False)
+    clean.tool("search", {"q": 1}, result="ok")
+    clean.respond("done", success=True)
+    store.save(clean.trace)
+
+    found = select(store.list_traces(), "tools contains 'deploy'")
+    assert [t.id for t in found] == [failing_trace.id]
+    assert select(store.list_traces(),
+                  "tools contains 'search'")[0].id == clean.trace.id
+
+
+def test_query_errors_field(store, failing_trace):
+    """`errors >= 1` — runs that hit at least one tool error."""
+    from approximately.query import select
+
+    failing_trace.steps[0].error = "boom"
+    store.save(failing_trace)
+    from approximately.recorder import Recorder
+
+    clean = Recorder("clean", save=False)
+    clean.tool("search", {"q": 1}, result="ok")
+    clean.respond("done", success=True)
+    store.save(clean.trace)
+
+    found = select(store.list_traces(), "errors >= 1")
+    assert [t.id for t in found] == [failing_trace.id]

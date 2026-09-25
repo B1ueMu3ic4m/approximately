@@ -251,6 +251,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.70** — docs catch-up: 19-tool inventory in ARCHITECTURE/TUTORIAL, new `similar`/`drift` recipes in RECIPES
 - ✅ **v0.71** — pydantic-ai adapter (#6): post-hoc message transcription, zero framework imports, both Usage eras
 - ✅ **v0.72** — Google ADK adapter (#7): post-hoc event transcription, control events skipped, usage_metadata tokens
+- ✅ **v0.73** — query DSL `tools contains 'deploy'` / `errors >= 1`: action-side fields in the eval-free grammar
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

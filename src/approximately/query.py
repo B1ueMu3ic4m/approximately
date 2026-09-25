@@ -37,7 +37,7 @@ _TOKEN = re.compile(
     re.VERBOSE)
 
 _FIELDS = ("id", "task", "success", "model", "created", "steps",
-           "tokens", "duration", "mode", "agents")
+           "tokens", "duration", "mode", "agents", "tools", "errors")
 
 _MAX_EXPR_CHARS = 4000
 
@@ -82,6 +82,10 @@ def _field_getter(name: str,
     if name not in _FIELDS:
         raise QueryError(
             f"unknown field {name!r} (fields: {', '.join(_FIELDS)})")
+    if name == "tools":
+        return _used_tools
+    if name == "errors":
+        return lambda t: sum(1 for s in t.steps if s.error)
     if name == "created":
         def getter(t: Trace) -> Any:
             return getattr(t, "created_at", None) or 0
@@ -126,6 +130,15 @@ def _named_agents(trace: Trace) -> set:
     unattributed bucket instead.
     """
     return {s.agent for s in trace.steps if s.agent}
+
+
+def _used_tools(trace: Trace) -> set:
+    """Distinct tool names invoked in the trace.
+
+    ``tools contains 'deploy'`` asks "did this run ever touch
+    deploy?" — the action-side twin of ``agents``.
+    """
+    return {s.tool for s in trace.steps if s.tool}
 
 
 def _detected_modes(trace: Trace) -> set:
