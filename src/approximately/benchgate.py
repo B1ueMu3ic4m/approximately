@@ -15,6 +15,7 @@ import json
 import math
 import sys
 from pathlib import Path
+from typing import Optional
 
 from .distill import check_floors, evaluate_multi, load_dataset
 
@@ -71,13 +72,15 @@ def gate_result(dataset: Path, floors_path: Path) -> dict:
     }
 
 
-def run_gate(dataset: Path, floors_path: Path, label: str = "gate") -> int:
+def run_gate(dataset: Path, floors_path: Path, label: str = "gate",
+             junit_path: Optional[Path] = None) -> int:
     try:
         result = gate_result(dataset, floors_path)
     except ValueError as exc:
         print(f"bench-gate[{label}]: {exc}", file=sys.stderr)
         return 1
     floors = json.loads(floors_path.read_text(encoding="utf-8"))
+    result["_floors"] = floors
 
     print(f"attribution floors [{label}] - "
           f"{result['records']} multi-label records")
@@ -100,6 +103,8 @@ def run_gate(dataset: Path, floors_path: Path, label: str = "gate") -> int:
             print(f"FAIL {violation}", file=sys.stderr)
         return 1
     print("PASS - no attribution regression")
+    if junit_path is not None:
+        write_junit(result, junit_path, label=label)
     return 0
 
 
@@ -117,3 +122,53 @@ def main(argv=None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+def junit_xml(result: dict, label: str = "gate") -> str:
+    """A gate result as JUnit XML — CI test reporters render it natively.
+
+    One testcase per floor: sample_f1 plus each mode's P/R/F1.
+    A testcase fails when the floor it guards is violated; the
+    failure message carries actual vs floor so the CI annotation
+    says what regressed, not just "gate failed".
+    """
+    import xml.etree.ElementTree as ET  # nosec B405 - emit-only, no untrusted XML parsed
+
+    floors = result.get("_floors") or {}
+    suite = ET.Element("testsuite", {
+        "name": f"approximately.bench-gate[{label}]",
+        "tests": "0", "failures": "0",
+    })
+
+    def add(name, failed, message=""):
+        suite.set("tests", str(int(suite.get("tests")) + 1))
+        case = ET.SubElement(suite, "testcase", {
+            "name": name, "classname": "approximately.bench_gate",
+        })
+        if failed:
+            suite.set("failures", str(int(suite.get("failures")) + 1))
+            ET.SubElement(case, "failure", {"message": message})
+
+    floor_sample = floors.get("sample_f1")
+    if floor_sample is not None:
+        actual = result.get("sample_f1")
+        add(f"sample_f1 >= {floor_sample}",
+            actual is None or actual < floor_sample,
+            f"actual {actual} < floor {floor_sample}")
+    for mode, spec in sorted((floors.get("modes") or {}).items()):
+        actual = (result.get("modes") or {}).get(mode) or {}
+        for metric in ("precision", "recall", "f1"):
+            floor = (spec or {}).get(metric)
+            if floor is None:
+                continue
+            value = actual.get(metric)
+            add(f"{mode}.{metric} >= {floor}",
+                value is None or value < floor,
+                f"actual {value} < floor {floor}")
+    return ET.tostring(suite, encoding="unicode") + "\n"
+
+
+def write_junit(result: dict, path: Path, label: str = "gate") -> Path:
+    """Persist the JUnit rendering; the result dict may carry _floors."""
+    path.write_text(junit_xml(result, label=label), encoding="utf-8")
+    return path
