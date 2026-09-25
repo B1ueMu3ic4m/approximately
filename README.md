@@ -296,6 +296,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.9** — fresh-install CI job: clean-venv install, version handshake, demo + record/attribute/status loop
 - ✅ **v1.10** — MCP `explain` returns fixes + detectors; `annotate` read filters by verdict
 - ✅ **v1.11** — bench-gate `min_records`: a shrunken dataset fails loudly instead of passing by luck
+- ✅ **v1.12** — PLAN renumbered: one continuous delivered sequence
+- ✅ **v1.13** — `status` reports ledger health + top recidivist agent
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
