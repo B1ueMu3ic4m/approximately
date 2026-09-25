@@ -69,9 +69,7 @@ jobs:
         run: bandit -r src -q
       - name: Secret scan
         run: |
-          ! grep -rInE "(api[_-]?key|secret|token|password)["' ]*[:=]["' ]*[A-Za-z0-9+/]{16,}" \
-            src .github pyproject.toml \
-            | grep -v "PYPI_API_TOKEN"
+          ! grep -rInE '(api[_-]?key|secret|token|password)["'"'"' ]*[:=]["'"'"' ]*[A-Za-z0-9+/]{16,}' src .github pyproject.toml | grep -v PYPI_API_TOKEN
 
   test-contrib:
     # Framework adapters against the real packages (LangChain/LangGraph and
