@@ -1186,6 +1186,13 @@ framework adapters import lazily and degrade when the framework is absent.
      ask "does THIS failure look like anything in the other
      project?" without merging stores first. 1 new test.
 
+108. **v0.98 - RECIPES smoke** ✅ (delivered): the cookbook's
+     walkthrough (RECIPES 3-4) now runs in CI - attribute
+     --explain, explain <mode>, bisect, the minted regression guard
+     collected by pytest, verify and status. When a recipe drifts
+     from the code, the failure names the exact line. Signed-store
+     fixtures match the cookbook context. 3 new tests.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped

@@ -277,6 +277,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.95** — `approximately status`: one-glance ops overview (health, top modes, triage, last failure + chain verdict)
 - ✅ **v0.96** — fleet dashboard/webhook carry per-store triage counts (annotations, confirmed)
 - ✅ **v0.97** — cross-store `similar` (`--other-store` / MCP `other_store`): nearest neighbours across projects
+- ✅ **v0.98** — RECIPES smoke: the cookbook walkthrough runs in CI, line-by-line
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
