@@ -81,7 +81,7 @@ class ApproximatelyHandler:
                      **kwargs: Any) -> None:
         try:
             self._on_end(_event_name(event_type), payload or {})
-        except Exception:  # never break the query
+        except Exception:  # never break the query # nosec B110
             pass
 
     def start_trace(self, trace_id: str, **kwargs: Any) -> None:
@@ -212,7 +212,7 @@ class ApproximatelySpanHandler:
         try:
             self._open.add(id)
         except Exception:
-            pass
+            pass  # nosec B110 - span bookkeeping must not break the run
 
     def prepare_to_exit_span(self, id: str, span: Any = None,
                              **kwargs: Any) -> None:
@@ -220,7 +220,7 @@ class ApproximatelySpanHandler:
             self._open.discard(id)
             if span is not None:
                 self._record_span(span)
-        except Exception:  # never break the query
+        except Exception:  # never break the query # nosec B110
             pass
 
     def prepare_to_drop_span(self, id: str, span: Any = None, err: Any = None,
@@ -230,7 +230,7 @@ class ApproximatelySpanHandler:
             reason = _preview(err) or f"span dropped: {_span_kind(span)}"
             self.recorder.fail(reason)
         except Exception:
-            pass
+            pass  # nosec B110 - recorder hook must not break the run
 
     # -- span mapping -----------------------------------------------------------
     def _record_span(self, span: Any) -> None:
