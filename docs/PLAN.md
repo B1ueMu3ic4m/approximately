@@ -1258,6 +1258,12 @@ framework adapters import lazily and degrade when the framework is absent.
      design: cross-store stays an explicit `--other-store` question.
      3 new tests.
 
+117. **v1.7 - per-tool Prometheus metrics** ✅ (delivered):
+     `metrics --prometheus --by-tool` and MCP `metrics
+     {group_by: "tool"}` render tool_scorecard rows as
+     approximately_tool_* series - the renderer is generalized so
+     agent and tool share one implementation. 1 new test.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped

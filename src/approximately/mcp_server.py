@@ -397,9 +397,10 @@ _TOOLS: List[Dict[str, Any]] = [
             "properties": {
                 "store": {"type": "string"},
                 "group_by": {"type": "string",
-                             "enum": ["store", "agent"],
-                             "description": "store totals (default) "
-                                            "or per-agent rates"},
+                             "enum": ["store", "agent", "tool"],
+                             "description": "store totals (default), "
+                                            "per-agent or per-tool "
+                                            "rates"},
             },
         },
     },
@@ -764,9 +765,15 @@ def _tool_metrics(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     store = _store(ctx, args)
     traces = store.list_traces()
     stats = store_stats(traces)
-    if str(args.get("group_by") or "store") == "agent":
+    group_by = str(args.get("group_by") or "store")
+    if group_by == "agent":
         rows = agent_scorecard(traces)
         text = render_agent_prometheus(rows)
+    elif group_by == "tool":
+        from .cluster import tool_scorecard
+        from .metrics import render_tool_prometheus
+
+        text = render_tool_prometheus(tool_scorecard(traces))
     else:
         text = render_prometheus(stats)
     return {"store": str(store.directory),
