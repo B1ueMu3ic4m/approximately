@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from .ledger import verify_ledger
+from .store import TraceStore
 from .trace import Trace
 
 _STALE_LOCK_SECONDS = 3600.0
@@ -39,6 +40,8 @@ class DoctorReport:
     torn_lines: int = 0
     unsigned: int = 0
     legacy_agents: List[str] = field(default_factory=list)
+    annotation_lines: int = 0
+    annotation_corrupt: int = 0
 
     @property
     def healthy(self) -> bool:
@@ -78,6 +81,11 @@ class DoctorReport:
         lines.append(self._render_ledger())
         if self.unsigned:
             lines.append(f"  unsigned records: {self.unsigned}")
+        if self.annotation_lines:
+            note = f"  annotations: {self.annotation_lines} note(s)"
+            if self.annotation_corrupt:
+                note += f", {self.annotation_corrupt} unreadable line(s)"
+            lines.append(note)
         if self.legacy_agents:
             lines.append(
                 f"  legacy meta['agent'] on {len(self.legacy_agents)} "
@@ -212,6 +220,9 @@ def doctor(store: Path, digest_dir: Optional[Path] = None) -> DoctorReport:
     _check_hygiene(store, report)
     if digest_dir is not None and digest_dir.is_dir():
         _check_digests(digest_dir, report)
+    health = TraceStore(store).annotations_health()
+    report.annotation_lines = health["total"]
+    report.annotation_corrupt = health["corrupt"]
     return report
 
 
