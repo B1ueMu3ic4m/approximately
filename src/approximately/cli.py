@@ -252,7 +252,8 @@ def cmd_taxonomy(args: argparse.Namespace) -> int:
 
 
 def cmd_explain(args: argparse.Namespace) -> int:
-    from .explain import explain_overview, explain_text
+    from .explain import (detectors_for_mode, explain_overview,
+                          explain_text)
     from .taxonomy import FAILURE_MODES, all_modes
 
     if getattr(args, "json", False):
@@ -262,6 +263,9 @@ def cmd_explain(args: argparse.Namespace) -> int:
                 "id": mode.id, "name": mode.name,
                 "category": mode.category,
                 "definition": mode.definition,
+                "fixes": mode.fixes,
+                "detectors": [name for _, name in
+                              detectors_for_mode(mode.id)],
             }, indent=2))
         else:
             print(json.dumps([{"id": m.id, "name": m.name,
@@ -654,6 +658,9 @@ def cmd_annotations(args: argparse.Namespace) -> int:
     """List annotations (one trace, or the whole store)."""
     store = TraceStore(args.store)
     rows = store.annotations(getattr(args, "trace", None))
+    verdict = getattr(args, "verdict", None)
+    if verdict:
+        rows = [r for r in rows if r.get("verdict") == verdict]
     if getattr(args, "json", False):
         print(json.dumps(rows, indent=2))
         return 0
@@ -1521,6 +1528,9 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("annotations", parents=[common],
                        help="list annotations (one trace, or all)")
     p.add_argument("trace", nargs="?")
+    p.add_argument("--verdict", metavar="V",
+                   help="only annotations with this verdict "
+                        "(e.g. confirmed, false-positive)")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_annotations)
 

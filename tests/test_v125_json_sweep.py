@@ -52,3 +52,30 @@ def test_optimize_json_on_empty_trace(tmp_path, capsys):
                 "--store", str(store.directory), "--json")
     assert args.func(args) == 1
     assert "nothing to optimize" in capsys.readouterr().out
+
+
+def test_explain_json_includes_fixes_and_detectors(capsys):
+    args = _run("explain", "FM-1.3", "--json")
+    assert args.func(args) == 0
+    one = json.loads(capsys.readouterr().out)
+    assert one["fixes"] and isinstance(one["fixes"], list)
+    assert any("Repeat" in d for d in one["detectors"])
+
+
+def test_annotations_verdict_filter(tmp_path, capsys):
+    from approximately.cli import cmd_annotations
+    from approximately.recorder import Recorder
+    from approximately.store import TraceStore
+
+    store = TraceStore(str(tmp_path / "s"))
+    rec = Recorder("filter fixture", save=False)
+    rec.trace.id = "f-1"
+    rec.respond("done", success=True)
+    store.save(rec.trace)
+    store.annotate("f-1", "real bug", verdict="confirmed")
+    store.annotate("f-1", "operator error", verdict="false-positive")
+    args = argparse.Namespace(store=str(store.directory), trace=None,
+                              json=True, verdict="confirmed")
+    assert cmd_annotations(args) == 0
+    rows = json.loads(capsys.readouterr().out)
+    assert [r["note"] for r in rows] == ["real bug"]
