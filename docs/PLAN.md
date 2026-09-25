@@ -1132,6 +1132,16 @@ framework adapters import lazily and degrade when the framework is absent.
      `metrics --prometheus`). An agent or ops scrape can read fleet
      health without shelling out. 3 new tests; tool count 24.
 
+102. **v0.92 - docs: count-proof tool inventories** ✅ (delivered):
+     an audit caught three docs restating the MCP tool total
+     (19/Nineteen/24 across README/ARCHITECTURE/RECIPES/TUTORIAL) -
+     every round was drifting them. Docs now describe the inventory
+     by concern groups without totals and point at `tools/list` (and
+     the count-pinning test) as the authority. ARCHITECTURE and
+     RECIPES lists also gained the recently shipped tools
+     (anomalies, diff, regression_test, metrics, annotate). No code
+     changes; the next tool needs no doc-count edits.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
