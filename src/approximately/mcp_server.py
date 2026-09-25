@@ -326,7 +326,11 @@ _TOOLS: List[Dict[str, Any]] = [
                          "description": "omit to read instead of "
                                         "write"},
                 "author": {"type": "string"},
-                "verdict": {"type": "string"},
+                "verdict": {"type": "string",
+                            "description": "write: the triage "
+                                           "verdict; read: only "
+                                           "annotations with this "
+                                           "verdict"},
             },
             "required": ["trace"],
         },
@@ -851,6 +855,10 @@ def _tool_annotate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     trace_id = str(args["trace"])
     if not args.get("note"):
         rows = store.annotations(trace_id)
+        verdict = args.get("verdict")
+        if verdict:
+            rows = [r for r in rows
+                    if r.get("verdict") == str(verdict)]
         return {"trace": trace_id, "annotations": rows}
     entry = store.annotate(trace_id, str(args["note"]),
                            author=str(args.get("author", "") or ""),
@@ -869,7 +877,22 @@ def _tool_explain(ctx: ServerContext, args: Dict[str, Any]) -> dict:
         return {"overview": explain_overview()}
     if str(mode) not in FAILURE_MODES:
         raise KeyError(f"unknown failure mode {mode!r}")
-    return {"mode": str(mode), "text": explain_text(str(mode))}
+    mode_id = str(mode)
+    tax = FAILURE_MODES[mode_id]
+    return {"mode": mode_id,
+            "text": explain_text(mode_id),
+            "id": tax.id, "name": tax.name,
+            "category": tax.category,
+            "definition": tax.definition,
+            "fixes": tax.fixes,
+            "detectors": [name for _, name in
+                          _explain_detectors(mode_id)]}
+
+
+def _explain_detectors(mode_id):
+    from .explain import detectors_for_mode
+
+    return detectors_for_mode(mode_id)
 
 
 _HANDLERS = {

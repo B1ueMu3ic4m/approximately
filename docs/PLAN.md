@@ -1277,6 +1277,12 @@ framework adapters import lazily and degrade when the framework is absent.
      a default home. Catches packaging breaks (missing data, wrong
      entry points, drifted metadata) that editable installs hide.
 
+120. **v1.10 - MCP explain/annotate final parity** ✅ (delivered):
+     the MCP `explain` tool returns the full payload (fixes + the
+     watching detectors from the live registries) matching the CLI's
+     `--json`, and the `annotate` read path gains a verdict filter.
+     2 new tests.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped

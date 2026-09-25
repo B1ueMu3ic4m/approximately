@@ -59,3 +59,36 @@ def test_group_by_agent(tmp_path):
     body = payload.get("metrics", "")
     if body:
         assert "approximately_agent" in body or body.strip() == ""
+
+
+def test_explain_tool_full_payload(tmp_path):
+    resp = handle_request({
+        "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+        "params": {"name": "explain", "arguments": {
+            "mode": "FM-1.3"}},
+    }, ServerContext("."))
+    payload = json.loads(resp["result"]["content"][0]["text"])
+    assert payload["mode"] == "FM-1.3"
+    assert payload["fixes"], "fixes list should ride along"
+    assert "Repeat" in " ".join(payload["detectors"])
+
+
+def test_annotate_read_verdict_filter(tmp_path):
+    from approximately.recorder import Recorder as R
+    from approximately.store import TraceStore as TS
+
+    store = TS(str(tmp_path / "s"))
+    rec = R("f", save=False)
+    rec.trace.id = "v-1"
+    rec.respond("done", success=True)
+    store.save(rec.trace)
+    store.annotate("v-1", "real", verdict="confirmed")
+    store.annotate("v-1", "nope", verdict="false-positive")
+    resp = handle_request({
+        "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+        "params": {"name": "annotate", "arguments": {
+            "trace": "v-1", "store": str(store.directory),
+            "verdict": "confirmed"}},
+    }, ServerContext("."))
+    payload = json.loads(resp["result"]["content"][0]["text"])
+    assert [a["note"] for a in payload["annotations"]] == ["real"]

@@ -294,6 +294,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.7** — per-tool Prometheus metrics (`metrics --by-tool` / MCP `group_by: "tool"`)
 - ✅ **v1.8** — `explain --json` full depth (fixes + detectors); `annotations --verdict` filter
 - ✅ **v1.9** — fresh-install CI job: clean-venv install, version handshake, demo + record/attribute/status loop
+- ✅ **v1.10** — MCP `explain` returns fixes + detectors; `annotate` read filters by verdict
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
