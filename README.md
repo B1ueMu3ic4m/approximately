@@ -11,6 +11,11 @@
 <b>Free & open source · Zero dependencies · MIT · Python 3.9+ · pip install approximately</b>
 </p>
 
+> **v1.0** — the toolkit is production-stable: 24 MCP tools (+resources), 7 framework
+> adapters, MAST attribution with a gated quality floor, tamper-evident evidence,
+> fleet monitoring with quiet alerting, and 1,000+ tests across a 15-job CI matrix.
+> Semver from here: breaking changes only in 2.0.
+
 ---
 
 ## What is approximately?
@@ -279,6 +284,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.97** — cross-store `similar` (`--other-store` / MCP `other_store`): nearest neighbours across projects
 - ✅ **v0.98** — RECIPES smoke: the cookbook walkthrough runs in CI, line-by-line
 - ✅ **v0.99** — the --json sweep completes: optimize / calibrate / explain / taxonomy all speak machine
+- 🎉 **v1.0** — production-stable: semver from here, breaking changes only in 2.0
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

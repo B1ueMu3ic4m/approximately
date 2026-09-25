@@ -1201,6 +1201,18 @@ framework adapters import lazily and degrade when the framework is absent.
      table with definitions). Every analysis/reference command in
      the CLI now has a structured output path. 3 new tests.
 
+110. **v1.0 - the 1.0 milestone** ✅ (delivered): semver from here.
+     The toolkit ships 24 MCP tools + a resources surface, 7
+     framework adapters, MAST attribution gated by a quality floor
+     (gold + synthetic corpora), tamper-evident chains with
+     annotation sidecars, fleet monitoring with quiet-by-default
+     alerting, regression-test minting, and 1,000+ tests across a
+     15-job CI matrix covering 6 Python lines on 3 operating
+     systems, with bandit + secret scanning and SHA-pinned actions.
+     1.0 means: the public API (Recorder, TraceStore, attribution,
+     query DSL, MCP surface) is stable; breaking changes require a
+     2.0.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
