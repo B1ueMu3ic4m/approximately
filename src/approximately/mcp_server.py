@@ -708,8 +708,7 @@ def _tool_curve(ctx: ServerContext, args: Dict[str, Any]) -> dict:
 
 
 def _tool_anomalies(ctx: ServerContext, args: Dict[str, Any]) -> dict:
-    from .anomaly import (MODIFIED_Z_THRESHOLD, detect_latency_anomalies,
-                       summarize_anomalies)
+    from .anomaly import MODIFIED_Z_THRESHOLD, detect_latency_anomalies, summarize_anomalies
 
     store = _store(ctx, args)
     trace = store.load(str(args["trace"]))
