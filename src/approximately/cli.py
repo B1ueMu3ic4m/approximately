@@ -680,6 +680,12 @@ def cmd_status(args: argparse.Namespace) -> int:
     if last_failed is not None:
         result = verify(last_failed)
         chain = result.verdict
+    trend = None
+    digest_dir = getattr(args, "digest_dir", None)
+    if digest_dir and Path(digest_dir).is_dir():
+        from .fleet import summarize_trend, trend_days
+
+        trend = summarize_trend(trend_days(Path(digest_dir)))
     payload = {
         "store": str(store.directory),
         "traces": stats.traces,
@@ -693,6 +699,7 @@ def cmd_status(args: argparse.Namespace) -> int:
             "task": (last_failed.task or "")[:80],
             "chain": chain,
         },
+        "trend": trend,
     }
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2))
@@ -700,6 +707,8 @@ def cmd_status(args: argparse.Namespace) -> int:
     rate = f"{stats.failure_rate:.0%}" if stats.traces else "-"
     print(f"{store.directory}: {stats.traces} traces, "
           f"{stats.failures} failed ({rate})")
+    if trend:
+        print(f"  fleet trend: {trend['verdict']}")
     if stats.mode_counts:
         top = ", ".join(f"{m} x{c}"
                         for m, c in list(stats.mode_counts.items())[:3])
@@ -1512,6 +1521,9 @@ def build_parser() -> argparse.ArgumentParser:
                             "failure, triage, trend")
     p.add_argument("--since", type=int, metavar="DAYS",
                    help="only traces created in the last DAYS days")
+    p.add_argument("--digest-dir", metavar="DIR",
+                   help="also report the fleet trend verdict from "
+                        "this digest history")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_status)
 

@@ -285,6 +285,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.98** — RECIPES smoke: the cookbook walkthrough runs in CI, line-by-line
 - ✅ **v0.99** — the --json sweep completes: optimize / calibrate / explain / taxonomy all speak machine
 - 🎉 **v1.0** — production-stable: semver from here, breaking changes only in 2.0
+- ✅ **v1.1** — `status --digest-dir`: the fleet trend verdict joins the ops overview
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

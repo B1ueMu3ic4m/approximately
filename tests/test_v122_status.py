@@ -80,3 +80,18 @@ def test_fleet_survey_carries_triage_tallies(tmp_path):
     payload = webhook_payload(summaries)["stores"][0]
     assert payload["annotations"] == 1
     assert payload["annotations_confirmed"] == 1
+
+
+def test_status_with_trend(tmp_path, capsys):
+    """v1.1: `status --digest-dir` reports the fleet trend verdict."""
+    from approximately.fleet import append_digest, digest_snapshot, survey
+
+    store = _store(tmp_path)
+    digests = tmp_path / "digests"
+    digests.mkdir()
+    append_digest(digests, digest_snapshot(survey([store.directory])))
+    args = argparse.Namespace(store=str(store.directory), json=True,
+                              since=None, digest_dir=str(digests))
+    assert cmd_status(args) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["trend"] and payload["trend"]["verdict"]
