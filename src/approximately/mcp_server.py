@@ -361,6 +361,28 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "regression_test",
+        "description": "Mint a self-contained pytest regression file "
+                       "from a failed trace (the trace rides along as "
+                       "base64): the failure can never silently "
+                       "return. Returns the file content; write it "
+                       "where your tests live.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "trace": {"type": "string"},
+                "store": {"type": "string"},
+                "budget": {"type": "number",
+                           "description": "context-token budget "
+                                          "guard (optional)"},
+                "min_recall": {"type": "number",
+                               "description": "fact-recall floor "
+                                              "(default 0.8)"},
+            },
+            "required": ["trace"],
+        },
+    },
+    {
         "name": "bench_gate",
         "description": "Attribution-quality regression gate: run the "
                        "rule detectors over a labeled JSONL dataset "
@@ -707,6 +729,27 @@ def _tool_curve(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     return curve_payload(budget_curve(trace))
 
 
+def _tool_regression_test(ctx: ServerContext,
+                          args: Dict[str, Any]) -> dict:
+    from .attributor import attribute
+    from .regress import render_regression
+
+    store = _store(ctx, args)
+    trace = store.load(str(args["trace"]))
+    if trace is None:
+        raise KeyError(f"no trace {args['trace']!r} in store")
+    report = attribute(trace)
+    budget = int(args["budget"]) if args.get("budget") else None
+    min_recall = (float(args["min_recall"])
+                  if args.get("min_recall") else 0.8)
+    content = render_regression(trace, report, budget=budget,
+                                min_recall=min_recall)
+    return {"trace": trace.id,
+            "filename": f"test_approximately_{trace.id}.py",
+            "bytes": len(content),
+            "content": content}
+
+
 def _tool_anomalies(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .anomaly import MODIFIED_Z_THRESHOLD, detect_latency_anomalies, summarize_anomalies
 
@@ -800,6 +843,7 @@ _HANDLERS = {
     "annotate": _tool_annotate,
     "anomalies": _tool_anomalies,
     "diff": _tool_diff,
+    "regression_test": _tool_regression_test,
 }
 
 
