@@ -328,6 +328,39 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "anomalies",
+        "description": "Latency anomaly detection for one trace: "
+                       "per-step modified z-scores over tool-call "
+                       "latency, worst first. isError is set when "
+                       "anomalies exist.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "trace": {"type": "string"},
+                "store": {"type": "string"},
+                "threshold": {"type": "number",
+                              "description": "z-score threshold "
+                                             "(default 3.5)"},
+            },
+            "required": ["trace"],
+        },
+    },
+    {
+        "name": "diff",
+        "description": "Structural diff of two traces (alignment "
+                       "ops + similarity) with the divergences ranked "
+                       "most-different first.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "trace": {"type": "string"},
+                "other": {"type": "string"},
+            },
+            "required": ["trace", "other"],
+        },
+    },
+    {
         "name": "bench_gate",
         "description": "Attribution-quality regression gate: run the "
                        "rule detectors over a labeled JSONL dataset "
@@ -674,6 +707,51 @@ def _tool_curve(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     return curve_payload(budget_curve(trace))
 
 
+def _tool_anomalies(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .anomaly import (MODIFIED_Z_THRESHOLD, detect_latency_anomalies,
+                       summarize_anomalies)
+
+    store = _store(ctx, args)
+    trace = store.load(str(args["trace"]))
+    if trace is None:
+        raise KeyError(f"no trace {args['trace']!r} in store")
+    threshold = (float(args["threshold"])
+                 if args.get("threshold")
+                 else MODIFIED_Z_THRESHOLD)
+    anomalies = detect_latency_anomalies(trace, threshold=threshold)
+    return {"trace": trace.id,
+            "count": len(anomalies),
+            "summary": summarize_anomalies(anomalies),
+            "anomalies": [{"step": a.step_index,
+                           "tool": a.tool,
+                           "latency_ms": a.latency_ms,
+                           "z": round(a.robust_z, 3),
+                           "median_ms": a.median_ms}
+                          for a in anomalies]}
+
+
+def _tool_diff(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .diff import diff as trace_diff
+
+    store = _store(ctx, args)
+    a = store.load(str(args["trace"]))
+    if a is None:
+        raise KeyError(f"no trace {args['trace']!r} in store")
+    b = store.load(str(args["other"]))
+    if b is None:
+        raise KeyError(f"no trace {args['other']!r} in store")
+    td = trace_diff(a, b)
+    return {"a": td.a_id, "b": td.b_id,
+            "similarity": round(td.similarity, 4),
+            "counts": {op.name.lower(): n
+                       for op, n in td.counts.items() if n},
+            "divergences": [{"op": e.op.name.lower(),
+                             "a_index": e.a_index, "b_index": e.b_index,
+                             "similarity": round(e.similarity, 4),
+                             "detail": e.detail}
+                            for e in td.divergences(limit=5)]}
+
+
 def _tool_annotate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     store = _store(ctx, args)
     trace_id = str(args["trace"])
@@ -721,6 +799,8 @@ _HANDLERS = {
     "context": _tool_context,
     "curve": _tool_curve,
     "annotate": _tool_annotate,
+    "anomalies": _tool_anomalies,
+    "diff": _tool_diff,
 }
 
 

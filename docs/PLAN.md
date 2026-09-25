@@ -1110,6 +1110,14 @@ framework adapters import lazily and degrade when the framework is absent.
     3.12, 3.14} minus the two documented excludes. No source
     changes; the suite passes on every added interpreter.
 
+99. **v0.89 - MCP anomalies + diff (tools #21 and #22)** ✅
+    (delivered): `anomalies` flags per-step latency outliers
+    (modified z-score over tool-call steps, worst first, isError on
+    detection); `diff` gives the structural alignment of two traces
+    with divergences ranked most-different first. The MCP surface
+    now covers the fleet-ops and forensics pair completely. 4 new
+    tests.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
