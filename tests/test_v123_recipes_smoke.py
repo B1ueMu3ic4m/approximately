@@ -81,5 +81,5 @@ def test_recipe_status_and_verify(store):
     assert verify.returncode == 0, verify.stderr
     status = _cli("status", "--store", str(store.directory))
     assert status.returncode == 0, status.stderr
-    assert "1 traces, 1 failed" in status.stdout
+    assert "2 traces, 1 failed (50%)" in status.stdout
     assert "last failure: bad-1" in status.stdout
