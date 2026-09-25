@@ -220,7 +220,12 @@ def cmd_context(args: argparse.Namespace) -> int:
     facts = default_facts(trace) if not args.facts else json.loads(
         Path(args.facts).read_text(encoding="utf-8")
     )
+    from .context import forecast_payload
+
     fc = forecast(trace, budget=args.budget, facts=facts)
+    if getattr(args, "json", False):
+        print(json.dumps(forecast_payload(fc), indent=2))
+        return 0
     print(fc.summary())
     return 0
 
@@ -1087,6 +1092,11 @@ def cmd_curve(args: argparse.Namespace) -> int:
     if args.budgets:
         budgets = [int(b) for b in args.budgets.split(",") if b.strip()]
     curve = budget_curve(trace, budgets=budgets)
+    if getattr(args, "json", False):
+        from .curve import curve_payload
+
+        print(json.dumps(curve_payload(curve), indent=2))
+        return 0
     scatter = success_vs_tokens(store.list_traces()) if args.scatter else None
     out = Path(args.output) if args.output else store.directory / f"{trace.id}.curve.html"
     out.write_text(render_curve_html(curve, scatter), encoding="utf-8")
@@ -1314,6 +1324,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="token budget to simulate (default 400)")
     p.add_argument("--facts", help="JSON file mapping fact keys -> expected substrings "
                                    "(default: one fact per tool result)")
+    p.add_argument("--json", action="store_true",
+                   help="emit the same payload as the MCP context tool")
     p.set_defaults(func=cmd_context)
 
     p = sub.add_parser("new", help="scaffold an instrumented agent project")
@@ -1606,6 +1618,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--scatter", action="store_true",
                    help="overlay all store traces colored by success")
     p.add_argument("--budgets", help="comma-separated budget list, e.g. 200,500,1000")
+    p.add_argument("--json", action="store_true",
+                   help="emit the same payload as the MCP curve tool "
+                        "(no HTML page is written)")
     p.set_defaults(func=cmd_curve)
 
     p = sub.add_parser("distill", parents=[common],
