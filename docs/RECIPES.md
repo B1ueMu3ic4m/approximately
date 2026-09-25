@@ -171,7 +171,8 @@ immediately:
 
 ```bash
 approximately similar <trace-id> --top 5
-# or over MCP: tools/call similar {trace, store, top}
+approximately similar <trace-id> --other-store other-project/traces
+# or over MCP: tools/call similar {trace, store, other_store, top}
 ```
 
 Scores are structure-aware sequence alignment over steps (in [0, 1]),

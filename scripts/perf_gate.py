@@ -34,7 +34,7 @@ def main() -> int:
                              "milliseconds (default 50, ~25x headroom)")
     args = parser.parse_args()
     return (attribution_gate(args) + agent_wave_gate()
-            + query_gate())
+            + query_gate() + similar_gate())
 
 def attribution_gate(args) -> int:
     labeled = load_dataset(SYNTH, fmt="approx")
@@ -125,6 +125,45 @@ def query_gate(budget_s: float = 2.0) -> int:
           + ("PASS" if elapsed <= budget_s else "FAIL"))
     if elapsed > budget_s:
         print("FAIL: select slowed past budget - memoization regressed?",
+              file=sys.stderr)
+        return 1
+    return 0
+
+
+
+
+
+def similar_gate(budget_s: float = 2.0) -> int:
+    """Nearest-neighbour ranking over a 2000-trace store.
+
+    rank_similar skips the quadratic DP below the top-N threshold
+    (v1.4); this gate pins that - the same store ranked in 0.2 s
+    after the change and would blow the budget if the pruning
+    regressed to per-candidate full scans.
+    """
+    from approximately.align import rank_similar
+    from approximately.recorder import Recorder
+
+    traces = []
+    for i in range(2000):
+        rec = Recorder(f"t {i}", save=False)
+        rec.trace.id = f"big-{i}"
+        for j in range(20):
+            rec.tool("probe", {"i": j}, result="ok")
+        rec.respond("done", success=bool(i % 3))
+        traces.append(rec.trace)
+
+    start = time.perf_counter()
+    ranked = rank_similar(traces[0], traces, top=5)
+    elapsed = time.perf_counter() - start
+    if len(ranked) != 5 or ranked[0][0].id != traces[0].id:
+        print("FAIL: similar gate ranked wrong", file=sys.stderr)
+        return 1
+    print(f"perf-gate[similar]: rank 2000 traces in "
+          f"{elapsed:.2f}s (budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: similar slowed past budget - pruning regressed?",
               file=sys.stderr)
         return 1
     return 0

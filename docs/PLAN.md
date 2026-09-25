@@ -1244,6 +1244,12 @@ framework adapters import lazily and degrade when the framework is absent.
      against a brute-force reference). 2000-trace store: 0.20 s.
      2 new tests.
 
+115. **v1.5 - similar perf gate + cross-store recipe** ✅
+     (delivered): the fourth perf gate pins rank_similar's pruning -
+     a 2000-trace ranking must stay in budget (0.2 s against 2 s) or
+     the pruning has regressed. RECIPES' neighbour recipe gains the
+     cross-store form. No library changes.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
