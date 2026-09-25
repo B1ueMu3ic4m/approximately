@@ -288,6 +288,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.1** — `status --digest-dir`: the fleet trend verdict joins the ops overview
 - ✅ **v1.2** — TUTORIAL gains the triage step: annotate + status
 - ✅ **v1.3** — end-to-end operator journey test: the full loop through the real CLI, all seams watched
+- ✅ **v1.4** — rank_similar pruning: identical ranking, quadratic DP skipped below the top-N threshold
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

@@ -96,14 +96,42 @@ def similarity(a: Trace, b: Trace) -> float:
 
 def rank_similar(target: Trace, traces: List[Trace],
                  top: int = 5) -> List[Tuple[Trace, float]]:
-    """The ``top`` most alignment-similar traces to *target*, best first."""
-    scored = [
-        (candidate, similarity(target, candidate))
-        for candidate in traces
-        if candidate.id != target.id
-    ]
-    scored.sort(key=lambda pair: -pair[1])
-    return scored[:top]
+    """The ``top`` most alignment-similar traces to *target*, best first.
+
+    Two savings keep this linear-ish on big stores while returning
+    exactly the same ranking as the brute-force scan:
+
+    - the target's tokens are normalized once, not once per candidate
+    - a candidate whose length-ratio upper bound
+      (``similarity <= 2*min/max``) is strictly below the current
+      Nth-best score can no longer enter the top N, so its quadratic
+      DP is skipped. Input order is preserved, so ties break exactly
+      as they did before.
+    """
+    target_tokens = tokens(target)
+    n_target = len(target_tokens)
+    scored: List[Tuple[Trace, float]] = []
+    threshold = 0.0  # score of the current Nth place (0 while unfilled)
+    for candidate in traces:
+        if candidate.id == target.id:
+            continue
+        cand_tokens = tokens(candidate)
+        n_cand = len(cand_tokens)
+        if n_target == 0 or n_cand == 0:
+            score = 0.0
+        else:
+            upper = min(n_target, n_cand) / max(n_target, n_cand)
+            if len(scored) >= top and upper < threshold:
+                continue  # cannot enter the top N
+            score = max(0.0, min(
+                1.0, align_score(target_tokens, cand_tokens)
+                / (MATCH_SCORE * max(n_target, n_cand))))
+        scored.append((candidate, score))
+        scored.sort(key=lambda pair: -pair[1])
+        del scored[top:]
+        if top > 0 and len(scored) >= top:
+            threshold = scored[-1][1]
+    return scored
 
 
 def similar_payload(target, traces, top: int = 5) -> dict:
