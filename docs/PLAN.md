@@ -1102,6 +1102,14 @@ framework adapters import lazily and degrade when the framework is absent.
     lines flowing through all three conflict policies). Every probe
     contained. 4 new tests; corpus pinned.
 
+98. **v0.88 - CI covers every Python it claims** ✅ (delivered): an
+    audit found classifiers promising 3.10 and 3.11 while the CI
+    matrix tested only 3.9/3.12/3.14 - two advertised interpreter
+    lines were never verified. The matrix now runs all six
+    combinations of {ubuntu, macos, windows} x {3.9, 3.10, 3.11,
+    3.12, 3.14} minus the two documented excludes. No source
+    changes; the suite passes on every added interpreter.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
