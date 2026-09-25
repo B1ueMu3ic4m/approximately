@@ -9,6 +9,7 @@ names is data, not markup.
 """
 
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 from approximately.benchgate import junit_xml
 
@@ -88,3 +89,24 @@ def test_run_gate_writes_junit(tmp_path):
     suite = ET.parse(out).getroot()
     assert suite.get("name") == "approximately.bench-gate[test-gate]"
     assert suite.get("failures") == "0"
+
+
+def test_min_records_fails_shrunken_dataset(tmp_path):
+    """v1.11: a dataset that shrank below min_records fails loudly -
+    a small sample can pass any floor by luck."""
+    import json as _json
+
+    from approximately.benchgate import gate_result
+
+    root = Path(__file__).resolve().parents[1]
+    floors = {
+        **_json.loads((root / "docs" / "bench-floors.json")
+                      .read_text(encoding="utf-8")),
+        "min_records": 10_000,
+    }
+    floors_path = tmp_path / "floors.json"
+    floors_path.write_text(_json.dumps(floors), encoding="utf-8")
+    result = gate_result(root / "docs" / "mast-bench-multi.jsonl",
+                         floors_path)
+    assert result["passed"] is False
+    assert any("min_records" in v for v in result["violations"])

@@ -59,6 +59,12 @@ def gate_result(dataset: Path, floors_path: Path) -> dict:
              for t, labels in labeled]
     multi = evaluate_multi(pairs)
     violations = check_floors(multi, floors)
+    min_records = floors.get("min_records")
+    if min_records is not None and len(pairs) < int(min_records):
+        shrink = (f"records {len(pairs)} < min_records {min_records} "
+                  "- the dataset itself shrank; a small sample can "
+                  "pass any floor by luck")
+        violations = [*violations, shrink]
     return {
         "records": len(pairs),
         "modes": {mode: {
