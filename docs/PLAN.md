@@ -1250,6 +1250,14 @@ framework adapters import lazily and degrade when the framework is absent.
      the pruning has regressed. RECIPES' neighbour recipe gains the
      cross-store form. No library changes.
 
+116. **v1.6 - nearest neighbours on the postmortem** ✅
+     (delivered): the report answers "which runs look like this
+     one" - an alignment-ranked table of the three most similar runs
+     in the same store, on both HTML and Markdown, hidden when the
+     store is empty or the trace is alone. Same-store only by
+     design: cross-store stays an explicit `--other-store` question.
+     3 new tests.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped

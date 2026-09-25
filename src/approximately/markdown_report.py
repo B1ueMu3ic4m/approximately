@@ -114,6 +114,17 @@ def render_markdown(trace: "Trace", report: "FailureReport",
                      for i, fix in enumerate(report.suggested_fixes, 1))
     lines.append("")
     lines.extend(_counterfactual_lines(trace))
+    if store is not None:
+        try:
+            from .align import rank_similar
+
+            ranked = rank_similar(trace, store.list_traces(), top=3)
+        except Exception:
+            ranked = []
+        if ranked:
+            lines += ["", "### Nearest neighbours", ""]
+            lines += [f"- `{c.id}` similarity {r:.2f} — "
+                      f"{(c.task or '')[:60]}" for c, r in ranked]
     lines.extend(_timeline_lines(trace))
     if store is not None:
         try:
