@@ -744,6 +744,34 @@ framework adapters import lazily and degrade when the framework is absent.
     predicates; the unknown-field error now lists the new field.
     5 new tests.
 
+54. **v0.50 — the Release workflow creates the GitHub Release**
+    ✅ (delivered): pushing a v* tag now produces BOTH the PyPI
+    publication and the Releases-page entry (auto-generated notes
+    from merged PRs, sdist + wheel attached) - previously the
+    workflow only published to PyPI, so the Releases page would
+    have stayed empty even after tagging. RELEASE.md documents the
+    empty-page cause honestly: versions were bumped in code, tags
+    were never pushed.
+
+---
+
+55. **v0.50 — fully automatic releases** ✅ (delivered): a new
+    `autotag.yml` watches main - when a merge changes the pyproject
+    version it tags it and dispatches `release.yml` (which gained a
+    `workflow_dispatch` trigger for exactly this; a GITHUB_TOKEN tag
+    push cannot trigger workflows, hence the explicit dispatch).
+    The pipeline now creates the GitHub Release first and treats
+    PyPI as best-effort (`continue-on-error`): token path if
+    PYPI_API_TOKEN exists, Trusted Publishing fallback, a notice
+    instead of a failure until credentials land. RELEASE.md
+    rewritten around the no-human-steps flow.
+
+56. **v0.50 — runner-up hypotheses in the human-facing reports**
+    ✅ (delivered): HTML reports gain a "Runner-up Hypotheses"
+    card and Markdown reports a matching section (mode, label,
+    detection count, max confidence) - completing v82, where only
+    the CLI/JSON/MCP surfaces carried them. Hidden when the
+    detectors fired for the primary mode alone. 4 new tests.
 57. **v0.50 — doctor detects legacy agent identity** ✅
     (delivered): stores recorded before v0.50 carry the actor in
     step `meta["agent"]`; the doctor now lists affected files
@@ -947,6 +975,15 @@ framework adapters import lazily and degrade when the framework is absent.
     call, not a shell-out. 5 new tests incl. tight-vs-loose budget
     eviction ordering and curve monotonicity.
 
+80. **v0.70 - docs catch-up round** ✅ (delivered): the written
+    surface catches up with the shipped one. ARCHITECTURE's
+    mcp_server entry now describes the real 19-tool inventory (grouped
+    by concern); TUTORIAL's MCP section lists the tool surface with
+    the recidivist/drift entry points; RECIPES gains two recipes -
+    alignment neighbours (similar) for "which run is this one like?"
+    and PSI drift windows for "is the fleet changing behaviour?". No
+    code changes; docs validated against the tool list the tests
+    pin.
 81. **v0.71 - pydantic-ai adapter** ✅ (delivered): the sixth
     framework adapter. Pydantic AI runs end with
     ``result.all_messages()``; ``trace_from_pydantic_ai`` transcribes
@@ -1289,44 +1326,12 @@ framework adapters import lazily and degrade when the framework is absent.
      `min_records`: below it the gate fails with a violation that
      names the shrinkage. 1 new test.
 
-80. **v0.70 - docs catch-up round** ✅ (delivered): the written
-    surface catches up with the shipped one. ARCHITECTURE's
-    mcp_server entry now describes the real 19-tool inventory (grouped
-    by concern); TUTORIAL's MCP section lists the tool surface with
-    the recidivist/drift entry points; RECIPES gains two recipes -
-    alignment neighbours (similar) for "which run is this one like?"
-    and PSI drift windows for "is the fleet changing behaviour?". No
-    code changes; docs validated against the tool list the tests
-    pin.
+122. **v1.12 - PLAN renumbered** ✅ (delivered): the milestone
+     ledger itself got an audit - items 54-56 and 80 had drifted
+     into the appendix zone through the years of anchor-based
+     inserts; the delivered list now reads as one continuous
+     1-121 sequence. Docs-only.
 
-55. **v0.50 — fully automatic releases** ✅ (delivered): a new
-    `autotag.yml` watches main - when a merge changes the pyproject
-    version it tags it and dispatches `release.yml` (which gained a
-    `workflow_dispatch` trigger for exactly this; a GITHUB_TOKEN tag
-    push cannot trigger workflows, hence the explicit dispatch).
-    The pipeline now creates the GitHub Release first and treats
-    PyPI as best-effort (`continue-on-error`): token path if
-    PYPI_API_TOKEN exists, Trusted Publishing fallback, a notice
-    instead of a failure until credentials land. RELEASE.md
-    rewritten around the no-human-steps flow.
-
-56. **v0.50 — runner-up hypotheses in the human-facing reports**
-    ✅ (delivered): HTML reports gain a "Runner-up Hypotheses"
-    card and Markdown reports a matching section (mode, label,
-    detection count, max confidence) - completing v82, where only
-    the CLI/JSON/MCP surfaces carried them. Hidden when the
-    detectors fired for the primary mode alone. 4 new tests.
-
-54. **v0.50 — the Release workflow creates the GitHub Release**
-    ✅ (delivered): pushing a v* tag now produces BOTH the PyPI
-    publication and the Releases-page entry (auto-generated notes
-    from merged PRs, sdist + wheel attached) - previously the
-    workflow only published to PyPI, so the Releases page would
-    have stayed empty even after tagging. RELEASE.md documents the
-    empty-page cause honestly: versions were bumped in code, tags
-    were never pushed.
-
----
 
 ## 4. Launch plan
 
