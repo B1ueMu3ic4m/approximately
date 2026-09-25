@@ -259,6 +259,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.78** — fleet watch posts the HMAC-signed summary every cycle (`--webhook`); delivery failure warns, never stops the loop
 - ✅ **v0.79** — annotations hygiene: `merge` carries the sidecar (rename-aware, deduped), `doctor` tallies unreadable lines
 - ✅ **v0.80** — `context --json` / `curve --json`: CLI and MCP render the identical budget-forecast payloads
+- ✅ **v0.81** — `fleet --watch --alert-worse-than RATE`: webhook pages only on signal (worsening trend or rate breach); recording never stops
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

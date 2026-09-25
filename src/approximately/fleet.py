@@ -517,11 +517,26 @@ def render_trend(summary: dict) -> str:
     return "\n".join(lines)
 
 
+def _should_alert(summaries, threshold: Optional[float]) -> bool:
+    """Quiet-by-default alerting: post only on signal, not on schedule.
+
+    No threshold: every cycle posts (the schedule is the signal).
+    With ``alert_worse_than``: only when a store's trend is worsening
+    or its failure rate is at/above the threshold - a healthy fleet
+    must not page anyone.
+    """
+    if threshold is None:
+        return True
+    return any(s.worsening or s.failure_rate >= threshold
+               for s in summaries)
+
+
 def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
                 keep_days: int = 30, iterations: Optional[int] = None,
                 top_agents: int = 3, sleep=time.sleep,
                 webhook_url: Optional[str] = None,
-                notify=None) -> int:
+                notify=None, alert_worse_than: Optional[float] = None
+                ) -> int:
     """Poll the fleet forever (or ``iterations`` times), appending
     snapshots. Returns the number of snapshots written. ``sleep`` is
     injectable so tests run instantly.
@@ -538,7 +553,7 @@ def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
         summaries = survey(stores, top_agents)
         append_digest(digest_dir, digest_snapshot(summaries))
         written += 1
-        if webhook_url:
+        if webhook_url and _should_alert(summaries, alert_worse_than):
             poster = notify or notify_webhook
             try:
                 poster(summaries, webhook_url)

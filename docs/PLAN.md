@@ -1045,6 +1045,14 @@ framework adapters import lazily and degrade when the framework is absent.
     HTML page) and the MCP tools (#18/#19) render the identical
     object. 2 new parity tests pin CLI==MCP byte-for-byte.
 
+91. **v0.81 - quiet-by-default watch alerting** ✅ (delivered):
+    `--alert-worse-than RATE` gates the watch webhook on signal, not
+    schedule - the POST fires only when a store's trend is worsening
+    or its failure rate is at/above the line, so a healthy fleet
+    pages nobody. Digest snapshots still land every cycle regardless:
+    the threshold gates the notification, never the recording.
+    5 new tests.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
