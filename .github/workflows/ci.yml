@@ -71,6 +71,38 @@ jobs:
         run: |
           ! grep -rInE '(api[_-]?key|secret|token|password)["'"'"' ]*[:=]["'"'"' ]*[A-Za-z0-9+/]{16,}' src .github pyproject.toml | grep -v PYPI_API_TOKEN
 
+  fresh-install:
+    # Simulates a brand-new user: install from a clean venv (no -e),
+    # run --version, the demo tour, and a full record->attribute->report
+    # loop through the installed console script.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.12"
+      - name: Clean install (no editable)
+        run: |
+          python -m venv fresh
+          fresh/bin/pip install .
+      - name: Version matches checkout
+        run: |
+          declared=$(grep -oP '(?<=^version = ")[^"]+' pyproject.toml)
+          fresh/bin/approximately --version | grep -qx "approximately $declared"
+      - name: Demo tour works from a clean install
+        run: fresh/bin/approximately demo
+      - name: Record, attribute, report via console script
+        run: |
+          export APPROXIMATELY_HOME=$PWD/fresh-home
+          fresh/bin/python - <<'PY'
+          from approximately import Recorder, TraceStore
+          rec = Recorder("fresh install check", store=TraceStore())
+          rec.tool("search", {"q": 1}, result="hit")
+          rec.respond("done", success=False)
+          print(rec.trace.id)
+          PY
+          fresh/bin/approximately status --json
+
   test-contrib:
     # Framework adapters against the real packages (LangChain/LangGraph and
     # OpenAI Agents SDK); CrewAI adapter is covered by graceful-skip tests.

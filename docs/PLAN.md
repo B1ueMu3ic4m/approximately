@@ -1264,6 +1264,19 @@ framework adapters import lazily and degrade when the framework is absent.
      approximately_tool_* series - the renderer is generalized so
      agent and tool share one implementation. 1 new test.
 
+118. **v1.8 - explain --json full depth + annotate verdict filter**
+     ✅ (delivered): `explain <mode> --json` carries the mode's fixes
+     and its watching detectors (from the live registries, not docs);
+     `annotations --verdict confirmed` filters the triage log. 2 new
+     tests.
+
+119. **v1.9 - fresh-install CI job** ✅ (delivered): a clean-venv,
+     non-editable install job - the version handshake must match the
+     checkout, the demo tour must run, and a record -> attribute ->
+     status loop must work through the installed console script with
+     a default home. Catches packaging breaks (missing data, wrong
+     entry points, drifted metadata) that editable installs hide.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
