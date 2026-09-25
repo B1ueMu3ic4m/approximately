@@ -213,6 +213,41 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "similar",
+        "description": "Most alignment-similar traces to a given "
+                       "trace, best first (structure-aware sequence "
+                       "alignment over steps, score in [0, 1]).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "trace": {"type": "string"},
+                "store": {"type": "string"},
+                "top": {"type": "number",
+                        "description": "how many candidates "
+                                       "(default 5)"},
+            },
+            "required": ["trace"],
+        },
+    },
+    {
+        "name": "drift",
+        "description": "Behaviour drift between the oldest and newest "
+                       "traces of a store: Population Stability Index "
+                       "over action histograms, with the biggest "
+                       "shifted actions.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "baseline_ratio": {"type": "number",
+                                   "description": "share of oldest "
+                                                  "traces forming the "
+                                                  "baseline window "
+                                                  "(default 0.5)"},
+            },
+        },
+    },
+    {
         "name": "bench_gate",
         "description": "Attribution-quality regression gate: run the "
                        "rule detectors over a labeled JSONL dataset "
@@ -475,6 +510,41 @@ def _tool_cluster(ctx: ServerContext, args: Dict[str, Any]) -> dict:
             "clusters": clusters}
 
 
+def _tool_similar(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .align import rank_similar
+
+    store = _store(ctx, args)
+    trace = store.load(str(args["trace"]))
+    if trace is None:
+        raise KeyError(f"no trace {args['trace']!r} in store")
+    top = int(args["top"]) if args.get("top") else 5
+    ranked = rank_similar(trace, store.list_traces(), top=max(0, top))
+    return {"trace": trace.id,
+            "matches": [{"id": c.id, "task": c.task,
+                         "similarity": round(score, 4)}
+                        for c, score in ranked]}
+
+
+def _tool_drift(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .drift import detect_drift
+
+    traces = sorted(_store(ctx, args).list_traces(),
+                    key=lambda t: t.created_at)
+    ratio = float(args.get("baseline_ratio", 0.5) or 0.5)
+    split_at = int(len(traces) * ratio)
+    baseline, current = traces[:split_at], traces[split_at:]
+    if not baseline or not current:
+        raise KeyError("need traces in both windows (baseline = "
+                       "oldest, current = newest)")
+    report = detect_drift(baseline, current)
+    return {"psi": round(report.psi, 4), "verdict": report.verdict,
+            "baseline_actions": report.baseline_actions,
+            "current_actions": report.current_actions,
+            "top_shifted": [{"action": a, "baseline_share": round(b, 4),
+                             "current_share": round(c, 4)}
+                            for a, b, c in report.top_shifted]}
+
+
 def _tool_explain(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .explain import explain_overview, explain_text
     from .taxonomy import FAILURE_MODES
@@ -501,6 +571,8 @@ _HANDLERS = {
     "bench_gate": _tool_bench_gate,
     "scoreboard": _tool_scoreboard,
     "cluster": _tool_cluster,
+    "similar": _tool_similar,
+    "drift": _tool_drift,
 }
 
 
