@@ -1332,6 +1332,13 @@ framework adapters import lazily and degrade when the framework is absent.
      inserts; the delivered list now reads as one continuous
      1-121 sequence. Docs-only.
 
+123. **v1.13 - status knows the ledger and the top recidivist** ✅
+     (delivered): the ops overview now also reports evidence-ledger
+     health (intact / BROKEN when the ledger is in use) and the
+     busiest recidivist agent via the min_failed=2 filter - JSON
+     fields plus text lines. 1 new test surface via the existing
+     status fixtures.
+
 
 ## 4. Launch plan
 

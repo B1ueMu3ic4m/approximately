@@ -700,6 +700,12 @@ def cmd_status(args: argparse.Namespace) -> int:
         from .fleet import summarize_trend, trend_days
 
         trend = summarize_trend(trend_days(Path(digest_dir)))
+    from .cluster import agent_scorecard
+    from .ledger import verify_ledger
+
+    recidivists = agent_scorecard(traces,
+                             min_failed=2)
+    ledger = verify_ledger(store.directory)
     payload = {
         "store": str(store.directory),
         "traces": stats.traces,
@@ -714,6 +720,10 @@ def cmd_status(args: argparse.Namespace) -> int:
             "chain": chain,
         },
         "trend": trend,
+        "ledger_intact": None if not ledger.entries
+        else ledger.intact,
+        "top_recidivist": (recidivists[0]["agent"]
+                           if recidivists else None),
     }
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2))
@@ -723,6 +733,17 @@ def cmd_status(args: argparse.Namespace) -> int:
           f"{stats.failures} failed ({rate})")
     if trend:
         print(f"  fleet trend: {trend['verdict']}")
+    if ledger.entries:
+        if ledger.intact:
+            print("  ledger: intact")
+        else:
+            print("  ledger: BROKEN")
+        print("  ledger: intact")
+    else:
+        print("  ledger: BROKEN")
+    if recidivists:
+        print(f"  top recidivist: {recidivists[0]['agent']} "
+              f"({recidivists[0]['failed_traces']} failed)")
     if stats.mode_counts:
         top = ", ".join(f"{m} x{c}"
                         for m, c in list(stats.mode_counts.items())[:3])
