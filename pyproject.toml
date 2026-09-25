@@ -48,6 +48,7 @@ packages = ["src/approximately"]
 include = ["src", "tests", "docs", "README.md", "CHANGELOG.md", "LICENSE"]
 
 [tool.pytest.ini_options]
+faulthandler_timeout = 120
 testpaths = ["tests"]
 
 [tool.ruff]

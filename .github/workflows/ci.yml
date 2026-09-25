@@ -31,8 +31,10 @@ jobs:
         run: pip install -e ".[dev]"
       - name: Test
         run: pytest -q
+        timeout-minutes: 12
       - name: Demo smoke test
         run: python -m approximately.cli demo
+        timeout-minutes: 5
 
   test-llm:
     # Judge integration tests: real openai client vs a local fake server.
