@@ -310,6 +310,29 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "annotate",
+        "description": "Attach an analyst note to a trace "
+                       "(append-only sidecar; the evidence chain "
+                       "stays untouched). With a note: writes it "
+                       "(verdict: confirmed / false-positive are "
+                       "the triage idioms). Without: returns the "
+                       "annotations on file (trace filter "
+                       "optional).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "trace": {"type": "string"},
+                "note": {"type": "string",
+                         "description": "omit to read instead of "
+                                        "write"},
+                "author": {"type": "string"},
+                "verdict": {"type": "string"},
+            },
+            "required": ["trace"],
+        },
+    },
+    {
         "name": "bench_gate",
         "description": "Attribution-quality regression gate: run the "
                        "rule detectors over a labeled JSONL dataset "
@@ -663,6 +686,20 @@ def _tool_curve(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                        for p in curve.points]}
 
 
+def _tool_annotate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    store = _store(ctx, args)
+    trace_id = str(args["trace"])
+    if not args.get("note"):
+        rows = store.annotations(trace_id)
+        return {"trace": trace_id, "annotations": rows}
+    entry = store.annotate(trace_id, str(args["note"]),
+                           author=str(args.get("author", "") or ""),
+                           verdict=str(args.get("verdict", "") or ""))
+    return {"trace": trace_id, "annotated": True,
+            "total_on_file": len(store.annotations(trace_id)),
+            "entry": entry}
+
+
 def _tool_explain(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .explain import explain_overview, explain_text
     from .taxonomy import FAILURE_MODES
@@ -695,6 +732,7 @@ _HANDLERS = {
     "predict": _tool_predict,
     "context": _tool_context,
     "curve": _tool_curve,
+    "annotate": _tool_annotate,
 }
 
 

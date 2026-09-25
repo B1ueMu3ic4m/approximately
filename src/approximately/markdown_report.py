@@ -59,7 +59,8 @@ def _timeline_lines(trace: "Trace") -> List[str]:
     return ["### Timeline", "", f"{fence}text", *rows, fence]
 
 
-def render_markdown(trace: "Trace", report: "FailureReport") -> str:
+def render_markdown(trace: "Trace", report: "FailureReport",
+                    store=None) -> str:
     """Issue-ready Markdown postmortem for one attributed trace."""
     verdict = _esc(report.primary_mode.label)
     lines = [
@@ -88,6 +89,17 @@ def render_markdown(trace: "Trace", report: "FailureReport") -> str:
                      for i, fix in enumerate(report.suggested_fixes, 1))
     lines.append("")
     lines.extend(_timeline_lines(trace))
+    if store is not None:
+        try:
+            rows = store.annotations(trace.id)
+        except Exception:
+            rows = []
+        if rows:
+            lines += ["", "### Analyst annotations", ""]
+            lines += [f"- **{r.get('verdict') or 'note'}**: "
+                      f"{r.get('note', '')}"
+                      + (f" — {r['author']}" if r.get("author") else "")
+                      for r in rows]
     if report.judge_used:
         lines += ["", "*Includes the optional LLM judge's verdict.*"]
     return "\n".join(lines) + "\n"

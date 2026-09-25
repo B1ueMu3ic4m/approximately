@@ -181,7 +181,7 @@ def cmd_report(args: argparse.Namespace) -> int:
             # write every individual report so the index links resolve
             page = store.directory / f"{trace.id}.report.html"
             if not page.exists():
-                page.write_text(render_html(trace, report), encoding="utf-8")
+                page.write_text(render_html(trace, report, store), encoding="utf-8")
                 written += 1
         out = Path(args.output) if args.output else store.directory / "index.html"
         out.write_text(render_index_html(pairs, trend_rows=trend(traces)),
@@ -196,11 +196,11 @@ def cmd_report(args: argparse.Namespace) -> int:
 
         md = Path(args.output) if args.output else \
             store.directory / f"{trace.id}.report.md"
-        md.write_text(render_markdown(trace, report), encoding="utf-8")
+        md.write_text(render_markdown(trace, report, store), encoding="utf-8")
         print(f"wrote markdown postmortem: {md}")
         return 0
     out = Path(args.output) if args.output else store.directory / f"{trace.id}.report.html"
-    out.write_text(render_html(trace, report), encoding="utf-8")
+    out.write_text(render_html(trace, report, store), encoding="utf-8")
     print(f"wrote {out}")
     if getattr(args, "mermaid", None):
         from .mermaid import render_mermaid
@@ -578,6 +578,35 @@ def cmd_metrics(args: argparse.Namespace) -> int:
         print(render_prometheus(stats, extra_labels=_parse_labels(args.label)))
         return 0
     print(stats.summary())
+    return 0
+
+
+def cmd_annotate(args: argparse.Namespace) -> int:
+    """Attach an analyst note (append-only sidecar, chain untouched)."""
+    store = TraceStore(args.store)
+    entry = store.annotate(args.trace, args.note,
+                           author=getattr(args, "author", "") or "",
+                           verdict=getattr(args, "verdict", "") or "")
+    print(f"annotated {entry['trace_id']} "
+          f"({len(store.annotations(entry['trace_id']))} note(s) on file)")
+    return 0
+
+
+def cmd_annotations(args: argparse.Namespace) -> int:
+    """List annotations (one trace, or the whole store)."""
+    store = TraceStore(args.store)
+    rows = store.annotations(getattr(args, "trace", None))
+    if getattr(args, "json", False):
+        print(json.dumps(rows, indent=2))
+        return 0
+    if not rows:
+        print("no annotations on file")
+        return 0
+    for e in rows:
+        verdict = f" [{e['verdict']}]" if e.get("verdict") else ""
+        author = f" by {e['author']}" if e.get("author") else ""
+        print(f"{e['ts']:.0f}  {e['trace_id']}{verdict}{author}: "
+              f"{' '.join(str(e.get('note', '')).split())[:80]}")
     return 0
 
 
@@ -1321,6 +1350,24 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--alpha", type=float, default=0.1,
                    help="miscoverage level (default 0.1 = 90%% coverage)")
     p.set_defaults(func=cmd_calibrate)
+
+    p = sub.add_parser("annotate", parents=[common],
+                       help="attach an analyst note to a trace "
+                            "(append-only sidecar)")
+    p.add_argument("trace")
+    p.add_argument("note")
+    p.add_argument("--author", default="",
+                   help="who is annotating (free-form)")
+    p.add_argument("--verdict", default="",
+                   help="triage verdict, e.g. confirmed / "
+                        "false-positive")
+    p.set_defaults(func=cmd_annotate)
+
+    p = sub.add_parser("annotations", parents=[common],
+                       help="list annotations (one trace, or all)")
+    p.add_argument("trace", nargs="?")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_annotations)
 
     p = sub.add_parser("rotate", parents=[common],
                        help="re-key a signed trace (old key must verify)")
