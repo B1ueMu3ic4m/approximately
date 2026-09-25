@@ -1326,6 +1326,12 @@ framework adapters import lazily and degrade when the framework is absent.
      `min_records`: below it the gate fails with a violation that
      names the shrinkage. 1 new test.
 
+122. **v1.12 - PLAN renumbered** ✅ (delivered): the milestone
+     ledger itself got an audit - items 54-56 and 80 had drifted
+     into the appendix zone through the years of anchor-based
+     inserts; the delivered list now reads as one continuous
+     1-121 sequence. Docs-only.
+
 
 ## 4. Launch plan
 
