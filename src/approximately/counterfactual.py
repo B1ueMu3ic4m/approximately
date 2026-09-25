@@ -131,3 +131,16 @@ def counterfactual(trace: Trace) -> CounterfactualReport:
         key=lambda i: -len(eliminated_modes_by_step.get(i, set())),
     )
     return report
+
+
+def report_payload(report: CounterfactualReport) -> dict:
+    """A CounterfactualReport as data (CLI --json and MCP)."""
+    return {"trace": report.trace_id,
+            "baseline_primary": report.baseline_primary,
+            "interventions": [{"removed_step": i.removed_step,
+                               "mode_id": i.mode_id,
+                               "eliminated": i.eliminated,
+                               "was_primary": i.was_primary}
+                              for i in report.interventions],
+            "distributed_causes": report.distributed_causes,
+            "causal_ranking": report.causal_ranking}

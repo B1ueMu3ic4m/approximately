@@ -573,18 +573,14 @@ def _tool_cluster(ctx: ServerContext, args: Dict[str, Any]) -> dict:
 
 
 def _tool_similar(ctx: ServerContext, args: Dict[str, Any]) -> dict:
-    from .align import rank_similar
+    from .align import similar_payload
 
     store = _store(ctx, args)
     trace = store.load(str(args["trace"]))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     top = int(args["top"]) if args.get("top") else 5
-    ranked = rank_similar(trace, store.list_traces(), top=max(0, top))
-    return {"trace": trace.id,
-            "matches": [{"id": c.id, "task": c.task,
-                         "similarity": round(score, 4)}
-                        for c, score in ranked]}
+    return similar_payload(trace, store.list_traces(), top=top)
 
 
 def _tool_drift(ctx: ServerContext, args: Dict[str, Any]) -> dict:
@@ -598,32 +594,20 @@ def _tool_drift(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     if not baseline or not current:
         raise KeyError("need traces in both windows (baseline = "
                        "oldest, current = newest)")
+    from .drift import report_payload
+
     report = detect_drift(baseline, current)
-    return {"psi": round(report.psi, 4), "verdict": report.verdict,
-            "baseline_actions": report.baseline_actions,
-            "current_actions": report.current_actions,
-            "top_shifted": [{"action": a, "baseline_share": round(b, 4),
-                             "current_share": round(c, 4)}
-                            for a, b, c in report.top_shifted]}
+    return report_payload(report)
 
 
 def _tool_counterfactual(ctx: ServerContext, args: Dict[str, Any]) -> dict:
-    from .counterfactual import counterfactual
+    from .counterfactual import counterfactual, report_payload
 
     store = _store(ctx, args)
     trace = store.load(str(args["trace"]))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
-    report = counterfactual(trace)
-    return {"trace": report.trace_id,
-            "baseline_primary": report.baseline_primary,
-            "interventions": [{"removed_step": i.removed_step,
-                               "mode_id": i.mode_id,
-                               "eliminated": i.eliminated,
-                               "was_primary": i.was_primary}
-                              for i in report.interventions],
-            "distributed_causes": report.distributed_causes,
-            "causal_ranking": report.causal_ranking}
+    return report_payload(counterfactual(trace))
 
 
 def _tool_predict(ctx: ServerContext, args: Dict[str, Any]) -> dict:
@@ -637,13 +621,10 @@ def _tool_predict(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     for t in store.list_traces():
         if t.id != trace.id:
             model.observe(t)
+    from .precursor import score_payload
+
     score = model.probability(trace)
-    return {"trace": trace.id,
-            "probability": round(score.probability, 4),
-            "verdict": score.verdict,
-            "mined_traces": score.mined_traces,
-            "detail": score.detail,
-            "contributors": score.contributors}
+    return score_payload(trace, score)
 
 
 def _tool_context(ctx: ServerContext, args: Dict[str, Any]) -> dict:

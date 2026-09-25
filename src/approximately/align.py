@@ -104,3 +104,12 @@ def rank_similar(target: Trace, traces: List[Trace],
     ]
     scored.sort(key=lambda pair: -pair[1])
     return scored[:top]
+
+
+def similar_payload(target, traces, top: int = 5) -> dict:
+    """The `similar` answer as data (shared by CLI --json and MCP)."""
+    ranked = rank_similar(target, traces, top=max(0, top))
+    return {"trace": target.id,
+            "matches": [{"id": c.id, "task": c.task,
+                         "similarity": round(score, 4)}
+                        for c, score in ranked]}
