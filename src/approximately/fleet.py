@@ -521,7 +521,7 @@ def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
                 keep_days: int = 30, iterations: Optional[int] = None,
                 top_agents: int = 3, sleep=time.sleep,
                 webhook_url: Optional[str] = None,
-                notify: Optional[callable] = None) -> int:
+                notify=None) -> int:
     """Poll the fleet forever (or ``iterations`` times), appending
     snapshots. Returns the number of snapshots written. ``sleep`` is
     injectable so tests run instantly.
