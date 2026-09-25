@@ -301,6 +301,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.14** — final night audit: version surfaces verified, 24 tools, PLAN 1-124 continuous
 - ✅ **v1.15** — link audit: leaderboard.html now generated; multi-label link fixed
 - ✅ **v1.16** — MCP `annotate` with no trace+note lists every store annotation
+- ✅ **v1.17** — `status --since` scopes triage tallies to the same window as the traces
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

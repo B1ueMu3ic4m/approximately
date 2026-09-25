@@ -1360,6 +1360,11 @@ framework adapters import lazily and degrade when the framework is absent.
      required. Completes the triage read path for fleet-wide views.
      1 new test.
 
+127. **v1.17 - status --since scopes annotations** ✅ (delivered):
+     the --since window now filters triage tallies along with traces
+     - the counts must describe the same period as the runs they
+     talk about. 1 new test.
+
 
 ## 4. Launch plan
 
