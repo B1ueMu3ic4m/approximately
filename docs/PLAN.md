@@ -1346,6 +1346,14 @@ framework adapters import lazily and degrade when the framework is absent.
      README roadmap aligned. All gates green; releases v0.63.0
      through v1.14.0 every round, each Latest-sequenced.
 
+125. **v1.15 - link audit + leaderboard artifact** ✅ (delivered):
+     the docs link audit found the README pointing at two
+     leaderboard HTMLs that were never generated.
+     make_docs_artifacts.py now renders leaderboard.html alongside
+     the other four pages, and the multi-label link points at the
+     doc page that exists. Broken-link check stays a manual audit
+     step (zero-dep tooling).
+
 
 ## 4. Launch plan
 
