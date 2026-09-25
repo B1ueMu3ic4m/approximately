@@ -100,7 +100,7 @@ class TraceStore:
 
             EvidenceLedger(self.directory).append(trace.id, root)
         except Exception:
-            pass
+            pass  # nosec B110 (ledger is best-effort; see docstring)
 
     def load(self, trace_id: str) -> Optional[Trace]:
         path = self._resolve(trace_id)

@@ -899,6 +899,15 @@ framework adapters import lazily and degrade when the framework is absent.
     including a flaky-replace simulation that pins the retry
     semantics cross-platform.
 
+75. **v0.65 - supply-chain hardening round** ✅ (delivered): every
+    GitHub Actions reference is SHA-pinned (checkout, setup-python,
+    upload/download-artifact, pypa publish) - a mutable tag can no
+    longer drift into the release path. New `security` CI job: bandit
+    over `src` with zero findings expected (the six intentional
+    adapter fallbacks now carry reasoned `# nosec B110` marks) and a
+    regex secret scan over src, workflows and packaging metadata.
+    SECURITY.md gains the provenance story.
+
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a

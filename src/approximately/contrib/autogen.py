@@ -85,7 +85,7 @@ class AutoGenEventHandler(logging.Handler):
                 return
             self._record(kind, event)
             self.recorded += 1
-        except Exception:  # never break the agent run
+        except Exception:  # never break the agent run # nosec B110
             pass
 
     def _record(self, kind: str, event: Any) -> None:
@@ -164,7 +164,7 @@ class RecordingChatCompletionClient:
         result = self._inner.create(messages, **kwargs)
         try:
             self._record_create(result)
-        except Exception:  # recording must not break inference
+        except Exception:  # recording must not break inference # nosec B110
             pass
         return result
 

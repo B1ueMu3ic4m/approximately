@@ -243,6 +243,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.62** — one verdict payload everywhere: MCP `verify` returns the full ladder object (finals, rollback, ledger) and supports keyed traces; wrong-key no longer masquerades as TAMPERED
 - ✅ **v0.63** — MCP `cluster` (13 tools): recidivist failure modes + agents over stdio, with `min_size`, `by_agent`, expression filter
 - ✅ **v0.64** — fuzz round 4 + bounded key-file reads + **Windows save correctness** (bounded-replace survives reader clashes; daemon-reader test hygiene; CI stall watch-dogs)
+- ✅ **v0.65** — supply-chain hardening: all CI actions SHA-pinned; new `security` job (bandit clean + secret scan)
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
