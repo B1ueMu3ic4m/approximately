@@ -248,6 +248,36 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "counterfactual",
+        "description": "Leave-one-out attribution over every detected "
+                       "step of a trace: which step's removal "
+                       "eliminates each mode (root cause vs symptom), "
+                       "distributed-cause verdict and causal ranking.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "trace": {"type": "string"},
+                "store": {"type": "string"},
+            },
+            "required": ["trace"],
+        },
+    },
+    {
+        "name": "predict",
+        "description": "Failure precursor score for a trace: mines "
+                       "the store's other traces for action patterns "
+                       "that precede failures, returns a failure "
+                       "probability with contributors.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "trace": {"type": "string"},
+                "store": {"type": "string"},
+            },
+            "required": ["trace"],
+        },
+    },
+    {
         "name": "bench_gate",
         "description": "Attribution-quality regression gate: run the "
                        "rule detectors over a labeled JSONL dataset "
@@ -545,6 +575,45 @@ def _tool_drift(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                             for a, b, c in report.top_shifted]}
 
 
+def _tool_counterfactual(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .counterfactual import counterfactual
+
+    store = _store(ctx, args)
+    trace = store.load(str(args["trace"]))
+    if trace is None:
+        raise KeyError(f"no trace {args['trace']!r} in store")
+    report = counterfactual(trace)
+    return {"trace": report.trace_id,
+            "baseline_primary": report.baseline_primary,
+            "interventions": [{"removed_step": i.removed_step,
+                               "mode_id": i.mode_id,
+                               "eliminated": i.eliminated,
+                               "was_primary": i.was_primary}
+                              for i in report.interventions],
+            "distributed_causes": report.distributed_causes,
+            "causal_ranking": report.causal_ranking}
+
+
+def _tool_predict(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .precursor import PrecursorModel
+
+    store = _store(ctx, args)
+    trace = store.load(str(args["trace"]))
+    if trace is None:
+        raise KeyError(f"no trace {args['trace']!r} in store")
+    model = PrecursorModel()
+    for t in store.list_traces():
+        if t.id != trace.id:
+            model.observe(t)
+    score = model.probability(trace)
+    return {"trace": trace.id,
+            "probability": round(score.probability, 4),
+            "verdict": score.verdict,
+            "mined_traces": score.mined_traces,
+            "detail": score.detail,
+            "contributors": score.contributors}
+
+
 def _tool_explain(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .explain import explain_overview, explain_text
     from .taxonomy import FAILURE_MODES
@@ -573,6 +642,8 @@ _HANDLERS = {
     "cluster": _tool_cluster,
     "similar": _tool_similar,
     "drift": _tool_drift,
+    "counterfactual": _tool_counterfactual,
+    "predict": _tool_predict,
 }
 
 

@@ -929,6 +929,15 @@ framework adapters import lazily and degrade when the framework is absent.
     now ask "what does this run look like?" and "is the fleet's
     behaviour shifting?" without shelling out. 6 new tests.
 
+78. **v0.68 - MCP counterfactual + predict (tools #16 and #17)** ✅
+    (delivered): the deep-analysis surface is fully reachable over
+    stdio. `counterfactual` runs leave-one-out attribution - which
+    step's removal eliminates each mode (root cause vs symptom),
+    distributed-cause verdict and causal ranking; `predict` mines
+    the store's other traces for failure-precursor patterns and
+    returns a probability with contributors and verdict. 5 new
+    tests.
+
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a
