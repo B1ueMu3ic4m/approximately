@@ -141,13 +141,15 @@ Claude Desktop / Zed / any MCP client config:
     {"command": "approximately", "args": ["mcp", "--store", "/path/traces"]}}}
 ```
 
-Twenty tools: store access (list_traces, query, stats, trend,
-survey), attribution and explanation (attribute, explain, cluster,
-bench_gate), verification (verify — the full verdict ladder),
-comparison (bisect, similar), prediction and analysis (predict,
-counterfactual, drift, context, curve), fleet health (doctor,
-scoreboard), and triage (annotate — write with a note, read
-without) — the whole toolkit, stdio JSON-RPC, zero deps.
+The inventory spans store access (list_traces, query, stats,
+trend, survey), attribution and explanation (attribute, explain,
+cluster, bench_gate), verification (verify — the full verdict
+ladder), comparison (bisect, similar, diff), prediction and
+analysis (predict, counterfactual, drift, context, curve,
+anomalies), fleet health (doctor, scoreboard, metrics), triage
+(annotate — write with a note, read without) and self-guarding
+(regression_test) — the whole toolkit, stdio JSON-RPC, zero deps.
+`tools/list` is the authoritative, always-current list.
 
 ## 10. Local-model judge (sensitive runs)
 

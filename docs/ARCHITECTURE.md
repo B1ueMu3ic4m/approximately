@@ -114,14 +114,14 @@ risk monitor).
   depth/length capped) with `--stats` aggregates.
 - **`doctor.py`** — store health: corrupt records, ledger tamper, stale
   locks, digest gaps; `--fix` cleans hygiene artifacts.
-- **`mcp_server.py`** — the whole toolkit as a 19-tool MCP stdio
-  server (JSON-RPC 2.0, zero dependencies): store access
-  (list_traces, query, stats, trend, survey), attribution and
-  explanation (attribute, explain, cluster, bench_gate),
-  verification (verify — the full verdict ladder), comparison
-  (bisect, similar), prediction and analysis (predict,
-  counterfactual, drift, context, curve) and fleet health
-  (doctor, scoreboard).
+- **`mcp_server.py`** — the whole toolkit as an MCP stdio server
+  (JSON-RPC 2.0, zero dependencies; a `resources` surface plus a
+  tool inventory grouped by concern — store access, attribution and
+  explanation, verification, comparison, prediction and analysis,
+  fleet health, triage, metrics). The authoritative count and list
+  live in `mcp_server.py`'s `_TOOLS` and are pinned by the tests
+  (`test_v48`); docs deliberately avoid restating totals so they
+  cannot drift.
 - **`toolscan.py`** — static analysis of MCP tool descriptions
   (homoglyphs, bidi, injection).
 
