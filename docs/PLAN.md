@@ -1213,6 +1213,13 @@ framework adapters import lazily and degrade when the framework is absent.
      query DSL, MCP surface) is stable; breaking changes require a
      2.0.
 
+111. **v1.1 - status --digest-dir** ✅ (delivered): the first
+     post-1.0 minor. `status --digest-dir DIR` folds the fleet trend
+     verdict into the ops overview - text line (`fleet trend:
+     stable`) and a `trend` object in JSON - so the daily glance
+     and the monitoring history finally live in one command. No
+     breaking changes (1.x contract). 1 new test.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
