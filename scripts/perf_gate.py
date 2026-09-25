@@ -33,7 +33,8 @@ def main() -> int:
                         help="per-record attribution budget in "
                              "milliseconds (default 50, ~25x headroom)")
     args = parser.parse_args()
-    return attribution_gate(args) + agent_wave_gate()
+    return (attribution_gate(args) + agent_wave_gate()
+            + query_gate())
 
 def attribution_gate(args) -> int:
     labeled = load_dataset(SYNTH, fmt="approx")
@@ -88,6 +89,46 @@ def agent_wave_gate(budget_s: float = 5.0) -> int:
           f"in {elapsed:.2f}s (budget {budget_s:.0f}s) - "
           f"{'PASS' if ok else 'FAIL'}")
     return 0 if ok else 1
+
+
+
+def query_gate(budget_s: float = 2.0) -> int:
+    """Expression filter over a 10k-trace store, heavy field twice.
+
+    ``mode`` mentions used to re-run the detector suite per mention;
+    per-select memoization (v0.66) makes it once per trace. This gate
+    pins that: the double-mention filter over 10k traces must stay
+    linear and bounded.
+    """
+    from approximately.query import select
+    from approximately.recorder import Recorder
+
+    traces = []
+    for i in range(10_000):
+        ok = i % 3 != 0
+        rec = Recorder(f"t {i}", save=False)
+        rec.trace.id = f"p-{i}"
+        rec.tool("search", {"q": i}, result=None if ok else "x",
+                 error=None if ok else "timeout")
+        rec.respond("done", success=ok)
+        traces.append(rec.trace)
+
+    start = time.perf_counter()
+    found = select(traces, "mode == FM-2.1 or mode != FM-2.1")
+    elapsed = time.perf_counter() - start
+    if len(found) != len(traces):
+        print("FAIL: query gate returned the wrong count",
+              file=sys.stderr)
+        return 1
+    print(f"perf-gate[query]: double-mode filter over 10k traces in "
+          f"{elapsed * 1000:.0f}ms (budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: select slowed past budget - memoization regressed?",
+              file=sys.stderr)
+        return 1
+    return 0
+
 
 
 if __name__ == "__main__":

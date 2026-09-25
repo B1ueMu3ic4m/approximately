@@ -908,6 +908,18 @@ framework adapters import lazily and degrade when the framework is absent.
     regex secret scan over src, workflows and packaging metadata.
     SECURITY.md gains the provenance story.
 
+76. **v0.66 - per-select query memoization** ✅ (delivered): the
+    query DSL evaluated every field mention eagerly - an expression
+    mentioning ``mode`` twice re-ran the full detector suite twice
+    per trace. ``select()`` now shares a per-select memo keyed by
+    (trace, field), so heavy fields (mode, agents, tokens, duration)
+    pay once per trace no matter how often the expression mentions
+    them; bare ``parse()`` keeps the eager behavior for single-use
+    predicates. perf-gate gains a third gate: a double-mention
+    ``mode`` filter over a 10k-trace store (109 ms against a 2 s
+    budget). 4 new tests, including a detector-call counter that
+    pins 3 traces x 2 mentions = 3 runs, not 6.
+
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a
