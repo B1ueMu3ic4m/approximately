@@ -261,6 +261,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.80** — `context --json` / `curve --json`: CLI and MCP render the identical budget-forecast payloads
 - ✅ **v0.81** — `fleet --watch --alert-worse-than RATE`: webhook pages only on signal (worsening trend or rate breach); recording never stops
 - ✅ **v0.82** — docs: 20-tool inventory + quiet-alerting watch recipe
+- ✅ **v0.83** — per-tool rollup: `stats --by-tool` / MCP `scoreboard.group_by` answers "which tools attract the errors?"
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

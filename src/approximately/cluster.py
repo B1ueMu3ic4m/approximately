@@ -193,6 +193,48 @@ def agent_scorecard(traces: Iterable[Trace],
     return sorted(rows, key=lambda r: (-r["steps"], r["agent"]))
 
 
+def tool_scorecard(traces: Iterable[Trace]) -> List[dict]:
+    """Per-tool rollup across traces — the action-side twin of
+    ``agent_scorecard``.
+
+    A tool row counts every invocation (steps), the traces it
+    appeared in, its error count, and the share of traces it touched
+    that failed. Participation, not proven causation: a tool present
+    in failing runs is a suspect, not a verdict.
+    """
+    per: Dict[str, dict] = {}
+    for trace in traces:
+        failed = trace.success is False
+        for step in trace.steps:
+            if not step.tool:
+                continue
+            row = per.setdefault(step.tool, {
+                "trace_ids": set(), "steps": 0, "errors": 0,
+                "tokens": 0, "failed_ids": set(),
+            })
+            row["trace_ids"].add(trace.id)
+            row["steps"] += 1
+            row["errors"] += int(bool(step.error))
+            row["tokens"] += step.tokens or 0
+            if failed:
+                row["failed_ids"].add(trace.id)
+    rows = []
+    for name, row in per.items():
+        touched = len(row["trace_ids"])
+        failed_n = len(row["failed_ids"])
+        rows.append({
+            "tool": name,
+            "traces": touched,
+            "steps": row["steps"],
+            "errors": row["errors"],
+            "tokens": row["tokens"],
+            "failed_traces": failed_n,
+            "failure_rate": round(failed_n / touched, 3) if touched
+                            else 0.0,
+        })
+    return sorted(rows, key=lambda r: (-r["steps"], r["tool"]))
+
+
 SPARK_BLOCKS = "▁▂▃▄▅▆▇█"
 
 

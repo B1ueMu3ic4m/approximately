@@ -1060,6 +1060,13 @@ framework adapters import lazily and degrade when the framework is absent.
     arithmetic, and the survival doctrine (a dead endpoint or a torn
     digest line must never stop the watch). No code changes.
 
+93. **v0.83 - per-tool rollup** ✅ (delivered): the action-side twin
+    of the agent scorecard. `cluster.tool_scorecard` rolls steps,
+    touched traces, errors and touched-trace failure rate per tool;
+    `stats --by-tool` and MCP `scoreboard {group_by: "tool"}` surface
+    it. Same honesty contract as the agent card: participation, not
+    proven causation. 4 new tests.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped

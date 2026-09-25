@@ -183,6 +183,9 @@ _TOOLS: List[Dict[str, Any]] = [
                                "description": "keep only agents with "
                                               "at least N failed "
                                               "traces (default: all)"},
+                "group_by": {"type": "string", "enum": ["agent", "tool"],
+                             "description": "roll up per agent "
+                                            "(default) or per tool"},
             },
         },
     },
@@ -538,18 +541,24 @@ def _tool_stats(ctx: ServerContext, args: Dict[str, Any]) -> dict:
 
 
 def _tool_scoreboard(ctx: ServerContext, args: Dict[str, Any]) -> dict:
-    from .cluster import agent_scorecard
-
     traces = _store(ctx, args).list_traces()
     if args.get("expression"):
         from .query import select
 
         traces = select(traces, str(args["expression"]))
-    min_failed = args.get("min_failed")
-    rows = agent_scorecard(
-        traces,
-        min_failed=int(min_failed) if min_failed is not None else None,
-    )
+    if str(args.get("group_by") or "agent") == "tool":
+        from .cluster import tool_scorecard
+
+        rows = tool_scorecard(traces)
+    else:
+        from .cluster import agent_scorecard
+
+        min_failed = args.get("min_failed")
+        rows = agent_scorecard(
+            traces,
+            min_failed=(int(min_failed)
+                        if min_failed is not None else None),
+        )
     top = args.get("top")
     if top is not None:
         rows = rows[:max(0, int(top))]
