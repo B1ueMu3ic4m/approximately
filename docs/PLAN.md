@@ -1155,6 +1155,15 @@ framework adapters import lazily and degrade when the framework is absent.
      fall-through was restored and a 30-trial brute-force
      equivalence test now pins pruned-vs-brute agreement.
 
+104. **v0.94 - toolscan self-test + adapter map sync** ✅
+     (delivered): the toolkit's own MCP-tool-description scanner
+     (homoglyphs, bidi, injection) now runs against all 23 shipped
+     tools in CI - a tool description can never ship with the
+     pattern toolscan exists to catch. Schema shape pinned too
+     (object type, required-keys present). ARCHITECTURE's contrib
+     entry lists all seven adapters and the two capture styles.
+     3 new tests.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped

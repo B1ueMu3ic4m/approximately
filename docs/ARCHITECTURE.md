@@ -130,7 +130,9 @@ risk monitor).
 - **`cli.py`** — every capability as a subcommand; `main(argv)` is also
   the test seam.
 - **`contrib/`** — framework adapters (LangChain/LangGraph, OpenAI
-  Agents SDK, CrewAI, LlamaIndex, AutoGen), each a thin capture seam.
+  Agents SDK, CrewAI, LlamaIndex, AutoGen, Pydantic AI, Google ADK),
+  each a thin capture seam - hook-based where the framework offers
+  one, post-hoc transcription where it does not.
 - **`demo*.py`** — scripted failing agents powering the 30-second tour
   and the doc artifacts (`scripts/make_docs_artifacts.py`).
 
