@@ -1,0 +1,68 @@
+"""v122: `approximately status` — the daily-driver ops overview.
+
+One command answers "how is this store doing right now": totals and
+failure rate, top failure modes, triage tallies (annotations and how
+many confirmed), and the most recent failing trace with its evidence
+chain verdict. `--json` for dashboards; `--since` scopes the window.
+"""
+
+import argparse
+import json
+
+from approximately.cli import build_parser, cmd_status
+from approximately.recorder import Recorder
+from approximately.store import TraceStore
+
+
+def _store(tmp_path):
+    store = TraceStore(str(tmp_path / "s"))
+    rec = Recorder("ok run", save=False)
+    rec.trace.id = "ok-1"
+    rec.respond("done", success=True)
+    store.save(rec.trace)
+    bad = Recorder("book the flight", save=False)
+    bad.trace.id = "bad-1"
+    bad.tool("book", {"seat": "12A"}, result=None, error="timeout")
+    bad.respond("gave up", success=False)
+    store.save(bad.trace)
+    store.annotate("bad-1", "infra timeout", author="oncall",
+                   verdict="confirmed")
+    return store
+
+
+def test_status_json_payload(tmp_path, capsys):
+    store = _store(tmp_path)
+    args = argparse.Namespace(store=str(store.directory), json=True,
+                              since=None)
+    assert cmd_status(args) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["traces"] == 2
+    assert payload["failures"] == 1
+    assert payload["failure_rate"] == 0.5
+    assert payload["annotations"] == 1
+    assert payload["annotations_confirmed"] == 1
+    assert payload["last_failure"]["id"] == "bad-1"
+    assert payload["last_failure"]["chain"] == "unsigned"
+
+
+def test_status_text_renders_overview(tmp_path, capsys):
+
+    store = _store(tmp_path)
+    args = build_parser().parse_args(
+        ["status", "--store", str(store.directory)])
+    assert args.func(args) == 0
+    out = capsys.readouterr().out
+    assert "2 traces, 1 failed (50%)" in out
+    assert "annotations: 1 (1 confirmed)" in out
+    assert "last failure: bad-1" in out
+
+
+def test_status_empty_store(tmp_path, capsys):
+    store = TraceStore(str(tmp_path / "empty"))
+    args = argparse.Namespace(store=str(store.directory), json=True,
+                              since=None)
+    assert cmd_status(args) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["traces"] == 0
+    assert payload["last_failure"] is None
+    assert payload["annotations"] == 0
