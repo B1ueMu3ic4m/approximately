@@ -266,6 +266,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.85** — `bench-gate --json` / `merge --json`: structured output for the remaining CI-facing commands
 - ✅ **v0.86** — MCP resources surface: browse traces + annotations as resources; one dynamic version across CLI/API/MCP
 - ✅ **v0.87** — fuzz round 6: resources, group_by, alert threshold, merge sidecar — all contained
+- ✅ **v0.88** — CI covers every Python it claims: 3.10/3.11 join the matrix (audit fix)
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
