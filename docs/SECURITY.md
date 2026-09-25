@@ -65,3 +65,20 @@ are the audit trail.
 Open a private security advisory via GitHub → Security → Report a
 vulnerability. We treat forged evidence in an incident postmortem as a
 critical-severity report.
+
+## Key file reads are bounded (v0.64)
+
+`--key-file` (and the MCP `verify.key_file`) refused non-regular
+files already — `is_file()` keeps device nodes like `/dev/zero` out —
+but a hostile pointer at an arbitrarily large *regular* file was read
+whole into memory. Key files are now capped at 4096 bytes; anything
+bigger raises instead (`ValueError`, or an MCP tool error), and the
+fuzz corpus pins it.
+
+## Fuzz rounds
+
+The untrusted-input boundaries are fuzzed per wave (tests `test_fuzz`,
+`test_v45_fuzz`, `test_v88_fuzz_round3`, `test_v98_fuzz_round4`):
+round 4 covers the recidivist filter, the shared verdict ladder and
+the cluster tool. Contract: documented errors or clean skips, never a
+crash that escapes as a protocol fault.

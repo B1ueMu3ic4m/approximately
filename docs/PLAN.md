@@ -871,6 +871,16 @@ framework adapters import lazily and degrade when the framework is absent.
     through which tools / which agents" without shelling out. 7 new
     tests.
 
+73. **v0.64 - fuzz round 4 + bounded key reads** ✅ (delivered): the
+    newest surfaces (recidivist filter, shared verdict ladder, MCP
+    cluster tool) fuzzed with garbage thresholds, corrupted integrity
+    blocks and hostile key paths — every probe contained, corpus
+    pinned as a regression gate. One real find: `--key-file` had no
+    size bound, so a pointer at a huge regular file was read whole
+    into memory; `load_key` now refuses anything over 4096 bytes
+    (device nodes were already excluded by `is_file`). 6 new tests;
+    SECURITY.md documents the cap and the fuzz doctrine.
+
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a
