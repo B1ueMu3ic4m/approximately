@@ -61,7 +61,7 @@ class TestProtocol:
         assert raw == "" and served == 0
 
     def test_unknown_method_is_32601(self):
-        raw, _ = _serve([_rpc("resources/list")], ServerContext("."))
+        raw, _ = _serve([_rpc("prompts/list")], ServerContext("."))
         assert _response_lines(raw)[0]["error"]["code"] == -32601
 
     def test_malformed_json_is_32700_and_survives(self):

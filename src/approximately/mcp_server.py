@@ -19,21 +19,13 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from . import __version__
+
 MAX_LINE = 1_000_000
 PROTOCOL_VERSION = "2024-11-05"
 
 
-def _package_version() -> str:
-    """Installed distribution version, so the handshake never lies."""
-    from importlib import metadata
-
-    try:
-        return metadata.version("approximately")
-    except Exception:
-        return "unknown"
-
-
-SERVER_INFO = {"name": "approximately", "version": _package_version()}
+SERVER_INFO = {"name": "approximately", "version": __version__}
 
 _TOOLS: List[Dict[str, Any]] = [
     {
@@ -737,6 +729,58 @@ def _error(request_id, code: int, message: str) -> dict:
             "error": {"code": code, "message": message}}
 
 
+def _resources(ctx: ServerContext) -> List[dict]:
+    """Store contents as MCP resources: one entry per trace plus the
+    annotation sidecar, so clients can browse a store without
+    calling tools."""
+    store = _store(ctx, {})
+    out = [{
+        "uri": f"approximately://{store.directory}/annotations.jsonl",
+        "name": "annotations",
+        "mimeType": "application/x-ndjson",
+    }]
+    out.extend({
+        "uri": f"approximately://{store.directory}/traces/{trace.id}",
+        "name": trace.task[:60] or trace.id,
+        "mimeType": "application/json",
+        "description": f"{len(trace.steps)} steps, "
+                       f"{'failed' if trace.success is False else 'ok'}",
+    } for trace in store.list_traces())
+    return out
+
+
+def _resources_read(msg: Dict[str, Any], ctx: ServerContext,
+                    request_id) -> dict:
+    uri = str(((msg.get("params") or {}).get("uri")) or "")
+    if not uri.startswith("approximately://"):
+        return _error(request_id, -32602,
+                      f"unsupported uri scheme: {uri[:40]!r}")
+    rest = uri[len("approximately://"):]
+    store = _store(ctx, {})
+    prefix = f"{store.directory}/traces/"
+    if rest == f"{store.directory}/annotations.jsonl":
+        import json as _json
+
+        rows = store.annotations()
+        body = "".join(_json.dumps(r, ensure_ascii=False) + "\n"
+                       for r in rows)
+        text = body
+        mime = "application/x-ndjson"
+    elif rest.startswith(prefix):
+        trace_id = rest[len(prefix):]
+        trace = store.load(trace_id)
+        if trace is None:
+            return _error(request_id, -32602,
+                          f"no trace {trace_id!r} in store")
+        text = trace.to_json()
+        mime = "application/json"
+    else:
+        return _error(request_id, -32602, f"unknown resource {uri[:60]!r}")
+    return {"jsonrpc": "2.0", "id": request_id,
+            "result": {"contents": [{"uri": uri, "mimeType": mime,
+                                     "text": text}]}}
+
+
 def handle_request(msg: Dict[str, Any], ctx: ServerContext) -> Optional[dict]:
     """One JSON-RPC request -> response dict, or None for
     notifications. Raises ValueError for malformed envelopes."""
@@ -749,10 +793,16 @@ def handle_request(msg: Dict[str, Any], ctx: ServerContext) -> Optional[dict]:
     if method == "initialize":
         return {"jsonrpc": "2.0", "id": request_id,
                 "result": {"protocolVersion": PROTOCOL_VERSION,
-                           "capabilities": {"tools": {}},
+                           "capabilities": {"tools": {},
+                                            "resources": {}},
                            "serverInfo": SERVER_INFO}}
     if method == "ping":
         return {"jsonrpc": "2.0", "id": request_id, "result": {}}
+    if method == "resources/list":
+        return {"jsonrpc": "2.0", "id": request_id,
+                "result": {"resources": _resources(ctx)}}
+    if method == "resources/read":
+        return _resources_read(msg, ctx, request_id)
     if method == "tools/list":
         return {"jsonrpc": "2.0", "id": request_id,
                 "result": {"tools": _TOOLS}}

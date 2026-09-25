@@ -1083,6 +1083,17 @@ framework adapters import lazily and degrade when the framework is absent.
     `merge --json` emits the merge report including the annotation
     sidecar count. Text output unchanged. 4 new tests.
 
+96. **v0.86 - MCP resources + one version to rule them all** ✅
+    (delivered): the MCP server grows a resources surface -
+    `resources/list` exposes every trace plus the annotation sidecar
+    as browsable resources, `resources/read` returns a trace's JSON
+    or the notes NDJSON, and `initialize` advertises the capability.
+    Unsupported schemes and unknown traces are -32602 parameter
+    errors. Also: `approximately --version` had drifted to a
+    hardcoded 0.59.0 - `__version__` now reads the installed
+    distribution (the same source the MCP handshake uses), so all
+    three version surfaces can never disagree again. 6 new tests.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
