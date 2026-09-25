@@ -77,23 +77,44 @@ def tokenize(text: str) -> List[tuple]:
     return tokens
 
 
-def _field_getter(name: str) -> Callable[[Trace], Any]:
+def _field_getter(name: str,
+                  memo: Optional[dict] = None) -> Callable[[Trace], Any]:
     if name not in _FIELDS:
         raise QueryError(
             f"unknown field {name!r} (fields: {', '.join(_FIELDS)})")
-    if name == "mode":
-        return _detected_modes
-    if name == "agents":
-        return _named_agents
     if name == "created":
-        return lambda t: getattr(t, "created_at", None) or 0
-    if name == "tokens":
-        return lambda t: sum(s.tokens for s in t.steps)
-    if name == "duration":
-        return lambda t: sum(s.latency_ms for s in t.steps)
-    if name == "steps":
-        return lambda t: len(t.steps)
-    return lambda t: getattr(t, name)
+        def getter(t: Trace) -> Any:
+            return getattr(t, "created_at", None) or 0
+    elif name == "tokens":
+        def getter(t: Trace) -> Any:
+            return sum(s.tokens for s in t.steps)
+    elif name == "duration":
+        def getter(t: Trace) -> Any:
+            return sum(s.latency_ms for s in t.steps)
+    elif name == "steps":
+        def getter(t: Trace) -> Any:
+            return len(t.steps)
+    elif name == "mode":
+        getter = _detected_modes  # type: ignore[assignment]
+    elif name == "agents":
+        getter = _named_agents  # type: ignore[assignment]
+    else:
+        def getter(t: Trace) -> Any:
+            return getattr(t, name)
+    if memo is None:
+        return getter
+
+    def memoized(t: Trace) -> Any:
+        # select() evaluates the predicate once per trace but the
+        # expression may mention a field many times; heavy getters
+        # (mode runs the full detector suite) must run at most once
+        # per trace per select.
+        key = (t.id, name)
+        if key not in memo:
+            memo[key] = getter(t)
+        return memo[key]
+
+    return memoized
 
 
 def _named_agents(trace: Trace) -> set:
@@ -120,9 +141,11 @@ class _Parser:
     # stack-overflow vector in a recursive-descent parser.
     MAX_DEPTH = 50
 
-    def __init__(self, tokens: List[tuple]):
+    def __init__(self, tokens: List[tuple],
+                 memo: Optional[dict] = None):
         self.tokens = tokens
         self.pos = 0
+        self.memo = memo
         self.depth = 0
 
     def _peek(self) -> Optional[tuple]:
@@ -197,7 +220,7 @@ class _Parser:
         token = self._next()
         if token[0] != "word":
             raise QueryError(f"expected a field name, got {token[1]!r}")
-        getter = _field_getter(token[1].lower())
+        getter = _field_getter(token[1].lower(), memo=self.memo)
         op_token = self._next()
         op = op_token[1] if op_token[0] == "op" else \
             op_token[1].lower()
@@ -250,9 +273,15 @@ def _comparator(getter, op: str, value: Any) -> Callable:
     return evaluate
 
 
-def parse(text: str) -> Callable[[Trace], bool]:
-    """Compile an expression into a predicate over traces."""
-    return _Parser(tokenize(text)).parse()
+def parse(text: str, memo: Optional[dict] = None) -> Callable[[Trace], bool]:
+    """Compile an expression into a predicate over traces.
+
+    Pass a dict as ``memo`` to share field computations across every
+    evaluation of the predicate — ``select()`` does, so an expression
+    mentioning ``mode`` five times runs the detector suite once per
+    trace, not five.
+    """
+    return _Parser(tokenize(text), memo=memo).parse()
 
 
 def _count_modes(trace: Trace, modes: dict) -> None:
@@ -293,6 +322,12 @@ def summarize(traces: List[Trace]) -> dict:
 
 
 def select(traces: List[Trace], expression: str) -> List[Trace]:
-    """All traces satisfying the expression (order preserved)."""
-    predicate = parse(expression)
+    """All traces satisfying the expression (order preserved).
+
+    Field computations are memoized per (trace, field): an expression
+    that mentions a heavy field repeatedly (``mode`` especially — each
+    mention used to re-run the full detector suite) now pays once per
+    trace.
+    """
+    predicate = parse(expression, memo={})
     return [t for t in traces if predicate(t)]
