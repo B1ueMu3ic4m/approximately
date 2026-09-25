@@ -278,6 +278,38 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "context",
+        "description": "Context-runtime forecast for a trace: replay "
+                       "the recorded run through a budgeted context "
+                       "window (dry run) - what survives eviction, "
+                       "fact recall, tokens saved.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "trace": {"type": "string"},
+                "store": {"type": "string"},
+                "budget": {"type": "number",
+                           "description": "context-token budget "
+                                          "(default 4000)"},
+            },
+            "required": ["trace"],
+        },
+    },
+    {
+        "name": "curve",
+        "description": "Budget-recall sweep for a trace: recall of "
+                       "ground-truth facts across a geometric grid of "
+                       "context budgets (the what-if curve).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "trace": {"type": "string"},
+                "store": {"type": "string"},
+            },
+            "required": ["trace"],
+        },
+    },
+    {
         "name": "bench_gate",
         "description": "Attribution-quality regression gate: run the "
                        "rule detectors over a labeled JSONL dataset "
@@ -614,6 +646,42 @@ def _tool_predict(ctx: ServerContext, args: Dict[str, Any]) -> dict:
             "contributors": score.contributors}
 
 
+def _tool_context(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .context import default_facts, forecast
+
+    store = _store(ctx, args)
+    trace = store.load(str(args["trace"]))
+    if trace is None:
+        raise KeyError(f"no trace {args['trace']!r} in store")
+    budget = int(args["budget"]) if args.get("budget") else 4000
+    fc = forecast(trace, budget=max(1, budget),
+                  facts=default_facts(trace))
+    return {"trace": fc.trace_id, "budget": fc.budget,
+            "full_context_tokens": fc.full_context_tokens,
+            "budgeted_tokens": fc.budgeted_tokens,
+            "tokens_saved": (fc.full_context_tokens
+                             - fc.budgeted_tokens),
+            "evicted_steps": fc.evicted_count,
+            "final_recall": round(fc.final_recall, 4),
+            "facts_kept": len(fc.facts)}
+
+
+def _tool_curve(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .curve import budget_curve
+
+    store = _store(ctx, args)
+    trace = store.load(str(args["trace"]))
+    if trace is None:
+        raise KeyError(f"no trace {args['trace']!r} in store")
+    curve = budget_curve(trace)
+    return {"trace": curve.trace_id,
+            "full_tokens": curve.full_tokens,
+            "points": [{"budget": p.budget,
+                        "tokens_used": p.tokens_used,
+                        "recall": round(p.recall, 4)}
+                       for p in curve.points]}
+
+
 def _tool_explain(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .explain import explain_overview, explain_text
     from .taxonomy import FAILURE_MODES
@@ -644,6 +712,8 @@ _HANDLERS = {
     "drift": _tool_drift,
     "counterfactual": _tool_counterfactual,
     "predict": _tool_predict,
+    "context": _tool_context,
+    "curve": _tool_curve,
 }
 
 
