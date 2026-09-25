@@ -230,7 +230,13 @@ def cmd_context(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_taxonomy(_args: argparse.Namespace) -> int:
+def cmd_taxonomy(args: argparse.Namespace) -> int:
+    if getattr(args, "json", False):
+        print(json.dumps([{
+            "id": m.id, "name": m.name, "category": m.category,
+            "definition": m.definition,
+        } for m in all_modes()], indent=2))
+        return 0
     print("MAST failure taxonomy (Cemri et al., arXiv:2503.13657)\n")
     current_category = None
     for mode in all_modes():
@@ -247,8 +253,21 @@ def cmd_taxonomy(_args: argparse.Namespace) -> int:
 
 def cmd_explain(args: argparse.Namespace) -> int:
     from .explain import explain_overview, explain_text
-    from .taxonomy import FAILURE_MODES
+    from .taxonomy import FAILURE_MODES, all_modes
 
+    if getattr(args, "json", False):
+        if args.mode:
+            mode = FAILURE_MODES[args.mode]
+            print(json.dumps({
+                "id": mode.id, "name": mode.name,
+                "category": mode.category,
+                "definition": mode.definition,
+            }, indent=2))
+        else:
+            print(json.dumps([{"id": m.id, "name": m.name,
+                               "category": m.category}
+                              for m in all_modes()], indent=2))
+        return 0
     if not args.mode:
         print(explain_overview())
         return 0
@@ -282,6 +301,13 @@ def cmd_optimize(args: argparse.Namespace) -> int:
     if result is None:
         print("no probe facts in this trace — nothing to optimize")
         return 1
+    if getattr(args, "json", False):
+        print(json.dumps({
+            "trace": trace.id,
+            "minimal_budget": result.minimal_budget,
+            "min_recall": args.min_recall,
+        }, indent=2))
+        return 0
     print(result.summary())
     print(f"  set Recorder budget to {result.minimal_budget} to lock it in")
     return 0
@@ -363,6 +389,14 @@ def cmd_calibrate(args: argparse.Namespace) -> int:
         ece_pairs.append((probs.get(gold, 0.0), True))
         ece_pairs.append((1 - probs.get(gold, 0.0), False))
     ece = expected_calibration_error(ece_pairs)
+    if getattr(args, "json", False):
+        print(json.dumps({
+            "split": split, "held_out": len(held),
+            "temperature": temperature,
+            "coverage": covered, "coverage_target": model.target_coverage,
+            "alpha": args.alpha, "ece": round(ece, 4),
+        }, indent=2))
+        return 0
     print(f"calibration split {split} · held-out {len(held)} · "
           f"temperature {temperature}")
     print(f"coverage: {covered}/{len(held)} "
@@ -1440,6 +1474,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("trace")
     p.add_argument("--min-recall", type=float, default=1.0,
                    help="required effective recall (default 1.0)")
+    p.add_argument("--json", action="store_true",
+                   help="emit minimal budget + recall as JSON")
     p.set_defaults(func=cmd_optimize)
 
     p = sub.add_parser("calibrate", parents=[common],
@@ -1449,6 +1485,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--format", choices=["approx", "mast"], default="approx")
     p.add_argument("--alpha", type=float, default=0.1,
                    help="miscoverage level (default 0.1 = 90%% coverage)")
+    p.add_argument("--json", action="store_true",
+                   help="emit calibration metrics as JSON")
     p.set_defaults(func=cmd_calibrate)
 
     p = sub.add_parser("annotate", parents=[common],
@@ -1756,10 +1794,11 @@ def build_parser() -> argparse.ArgumentParser:
                                   "to this path")
     p.set_defaults(func=cmd_benchmark)
 
-    sub.add_parser("taxonomy", parents=[common],
-                   help="print the MAST failure taxonomy").set_defaults(
-        func=cmd_taxonomy
-    )
+    p_tax = sub.add_parser("taxonomy", parents=[common],
+                           help="print the MAST failure taxonomy")
+    p_tax.add_argument("--json", action="store_true",
+                       help="emit the full taxonomy table as JSON")
+    p_tax.set_defaults(func=cmd_taxonomy)
     p_explain = sub.add_parser(
         "explain", parents=[common],
         help="deep dive on a MAST failure mode: definition, share, "
@@ -1767,6 +1806,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_explain.add_argument("mode", nargs="?", default=None,
                            help="mode id (e.g. FM-1.3); omit for the "
                                 "overview table")
+    p_explain.add_argument("--json", action="store_true",
+                           help="emit the mode entry (or full table) "
+                                "as JSON")
     p_explain.set_defaults(func=cmd_explain)
     p_gate = sub.add_parser(
         "bench-gate", parents=[common],
