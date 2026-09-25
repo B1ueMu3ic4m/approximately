@@ -157,7 +157,7 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 🔎 Query DSL + stats | Select traces with an expression — or aggregate the selection: counts, failure rate, mode totals, means | `approximately query "..." [--stats]` |
 | 📖 Mode explainer | "What does FM-1.3 mean *for my agent*?" — definition, published share, the detectors watching it, engineering fixes | `approximately explain FM-1.3` |
 | 👥 Agent scoreboard | Who did what in a multi-agent run: steps, tokens, errors, and the failure rate of traces each agent touched | `Recorder(agent="researcher")` + `approximately stats --by-agent` |
-| 🔌 MCP server | The whole toolkit as a 12-tool Model Context Protocol stdio server — query failures and agent scoreboards from any MCP client | `approximately mcp` |
+| 🔌 MCP server | The whole toolkit as a 13-tool Model Context Protocol stdio server — query failures and agent scoreboards from any MCP client | `approximately mcp` |
 | 🧪 Attribution quality gates | Gold-corpus + large-n synthetic floors run in CI — a detector refactor that degrades P/R fails the build | `python scripts/bench_gate.py [--synth]` |
 | 🚦 Gate as a GitHub Action | The same attribution gate as a drop-in action for your own repo's workflow | `uses: B1ueMu3ic4m/approximately@v0` |
 
@@ -241,6 +241,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.60** — the recidivist filter: `stats --by-agent --min-failed N` / MCP `scoreboard.min_failed` surfaces repeat-offender agents in one query
 - ✅ **v0.61** — `verify <id> --json`: the six-exit-code integrity ladder as machine-readable verdicts for CI
 - ✅ **v0.62** — one verdict payload everywhere: MCP `verify` returns the full ladder object (finals, rollback, ledger) and supports keyed traces; wrong-key no longer masquerades as TAMPERED
+- ✅ **v0.63** — MCP `cluster` (13 tools): recidivist failure modes + agents over stdio, with `min_size`, `by_agent`, expression filter
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

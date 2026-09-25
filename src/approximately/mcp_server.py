@@ -187,6 +187,32 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "cluster",
+        "description": "Cross-trace failure clustering: attributes "
+                       "every trace and groups failures by (mode, "
+                       "tool-set); min_size keeps only recidivist "
+                       "clusters. by_agent switches to recidivist "
+                       "AGENTS instead of modes. Optional "
+                       "query-expression filter.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "expression": {"type": "string"},
+                "min_size": {"type": "number",
+                             "description": "cluster size threshold "
+                                            "for recidivists "
+                                            "(default 2)"},
+                "by_agent": {"type": "boolean",
+                             "description": "cluster recidivist "
+                                            "agents instead of modes"},
+                "top": {"type": "number",
+                        "description": "keep the first N clusters "
+                                       "(default: all)"},
+            },
+        },
+    },
+    {
         "name": "bench_gate",
         "description": "Attribution-quality regression gate: run the "
                        "rule detectors over a labeled JSONL dataset "
@@ -420,6 +446,35 @@ def _tool_bench_gate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                        Path(str(args["floors"])))
 
 
+def _tool_cluster(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    traces = _store(ctx, args).list_traces()
+    if args.get("expression"):
+        from .query import select
+
+        traces = select(traces, str(args["expression"]))
+    min_size = int(args["min_size"]) if args.get("min_size") else 2
+    if args.get("by_agent"):
+        from .cluster import agent_scorecard
+
+        rows = [r for r in agent_scorecard(traces)
+                if r["failed_traces"] >= min_size]
+        return {"recidivist_agents": rows,
+                "traces_scanned": len(traces)}
+    from .cluster import cluster
+
+    report = cluster(traces)
+    clusters = [{"mode_id": c.mode_id, "size": c.size,
+                 "tools": list(c.tools),
+                 "example_task": c.example_task}
+                for c in report.clusters if c.size >= min_size]
+    top = args.get("top")
+    if top is not None:
+        clusters = clusters[:max(0, int(top))]
+    return {"traces_scanned": report.traces_scanned,
+            "failures_found": report.failures_found,
+            "clusters": clusters}
+
+
 def _tool_explain(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .explain import explain_overview, explain_text
     from .taxonomy import FAILURE_MODES
@@ -445,6 +500,7 @@ _HANDLERS = {
     "explain": _tool_explain,
     "bench_gate": _tool_bench_gate,
     "scoreboard": _tool_scoreboard,
+    "cluster": _tool_cluster,
 }
 
 

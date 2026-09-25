@@ -863,6 +863,14 @@ framework adapters import lazily and degrade when the framework is absent.
     `wrong-key` (exit 3, locked-not-broken) instead of masquerading
     as TAMPERED. 6 new tests.
 
+72. **v0.63 - MCP cluster tool (tool #13)** ✅ (delivered): recidivist
+    failure-mode clustering over stdio - attributes every trace and
+    groups failures by (mode, tool-set), with the CLI's `min_size`
+    recidivist threshold, `by_agent` switch, query-expression filter
+    and a top-N. The MCP surface now answers "what keeps failing and
+    through which tools / which agents" without shelling out. 7 new
+    tests.
+
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a
