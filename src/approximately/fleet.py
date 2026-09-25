@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import sys
 import time
 import urllib.error
 import urllib.parse
@@ -518,16 +519,31 @@ def render_trend(summary: dict) -> str:
 
 def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
                 keep_days: int = 30, iterations: Optional[int] = None,
-                top_agents: int = 3, sleep=time.sleep) -> int:
+                top_agents: int = 3, sleep=time.sleep,
+                webhook_url: Optional[str] = None,
+                notify=None) -> int:
     """Poll the fleet forever (or ``iterations`` times), appending
     snapshots. Returns the number of snapshots written. ``sleep`` is
-    injectable so tests run instantly."""
+    injectable so tests run instantly.
+
+    With ``webhook_url`` every cycle also POSTs the fleet summary
+    (same HMAC-signed payload as the one-shot notify). Delivery
+    failure is a stderr warning, never a stopped watch: an ops loop
+    must survive the notification endpoint being down.
+    """
     written = 0
     rotate_digests(digest_dir, keep_days)
     for _ in (range(iterations) if iterations is not None
               else iter(int, 1)):
-        snapshot = digest_snapshot(survey(stores, top_agents))
-        append_digest(digest_dir, snapshot)
+        summaries = survey(stores, top_agents)
+        append_digest(digest_dir, digest_snapshot(summaries))
         written += 1
+        if webhook_url:
+            poster = notify or notify_webhook
+            try:
+                poster(summaries, webhook_url)
+            except Exception as exc:
+                print(f"watch: webhook delivery failed: {exc}",
+                      file=sys.stderr)
         sleep(interval)
     return written

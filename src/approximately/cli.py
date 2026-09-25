@@ -729,7 +729,8 @@ def _fleet_watch(args: argparse.Namespace, stores) -> int:
             stores, Path(args.digest_dir), float(args.watch),
             keep_days=args.keep_days,
             iterations=getattr(args, "iterations", None),
-            top_agents=getattr(args, "top_agents", 3))
+            top_agents=getattr(args, "top_agents", 3),
+            webhook_url=getattr(args, "webhook", None))
     except KeyboardInterrupt:
         print("watch stopped")
         return 0
