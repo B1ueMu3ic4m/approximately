@@ -674,13 +674,21 @@ def cmd_annotations(args: argparse.Namespace) -> int:
     return 0
 
 
-def _status_payload(store, traces, digest_dir):
+def _status_payload(store, traces, digest_dir, since=None):
     """Build the status overview data (shared by text and JSON)."""
+    import time as _time
+
     from .cluster import agent_scorecard, store_stats
     from .ledger import verify_ledger
 
     stats = store_stats(traces)
     annotations = store.annotations()
+    if since:
+        # the window scopes triage tallies too: counts must describe
+        # the same period as the traces they talk about
+        cutoff = _time.time() - since * 86400
+        annotations = [a for a in annotations
+                       if a.get("ts", 0) >= cutoff]
     confirmed = [a for a in annotations
                  if a.get("verdict") == "confirmed"]
     last_failed = None
@@ -725,7 +733,8 @@ def cmd_status(args: argparse.Namespace) -> int:
     store = TraceStore(args.store)
     traces = store.list_traces(since_days=getattr(args, "since", None))
     payload = _status_payload(store, traces,
-                              getattr(args, "digest_dir", None))
+                              getattr(args, "digest_dir", None),
+                              since=getattr(args, "since", None))
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2))
         return 0

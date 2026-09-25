@@ -113,3 +113,24 @@ def test_mcp_annotate_list_all(tmp_path):
     assert resp["result"]["isError"] is False
     payload = _json.loads(resp["result"]["content"][0]["text"])
     assert len(payload["annotations"]) == 2
+
+
+def test_status_since_scopes_annotations(tmp_path, capsys):
+    """v1.17: --since scopes the triage tallies to match the traces."""
+    import time as _time
+
+    store = _store(tmp_path)
+    store.annotate("ok-1", "old note")
+    path = store.directory / "annotations.jsonl"
+    lines = path.read_text(encoding="utf-8").splitlines()
+    entry = json.loads(lines[0])
+    entry["ts"] = _time.time() - 40 * 86400
+    path.write_text(json.dumps(entry) + "\n", encoding="utf-8")
+    store.annotate("bad-1", "fresh note")
+
+    args = argparse.Namespace(store=str(store.directory), json=True,
+                              since=30, digest_dir=None)
+    assert cmd_status(args) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["annotations"] == 1  # only the fresh note
+    assert payload["last_failure"]["id"] == "bad-1"
