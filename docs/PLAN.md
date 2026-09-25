@@ -1354,6 +1354,12 @@ framework adapters import lazily and degrade when the framework is absent.
      doc page that exists. Broken-link check stays a manual audit
      step (zero-dep tooling).
 
+126. **v1.16 - MCP annotate lists the whole store** ✅ (delivered):
+     calling the annotate tool with neither trace nor note returns
+     every annotation in the store; the trace field drops from
+     required. Completes the triage read path for fleet-wide views.
+     1 new test.
+
 
 ## 4. Launch plan
 

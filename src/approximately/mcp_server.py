@@ -321,7 +321,10 @@ _TOOLS: List[Dict[str, Any]] = [
             "type": "object",
             "properties": {
                 "store": {"type": "string"},
-                "trace": {"type": "string"},
+                "trace": {"type": "string",
+                          "description": "omit (with note omitted) to "
+                                         "read all annotations in the "
+                                         "store"},
                 "note": {"type": "string",
                          "description": "omit to read instead of "
                                         "write"},
@@ -332,7 +335,6 @@ _TOOLS: List[Dict[str, Any]] = [
                                            "annotations with this "
                                            "verdict"},
             },
-            "required": ["trace"],
         },
     },
     {
@@ -852,7 +854,10 @@ def _tool_diff(ctx: ServerContext, args: Dict[str, Any]) -> dict:
 
 def _tool_annotate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     store = _store(ctx, args)
-    trace_id = str(args["trace"])
+    trace_id = args.get("trace")
+    if not args.get("note") and not trace_id:
+        return {"annotations": store.annotations()}
+    trace_id = str(trace_id) if trace_id else ""
     if not args.get("note"):
         rows = store.annotations(trace_id)
         verdict = args.get("verdict")
