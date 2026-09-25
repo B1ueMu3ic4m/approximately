@@ -682,9 +682,11 @@ def _tool_similar(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     top = int(args["top"]) if args.get("top") else 5
     candidates = store.list_traces()
     if args.get("other_store"):
+        from pathlib import Path as _Path
+
         from .store import TraceStore as _TS
 
-        candidates = _TS(str(args["other_store"])).list_traces()
+        candidates = _TS(_Path(str(args["other_store"]))).list_traces()
     return similar_payload(trace, candidates, top=top)
 
 
