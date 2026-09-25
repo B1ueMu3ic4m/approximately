@@ -947,6 +947,18 @@ framework adapters import lazily and degrade when the framework is absent.
     call, not a shell-out. 5 new tests incl. tight-vs-loose budget
     eviction ordering and curve monotonicity.
 
+81. **v0.71 - pydantic-ai adapter** ✅ (delivered): the sixth
+    framework adapter. Pydantic AI runs end with
+    ``result.all_messages()``; ``trace_from_pydantic_ai`` transcribes
+    that history into an approximately trace (UserPromptPart ->
+    plan, ToolCallPart -> tool call, ToolReturnPart -> tool result
+    with per-message token usage, TextPart -> response), reading
+    both Usage naming eras. Pure duck-typing on part class names -
+    zero imports from the framework, so the core stays
+    dependency-free and the tests run on fakes; the contrib CI job
+    covers the real package. ``record_pydantic_result`` is the
+    one-liner for the common case. 6 new tests.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped

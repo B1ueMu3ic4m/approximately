@@ -249,6 +249,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.68** — MCP `counterfactual` + `predict` (17 tools): leave-one-out root cause and failure-precursor probability over stdio
 - ✅ **v0.69** — MCP `context` + `curve` (19 tools): budgeted-runtime forecasts and recall-vs-budget sweeps over stdio
 - ✅ **v0.70** — docs catch-up: 19-tool inventory in ARCHITECTURE/TUTORIAL, new `similar`/`drift` recipes in RECIPES
+- ✅ **v0.71** — pydantic-ai adapter (#6): post-hoc message transcription, zero framework imports, both Usage eras
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
