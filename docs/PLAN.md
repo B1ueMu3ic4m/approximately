@@ -1339,6 +1339,13 @@ framework adapters import lazily and degrade when the framework is absent.
      fields plus text lines. 1 new test surface via the existing
      status fixtures.
 
+124. **v1.14 - final night audit** ✅ (delivered): closing sweep for
+     the 51-round session - version surfaces re-verified (pyproject /
+     package / MCP handshake all read the installed distribution),
+     24 unique MCP tool names, PLAN as a continuous 1-124 ledger,
+     README roadmap aligned. All gates green; releases v0.63.0
+     through v1.14.0 every round, each Latest-sequenced.
+
 
 ## 4. Launch plan
 
