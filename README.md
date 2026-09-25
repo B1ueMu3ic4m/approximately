@@ -271,6 +271,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.90** — MCP `regression_test` (23 tools): an agent mints its own self-contained pytest guard from a failure
 - ✅ **v0.91** — MCP `metrics` (24 tools): Prometheus exposition of store health, per-agent optional
 - ✅ **v0.92** — docs: count-proof tool inventories (grouped by concern, `tools/list` as authority)
+- ✅ **v0.93** — attribution 7× faster (difflib upper-bound pruning, zero verdict drift; bench-gate caught the first attempt's regression)
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

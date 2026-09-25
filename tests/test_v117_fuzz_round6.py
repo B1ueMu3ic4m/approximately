@@ -8,6 +8,7 @@ errors or clean skips, never a crash.
 
 import json
 import random
+from difflib import SequenceMatcher
 
 from approximately.fleet import _should_alert
 from approximately.mcp_server import ServerContext, handle_request
@@ -123,3 +124,56 @@ def test_fuzz_merge_sidecar(tmp_path):
         assert isinstance(report.annotations_carried, int)
     # target sidecar stayed readable
     assert isinstance(target.annotations(), list)
+
+
+def test_prose_pruning_equivalence():
+    """v0.93: the ratio() upper-bound pruning must not change any
+    verdict - brute-force pairwise scan and the pruned detector
+    agree on a mixed corpus (verbatim repeats, paraphrases, noise)."""
+
+    from approximately.prose import ProseRepeatDetector
+
+    corpus = [
+        "book the cheapest flight then confirm the seat",
+        "book the cheapest flight then confirm the seats",
+        "searching alternative routes now, this may take a moment",
+        "book the cheapest flight then confirm the seat!",
+        "done for today, thank you",
+        "error: the upstream service returned 503",
+        "book the cheapest flight then confirm the seating",
+        "trying a different provider",
+    ]
+    detector = ProseRepeatDetector()
+
+    # brute force: every pair, full ratio(), same verdict rules
+    def brute_scan(turns):
+        shingles = [_shingles_of(t) for t in turns]
+        for i in range(len(turns)):
+            for j in range(i + 1, len(turns)):
+                if _jaccard_pair(shingles[i], shingles[j]) < 0.35:
+                    continue
+                if SequenceMatcher(None, turns[i],
+                                   turns[j]).ratio() >= 0.8:
+                    return None if i == 0 else (i, j)
+        return "none"
+
+    def _shingles_of(text, k=3):
+        normalized = " ".join(text.lower().split())
+        return {normalized[i:i + k]
+                for i in range(0, max(1, len(normalized) - k + 1))}
+
+    def _jaccard_pair(a, b):
+        union = a | b
+        return len(a & b) / len(union) if union else 0.0
+
+    rng = random.Random(SEED + 7)
+    for trial in range(30):
+        picked = rng.sample(corpus, k=rng.randint(4, 7))
+        rec = Recorder("pruning equivalence", save=False)
+        for text in picked:
+            # _turns() reads TOOL_CALL step results, not responses
+            rec.tool("speak", {}, result=text)
+        expected = brute_scan(picked)
+        pruned = detector.detect(rec.trace)
+        assert (pruned is not None) == (expected not in ("none", None)), \
+            (trial, picked, expected, pruned)

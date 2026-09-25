@@ -1142,6 +1142,19 @@ framework adapters import lazily and degrade when the framework is absent.
      (anomalies, diff, regression_test, metrics, annotate). No code
      changes; the next tool needs no doc-count edits.
 
+103. **v0.93 - attribution 7x faster, zero verdict drift** ✅
+     (delivered): profiling showed the prose detectors spending 43s
+     per 135 records inside difflib's quadratic ratio() scan.
+     ProseRepeat and ProseRestart now gate ratio() behind its own
+     cheap upper bounds (the 2*min/max length bound plus
+     real_quick_ratio and quick_ratio) - pure pruning, no verdict
+     changes: 445 -> 64 ms/record. The gate earned its keep the
+     same night: the first pruning attempt silently dropped the
+     restart detector's jaccard paraphrase branch and bench-gate
+     caught the F1 dip (0.46 -> 0.43) before it shipped; the
+     fall-through was restored and a 30-trial brute-force
+     equivalence test now pins pruned-vs-brute agreement.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
