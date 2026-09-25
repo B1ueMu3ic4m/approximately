@@ -1180,6 +1180,12 @@ framework adapters import lazily and degrade when the framework is absent.
      so an operator sees triage activity without opening each
      store. 1 new test.
 
+107. **v0.97 - cross-store similar** ✅ (delivered): `similar
+     --other-store DIR` (and the MCP tool's `other_store`) compares a
+     run against a different store's traces - fleet operators can
+     ask "does THIS failure look like anything in the other
+     project?" without merging stores first. 1 new test.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped

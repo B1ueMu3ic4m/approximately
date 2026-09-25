@@ -217,6 +217,10 @@ _TOOLS: List[Dict[str, Any]] = [
             "properties": {
                 "trace": {"type": "string"},
                 "store": {"type": "string"},
+                "other_store": {"type": "string",
+                                "description": "compare against "
+                                               "traces in another "
+                                               "store"},
                 "top": {"type": "number",
                         "description": "how many candidates "
                                        "(default 5)"},
@@ -676,7 +680,14 @@ def _tool_similar(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     top = int(args["top"]) if args.get("top") else 5
-    return similar_payload(trace, store.list_traces(), top=top)
+    candidates = store.list_traces()
+    if args.get("other_store"):
+        from pathlib import Path as _Path
+
+        from .store import TraceStore as _TS
+
+        candidates = _TS(_Path(str(args["other_store"]))).list_traces()
+    return similar_payload(trace, candidates, top=top)
 
 
 def _tool_drift(ctx: ServerContext, args: Dict[str, Any]) -> dict:

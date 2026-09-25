@@ -292,7 +292,12 @@ def cmd_similar(args: argparse.Namespace) -> int:
 
     store = TraceStore(args.store)
     trace = _load_trace(args.trace, store)
-    payload = similar_payload(trace, store.list_traces(), top=args.top)
+    candidates = store.list_traces()
+    other = getattr(args, "other_store", None)
+    if other:
+        # cross-store comparison: search a different store's traces
+        candidates = TraceStore(other).list_traces()
+    payload = similar_payload(trace, candidates, top=args.top)
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2))
         return 0
@@ -1414,6 +1419,9 @@ def build_parser() -> argparse.ArgumentParser:
                             "to a trace")
     p.add_argument("trace")
     p.add_argument("--top", type=int, default=5)
+    p.add_argument("--other-store", metavar="DIR",
+                   help="compare against traces in another store "
+                        "(cross-project nearest neighbours)")
     p.add_argument("--json", action="store_true",
                    help="emit the same payload as the MCP similar tool")
     p.set_defaults(func=cmd_similar)

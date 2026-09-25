@@ -79,3 +79,32 @@ def test_diff_missing_trace_is_tool_error(tmp_path):
     resp = _call("diff", {"trace": "fast", "other": "nope",
                           "store": str(store.directory)})
     assert resp["result"]["isError"] is True
+
+
+def test_similar_cross_store(tmp_path):
+    """v0.97: `--other-store` compares across stores - find the
+    nearest neighbour in a different project's traces."""
+    import argparse
+
+    from approximately.cli import cmd_similar
+
+    store_a = TraceStore(str(tmp_path / "a"))
+    rec = Recorder("book the flight", save=False)
+    rec.trace.id = "a-1"
+    rec.tool("search", {"route": "SFO-NRT"}, result="$880")
+    rec.respond("booked", success=True)
+    store_a.save(rec.trace)
+
+    store_b = TraceStore(str(tmp_path / "b"))
+    for i in range(2):
+        rec = Recorder("book the hotel", save=False)
+        rec.trace.id = f"b-{i}"
+        rec.tool("search_hotel", {"city": "NRT"}, result="$120")
+        rec.respond("booked", success=True)
+        store_b.save(rec.trace)
+
+    args = argparse.Namespace(store=str(store_a.directory),
+                              trace="a-1", other_store=str(
+                                  store_b.directory),
+                              top=5, json=False)
+    assert cmd_similar(args) == 0
