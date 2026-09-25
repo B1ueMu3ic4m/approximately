@@ -129,7 +129,7 @@ def rank_similar(target: Trace, traces: List[Trace],
         scored.append((candidate, score))
         scored.sort(key=lambda pair: -pair[1])
         del scored[top:]
-        if len(scored) >= top:
+        if top > 0 and len(scored) >= top:
             threshold = scored[-1][1]
     return scored
 
