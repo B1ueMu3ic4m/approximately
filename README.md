@@ -272,6 +272,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.91** — MCP `metrics` (24 tools): Prometheus exposition of store health, per-agent optional
 - ✅ **v0.92** — docs: count-proof tool inventories (grouped by concern, `tools/list` as authority)
 - ✅ **v0.93** — attribution 7× faster (difflib upper-bound pruning, zero verdict drift; bench-gate caught the first attempt's regression)
+- ✅ **v0.94** — toolscan self-test: every shipped tool description passes our own injection scanner; adapter map synced
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
