@@ -1125,6 +1125,13 @@ framework adapters import lazily and degrade when the framework is absent.
      configurable - and commit it where its tests live. The failure
      can never silently return. 4 new tests; tool count 23.
 
+101. **v0.91 - MCP metrics (tool #24)** ✅ (delivered): store health
+     as Prometheus text exposition over stdio - runs total,
+     failures, failure rate, step means, per-mode counts; per-agent
+     rates with `group_by: "agent"` (the same rendering as
+     `metrics --prometheus`). An agent or ops scrape can read fleet
+     health without shelling out. 3 new tests; tool count 24.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped

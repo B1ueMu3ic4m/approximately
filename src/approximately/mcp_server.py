@@ -383,6 +383,23 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "metrics",
+        "description": "Store health as Prometheus text exposition: "
+                       "trace count, failure rate, step/token means, "
+                       "per-mode failure counts (and per-agent rates "
+                       "with group_by agent).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "group_by": {"type": "string",
+                             "enum": ["store", "agent"],
+                             "description": "store totals (default) "
+                                            "or per-agent rates"},
+            },
+        },
+    },
+    {
         "name": "bench_gate",
         "description": "Attribution-quality regression gate: run the "
                        "rule detectors over a labeled JSONL dataset "
@@ -729,6 +746,23 @@ def _tool_curve(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     return curve_payload(budget_curve(trace))
 
 
+def _tool_metrics(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .cluster import agent_scorecard, store_stats
+    from .metrics import render_agent_prometheus, render_prometheus
+
+    store = _store(ctx, args)
+    traces = store.list_traces()
+    stats = store_stats(traces)
+    if str(args.get("group_by") or "store") == "agent":
+        rows = agent_scorecard(traces)
+        text = render_agent_prometheus(rows)
+    else:
+        text = render_prometheus(stats)
+    return {"store": str(store.directory),
+            "content_type": "text/plain; version=0.0.4",
+            "metrics": text}
+
+
 def _tool_regression_test(ctx: ServerContext,
                           args: Dict[str, Any]) -> dict:
     from .attributor import attribute
@@ -844,6 +878,7 @@ _HANDLERS = {
     "anomalies": _tool_anomalies,
     "diff": _tool_diff,
     "regression_test": _tool_regression_test,
+    "metrics": _tool_metrics,
 }
 
 

@@ -157,7 +157,7 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 🔎 Query DSL + stats | Select traces with an expression — or aggregate the selection: counts, failure rate, mode totals, means | `approximately query "..." [--stats]` |
 | 📖 Mode explainer | "What does FM-1.3 mean *for my agent*?" — definition, published share, the detectors watching it, engineering fixes | `approximately explain FM-1.3` |
 | 👥 Agent scoreboard | Who did what in a multi-agent run: steps, tokens, errors, and the failure rate of traces each agent touched | `Recorder(agent="researcher")` + `approximately stats --by-agent` |
-| 🔌 MCP server | The whole toolkit as a 23-tool Model Context Protocol stdio server — query failures and agent scoreboards from any MCP client | `approximately mcp` |
+| 🔌 MCP server | The whole toolkit as a 24-tool Model Context Protocol stdio server — query failures and agent scoreboards from any MCP client | `approximately mcp` |
 | 🧪 Attribution quality gates | Gold-corpus + large-n synthetic floors run in CI — a detector refactor that degrades P/R fails the build | `python scripts/bench_gate.py [--synth]` |
 | 🚦 Gate as a GitHub Action | The same attribution gate as a drop-in action for your own repo's workflow | `uses: B1ueMu3ic4m/approximately@v0` |
 
@@ -269,6 +269,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.88** — CI covers every Python it claims: 3.10/3.11 join the matrix (audit fix)
 - ✅ **v0.89** — MCP `anomalies` + `diff` (22 tools): latency outliers and structural trace forensics over stdio
 - ✅ **v0.90** — MCP `regression_test` (23 tools): an agent mints its own self-contained pytest guard from a failure
+- ✅ **v0.91** — MCP `metrics` (24 tools): Prometheus exposition of store health, per-agent optional
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
