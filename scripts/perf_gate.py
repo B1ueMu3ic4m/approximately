@@ -156,7 +156,8 @@ def similar_gate(budget_s: float = 2.0) -> int:
     start = time.perf_counter()
     ranked = rank_similar(traces[0], traces, top=5)
     elapsed = time.perf_counter() - start
-    if len(ranked) != 5 or ranked[0][0].id != traces[0].id:
+    if len(ranked) != 5 or any(
+            c.id == traces[0].id for c, _ in ranked):
         print("FAIL: similar gate ranked wrong", file=sys.stderr)
         return 1
     print(f"perf-gate[similar]: rank 2000 traces in "
