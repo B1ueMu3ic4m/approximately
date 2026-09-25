@@ -30,10 +30,15 @@ def main() -> int:
     parser.add_argument("--synth", action="store_true",
                         help="gate the synthetic fixture instead of "
                              "the gold corpus")
+    parser.add_argument("--junit", metavar="PATH", type=Path,
+                        help="also write the gate result as JUnit XML "
+                             "(CI test reporters render it natively)")
     args = parser.parse_args()
+    junit = args.junit
     if args.synth:
-        return run_gate(SYNTH_CORPUS, SYNTH_FLOORS, "synthetic")
-    return run_gate(CORPUS, FLOORS, "gold corpus")
+        return run_gate(SYNTH_CORPUS, SYNTH_FLOORS, "synthetic",
+                        junit_path=junit)
+    return run_gate(CORPUS, FLOORS, "gold corpus", junit_path=junit)
 
 
 if __name__ == "__main__":

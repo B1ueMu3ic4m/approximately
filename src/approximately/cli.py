@@ -259,7 +259,9 @@ def cmd_explain(args: argparse.Namespace) -> int:
 def cmd_bench_gate(args: argparse.Namespace) -> int:
     from .benchgate import run_gate
 
-    return run_gate(Path(args.dataset), Path(args.floors), args.label)
+    return run_gate(Path(args.dataset), Path(args.floors), args.label,
+                    junit_path=(Path(args.junit)
+                                if getattr(args, "junit", None) else None))
 
 
 def cmd_optimize(args: argparse.Namespace) -> int:
@@ -1658,6 +1660,9 @@ def build_parser() -> argparse.ArgumentParser:
                         help="floors JSON (sample_f1 + modes map)")
     p_gate.add_argument("--label", default="gate",
                         help="name shown in the log prefix")
+    p_gate.add_argument("--junit", metavar="PATH",
+                        help="also write the gate result as JUnit XML "
+                             "(CI test reporters render it natively)")
     p_gate.set_defaults(func=cmd_bench_gate)
     return parser
 

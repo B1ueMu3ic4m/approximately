@@ -1010,6 +1010,15 @@ framework adapters import lazily and degrade when the framework is absent.
     writes surviving garbage), and the annotate tool. Every probe
     contained; corpus pinned as a regression gate. 4 new tests.
 
+87. **v0.77 - bench-gate JUnit export** ✅ (delivered): CI test
+    reporters render the gate natively. `run_gate` gains
+    `junit_path` (CLI `bench-gate --junit PATH`, script `--junit`):
+    one testcase per guarded floor - sample_f1 plus each mode's
+    P/R/F1 - with the floor comparison as the case name and a
+    violation as a JUnit failure whose message carries actual vs
+    floor. A mode the detector stops finding fails its floors loudly
+    (missing scores never pass). 5 new tests.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
