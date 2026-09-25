@@ -74,6 +74,8 @@ class StoreSummary:
     ledger_intact: Optional[bool] = None  # None: no ledger in use
     trend_verdict: str = "stable"
     trend_slope: float = 0.0
+    annotations: int = 0
+    annotations_confirmed: int = 0
 
     @property
     def worsening(self) -> bool:
@@ -125,6 +127,8 @@ def webhook_payload(summaries: List[StoreSummary]) -> dict:
                 "trend_slope": round(s.trend_slope, 4),
                 "worsening": s.worsening,
                 "ledger_intact": s.ledger_intact,
+                "annotations": s.annotations,
+                "annotations_confirmed": s.annotations_confirmed,
                 "top_modes": [
                     {"mode": mode, "count": count}
                     for mode, count in s.top_modes
@@ -208,6 +212,8 @@ def survey(stores: List[Path], top_agents: int = 3) -> List[StoreSummary]:
         failed = sum(1 for t in traces if t.success is False)
         rows = trend(traces)
         verdict, slope = _verdict(rows)
+        health = store.annotations_health()
+        notes = store.annotations()
         summaries.append(StoreSummary(
             name=Path(path).name or str(path),
             path=str(path),
@@ -220,6 +226,9 @@ def survey(stores: List[Path], top_agents: int = 3) -> List[StoreSummary]:
             ledger_intact=_ledger_state(store.directory),
             trend_verdict=verdict,
             trend_slope=slope,
+            annotations=health["total"],
+            annotations_confirmed=sum(
+                1 for a in notes if a.get("verdict") == "confirmed"),
         ))
     return summaries
 
@@ -250,7 +259,9 @@ def _store_card(s: StoreSummary) -> str:
     return (
         f'<div class="store"><h2>{esc(s.name)}</h2>'
         f'<div class="sub">{esc(s.path)} · '
-        f'{s.traces} traces · ledger: {ledger_note}</div>'
+        f'{s.traces} traces · ledger: {ledger_note} · '
+        f'notes: {s.annotations} ({s.annotations_confirmed} '
+        'confirmed)</div>'
         '<div class="row">'
         f'<span class="rate {rate_cls}">{s.failure_rate:.0%}</span>'
         f"{spark}"

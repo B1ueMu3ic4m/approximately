@@ -1172,6 +1172,14 @@ framework adapters import lazily and degrade when the framework is absent.
      `--since` scopes the window, empty stores render honestly
      (zeros, no last failure). 3 new tests.
 
+106. **v0.96 - fleet triage counts** ✅ (delivered): the fleet
+     surface knows each store's annotation activity. StoreSummary
+     gains `annotations` / `annotations_confirmed`; the webhook
+     payload, digest snapshots and the dashboard store cards carry
+     them - "notes: 5 (2 confirmed)" sits next to the ledger state,
+     so an operator sees triage activity without opening each
+     store. 1 new test.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped

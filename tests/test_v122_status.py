@@ -66,3 +66,17 @@ def test_status_empty_store(tmp_path, capsys):
     assert payload["traces"] == 0
     assert payload["last_failure"] is None
     assert payload["annotations"] == 0
+
+
+def test_fleet_survey_carries_triage_tallies(tmp_path):
+    """v0.96: the fleet dashboard and webhook know each store's
+    annotation activity - notes/confirmed ride on StoreSummary."""
+    from approximately.fleet import survey, webhook_payload
+
+    store = _store(tmp_path)
+    summaries = survey([store.directory])
+    assert summaries[0].annotations == 1
+    assert summaries[0].annotations_confirmed == 1
+    payload = webhook_payload(summaries)["stores"][0]
+    assert payload["annotations"] == 1
+    assert payload["annotations_confirmed"] == 1
