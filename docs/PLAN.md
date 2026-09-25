@@ -938,6 +938,15 @@ framework adapters import lazily and degrade when the framework is absent.
     returns a probability with contributors and verdict. 5 new
     tests.
 
+79. **v0.69 - MCP context + curve (tools #18 and #19)** ✅
+    (delivered): budget-pressure analysis over stdio. `context`
+    replays a recorded trace through a budgeted window (dry run):
+    what survives eviction, fact recall, tokens saved; `curve`
+    sweeps a geometric budget grid and returns the recall curve -
+    "what does shrinking this run's window cost?" is now a tool
+    call, not a shell-out. 5 new tests incl. tight-vs-loose budget
+    eviction ordering and curve monotonicity.
+
 55. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a
