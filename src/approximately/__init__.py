@@ -7,7 +7,7 @@ sampled traces. Approximately makes those approximations safe —
 
 from __future__ import annotations
 
-__version__ = "0.59.0"
+from importlib import metadata as _metadata
 
 from .attributor import FailureReport, attribute
 from .context import (
@@ -25,6 +25,17 @@ from .report import render_html
 from .store import TraceStore
 from .taxonomy import all_modes, get_mode
 from .trace import Step, Trace
+
+
+def _dist_version() -> str:
+    """Installed distribution version (the single source of truth)."""
+    try:
+        return _metadata.version("approximately")
+    except Exception:
+        return "unknown"
+
+
+__version__ = _dist_version()
 
 __all__ = [
     "ContextForecast",
