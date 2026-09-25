@@ -286,6 +286,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v0.99** — the --json sweep completes: optimize / calibrate / explain / taxonomy all speak machine
 - 🎉 **v1.0** — production-stable: semver from here, breaking changes only in 2.0
 - ✅ **v1.1** — `status --digest-dir`: the fleet trend verdict joins the ops overview
+- ✅ **v1.2** — TUTORIAL gains the triage step: annotate + status
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

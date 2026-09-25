@@ -103,7 +103,23 @@ approximately doctor ~/.approximately/traces --fix     # exit 1 = problem
 approximately verify --all                             # evidence intact
 ```
 
-## 6. Watch the fleet
+## 6. Triage and check the pulse
+
+Attach the human verdict to the machine one (append-only sidecar —
+the evidence chain stays untouched), then read the store's pulse in
+one command:
+
+```bash
+approximately annotate <id> "infra timeout" --author oncall --verdict confirmed
+approximately status
+```
+
+`status` prints totals, top failure modes, triage tallies, and the
+last failing trace with its chain verdict. Point `--digest-dir` at
+your watch history to fold the fleet trend in, or `--json` for a
+dashboard.
+
+## 7. Watch the fleet
 
 Multiple agents or projects? Point the watch loop at their stores and let
 the trend gate decide:
@@ -119,7 +135,7 @@ a red build. The same surfaces exist over MCP (see
 [RECIPES.md](RECIPES.md) §9), including `scoreboard.min_failed` for
 repeat offenders and `drift` for behaviour shifts.
 
-## 7. Pin attribution quality itself
+## 8. Pin attribution quality itself
 
 If you keep labeled traces, run the same gates upstream does:
 

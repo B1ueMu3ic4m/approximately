@@ -1220,6 +1220,12 @@ framework adapters import lazily and degrade when the framework is absent.
      and the monitoring history finally live in one command. No
      breaking changes (1.x contract). 1 new test.
 
+112. **v1.2 - TUTORIAL: the triage step** ✅ (delivered): the
+     ten-minute walkthrough gains step 6 - annotate the human
+     verdict onto the machine one, then read `status` for the
+     pulse. Fleet watch shifts to 7, quality floors to 8. No code
+     changes.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
