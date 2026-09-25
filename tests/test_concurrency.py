@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import threading
+import time
 
 from approximately.recorder import Recorder
 
@@ -30,6 +31,7 @@ def test_save_is_atomic_reader_never_sees_partial(store, failing_trace):
                     observed.append("ok")
                 except json.JSONDecodeError:
                     observed.append("PARTIAL")
+            time.sleep(0.002)  # a real poller breathes between reads
 
     # daemon + try/finally: if a save ever raises (it must not), the
     # loop never strands a live non-daemon thread — that hung pytest

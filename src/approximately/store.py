@@ -19,7 +19,7 @@ def default_store_dir() -> Path:
 
 
 def _replace_bounded(tmp: Path, path: Path,
-                     attempts: int = 20, pause_s: float = 0.002) -> None:
+                     attempts: int = 100, pause_s: float = 0.01) -> None:
     """``os.replace`` with a bounded retry for Windows sharing clashes.
 
     POSIX replaces a file even while another handle has it open; Windows
@@ -66,10 +66,13 @@ class TraceStore:
                     fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
                 except FileExistsError:
                     if time.time() > deadline:
-                        # stale lock from a crashed writer: break it
+                        # stale lock from a crashed writer: break it.
+                        # On Windows a held file cannot be unlinked
+                        # (PermissionError) - keep spinning: the
+                        # deadline bounds the wait either way.
                         try:
                             lock.unlink()
-                        except FileNotFoundError:
+                        except (FileNotFoundError, PermissionError):
                             pass
                         deadline = time.time() + 10.0
                     time.sleep(0.005)
@@ -81,7 +84,7 @@ class TraceStore:
                 os.close(fd)
                 try:
                     lock.unlink()
-                except FileNotFoundError:
+                except (FileNotFoundError, PermissionError):
                     pass
         self._ledger_append(trace)
         return path
