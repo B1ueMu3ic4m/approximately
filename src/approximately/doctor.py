@@ -40,6 +40,8 @@ class DoctorReport:
     torn_lines: int = 0
     unsigned: int = 0
     legacy_agents: List[str] = field(default_factory=list)
+    annotation_lines: int = 0
+    annotation_corrupt: int = 0
 
     @property
     def healthy(self) -> bool:
