@@ -1193,6 +1193,14 @@ framework adapters import lazily and degrade when the framework is absent.
      from the code, the failure names the exact line. Signed-store
      fixtures match the cookbook context. 3 new tests.
 
+109. **v0.99 - the --json sweep completes** ✅ (delivered): the last
+     four prose-only commands learn machine: `optimize --json`
+     (minimal budget + recall), `calibrate --json` (split,
+     temperature, coverage vs target, ECE), `explain --json` (one
+     mode or the full table), `taxonomy --json` (the whole MAST
+     table with definitions). Every analysis/reference command in
+     the CLI now has a structured output path. 3 new tests.
+
 80. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
