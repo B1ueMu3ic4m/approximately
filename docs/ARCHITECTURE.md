@@ -123,7 +123,13 @@ risk monitor).
   (`test_v48`); docs deliberately avoid restating totals so they
   cannot drift.
 - **`toolscan.py`** — static analysis of MCP tool descriptions
-  (homoglyphs, bidi, injection).
+  (homoglyphs, bidi, injection); CI runs it against our own tools.
+- **`cli.py`** — every surface above as a subcommand, including the
+  ops pair: `status` (one-glance overview: health, top modes,
+  triage tallies, last failure + chain verdict, optional fleet
+  trend) and `annotate` / `annotations --verdict` (the triage log).
+  All analysis commands take `--json`; the MCP surface mirrors them
+  1:1.
 
 ## Interfaces
 
