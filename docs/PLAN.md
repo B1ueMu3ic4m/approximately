@@ -1365,6 +1365,11 @@ framework adapters import lazily and degrade when the framework is absent.
      - the counts must describe the same period as the runs they
      talk about. 1 new test.
 
+128. **v1.18 - ARCHITECTURE CLI entry** ✅ (delivered): the module
+     map documents the ops pair (`status`, `annotate` /
+     `annotations --verdict`) and the all-commands-`--json` +
+     MCP-mirror rule. Docs-only.
+
 
 ## 4. Launch plan
 
