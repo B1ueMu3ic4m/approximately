@@ -1,5 +1,5 @@
 {
-  "count": 29,
+  "count": 30,
   "tools": [
     {
       "name": "list_traces",
@@ -323,6 +323,25 @@
         },
         "required": [
           "trace"
+        ]
+      }
+    },
+    {
+      "name": "import_annotations",
+      "description": "Merge an annotation sidecar (JSONL) into the store, append-only: rows the store has never seen are added, keyed on stable triage content \u2014 a re-import skips.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string",
+            "description": "annotation sidecar (JSONL)"
+          }
+        },
+        "required": [
+          "path"
         ]
       }
     },
