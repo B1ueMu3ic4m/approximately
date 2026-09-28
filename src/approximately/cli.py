@@ -166,8 +166,12 @@ def cmd_test(args: argparse.Namespace) -> int:
 
 
 def _judge_kwargs(args: argparse.Namespace) -> dict:
-    """Judge options shared by every --judge consumer."""
-    cache = getattr(args, "judge_cache", None)
+    """Judge options shared by every --judge consumer. The flag wins;
+    APPROXIMATELY_JUDGE_CACHE is the environment default."""
+    import os
+
+    cache = getattr(args, "judge_cache", None) \
+        or os.environ.get("APPROXIMATELY_JUDGE_CACHE")
     return {"cache_dir": Path(cache)} if cache else {}
 
 

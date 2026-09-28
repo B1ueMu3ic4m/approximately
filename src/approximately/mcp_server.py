@@ -15,6 +15,7 @@ methods -32601, bad params -32602.
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -58,6 +59,14 @@ _TOOLS: List[Dict[str, Any]] = [
                 "explain": {"type": "boolean",
                             "description": "include the fusion "
                                            "arithmetic"},
+                "judge": {"type": "boolean",
+                          "description": "also ask the LLM judge "
+                                         "(needs openai + keys)"},
+                "judge_cache": {"type": "string",
+                                "description": "verdict cache dir "
+                                               "(or "
+                                               "APPROXIMATELY_JUDGE_"
+                                               "CACHE)"},
             },
             "required": ["trace"],
         },
@@ -647,9 +656,20 @@ def _tool_attribute(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     trace = store.load(str(args["trace"]))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
-    report = attribute(trace)
+    judge = bool(args.get("judge"))
+    kwargs: Dict[str, Any] = {}
+    if judge:
+        kwargs["use_judge"] = True
+        cache_dir = args.get("judge_cache")
+        if cache_dir:
+            kwargs["cache_dir"] = Path(str(cache_dir))
+        elif os.environ.get("APPROXIMATELY_JUDGE_CACHE"):
+            kwargs["cache_dir"] = Path(
+                os.environ["APPROXIMATELY_JUDGE_CACHE"])
+    report = attribute(trace, **kwargs)
     payload = {
         "trace": trace.id,
+        "judge_used": report.judge_used,
         "failed": report.failed,
         "primary_mode": report.primary_mode.id,
         "runner_ups": report.runner_ups,

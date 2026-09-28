@@ -1659,6 +1659,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      now streams stdin in a single pass — the sniffed first line is
      re-joined to the iterator, so a multi-gigabyte dump never
      materializes in memory. Lists still re-iterate unchanged.
+167. **v1.58 - the judge cache without flags** ✅ (delivered):
+     `APPROXIMATELY_JUDGE_CACHE` backs every `--judge` consumer (the
+     flag wins when given), and the MCP `attribute` tool opens
+     `judge` + `judge_cache` — an agent stack can ask for the judge
+     verdict and cache it in one call. Judge absence still degrades
+     to rules-only, over MCP too.
 165. **v1.55 - postmortems name fleet outliers** ✅ (delivered):
      the per-trace latency card only knows what one run considered
      normal; the postmortem now gains a "Fleet outliers" card when a

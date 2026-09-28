@@ -34,6 +34,14 @@
           "explain": {
             "type": "boolean",
             "description": "include the fusion arithmetic"
+          },
+          "judge": {
+            "type": "boolean",
+            "description": "also ask the LLM judge (needs openai + keys)"
+          },
+          "judge_cache": {
+            "type": "string",
+            "description": "verdict cache dir (or APPROXIMATELY_JUDGE_CACHE)"
           }
         },
         "required": [
