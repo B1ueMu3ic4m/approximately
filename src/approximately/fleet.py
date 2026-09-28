@@ -75,6 +75,8 @@ class StoreSummary:
     trend_verdict: str = "stable"
     trend_slope: float = 0.0
     annotations: int = 0
+    fleet_anomalies: int = 0
+    worst_anomaly: Optional[dict] = None
     annotations_confirmed: int = 0
 
     @property
@@ -130,6 +132,8 @@ def webhook_payload(summaries: List[StoreSummary]) -> dict:
                 "annotations": getattr(s, "annotations", 0),
                 "annotations_confirmed":
                     getattr(s, "annotations_confirmed", 0),
+                "fleet_anomalies": getattr(s, "fleet_anomalies", 0),
+                "worst_anomaly": getattr(s, "worst_anomaly", None),
                 "top_modes": [
                     {"mode": mode, "count": count}
                     for mode, count in s.top_modes
@@ -215,6 +219,9 @@ def survey(stores: List[Path], top_agents: int = 3) -> List[StoreSummary]:
         verdict, slope = _verdict(rows)
         health = store.annotations_health()
         notes = store.annotations()
+        from .anomaly import detect_fleet_anomalies
+
+        anomalies = detect_fleet_anomalies(traces)
         summaries.append(StoreSummary(
             name=Path(path).name or str(path),
             path=str(path),
@@ -230,6 +237,14 @@ def survey(stores: List[Path], top_agents: int = 3) -> List[StoreSummary]:
             annotations=health["total"],
             annotations_confirmed=sum(
                 1 for a in notes if a.get("verdict") == "confirmed"),
+            fleet_anomalies=len(anomalies),
+            worst_anomaly=None if not anomalies else {
+                "trace_id": anomalies[0].trace_id,
+                "tool": anomalies[0].tool,
+                "latency_ms": anomalies[0].latency_ms,
+                "median_ms": anomalies[0].median_ms,
+                "robust_z": anomalies[0].robust_z,
+            },
         ))
     return summaries
 
