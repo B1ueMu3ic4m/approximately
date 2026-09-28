@@ -11,7 +11,7 @@
 <b>Free & open source · Zero dependencies · MIT · Python 3.9+ · pip install approximately</b>
 </p>
 
-> **v1.0** — the toolkit is production-stable: 27 MCP tools (+resources), 7 framework
+> **v1.0** — the toolkit is production-stable: 28 MCP tools (+resources), 7 framework
 > adapters, MAST attribution with a gated quality floor, tamper-evident evidence,
 > fleet monitoring with quiet alerting, and 1,000+ tests across a 15-job CI matrix.
 > Semver from here: breaking changes only in 2.0.
@@ -163,7 +163,7 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 🔎 Query DSL + stats | Select traces with an expression — or aggregate the selection: counts, failure rate, mode totals, means | `approximately query "..." [--stats]` |
 | 📖 Mode explainer | "What does FM-1.3 mean *for my agent*?" — definition, published share, the detectors watching it, engineering fixes | `approximately explain FM-1.3` |
 | 👥 Agent scoreboard | Who did what in a multi-agent run: steps, tokens, errors, and the failure rate of traces each agent touched | `Recorder(agent="researcher")` + `approximately stats --by-agent` |
-| 🔌 MCP server | The whole toolkit as a Model Context Protocol stdio server (27 tools and counting — `tools/list` is authoritative) — query failures and agent scoreboards from any MCP client | `approximately mcp` |
+| 🔌 MCP server | The whole toolkit as a Model Context Protocol stdio server (28 tools and counting — `tools/list` is authoritative) — query failures and agent scoreboards from any MCP client | `approximately mcp` |
 | 🧪 Attribution quality gates | Gold-corpus + large-n synthetic floors run in CI — a detector refactor that degrades P/R fails the build | `python scripts/bench_gate.py [--synth]` |
 | 🚦 Gate as a GitHub Action | The same attribution gate as a drop-in action for your own repo's workflow | `uses: B1ueMu3ic4m/approximately@v0` |
 
@@ -318,6 +318,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.31** — `export --since` age windows; MCP tool #27 `scan_tool` (the toolscan mirrors)
 - ✅ **v1.32** — `similar --min-score` floors the neighbours; `import_transcripts` grows a glob parameter
 - ✅ **v1.33** — `--teacher-cache` on the distill loop: relabeling a dataset is free for traces asked before
+- ✅ **v1.34** — MCP tool #28 `status`: the ops pair completes its MCP mirror; 28 tools
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

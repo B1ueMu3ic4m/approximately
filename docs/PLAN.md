@@ -1497,6 +1497,14 @@ framework adapters import lazily and degrade when the framework is absent.
      `benchmark --judge-cache` already had it. Low-confidence and
      OTHER verdicts still label None; a JudgeError still labels
      None; the cache only removes the repeat cost.
+144. **v1.34 - MCP tool #28 `status`** ✅ (delivered): the ops pair
+     completes its mirror — `annotate` mirrored long ago, now
+     `status` returns the same one-glance payload over MCP (store
+     health, top modes, triage tallies, last failure + chain
+     verdict, ledger health, top recidivist, optional fleet trend
+     via `digest_dir`, `since` window). A night-watch agent or
+     dashboard reads exactly what the operator sees; the payload is
+     the shared `_status_payload`, so CLI and MCP cannot drift.
 
 
 ## 4. Launch plan
