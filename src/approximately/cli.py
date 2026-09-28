@@ -987,6 +987,19 @@ def _fleet_notify(summaries, url: str) -> None:
 
 
 def cmd_mcp(args: argparse.Namespace) -> int:
+    if getattr(args, "print_tools", None):
+        from .mcp_server import _TOOLS
+
+        payload = json.dumps({"count": len(_TOOLS), "tools": _TOOLS},
+                             indent=2)
+        if args.print_tools == "-":
+            print(payload)
+        else:
+            Path(args.print_tools).write_text(payload + "\n",
+                                              encoding="utf-8")
+            print(f"wrote {len(_TOOLS)} tool schemas to "
+                  f"{args.print_tools}")
+        return 0
     from .mcp_server import cmd_mcp as _serve_mcp
 
     return _serve_mcp(args)
@@ -1961,6 +1974,10 @@ def build_parser() -> argparse.ArgumentParser:
                        help="serve the toolkit as an MCP (Model Context "
                             "Protocol) stdio server — JSON-RPC 2.0, "
                             "zero dependencies")
+    p.add_argument("--print-tools", metavar="PATH", nargs="?",
+                   const="-",
+                   help="write the tools/list inventory as JSON to "
+                        "PATH (or stdout) instead of serving")
     p.set_defaults(func=cmd_mcp)
 
     p = sub.add_parser("doctor", parents=[common],

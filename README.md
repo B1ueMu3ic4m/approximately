@@ -163,7 +163,7 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 🔎 Query DSL + stats | Select traces with an expression — or aggregate the selection: counts, failure rate, mode totals, means | `approximately query "..." [--stats]` |
 | 📖 Mode explainer | "What does FM-1.3 mean *for my agent*?" — definition, published share, the detectors watching it, engineering fixes | `approximately explain FM-1.3` |
 | 👥 Agent scoreboard | Who did what in a multi-agent run: steps, tokens, errors, and the failure rate of traces each agent touched | `Recorder(agent="researcher")` + `approximately stats --by-agent` |
-| 🔌 MCP server | The whole toolkit as a Model Context Protocol stdio server (28 tools and counting — `tools/list` is authoritative) — query failures and agent scoreboards from any MCP client | `approximately mcp` |
+| 🔌 MCP server | The whole toolkit as a Model Context Protocol stdio server (28 tools and counting — the committed [mcp-tools.json](docs/mcp-tools.json) mirrors it; `tools/list` is authoritative) — query failures and agent scoreboards from any MCP client | `approximately mcp` |
 | 🧪 Attribution quality gates | Gold-corpus + large-n synthetic floors run in CI — a detector refactor that degrades P/R fails the build | `python scripts/bench_gate.py [--synth]` |
 | 🚦 Gate as a GitHub Action | The same attribution gate as a drop-in action for your own repo's workflow | `uses: B1ueMu3ic4m/approximately@v0` |
 
@@ -322,6 +322,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.35** — `anomalies --per-tool`: each tool family gets its own latency baseline; rare tools fall back to the pooled scale
 - ✅ **v1.36** — fuzz round 8: poisoned judge-cache entries are misses, MAD==0 rare tools get named, watch clamps negative intervals
 - ✅ **v1.37** — `clean --dry-run` rehearses retention; `rotate --all` rekeys the store in one pass
+- ✅ **v1.38** — `mcp --print-tools`: the tool inventory is a committed JSON artifact ([docs/mcp-tools.json](docs/mcp-tools.json)), pinned against `tools/list`
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
