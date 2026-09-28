@@ -1626,6 +1626,15 @@ framework adapters import lazily and degrade when the framework is absent.
      exist; `--fail-on-worsening` exits 1 when the trend verdict is
      worsening (needs `--digest-dir`). The frame still prints first
      — the alert explains itself.
+162. **v1.52 - slowness gets a trend** ✅ (delivered): digest
+     snapshots already carry each store's fleet-anomaly count
+     (v1.44's webhook fields flow through), so `trend.anomaly_trend`
+     judges slowness over days once two days of history exist
+     (verdict + slope + latest count); the status prose prints
+     `slowness trend: ...` when present. Also restores the status
+     tail lines (trend/ledger/recidivist/last-failure-none) that the
+     shared renderer silently dropped in v1.42 — a round-25
+     consolidation left the renderer a subset of the one-shot.
 157. **v1.47 - RECIPES: night watch and dedupe** ✅ (delivered):
      recipe 15 ties the night story together (`status --watch` +
      fleet baselines + the multi-project sweep, with a note on
