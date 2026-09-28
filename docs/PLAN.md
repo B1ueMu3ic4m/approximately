@@ -1669,6 +1669,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      (delivered): `_print_fleet` gains the anomaly count —
      `prod: 412 traces, failure rate 12%, 3 slow outlier(s)` — so
      the text sweep carries what the JSON payload already had.
+169. **v1.60 - slowness pages too** ✅ (delivered): the watch webhook
+     fires on worsening trends and failure-rate thresholds; now
+     `--alert-anomalies N` also fires when a store carries >= N
+     fleet latency outliers. A store running slow-but-successful
+     used to page nobody — the quiet kind of failure finally has a
+     pager. Digest snapshots still land every cycle; the threshold
+     gates the notification, never the recording.
 165. **v1.55 - postmortems name fleet outliers** ✅ (delivered):
      the per-trace latency card only knows what one run considered
      normal; the postmortem now gains a "Fleet outliers" card when a

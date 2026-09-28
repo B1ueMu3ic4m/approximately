@@ -1105,7 +1105,10 @@ def _fleet_watch(args: argparse.Namespace, stores) -> int:
             iterations=getattr(args, "iterations", None),
             top_agents=getattr(args, "top_agents", 3),
             webhook_url=getattr(args, "webhook", None),
-            alert_worse_than=getattr(args, "alert_worse_than", None))
+            alert_worse_than=getattr(args, "alert_worse_than", None),
+            alert_anomalies=(int(args.alert_anomalies) if
+                             getattr(args, "alert_anomalies", None)
+                             else None))
     except KeyboardInterrupt:
         print("watch stopped")
         return 0
@@ -2155,6 +2158,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--digest-dir",
                    help="directory for watch-loop JSONL snapshots "
                         "(required with --watch)")
+    p.add_argument("--alert-anomalies", type=int, metavar="N",
+                   help="also alert when a store carries >= N fleet "
+                        "latency outliers")
     p.add_argument("--alert-worse-than", type=float, metavar="RATE",
                    help="with --watch --webhook: POST only when a "
                         "store is worsening or its failure rate is at "
