@@ -1665,6 +1665,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      `judge` + `judge_cache` — an agent stack can ask for the judge
      verdict and cache it in one call. Judge absence still degrades
      to rules-only, over MCP too.
+168. **v1.59 - the fleet sweep names slow stores in prose** ✅
+     (delivered): `_print_fleet` gains the anomaly count —
+     `prod: 412 traces, failure rate 12%, 3 slow outlier(s)` — so
+     the text sweep carries what the JSON payload already had.
 165. **v1.55 - postmortems name fleet outliers** ✅ (delivered):
      the per-trace latency card only knows what one run considered
      normal; the postmortem now gains a "Fleet outliers" card when a

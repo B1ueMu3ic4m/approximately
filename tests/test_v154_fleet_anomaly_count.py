@@ -63,3 +63,13 @@ def test_mcp_survey_mirror_includes_anomalies(tmp_path):
     }, ctx)
     result = json.loads(payload["result"]["content"][0]["text"])
     assert result["stores"][0]["fleet_anomalies"] == 1
+
+
+def test_fleet_prose_names_slow_outliers(tmp_path, capsys):
+    from approximately.cli import _print_fleet
+
+    _seed(tmp_path / "s")
+    summaries = survey([tmp_path / "s"])
+    _print_fleet(summaries)
+    out = capsys.readouterr().out
+    assert "1 slow outlier(s)" in out

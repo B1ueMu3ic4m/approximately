@@ -1053,8 +1053,10 @@ def cmd_merge(args: argparse.Namespace) -> int:
 def _print_fleet(summaries) -> None:
     for s in summaries:
         flag = "" if s.ledger_intact is not False else "  [LEDGER BROKEN]"
+        anomalies = getattr(s, "fleet_anomalies", 0) or 0
+        slow = f", {anomalies} slow outlier(s)" if anomalies else ""
         print(f"{s.name}: {s.traces} traces, "
-              f"failure rate {s.failure_rate:.0%}{flag}")
+              f"failure rate {s.failure_rate:.0%}{slow}{flag}")
 
 
 def _fleet_notify(summaries, url: str) -> None:
