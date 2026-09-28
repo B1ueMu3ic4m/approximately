@@ -1577,6 +1577,12 @@ framework adapters import lazily and degrade when the framework is absent.
      outliers are NOT found — a silent no-scan passes nothing) in
      6ms against a 2s budget. Guards the night-watch `status` frame
      against a superlinear baseline regression.
+154. **v1.44 - the fleet sweep counts slow spots** ✅ (delivered):
+     `fleet` survey rows (and the MCP `survey` mirror and every
+     webhook payload) carry `fleet_anomalies` — the store-wide
+     per-tool outlier count — plus the worst offender, so a
+     multi-project sweep answers "which store is quietly slow"
+     without visiting each one.
 
 
 ## 4. Launch plan
