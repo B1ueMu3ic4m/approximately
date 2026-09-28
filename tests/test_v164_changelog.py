@@ -8,6 +8,7 @@ render, so it cannot drift from the plan.
 """
 
 import argparse
+import re
 
 from approximately.changelog import parse_plan, write_changelog
 from approximately.cli import cmd_changelog
@@ -19,7 +20,14 @@ def test_parse_orders_newest_first():
     entries = parse_plan(Path("docs/PLAN.md"))
     assert len(entries) > 100
     versions = [v for v, _, _ in entries]
-    assert versions[0] == "v1.54"
+    # the newest changelog entry is always the current release
+    expected = re.search(r'^version = "(.+?)"',
+                         Path("pyproject.toml").read_text(
+                             encoding="utf-8"),
+                         re.M).group(1)
+    # PLAN headings use short versions (v1.55); pyproject is 1.55.0
+    short = "v" + ".".join(expected.split(".")[:2])
+    assert versions[0] in (f"v{expected}", short)
     assert versions[-1] == "v0.30"
     assert versions == sorted(versions, key=lambda v: [int(x) for x
                                                        in v[1:].split(".")],
