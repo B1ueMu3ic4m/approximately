@@ -1635,6 +1635,12 @@ framework adapters import lazily and degrade when the framework is absent.
      tail lines (trend/ledger/recidivist/last-failure-none) that the
      shared renderer silently dropped in v1.42 — a round-25
      consolidation left the renderer a subset of the one-shot.
+163. **v1.53 - MCP tool #30 `import_annotations`** ✅ (delivered):
+     the v1.50 handoff pair completes its mirror — an MCP client
+     merges an annotation sidecar into the store (append-only,
+     content-keyed) rather than just the transcript half. Missing
+     file is a tool error, never a protocol fault. 30 tools,
+     `tools/list` authoritative, artifact regenerated.
 157. **v1.47 - RECIPES: night watch and dedupe** ✅ (delivered):
      recipe 15 ties the night story together (`status --watch` +
      fleet baselines + the multi-project sweep, with a note on

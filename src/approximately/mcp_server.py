@@ -312,6 +312,22 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "import_annotations",
+        "description": "Merge an annotation sidecar (JSONL) into the "
+                       "store, append-only: rows the store has never "
+                       "seen are added, keyed on stable triage "
+                       "content — a re-import skips.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "path": {"type": "string",
+                         "description": "annotation sidecar (JSONL)"},
+            },
+            "required": ["path"],
+        },
+    },
+    {
         "name": "find_duplicates",
         "description": "Near-duplicate clusters: traces so aligned "
                        "they are the same run wearing a different "
@@ -1002,6 +1018,16 @@ def _tool_diff(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                             for e in td.divergences(limit=5)]}
 
 
+def _tool_import_annotations(ctx: ServerContext,
+                             args: Dict[str, Any]) -> dict:
+    from .importer import import_annotations
+
+    path = Path(str(args["path"]))
+    if not path.is_file():
+        raise KeyError(f"no such file: {path}")
+    return import_annotations(path, _store(ctx, args))
+
+
 def _tool_find_duplicates(ctx: ServerContext,
                           args: Dict[str, Any]) -> dict:
     from .align import duplicate_groups
@@ -1156,6 +1182,7 @@ _HANDLERS = {
     "predict": _tool_predict,
     "context": _tool_context,
     "curve": _tool_curve,
+    "import_annotations": _tool_import_annotations,
     "find_duplicates": _tool_find_duplicates,
     "status": _tool_status,
     "annotate": _tool_annotate,

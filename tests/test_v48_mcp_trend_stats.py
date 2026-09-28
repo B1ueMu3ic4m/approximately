@@ -75,8 +75,8 @@ def test_tools_list_has_twelve_tools():
     raw, _ = _serve([_rpc("tools/list")], ctx)
     names = [t["name"] for t in
              json.loads(raw.strip().splitlines()[0])["result"]["tools"]]
-    assert len(names) == 29 and "trend" in names and "stats" in names
-    assert len(_TOOLS) == 29
+    assert len(names) == 30 and "trend" in names and "stats" in names
+    assert len(_TOOLS) == 30
 
 
 def test_mcp_trend_returns_day_series(tmp_path):
