@@ -1659,6 +1659,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      run of the same tool. A trace can look normal alone and still
      be the slowest search the store has ever seen. Best-effort like
      every card: no store, no card.
+166. **v1.56 - slowness trend parity** ✅ (delivered): one
+     `summarize_trend`, three surfaces — `fleet --trend` prints a
+     `slowness trend:` line (verdict + slope + flagged-step count),
+     the MCP `trend` payload carries `anomaly_trend` verbatim, and
+     the status prose mentions it. Pinned by tests on all three.
 159. **v1.49 - triage coverage in the glance** ✅ (delivered):
      `status` answered "how many failures"; now it answers "how many
      has anyone actually looked at" — `triage_coverage`
