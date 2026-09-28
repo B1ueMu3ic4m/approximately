@@ -1315,16 +1315,12 @@ def cmd_export(args: argparse.Namespace) -> int:
 
 
 def cmd_import(args: argparse.Namespace) -> int:
-    from .importer import import_file
+    from .importer import import_paths
 
-    path = Path(args.file)
-    if not path.is_file():
-        print(f"error: no such file: {path}", file=sys.stderr)
-        return 2
     store = TraceStore(args.store)
     try:
-        result = import_file(
-            path, store,
+        result = import_paths(
+            args.files, store,
             fmt=None if args.format == "auto" else args.format,
             dry_run=args.dry_run)
     except ValueError as exc:
@@ -1334,8 +1330,8 @@ def cmd_import(args: argparse.Namespace) -> int:
         print(json.dumps(result, indent=2))
     else:
         print(f"imported {result['imported']} of {result['lines']} "
-              f"transcripts from {path} ({result['skipped']} skipped, "
-              f"format {result['format']})"
+              f"transcripts from {result['files']} file(s) "
+              f"({result['skipped']} skipped)"
               + (" [dry run]" if args.dry_run else ""))
     return 0
 
@@ -1885,7 +1881,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("import", parents=[common],
                        help="batch-import foreign transcript JSONL")
-    p.add_argument("file", help="JSONL file, one transcript per line")
+    p.add_argument("files", nargs="+",
+                   help="JSONL file(s), one transcript per line; "
+                        "glob patterns welcome")
     p.add_argument("--format", choices=["auto", "native", "openai-jsonl",
                                         "messages-list"],
                    default="auto",

@@ -73,6 +73,21 @@ def test_roundtrip_identity_and_stability(tmp_path):
         twin = by_id[original.id]
         assert twin.task == original.task
         assert twin.success == original.success
+        # the source store's own on-disk copy must match the
+        # in-memory trace save() was given
+        reread = source.load(original.id)
+        assert reread is not None, f"missing on disk: {original.id}"
+        assert reread.task == original.task, (
+            f"source disk mangled task for {original.id}: "
+            f"{len(original.task)} -> {len(reread.task)} chars")
+    # rows must be identical as data, independent of any ordering the
+    # filesystem layer chooses
+    rows_a = sorted(out.read_text(encoding="utf-8").splitlines())
+    rows_b = sorted(out2.read_text(encoding="utf-8").splitlines())
+    diff = "\n".join(
+        f"{len(a)} vs {len(b)}: {a[-120:]!r} | {b[-120:]!r}"
+        for a, b in zip(rows_a, rows_b) if a != b)[:2000]
+    assert rows_a == rows_b, diff
     assert out.read_bytes() == out2.read_bytes()
 
 

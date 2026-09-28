@@ -181,6 +181,46 @@ def _parse_line(obj: Any, raw: str, line_no: int,
         return _foreign_trace({"messages": obj}, raw, line_no, fmt)
     return _foreign_trace(obj, raw, line_no, fmt)
 
+def _expand(patterns: List[str]) -> List[Path]:
+    """Expand each argument as a literal path or a glob pattern."""
+    import glob as _glob
+
+    files: List[Path] = []
+    for pattern in patterns:
+        matches = sorted(_glob.glob(pattern)) if any(
+            c in pattern for c in "*?[") else [pattern]
+        for match in matches:
+            path = Path(match)
+            if path.is_file() and path not in files:
+                files.append(path)
+    return files
+
+
+def import_paths(patterns: List[str], store: TraceStore,
+                 fmt: Optional[str] = None,
+                 dry_run: bool = False) -> Dict[str, Any]:
+    """Import every transcript file the patterns name (globs welcome);
+    per-file counts ride along in ``per_file``."""
+    files = _expand(patterns)
+    if not files:
+        raise ValueError("no files matched: "
+                         + ", ".join(patterns))
+    per_file = []
+    total_ids: List[str] = []
+    lines = imported = skipped = 0
+    for path in files:
+        result = import_file(path, store, fmt=fmt, dry_run=dry_run)
+        per_file.append({"file": str(path), **{
+            k: result[k] for k in ("format", "lines", "imported",
+                                   "skipped")}})
+        total_ids.extend(result["trace_ids"])
+        lines += result["lines"]
+        imported += result["imported"]
+        skipped += result["skipped"]
+    return {"files": len(files), "lines": lines, "imported": imported,
+            "skipped": skipped, "trace_ids": total_ids,
+            "per_file": per_file}
+
 
 def import_file(path: Path, store: TraceStore,
                 fmt: Optional[str] = None,

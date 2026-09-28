@@ -1413,6 +1413,13 @@ framework adapters import lazily and degrade when the framework is absent.
      import (breaking the export fixpoint), and explicit-null
      success now roundtrips as an open trace instead of flipping to
      closed.
+133. **v1.23 - import at scale** ✅ (delivered): `approximately
+     import` takes several file arguments and expands glob patterns
+     (sorted, deduplicated); the JSON payload aggregates lines /
+     imported / skipped across files with a per-file breakdown.
+     Deterministic ids now dedupe across files: the same transcript
+     in two log files is one trace. No match is a documented
+     ValueError (CLI exit 2), not a silent success.
 
 
 ## 4. Launch plan
