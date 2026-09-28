@@ -327,6 +327,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.40** — `import --jobs N`: parallel ingest over the thread pool; one bad file no longer kills a batch
 - ✅ **v1.41** — `anomalies --all`: fleet-mode baselines — the store knows what `search` costs everywhere
 - ✅ **v1.42** — `status` carries `fleet_anomalies` (count + worst offender); one shared renderer for all status modes
+- ✅ **v1.43** — `perf-gate[fleet-anomalies]`: 10k traces in 6ms (budget 2s); crafted outliers must be found
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

@@ -34,7 +34,48 @@ def main() -> int:
                              "milliseconds (default 50, ~25x headroom)")
     args = parser.parse_args()
     return (attribution_gate(args) + agent_wave_gate()
-            + query_gate() + similar_gate())
+            + query_gate() + similar_gate() + fleet_anomaly_gate())
+
+def fleet_anomaly_gate(budget_s: float = 2.0) -> int:
+    """Per-tool fleet baselines over a 10k-trace store.
+
+    The fleet anomaly scan (v1.41) must stay linear in traces x steps:
+    two tools x 5k traces, every step timed, baselined and flagged
+    within budget. A superlinear baseline here means the night-watch
+    `status` frame stalls on real stores.
+    """
+    from approximately.anomaly import detect_fleet_anomalies
+    from approximately.recorder import Recorder
+
+    traces = []
+    for i in range(10_000):
+        rec = Recorder(f"t {i}", save=False)
+        rec.tool("search", {"q": i}, result="hit")
+        rec.tool("deploy", {"env": "prod"}, result="ok")
+        rec.respond("done", success=True)
+        search_ms = 5000 if i % 500 == 0 else 100 + i % 50
+        for step, ms in zip(rec.trace.steps,
+                            (search_ms, 2000 + i % 500)):
+            step.latency_ms = ms
+        traces.append(rec.trace)
+
+    start = time.perf_counter()
+    anomalies = detect_fleet_anomalies(traces)
+    elapsed = time.perf_counter() - start
+    if not anomalies:
+        print("FAIL: fleet gate found no anomalies in crafted data",
+              file=sys.stderr)
+        return 1
+    print(f"perf-gate[fleet-anomalies]: baselines over 10k traces in "
+          f"{elapsed * 1000:.0f}ms ({len(anomalies)} flagged, budget "
+          f"{budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: fleet anomalies slowed past budget",
+              file=sys.stderr)
+        return 1
+    return 0
+
 
 def attribution_gate(args) -> int:
     labeled = load_dataset(SYNTH, fmt="approx")

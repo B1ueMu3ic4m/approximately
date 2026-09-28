@@ -1570,6 +1570,13 @@ framework adapters import lazily and degrade when the framework is absent.
      (tool, latency, family median, z). The prose render names it
      when nonzero, and the one-shot/watch/JSON modes now share ONE
      renderer, so the glance cannot drift between modes.
+153. **v1.43 - the fleet scan gets its own perf gate** ✅
+     (delivered): every analytic path earns a budget;
+     `perf-gate[fleet-anomalies]` baselines 10k traces x 2 tools
+     (crafted spikes included, and the gate fails if the crafted
+     outliers are NOT found — a silent no-scan passes nothing) in
+     6ms against a 2s budget. Guards the night-watch `status` frame
+     against a superlinear baseline regression.
 
 
 ## 4. Launch plan
