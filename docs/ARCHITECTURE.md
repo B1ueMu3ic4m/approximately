@@ -105,6 +105,37 @@ binary-search) · `drift.py` (PSI action drift) · `precursor.py`
 (failure prediction from history) · `streaming.py` (live in-flight
 risk monitor).
 
+## Anomaly detection: latency as a signal
+
+```
+trace steps ──► anomaly.py (per-trace: modified z over the run)
+all traces  ──► anomaly.py (fleet: per-tool baselines store-wide)
+digest days ──► fleet.py  (slowness trend over days) ──► webhook
+```
+
+- **per-trace** (`detect_latency_anomalies`) — modified z-scores
+  (Iglewicz & Hoaglin) over one run's timed tool calls;
+  `per_tool=True` baselines each tool family separately so a 2s
+  search and a 30s deploy stop masking each other. Families under
+  `min_samples` fall back to the pooled scale; a pooled MAD of zero
+  (>50% identical steps) flags any rare call that differs at all.
+- **fleet** (`detect_fleet_anomalies`, CLI `anomalies --all`, MCP
+  `fleet: true`) — the store is the baseline: each tool family's
+  median/MAD across every trace, so a single 30s search inside a
+  boring week stands out even though that trace alone has no scale
+  to judge it. Findings carry their `trace_id`; surfaces in the
+  `status` payload (`fleet_anomalies`), the fleet survey, webhook
+  payloads, and the postmortem's Fleet-outliers card.
+- **slowness trend** — digest snapshots carry per-store anomaly
+  counts, so `trend.anomaly_trend` judges slowness over days once
+  two days of history exist. `fleet --watch --alert-anomalies N`
+  pages when a store crosses the line (thresholds gate the
+  notification, never the recording); `status
+  --fail-on-anomalies` fails a pipeline the same way.
+- **perf budget** — `perf-gate[fleet-anomalies]` baselines 10k
+  traces in milliseconds and FAILS if its crafted outliers are not
+  found; a silent no-scan passes nothing.
+
 ## Interop: logs in, transcripts out
 
 ```

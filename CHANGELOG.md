@@ -3,6 +3,21 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.64
+
+(delivered): a dedicated section for the latency signal — per-trace vs fleet baselines, the degenerate-case ladder (pooled fallback, MAD-zero sentinels), the slowness trend and its three surfaces, the alerting gates, and the perf budget. Docs-only, closing the documentation debt of the anomaly streak (v1.35-v1.60). Ledger renumbered physically (duplicate 171s from drifted insert anchors).
+
+
+## v1.63
+
+(delivered): `perf-gate[import]` pushes 500 mixed-shape transcripts (tool_calls, tool errors, multi-turn) through a fresh store on 4 threads — 137ms against a 2s budget, with count AND failure-flag assertions so a silent data-loss regression fails the gate, not the user's dataset.
+
+
+## v1.62
+
+long watches printed the same frame every interval; `--on-change` suppresses an unchanged payload (frames still count so `--frames` still bounds the loop) and the next real change prints again — a night of logs stays one screen instead of five hundred.
+
+
 ## v1.61
 
 the changelog parser meets hostile ledger text — nested bold inside titles (a deferred line could masquerade as delivered via non-greedy expansion; titles may no longer contain `**`), CRLF files, emoji headings, fullwidth colons, missing versions, future versions — deferred and versionless stay out, everything else parses sorted and reproducible. Plus dedupe threshold extremes (0.0 clusters everything into one group, >1 nothing, max_traces=0 scans nothing) and fleet degenerate latencies (zero, negative, absurd spikes — never NaN).

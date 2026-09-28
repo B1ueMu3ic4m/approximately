@@ -479,27 +479,27 @@ framework adapters import lazily and degrade when the framework is absent.
      cycle detector is the only thing that catches it (v0.38 end to
      end), HTML report included.
 
-17. **v0.43 — MCP bisect + doctor tools** (queued — depends on the
+16. **v0.43 — MCP bisect + doctor tools** (queued — depends on the
     two tools above; branch ready).
-18. **v0.44 — attribution regression gate** ✅ (delivered):
+17. **v0.44 — attribution regression gate** ✅ (delivered):
     `scripts/bench_gate.py` + `docs/bench-floors.json` — gold-corpus
     per-mode P/R/F1 floors enforced by the CI bench-gate job; a
     detector refactor that silently degrades attribution fails CI
     (provably fires on pre-v0.38 main: FM-1.3 R 0.14 < 0.60).
-19. **v0.45 — adversarial-input fuzz round** ✅ (delivered): seeded,
+18. **v0.45 — adversarial-input fuzz round** ✅ (delivered): seeded,
   deterministic fuzz over every parser boundary — 300 random query
   expressions (QueryError or callable, never leaks), 5000-deep
   nesting (cap, not RecursionError), corrupt/bytes store records
   through the doctor, 200+ protocol-edge MCP lines, random prose
   turn soup under a timing bound. Fixed seeds reproduce failures.
 
-20. **v0.46 — README walkthrough regression tests** ✅ (delivered):
+19. **v0.46 — README walkthrough regression tests** ✅ (delivered):
     every quickstart/capabilities command executed against a fresh
     demo-seeded store with its promised output asserted — doc drift
     fails CI. Found and fixed real walkthrough pollution on the way:
     `test` generates guard files in the CWD, so the walkthrough now
     runs it from a scratch directory.
-22. **v0.49 — doctor --fix** ✅ (delivered): removes what the
+20. **v0.49 — doctor --fix** ✅ (delivered): removes what the
     hygiene checks flagged — stale writer locks and leftover temp
     files — and never touches record data, the ledger, or digests;
     the removal note goes to stderr so --json stdout stays
@@ -517,7 +517,7 @@ framework adapters import lazily and degrade when the framework is absent.
     attribution-quality gate and the fleet trend gate alongside the
     regression-guard workflow.
 
-24. **v0.51 — synthetic attribution regression fixture** ✅
+23. **v0.51 — synthetic attribution regression fixture** ✅
     (delivered): `scripts/make_synth_corpus.py` (seeded, byte-stable)
     generates 180 prose records whose failure modes are planted by
     construction - FM-1.3/2.1/2.6/3.2 at P 1.00 / R 1.00 with tight
@@ -527,18 +527,18 @@ framework adapters import lazily and degrade when the framework is absent.
     framing enforced in docs: a canary for regressions, never
     real-world performance; FM-2.3/FM-3.1 deliberately absent.
 
-25. **v0.52 — packaging CI job** ✅ (delivered, #116): `python -m
+24. **v0.52 — packaging CI job** ✅ (delivered, #116): `python -m
     build` in CI, then a clean-venv smoke install of the wheel
     (version banner + two-step recording) and artifact upload; the
     packaging job passed on its own PR. The PyPI path is validated
     on every PR without tagging - a release is now: Trusted
     Publishing setting + tag `v0.49.0` + push.
-26. **v0.53 — ARCHITECTURE.md** ✅ (delivered, #117): the module map
+25. **v0.53 — ARCHITECTURE.md** ✅ (delivered, #117): the module map
     and evidence pipeline for contributors - recorder -> store ->
     integrity, the two exclusive detector families, Bayesian fusion,
     replay/repair, fleet ops, MCP - plus five invariants worth
     keeping, counts verified against the registries.
-27. **v0.54 — buffer / audit findings** ✅ (consumed): fixture
+26. **v0.54 — buffer / audit findings** ✅ (consumed): fixture
     building surfaced real detector-fitness lessons (homogeneous
     template turns trip the restart detector; harness echoes
     amplify shingle similarity; a pure loop legitimately exhibits
@@ -551,13 +551,13 @@ framework adapters import lazily and degrade when the framework is absent.
      stats, the 9-tool MCP server, attribution quality gates);
      the stale "7 tools" history row corrected to 9 (CLI parity).
      Taxonomy claim re-verified: 14 real modes + OTHER.
-28. **v0.56 — MCP attribute explain** ✅ (delivered): the attribute
+27. **v0.56 — MCP attribute explain** ✅ (delivered): the attribute
     tool gains `explain: true` - the Bayesian fusion arithmetic
     (prior log-odds + per-detection LLR) rides along in the
     payload, so a verdict fetched over MCP is auditable as
     arithmetic, not vibes. Opt-in flag; default payload unchanged.
 
-29. **v0.57 — HyperAgent schema tests** ✅ (delivered): the log-line
+28. **v0.57 — HyperAgent schema tests** ✅ (delivered): the log-line
     trajectory parser (`_hyperagent_turns`, the schema behind one of
     the corpus sources) had zero direct coverage (mastdata 80%);
     now pinned line-by-line - marker accumulation, continuation
@@ -575,7 +575,7 @@ framework adapters import lazily and degrade when the framework is absent.
      route: `calibrate` on a multi-label dataset crashed with a
      bare TypeError; it now exits 1 with "use benchmark
      --multi-label". cli.py coverage 86% -> 90%.
-30. **v0.59 — MCP server coverage to 100%** ✅ (delivered): the
+29. **v0.59 — MCP server coverage to 100%** ✅ (delivered): the
     remaining 18 uncovered lines closed - attribute/verify/bisect
     missing-trace tool errors, the survey and query handlers, the
     generic (non-KeyError) tool-exception branch, `cmd_mcp`'s
@@ -592,7 +592,7 @@ framework adapters import lazily and degrade when the framework is absent.
      floor, agents_sdk span-type routing + trace-name takeover.
      crewai 66% -> 92%, langgraph 76% -> 92%.
 
-33. **v0.63 — llamaindex edge tests** ✅ (delivered): typed-span
+30. **v0.63 — llamaindex edge tests** ✅ (delivered): typed-span
     lifecycle (RetrieverSpan/LLMSpan through new_span/exit/drop),
     hostile spans that raise in every hook (never break the query),
     `_parse_call` contract (dict-repr kwargs, no-space whole-name,
@@ -601,13 +601,13 @@ framework adapters import lazily and degrade when the framework is absent.
     (remaining lines need framework-level mocks - diminishing
     value, documented and accepted).
 
-35. **v0.65 — TUTORIAL.md** ✅ (delivered): a ten-minute
+31. **v0.65 — TUTORIAL.md** ✅ (delivered): a ten-minute
     record -> attribute -> bisect -> guard -> fleet-tutorial whose
     every command is already exercised by the walkthrough tests -
     the tutorial cannot silently drift from the tool. README links
     it above the design document.
 
-38. **v0.68 — streaming contract + metrics audit** ✅ (delivered):
+32. **v0.68 — streaming contract + metrics audit** ✅ (delivered):
     the streaming monitor's verify-step classification pinned
     directly (meta flag wins, non-tool steps never verify,
     tool-name markers enumerated, plain mutations excluded) -
@@ -623,21 +623,21 @@ framework adapters import lazily and degrade when the framework is absent.
      example in isolation asserting FM-1.3 attribution, the report
      landing in the store, and no checkout leakage.
 
-40. **v0.70 — packaging demo smoke** ✅ (delivered): the packaging
+33. **v0.70 — packaging demo smoke** ✅ (delivered): the packaging
     job's clean-venv smoke now also runs both multi-agent demo
     scenarios through the installed wheel and greps for the
     expected detector sources - the wheel is proven to carry the
     demo modules and the newest detectors, not just the core.
     README quickstart lists all three scenarios.
 
-41. **v0.73 — verify exit-code ladder at CLI level** ✅
+34. **v0.73 — verify exit-code ladder at CLI level** ✅
     (delivered): all six documented verdicts pinned through the real
     command - 0 intact, 1 TAMPERED (rewritten step), 2 unsigned, 3
     KEYED (keyed trace, no key), 4 ROLLED-BACK (ledger audit), 5
     LEDGER-BROKEN (chain localized) - plus rotate's
     required-new-key refusal and success path. cli.py 91% -> 93%.
 
-42. **v0.50 — `approximately explain` mode deep dives** ✅
+35. **v0.50 — `approximately explain` mode deep dives** ✅
     (delivered): per-mode "what does this mean for my agent" pages -
     definition, published MAST share, watching detectors, engineering
     fixes - with the detector column derived from live registries
@@ -647,7 +647,7 @@ framework adapters import lazily and degrade when the framework is absent.
     id list. MCP grows to 10 tools with the same content. 10 new
     tests incl. registry-size drift guards.
 
-43. **v0.50 — the attribution gate ships: `bench-gate` + GitHub
+36. **v0.50 — the attribution gate ships: `bench-gate` + GitHub
     Action** ✅ (delivered): gate logic moves from
     scripts/bench_gate.py into approximately.benchgate with a
     `bench-gate` CLI command (dataset + floors -> exit 1 on breach);
@@ -658,7 +658,7 @@ framework adapters import lazily and degrade when the framework is absent.
     (examples/action/): positive clears, impossible floor fails the
     step and the job asserts the failure. 6 new tests.
 
-44. **v0.50 — per-agent identity + agent scorecard** ✅ (delivered):
+37. **v0.50 — per-agent identity + agent scorecard** ✅ (delivered):
     `Step.agent` with chain-safe serialization (unset agent omitted
     from to_dict, so pre-agent stores keep verifying; set agent is
     hash-covered and edits break the chain). `Recorder(agent=...)` +
@@ -669,7 +669,7 @@ framework adapters import lazily and degrade when the framework is absent.
     ("unattributed" bucket keeps instrumentation gaps visible).
     8 new tests.
 
-45. **v0.50 — adversarial round: untrusted agent identity + gate
+38. **v0.50 — adversarial round: untrusted agent identity + gate
     integrity** ✅ (delivered): hostile agent names (script payloads,
     backtick runs, fence-breakers, NUL, homoglyphs, bidi overrides,
     10k chars, whitespace) driven through HTML reports, markdown
@@ -681,7 +681,7 @@ framework adapters import lazily and degrade when the framework is absent.
     renderers. 9 new tests + SECURITY.md rows; 10k-step perf smoke
     under 5 s.
 
-46. **v0.50 — `verify --all --strict` / `--quiet`** ✅ (delivered):
+39. **v0.50 — `verify --all --strict` / `--quiet`** ✅ (delivered):
     default batch semantics stay "nothing is broken" (unsigned
     records pass with a note); strict mode enforces "every record
     must carry verifiable evidence" and fails on unsigned and
@@ -689,7 +689,7 @@ framework adapters import lazily and degrade when the framework is absent.
     drops per-trace rows for cron mailboxes; JSON gains a `strict`
     field. 4 new tests.
 
-47. **v0.50 — docs/RECIPES.md task cookbook** ✅ (delivered): ten
+40. **v0.50 — docs/RECIPES.md task cookbook** ✅ (delivered): ten
     task-shaped recipes (instrument in 5 lines, agent scoreboard,
     attribute+bisect+explain, regression tests, CI attribution gate
     via the action, nightly integrity cron with strict verify,
@@ -697,7 +697,7 @@ framework adapters import lazily and degrade when the framework is absent.
     judge). Every command spot-checked against the CLI surface;
     linked from the README next to the tutorial.
 
-48. **v0.50 — per-agent observability: Prometheus counters,
+41. **v0.50 — per-agent observability: Prometheus counters,
     recidivist agents, label crash fix** ✅ (delivered):
     `metrics --prometheus --by-agent` emits per-agent step/tool/
     error/token/failed-trace counters plus touched-failure-rate
@@ -708,14 +708,14 @@ framework adapters import lazily and degrade when the framework is absent.
     CLI passed raw strings to a dict API - labels now parse with a
     real error message for malformed pairs. 7 new tests.
 
-49. **v0.50 — agent wave completion: agents in the HTML surfaces**
+42. **v0.50 — agent wave completion: agents in the HTML surfaces**
     ✅ (delivered): single-trace reports gain an "Agents in this
     run" card (hidden for single-identity runs, names escaped);
     the fleet dashboard grows a "Busiest agents" table per store
     (steps/errors/touched-fail-rate); `fleet --json` and webhook
     payloads carry `top_agents`. 5 new tests.
 
-50. **v0.50 — per-agent fleet trend** ✅ (delivered): digest
+43. **v0.50 — per-agent fleet trend** ✅ (delivered): digest
     snapshots now carry each store's top-3 busiest named agents;
     `fleet --trend --agent NAME` plots one agent's steps/errors/
     touched-fail-rate per day with its own Theil-Sen verdict (not
@@ -724,27 +724,27 @@ framework adapters import lazily and degrade when the framework is absent.
     zero, zero day = "not observed" documented in help + recipes).
     6 new tests.
 
-51. **v0.50 — runner-up hypotheses** ✅ (delivered): attribution
+44. **v0.50 — runner-up hypotheses** ✅ (delivered): attribution
     is a ranking, not an oracle - FailureReport now carries
     `runner_ups` (other modes the detectors fired for, with
     detection count and max confidence), shown via
     `attribute --top N`, in `to_dict`, and in the MCP attribute
     payload. Default output stays quiet. 5 new tests.
 
-52. **v0.50 — docs/RELEASE.md runbook** ✅ (delivered): pre-tag
+45. **v0.50 — docs/RELEASE.md runbook** ✅ (delivered): pre-tag
     checklist (the full local gate list), version-bump contract
     (pyproject + __init__ must match), tag/push mechanics, what the
     Release workflow does (Trusted Publishing, no tokens), the
     clean-venv post-check, and the yank-and-patch rollback path.
 
-53. **v0.50 — query DSL `agents` field** ✅ (delivered):
+46. **v0.50 — query DSL `agents` field** ✅ (delivered):
     `agents contains 'researcher'` selects traces where a named
     agent performed a step (distinct Step.agent values; unattributed
     steps contribute nothing). Composes with the existing
     predicates; the unknown-field error now lists the new field.
     5 new tests.
 
-54. **v0.50 — the Release workflow creates the GitHub Release**
+47. **v0.50 — the Release workflow creates the GitHub Release**
     ✅ (delivered): pushing a v* tag now produces BOTH the PyPI
     publication and the Releases-page entry (auto-generated notes
     from merged PRs, sdist + wheel attached) - previously the
@@ -755,7 +755,7 @@ framework adapters import lazily and degrade when the framework is absent.
 
 ---
 
-55. **v0.50 — fully automatic releases** ✅ (delivered): a new
+48. **v0.50 — fully automatic releases** ✅ (delivered): a new
     `autotag.yml` watches main - when a merge changes the pyproject
     version it tags it and dispatches `release.yml` (which gained a
     `workflow_dispatch` trigger for exactly this; a GITHUB_TOKEN tag
@@ -766,13 +766,13 @@ framework adapters import lazily and degrade when the framework is absent.
     instead of a failure until credentials land. RELEASE.md
     rewritten around the no-human-steps flow.
 
-56. **v0.50 — runner-up hypotheses in the human-facing reports**
+49. **v0.50 — runner-up hypotheses in the human-facing reports**
     ✅ (delivered): HTML reports gain a "Runner-up Hypotheses"
     card and Markdown reports a matching section (mode, label,
     detection count, max confidence) - completing v82, where only
     the CLI/JSON/MCP surfaces carried them. Hidden when the
     detectors fired for the primary mode alone. 4 new tests.
-57. **v0.50 — doctor detects legacy agent identity** ✅
+50. **v0.50 — doctor detects legacy agent identity** ✅
     (delivered): stores recorded before v0.50 carry the actor in
     step `meta["agent"]`; the doctor now lists affected files
     (informational, never an unhealthy verdict) with the migration
@@ -780,14 +780,14 @@ framework adapters import lazily and degrade when the framework is absent.
     which detectors, scorecard, and reports read first. 4 new
     tests.
 
-58. **v0.51 — automatic releases shipped + v0.51 itself** ✅
+51. **v0.51 — automatic releases shipped + v0.51 itself** ✅
     (delivered): v0.50.0 was released end-to-end by the new
     pipeline (tag → build → GitHub Release with generated notes
     and dist assets); autotag now fires on this very merge's
     version bump. Tutorial refresh covers explain, runner-ups,
     agent identity, and the bench-gate action.
 
-59. **v0.50 — configurable busiest-agents window** ✅
+52. **v0.50 — configurable busiest-agents window** ✅
     (delivered): `fleet --top-agents N` sizes the per-store
     busiest-agents snapshot (default 3) for watch digests,
     dashboards, and fleet JSON; `survey(top_agents=N)` in the API.
@@ -795,7 +795,7 @@ framework adapters import lazily and degrade when the framework is absent.
     --trend --agent` sees only agents inside the window. 4 new
     tests.
 
-60. **v0.50 — fuzz round 3: two real crashes found and fixed** ✅
+53. **v0.50 — fuzz round 3: two real crashes found and fixed** ✅
     (delivered): seeded garbage through the newest boundaries
     (digest snapshots, floors JSON, DSL agents field, MCP
     bench_gate). Found: a valid-JSON-but-list digest line crashed
@@ -808,23 +808,23 @@ framework adapters import lazily and degrade when the framework is absent.
     files can no longer crash or silently pass. 4 new tests
     (858 total).
 
-61. **v0.52 — release** ✅ (delivered): this merge. 859 tests,
+54. **v0.52 — release** ✅ (delivered): this merge. 859 tests,
     11-tool MCP, gates green, autotag releases it on merge.
 
-62. **v0.53 — MCP tool #12 `scoreboard`** ✅ (delivered): the
+55. **v0.53 — MCP tool #12 `scoreboard`** ✅ (delivered): the
     agent wave reaches stdio clients - per-agent steps/tool calls/
     errors/tokens/failed-traces/touched-failure-rate for a store,
     with an optional query-expression filter (the full DSL,
     `agents contains ...` included) and optional top-N. Tool count
     11 -> 12; 5 new tests.
 
-63. **v0.54 — fleet dashboard embeds the digest trend** ✅
+56. **v0.54 — fleet dashboard embeds the digest trend** ✅
     (delivered): `fleet --fleet-html --digest-dir DIR` renders the
     day-level fleet trend above the store cards - sparkline,
     Theil-Sen verdict badge with slope, per-day traces/rate table.
     Without a digest dir the page is unchanged. 5 new tests.
 
-64. **v0.55 — perf gate covers the agent wave + release
+57. **v0.55 — perf gate covers the agent wave + release
     provenance documented** ✅ (delivered): perf_gate gains an
     agent-wave section (scorecard + markdown render on a 10k-step
     trace, 5 s budget - observed 0.08 s) alongside the attribution
@@ -832,7 +832,7 @@ framework adapters import lazily and degrade when the framework is absent.
     release workflows, scoped tokens, OIDC, the short allow-list of
     actions). 1 new test. This merge releases v0.55.0.
 
-65. **v0.56 — MCP trend gains the agent dimension** ✅
+58. **v0.56 — MCP trend gains the agent dimension** ✅
     (delivered): the `trend` tool accepts an optional `agent` name
     and returns that agent's per-day rollup (steps/errors/
     failed-of-touched) with its own Theil-Sen verdict - parity with
@@ -840,14 +840,14 @@ framework adapters import lazily and degrade when the framework is absent.
     summary is unchanged. 1 new test. This merge releases v0.56.0.
 
 
-66. **v0.57 — runner-up hypotheses carry their fixes** ✅
+59. **v0.57 — runner-up hypotheses carry their fixes** ✅
     (delivered): the HTML Runner-up card grows a collapsible
     `<details>` block per runner-up ("If it was actually FM-x.y")
     listing that mode's engineering fixes - the next-best
     hypothesis now comes with its own action list. 2 new tests.
 
 
-67. **v0.58 — the synthetic corpus carries agent identity** ✅
+60. **v0.58 — the synthetic corpus carries agent identity** ✅
     (delivered): every step in docs/mast-bench-synth.jsonl is
     stamped agent=hyperagent (generator change + regeneration,
     same SEED), so the CI bench runs exercise the Step.agent paths
@@ -856,7 +856,7 @@ framework adapters import lazily and degrade when the framework is absent.
     scenario keys the identity-reading detectors. 3 new tests.66. **v0.57 — runner-up hypotheses carry their fixes** ✅
 
 
-68. **v0.59 — attribute --min-confidence** ✅ (delivered): the
+61. **v0.59 — attribute --min-confidence** ✅ (delivered): the
     per-detection admission floor is tunable for noisy
     environments; the knob can only raise it (max with the
     built-in 0.5), so a caller cannot weaken attribution by
@@ -864,7 +864,7 @@ framework adapters import lazily and degrade when the framework is absent.
     honest OTHER verdict. Wired through the CLI (single + --all)
     and the API. 4 new tests.
 
-69. **v0.60 - the recidivist filter** ✅ (delivered): `agent_scorecard(min_failed=)`
+62. **v0.60 - the recidivist filter** ✅ (delivered): `agent_scorecard(min_failed=)`
     keeps only agents with at least N failed traces - one flaky run is
     noise, a repeat offender is a fleet problem. Exposed as
     `stats --by-agent --min-failed N` on the CLI and
@@ -873,7 +873,7 @@ framework adapters import lazily and degrade when the framework is absent.
     distribution instead of a hardcoded 0.37.0 that had gone stale.
     7 new tests.
 
-70. **v0.61 - `verify <id> --json`** ✅ (delivered): the single-trace
+63. **v0.61 - `verify <id> --json`** ✅ (delivered): the single-trace
     integrity check joins the --all audit in speaking machine. Every
     rung of the six-exit-code ladder now emits one JSON object with a
     `verdict` field (intact / unsigned / keyed / tampered /
@@ -881,7 +881,7 @@ framework adapters import lazily and degrade when the framework is absent.
     instead of grepping prose. Text output unchanged. 5 new tests,
     including a deterministic rolled-back fixture.
 
-71. **v0.62 - one verdict payload everywhere** ✅ (delivered):
+64. **v0.62 - one verdict payload everywhere** ✅ (delivered):
     `integrity.verdict_payload()` is now the single source of truth
     for the verification ladder; the CLI (`verify <id> --json`) and
     the MCP `verify` tool render the same object — detail, chain
@@ -891,7 +891,7 @@ framework adapters import lazily and degrade when the framework is absent.
     `wrong-key` (exit 3, locked-not-broken) instead of masquerading
     as TAMPERED. 6 new tests.
 
-72. **v0.63 - MCP cluster tool (tool #13)** ✅ (delivered): recidivist
+65. **v0.63 - MCP cluster tool (tool #13)** ✅ (delivered): recidivist
     failure-mode clustering over stdio - attributes every trace and
     groups failures by (mode, tool-set), with the CLI's `min_size`
     recidivist threshold, `by_agent` switch, query-expression filter
@@ -899,7 +899,7 @@ framework adapters import lazily and degrade when the framework is absent.
     through which tools / which agents" without shelling out. 7 new
     tests.
 
-73. **v0.64 - fuzz round 4 + bounded key reads** ✅ (delivered): the
+66. **v0.64 - fuzz round 4 + bounded key reads** ✅ (delivered): the
     newest surfaces (recidivist filter, shared verdict ladder, MCP
     cluster tool) fuzzed with garbage thresholds, corrupted integrity
     blocks and hostile key paths — every probe contained, corpus
@@ -909,7 +909,7 @@ framework adapters import lazily and degrade when the framework is absent.
     (device nodes were already excluded by `is_file`). 6 new tests;
     SECURITY.md documents the cap and the fuzz doctrine.
 
-74. **v0.64 - Windows correctness: the sharing clash, fixed at the
+67. **v0.64 - Windows correctness: the sharing clash, fixed at the
     root** ✅ (delivered): the mystery "Windows runners keep wedging"
     was two real bugs in a chain. (1) `store.save` used a bare
     `os.replace`; on Windows that refuses with PermissionError while
@@ -927,7 +927,7 @@ framework adapters import lazily and degrade when the framework is absent.
     including a flaky-replace simulation that pins the retry
     semantics cross-platform.
 
-75. **v0.65 - supply-chain hardening round** ✅ (delivered): every
+68. **v0.65 - supply-chain hardening round** ✅ (delivered): every
     GitHub Actions reference is SHA-pinned (checkout, setup-python,
     upload/download-artifact, pypa publish) - a mutable tag can no
     longer drift into the release path. New `security` CI job: bandit
@@ -936,7 +936,7 @@ framework adapters import lazily and degrade when the framework is absent.
     regex secret scan over src, workflows and packaging metadata.
     SECURITY.md gains the provenance story.
 
-76. **v0.66 - per-select query memoization** ✅ (delivered): the
+69. **v0.66 - per-select query memoization** ✅ (delivered): the
     query DSL evaluated every field mention eagerly - an expression
     mentioning ``mode`` twice re-ran the full detector suite twice
     per trace. ``select()`` now shares a per-select memo keyed by
@@ -948,7 +948,7 @@ framework adapters import lazily and degrade when the framework is absent.
     budget). 4 new tests, including a detector-call counter that
     pins 3 traces x 2 mentions = 3 runs, not 6.
 
-77. **v0.67 - MCP similar + drift (tools #14 and #15)** ✅
+70. **v0.67 - MCP similar + drift (tools #14 and #15)** ✅
     (delivered): the last CLI/MCP surface gaps close. `similar`
     returns the alignment-nearest traces to a given run (structure
     aware sequence alignment, score in [0,1]); `drift` computes the
@@ -957,7 +957,7 @@ framework adapters import lazily and degrade when the framework is absent.
     now ask "what does this run look like?" and "is the fleet's
     behaviour shifting?" without shelling out. 6 new tests.
 
-78. **v0.68 - MCP counterfactual + predict (tools #16 and #17)** ✅
+71. **v0.68 - MCP counterfactual + predict (tools #16 and #17)** ✅
     (delivered): the deep-analysis surface is fully reachable over
     stdio. `counterfactual` runs leave-one-out attribution - which
     step's removal eliminates each mode (root cause vs symptom),
@@ -966,7 +966,7 @@ framework adapters import lazily and degrade when the framework is absent.
     returns a probability with contributors and verdict. 5 new
     tests.
 
-79. **v0.69 - MCP context + curve (tools #18 and #19)** ✅
+72. **v0.69 - MCP context + curve (tools #18 and #19)** ✅
     (delivered): budget-pressure analysis over stdio. `context`
     replays a recorded trace through a budgeted window (dry run):
     what survives eviction, fact recall, tokens saved; `curve`
@@ -975,7 +975,7 @@ framework adapters import lazily and degrade when the framework is absent.
     call, not a shell-out. 5 new tests incl. tight-vs-loose budget
     eviction ordering and curve monotonicity.
 
-80. **v0.70 - docs catch-up round** ✅ (delivered): the written
+73. **v0.70 - docs catch-up round** ✅ (delivered): the written
     surface catches up with the shipped one. ARCHITECTURE's
     mcp_server entry now describes the real 19-tool inventory (grouped
     by concern); TUTORIAL's MCP section lists the tool surface with
@@ -984,7 +984,7 @@ framework adapters import lazily and degrade when the framework is absent.
     and PSI drift windows for "is the fleet changing behaviour?". No
     code changes; docs validated against the tool list the tests
     pin.
-81. **v0.71 - pydantic-ai adapter** ✅ (delivered): the sixth
+74. **v0.71 - pydantic-ai adapter** ✅ (delivered): the sixth
     framework adapter. Pydantic AI runs end with
     ``result.all_messages()``; ``trace_from_pydantic_ai`` transcribes
     that history into an approximately trace (UserPromptPart ->
@@ -996,7 +996,7 @@ framework adapters import lazily and degrade when the framework is absent.
     covers the real package. ``record_pydantic_result`` is the
     one-liner for the common case. 6 new tests.
 
-82. **v0.72 - Google ADK adapter** ✅ (delivered): the seventh
+75. **v0.72 - Google ADK adapter** ✅ (delivered): the seventh
     framework adapter. A google-adk run is a list of Events;
     ``trace_from_adk_events`` transcribes that history (function_call
     -> tool call, function_response -> tool result with
@@ -1007,7 +1007,7 @@ framework adapters import lazily and degrade when the framework is absent.
     content skipped. ``record_adk_events`` is the one-liner. 5 new
     tests on fakes; the contrib CI job covers the real package.
 
-83. **v0.73 - query DSL: tools and errors fields** ✅ (delivered):
+76. **v0.73 - query DSL: tools and errors fields** ✅ (delivered):
     two action-side fields join the grammar. ``tools`` is the set of
     tool names a run invoked (``tools contains 'deploy'`` asks "did
     this run ever touch deploy?") and ``errors`` counts steps that
@@ -1015,7 +1015,7 @@ framework adapters import lazily and degrade when the framework is absent.
     depth/length caps; ``contains`` already speaks set membership
     via the agents precedent. 2 new tests.
 
-84. **v0.74 - CLI --json parity: similar / drift / counterfactual /
+77. **v0.74 - CLI --json parity: similar / drift / counterfactual /
     predict** ✅ (delivered): the MCP tools returned structured data
     while the CLI only printed prose. Payload construction now lives
     in the library modules (align.similar_payload,
@@ -1024,7 +1024,7 @@ framework adapters import lazily and degrade when the framework is absent.
     object - a CI job can shell the CLI and parse the identical JSON
     an MCP client sees. 4 new tests pin byte-level CLI==MCP.
 
-85. **v0.75 - analyst annotations (MCP tool #20)** ✅ (delivered):
+78. **v0.75 - analyst annotations (MCP tool #20)** ✅ (delivered):
     the triage loop closes. `annotate` attaches analyst notes to a
     trace WITHOUT touching the trace file - notes live in an
     append-only `annotations.jsonl` sidecar, so the tamper-evident
@@ -1038,7 +1038,7 @@ framework adapters import lazily and degrade when the framework is absent.
     `confirmed` / `false-positive` are the documented triage
     verdicts. 6 new tests.
 
-86. **v0.76 - fuzz round 5** ✅ (delivered): tonight's surfaces under
+79. **v0.76 - fuzz round 5** ✅ (delivered): tonight's surfaces under
     garbage - the query DSL's new tools/errors fields (hostile
     expressions incl. unicode tool names and unknown-set literals),
     the four shared payload constructors (similarity tops, PSI
@@ -1047,7 +1047,7 @@ framework adapters import lazily and degrade when the framework is absent.
     writes surviving garbage), and the annotate tool. Every probe
     contained; corpus pinned as a regression gate. 4 new tests.
 
-87. **v0.77 - bench-gate JUnit export** ✅ (delivered): CI test
+80. **v0.77 - bench-gate JUnit export** ✅ (delivered): CI test
     reporters render the gate natively. `run_gate` gains
     `junit_path` (CLI `bench-gate --junit PATH`, script `--junit`):
     one testcase per guarded floor - sample_f1 plus each mode's
@@ -1056,7 +1056,7 @@ framework adapters import lazily and degrade when the framework is absent.
     floor. A mode the detector stops finding fails its floors loudly
     (missing scores never pass). 5 new tests.
 
-88. **v0.78 - fleet watch webhook** ✅ (delivered): `--webhook` used
+81. **v0.78 - fleet watch webhook** ✅ (delivered): `--webhook` used
     to apply only to one-shot surveys; the watch loop ignored it.
     Now every digest cycle also POSTs the same HMAC-signed fleet
     summary, and delivery failure is a stderr warning - never a
@@ -1065,7 +1065,7 @@ framework adapters import lazily and degrade when the framework is absent.
     watching). The poster is injectable so tests run on a fake; the
     URL never leaks into logs. 4 new tests.
 
-89. **v0.79 - annotations hygiene: merge carries the sidecar, doctor
+82. **v0.79 - annotations hygiene: merge carries the sidecar, doctor
     reads it** ✅ (delivered): notes about a run belong to the run.
     `merge` now transports the annotation sidecar to the target
     store - re-anchored to renamed trace ids, deduped on semantic
@@ -1074,7 +1074,7 @@ framework adapters import lazily and degrade when the framework is absent.
     unreadable-line tallies; a torn tail is advisory and does not
     flip `healthy` (notes are triage, not evidence). 6 new tests.
 
-90. **v0.80 - context/curve --json parity** ✅ (delivered): the
+83. **v0.80 - context/curve --json parity** ✅ (delivered): the
     budget-pressure commands join the machine-readable story.
     Payload construction moves into the library
     (context.forecast_payload, curve.curve_payload) and the CLI
@@ -1082,7 +1082,7 @@ framework adapters import lazily and degrade when the framework is absent.
     HTML page) and the MCP tools (#18/#19) render the identical
     object. 2 new parity tests pin CLI==MCP byte-for-byte.
 
-91. **v0.81 - quiet-by-default watch alerting** ✅ (delivered):
+84. **v0.81 - quiet-by-default watch alerting** ✅ (delivered):
     `--alert-worse-than RATE` gates the watch webhook on signal, not
     schedule - the POST fires only when a store's trend is worsening
     or its failure rate is at/above the line, so a healthy fleet
@@ -1090,21 +1090,21 @@ framework adapters import lazily and degrade when the framework is absent.
     the threshold gates the notification, never the recording.
     5 new tests.
 
-92. **v0.82 - docs: 20-tool inventory + quiet-alerting recipe** ✅
+85. **v0.82 - docs: 20-tool inventory + quiet-alerting recipe** ✅
     (delivered): RECIPES' MCP inventory says twenty and names
     `annotate`; new recipe 13 walks the quiet-by-default watch -
     digest history every cycle, webhook only on signal, cron-batch
     arithmetic, and the survival doctrine (a dead endpoint or a torn
     digest line must never stop the watch). No code changes.
 
-93. **v0.83 - per-tool rollup** ✅ (delivered): the action-side twin
+86. **v0.83 - per-tool rollup** ✅ (delivered): the action-side twin
     of the agent scorecard. `cluster.tool_scorecard` rolls steps,
     touched traces, errors and touched-trace failure rate per tool;
     `stats --by-tool` and MCP `scoreboard {group_by: "tool"}` surface
     it. Same honesty contract as the agent card: participation, not
     proven causation. 4 new tests.
 
-94. **v0.84 - counterfactual root-cause card in the reports** ✅
+87. **v0.84 - counterfactual root-cause card in the reports** ✅
     (delivered): the strongest causal language in the toolkit joins
     the postmortem. HTML reports gain a "Root cause (counterfactual)"
     card and Markdown a matching section - which step's removal
@@ -1113,14 +1113,14 @@ framework adapters import lazily and degrade when the framework is absent.
     leave-one-out render stays linear; the standalone
     `counterfactual` surface remains for those). 4 new tests.
 
-95. **v0.85 - bench-gate --json, merge --json** ✅ (delivered): the
+88. **v0.85 - bench-gate --json, merge --json** ✅ (delivered): the
     last CI-facing prose-only commands join the machine-readable
     story. `bench-gate --json` emits the structured gate result
     (records/modes/sample_f1/violations, exit 1 on any violation);
     `merge --json` emits the merge report including the annotation
     sidecar count. Text output unchanged. 4 new tests.
 
-96. **v0.86 - MCP resources + one version to rule them all** ✅
+89. **v0.86 - MCP resources + one version to rule them all** ✅
     (delivered): the MCP server grows a resources surface -
     `resources/list` exposes every trace plus the annotation sidecar
     as browsable resources, `resources/read` returns a trace's JSON
@@ -1131,7 +1131,7 @@ framework adapters import lazily and degrade when the framework is absent.
     distribution (the same source the MCP handshake uses), so all
     three version surfaces can never disagree again. 6 new tests.
 
-97. **v0.87 - fuzz round 6** ✅ (delivered): the resources surface
+90. **v0.87 - fuzz round 6** ✅ (delivered): the resources surface
     and its friends under garbage - scoreboard.group_by (wrong enum
     values, NUL, nested lists), resources/read (truncated URIs,
     foreign stores, empty/NUL schemes), the watch alert threshold
@@ -1139,7 +1139,7 @@ framework adapters import lazily and degrade when the framework is absent.
     lines flowing through all three conflict policies). Every probe
     contained. 4 new tests; corpus pinned.
 
-98. **v0.88 - CI covers every Python it claims** ✅ (delivered): an
+91. **v0.88 - CI covers every Python it claims** ✅ (delivered): an
     audit found classifiers promising 3.10 and 3.11 while the CI
     matrix tested only 3.9/3.12/3.14 - two advertised interpreter
     lines were never verified. The matrix now runs all six
@@ -1147,7 +1147,7 @@ framework adapters import lazily and degrade when the framework is absent.
     3.12, 3.14} minus the two documented excludes. No source
     changes; the suite passes on every added interpreter.
 
-99. **v0.89 - MCP anomalies + diff (tools #21 and #22)** ✅
+92. **v0.89 - MCP anomalies + diff (tools #21 and #22)** ✅
     (delivered): `anomalies` flags per-step latency outliers
     (modified z-score over tool-call steps, worst first, isError on
     detection); `diff` gives the structural alignment of two traces
@@ -1155,21 +1155,21 @@ framework adapters import lazily and degrade when the framework is absent.
     now covers the fleet-ops and forensics pair completely. 4 new
     tests.
 
-100. **v0.90 - MCP regression_test (tool #23)** ✅ (delivered): the
+93. **v0.90 - MCP regression_test (tool #23)** ✅ (delivered): the
      "guard it forever" promise becomes a tool call. An agent that
      just failed can mint its own self-contained pytest file - the
      trace rides along as base64, budget and fact-recall guards
      configurable - and commit it where its tests live. The failure
      can never silently return. 4 new tests; tool count 23.
 
-101. **v0.91 - MCP metrics (tool #24)** ✅ (delivered): store health
+94. **v0.91 - MCP metrics (tool #24)** ✅ (delivered): store health
      as Prometheus text exposition over stdio - runs total,
      failures, failure rate, step means, per-mode counts; per-agent
      rates with `group_by: "agent"` (the same rendering as
      `metrics --prometheus`). An agent or ops scrape can read fleet
      health without shelling out. 3 new tests; tool count 24.
 
-102. **v0.92 - docs: count-proof tool inventories** ✅ (delivered):
+95. **v0.92 - docs: count-proof tool inventories** ✅ (delivered):
      an audit caught three docs restating the MCP tool total
      (19/Nineteen/24 across README/ARCHITECTURE/RECIPES/TUTORIAL) -
      every round was drifting them. Docs now describe the inventory
@@ -1179,7 +1179,7 @@ framework adapters import lazily and degrade when the framework is absent.
      (anomalies, diff, regression_test, metrics, annotate). No code
      changes; the next tool needs no doc-count edits.
 
-103. **v0.93 - attribution 7x faster, zero verdict drift** ✅
+96. **v0.93 - attribution 7x faster, zero verdict drift** ✅
      (delivered): profiling showed the prose detectors spending 43s
      per 135 records inside difflib's quadratic ratio() scan.
      ProseRepeat and ProseRestart now gate ratio() behind its own
@@ -1192,7 +1192,7 @@ framework adapters import lazily and degrade when the framework is absent.
      fall-through was restored and a 30-trial brute-force
      equivalence test now pins pruned-vs-brute agreement.
 
-104. **v0.94 - toolscan self-test + adapter map sync** ✅
+97. **v0.94 - toolscan self-test + adapter map sync** ✅
      (delivered): the toolkit's own MCP-tool-description scanner
      (homoglyphs, bidi, injection) now runs against all 23 shipped
      tools in CI - a tool description can never ship with the
@@ -1201,7 +1201,7 @@ framework adapters import lazily and degrade when the framework is absent.
      entry lists all seven adapters and the two capture styles.
      3 new tests.
 
-105. **v0.95 - `approximately status`** ✅ (delivered): the
+98. **v0.95 - `approximately status`** ✅ (delivered): the
      daily-driver ops overview one command used to require five.
      Totals and failure rate, top failure modes, triage tallies
      (annotations and confirmed count), and the most recent failing
@@ -1209,7 +1209,7 @@ framework adapters import lazily and degrade when the framework is absent.
      `--since` scopes the window, empty stores render honestly
      (zeros, no last failure). 3 new tests.
 
-106. **v0.96 - fleet triage counts** ✅ (delivered): the fleet
+99. **v0.96 - fleet triage counts** ✅ (delivered): the fleet
      surface knows each store's annotation activity. StoreSummary
      gains `annotations` / `annotations_confirmed`; the webhook
      payload, digest snapshots and the dashboard store cards carry
@@ -1217,20 +1217,20 @@ framework adapters import lazily and degrade when the framework is absent.
      so an operator sees triage activity without opening each
      store. 1 new test.
 
-107. **v0.97 - cross-store similar** ✅ (delivered): `similar
+100. **v0.97 - cross-store similar** ✅ (delivered): `similar
      --other-store DIR` (and the MCP tool's `other_store`) compares a
      run against a different store's traces - fleet operators can
      ask "does THIS failure look like anything in the other
      project?" without merging stores first. 1 new test.
 
-108. **v0.98 - RECIPES smoke** ✅ (delivered): the cookbook's
+101. **v0.98 - RECIPES smoke** ✅ (delivered): the cookbook's
      walkthrough (RECIPES 3-4) now runs in CI - attribute
      --explain, explain <mode>, bisect, the minted regression guard
      collected by pytest, verify and status. When a recipe drifts
      from the code, the failure names the exact line. Signed-store
      fixtures match the cookbook context. 3 new tests.
 
-109. **v0.99 - the --json sweep completes** ✅ (delivered): the last
+102. **v0.99 - the --json sweep completes** ✅ (delivered): the last
      four prose-only commands learn machine: `optimize --json`
      (minimal budget + recall), `calibrate --json` (split,
      temperature, coverage vs target, ECE), `explain --json` (one
@@ -1238,7 +1238,7 @@ framework adapters import lazily and degrade when the framework is absent.
      table with definitions). Every analysis/reference command in
      the CLI now has a structured output path. 3 new tests.
 
-110. **v1.0 - the 1.0 milestone** ✅ (delivered): semver from here.
+103. **v1.0 - the 1.0 milestone** ✅ (delivered): semver from here.
      The toolkit ships 24 MCP tools + a resources surface, 7
      framework adapters, MAST attribution gated by a quality floor
      (gold + synthetic corpora), tamper-evident chains with
@@ -1250,20 +1250,20 @@ framework adapters import lazily and degrade when the framework is absent.
      query DSL, MCP surface) is stable; breaking changes require a
      2.0.
 
-111. **v1.1 - status --digest-dir** ✅ (delivered): the first
+104. **v1.1 - status --digest-dir** ✅ (delivered): the first
      post-1.0 minor. `status --digest-dir DIR` folds the fleet trend
      verdict into the ops overview - text line (`fleet trend:
      stable`) and a `trend` object in JSON - so the daily glance
      and the monitoring history finally live in one command. No
      breaking changes (1.x contract). 1 new test.
 
-112. **v1.2 - TUTORIAL: the triage step** ✅ (delivered): the
+105. **v1.2 - TUTORIAL: the triage step** ✅ (delivered): the
      ten-minute walkthrough gains step 6 - annotate the human
      verdict onto the machine one, then read `status` for the
      pulse. Fleet watch shifts to 7, quality floors to 8. No code
      changes.
 
-113. **v1.3 - the operator journey, end to end** ✅ (delivered): one
+106. **v1.3 - the operator journey, end to end** ✅ (delivered): one
      subprocess-driven test walks the whole story through the real
      CLI - record, attribute, report (HTML+Markdown), cluster, mint
      a regression guard, annotate, status, verify --all, fleet
@@ -1271,7 +1271,7 @@ framework adapters import lazily and degrade when the framework is absent.
      would break; now they are all watched. 1 new test (the
      longest in the suite).
 
-114. **v1.4 - rank_similar pruning** ✅ (delivered): similar's
+107. **v1.4 - rank_similar pruning** ✅ (delivered): similar's
      ranking normalized the target's tokens once per candidate and
      ran the quadratic DP for every one. Now the target normalizes
      once, and a candidate whose length-ratio upper bound
@@ -1281,13 +1281,13 @@ framework adapters import lazily and degrade when the framework is absent.
      against a brute-force reference). 2000-trace store: 0.20 s.
      2 new tests.
 
-115. **v1.5 - similar perf gate + cross-store recipe** ✅
+108. **v1.5 - similar perf gate + cross-store recipe** ✅
      (delivered): the fourth perf gate pins rank_similar's pruning -
      a 2000-trace ranking must stay in budget (0.2 s against 2 s) or
      the pruning has regressed. RECIPES' neighbour recipe gains the
      cross-store form. No library changes.
 
-116. **v1.6 - nearest neighbours on the postmortem** ✅
+109. **v1.6 - nearest neighbours on the postmortem** ✅
      (delivered): the report answers "which runs look like this
      one" - an alignment-ranked table of the three most similar runs
      in the same store, on both HTML and Markdown, hidden when the
@@ -1295,58 +1295,58 @@ framework adapters import lazily and degrade when the framework is absent.
      design: cross-store stays an explicit `--other-store` question.
      3 new tests.
 
-117. **v1.7 - per-tool Prometheus metrics** ✅ (delivered):
+110. **v1.7 - per-tool Prometheus metrics** ✅ (delivered):
      `metrics --prometheus --by-tool` and MCP `metrics
      {group_by: "tool"}` render tool_scorecard rows as
      approximately_tool_* series - the renderer is generalized so
      agent and tool share one implementation. 1 new test.
 
-118. **v1.8 - explain --json full depth + annotate verdict filter**
+111. **v1.8 - explain --json full depth + annotate verdict filter**
      ✅ (delivered): `explain <mode> --json` carries the mode's fixes
      and its watching detectors (from the live registries, not docs);
      `annotations --verdict confirmed` filters the triage log. 2 new
      tests.
 
-119. **v1.9 - fresh-install CI job** ✅ (delivered): a clean-venv,
+112. **v1.9 - fresh-install CI job** ✅ (delivered): a clean-venv,
      non-editable install job - the version handshake must match the
      checkout, the demo tour must run, and a record -> attribute ->
      status loop must work through the installed console script with
      a default home. Catches packaging breaks (missing data, wrong
      entry points, drifted metadata) that editable installs hide.
 
-120. **v1.10 - MCP explain/annotate final parity** ✅ (delivered):
+113. **v1.10 - MCP explain/annotate final parity** ✅ (delivered):
      the MCP `explain` tool returns the full payload (fixes + the
      watching detectors from the live registries) matching the CLI's
      `--json`, and the `annotate` read path gains a verdict filter.
      2 new tests.
 
-121. **v1.11 - bench-gate min_records** ✅ (delivered): floors guard
+114. **v1.11 - bench-gate min_records** ✅ (delivered): floors guard
      quality, but nothing guarded *sample size* - a dataset that
      shrank could pass any floor by luck. floors JSON gains
      `min_records`: below it the gate fails with a violation that
      names the shrinkage. 1 new test.
 
-122. **v1.12 - PLAN renumbered** ✅ (delivered): the milestone
+115. **v1.12 - PLAN renumbered** ✅ (delivered): the milestone
      ledger itself got an audit - items 54-56 and 80 had drifted
      into the appendix zone through the years of anchor-based
      inserts; the delivered list now reads as one continuous
      1-121 sequence. Docs-only.
 
-123. **v1.13 - status knows the ledger and the top recidivist** ✅
+116. **v1.13 - status knows the ledger and the top recidivist** ✅
      (delivered): the ops overview now also reports evidence-ledger
      health (intact / BROKEN when the ledger is in use) and the
      busiest recidivist agent via the min_failed=2 filter - JSON
      fields plus text lines. 1 new test surface via the existing
      status fixtures.
 
-124. **v1.14 - final night audit** ✅ (delivered): closing sweep for
+117. **v1.14 - final night audit** ✅ (delivered): closing sweep for
      the 51-round session - version surfaces re-verified (pyproject /
      package / MCP handshake all read the installed distribution),
      24 unique MCP tool names, PLAN as a continuous 1-124 ledger,
      README roadmap aligned. All gates green; releases v0.63.0
      through v1.14.0 every round, each Latest-sequenced.
 
-125. **v1.15 - link audit + leaderboard artifact** ✅ (delivered):
+118. **v1.15 - link audit + leaderboard artifact** ✅ (delivered):
      the docs link audit found the README pointing at two
      leaderboard HTMLs that were never generated.
      make_docs_artifacts.py now renders leaderboard.html alongside
@@ -1354,22 +1354,22 @@ framework adapters import lazily and degrade when the framework is absent.
      doc page that exists. Broken-link check stays a manual audit
      step (zero-dep tooling).
 
-126. **v1.16 - MCP annotate lists the whole store** ✅ (delivered):
+119. **v1.16 - MCP annotate lists the whole store** ✅ (delivered):
      calling the annotate tool with neither trace nor note returns
      every annotation in the store; the trace field drops from
      required. Completes the triage read path for fleet-wide views.
      1 new test.
 
-127. **v1.17 - status --since scopes annotations** ✅ (delivered):
+120. **v1.17 - status --since scopes annotations** ✅ (delivered):
      the --since window now filters triage tallies along with traces
      - the counts must describe the same period as the runs they
      talk about. 1 new test.
 
-128. **v1.18 - ARCHITECTURE CLI entry** ✅ (delivered): the module
+121. **v1.18 - ARCHITECTURE CLI entry** ✅ (delivered): the module
      map documents the ops pair (`status`, `annotate` /
      `annotations --verdict`) and the all-commands-`--json` +
      MCP-mirror rule. Docs-only.
-129. **v1.19 - import foreign transcripts** ✅ (delivered): the contrib
+122. **v1.19 - import foreign transcripts** ✅ (delivered): the contrib
      adapters transcribe live frameworks; `approximately import` is the
      path in for logs already on disk. One JSONL file, one transcript
      per line, three shapes sniffed from the first line: native
@@ -1379,7 +1379,7 @@ framework adapters import lazily and degrade when the framework is absent.
      same file skips everything instead of duplicating. Malformed
      lines are counted, never fatal; `--dry-run` previews counts
      without writing; `--json` for scripts.
-130. **v1.20 - MCP tool #25 import_transcripts** ✅ (delivered): the
+123. **v1.20 - MCP tool #25 import_transcripts** ✅ (delivered): the
      import path mirrors into the MCP surface per the ops-pair rule —
      an MCP client points at a foreign transcript JSONL and pulls it
      into the tamper-evident store with the same sniffing, sha256
@@ -1387,7 +1387,7 @@ framework adapters import lazily and degrade when the framework is absent.
      a tool error (`isError: true`), never a protocol fault. The
      authoritative tool list stays `tools/list`; the pinned count
      test moved to 25.
-131. **v1.21 - export: the path out** ✅ (delivered): `approximately
+124. **v1.21 - export: the path out** ✅ (delivered): `approximately
      export OUT.jsonl` writes traces in the dialect other pipelines
      speak — OpenAI chat shape by default (adjacent tool_call steps
      merge into one assistant message; observations pair with call
@@ -1400,7 +1400,7 @@ framework adapters import lazily and degrade when the framework is absent.
      the shared DSL (`success == false`). Mirrored as MCP tool #26
      `export_transcripts` (missing output directory → tool error,
      never a protocol fault).
-132. **v1.22 - fuzz round 7: the interop surface** ✅ (delivered): the
+125. **v1.22 - fuzz round 7: the interop surface** ✅ (delivered): the
      fuzz tradition reaches the import/export pair. Properties, 40
      seeded random traces (messages, tools with hostile args/results,
      plans, error steps, unicode tricks): export→import restores
@@ -1413,26 +1413,26 @@ framework adapters import lazily and degrade when the framework is absent.
      import (breaking the export fixpoint), and explicit-null
      success now roundtrips as an open trace instead of flipping to
      closed.
-133. **v1.23 - import at scale** ✅ (delivered): `approximately
+126. **v1.23 - import at scale** ✅ (delivered): `approximately
      import` takes several file arguments and expands glob patterns
      (sorted, deduplicated); the JSON payload aggregates lines /
      imported / skipped across files with a per-file breakdown.
      Deterministic ids now dedupe across files: the same transcript
      in two log files is one trace. No match is a documented
      ValueError (CLI exit 2), not a silent success.
-134. **v1.24 - MCP stats resource** ✅ (delivered): the resource
+127. **v1.24 - MCP stats resource** ✅ (delivered): the resource
      surface grows `approximately://{store}/stats.json` — store
      health (trace count, failure rate, top failure modes) readable
      by any MCP client without calling a tool, next to the
      annotations sidecar and per-trace entries. Dashboards get a
      browse path that stays out of the tool budget.
-135. **v1.25 - doctor finds orphan annotations** ✅ (delivered): after
+128. **v1.25 - doctor finds orphan annotations** ✅ (delivered): after
      an import/clean/rotate cycle the annotation sidecar can reference
      traces that no longer exist. Doctor names them (count in the
      annotations line, up to five ids listed) so triage knows which
      notes point at nothing — read-only diagnosis; `doctor --fix`
      still only removes locks and temp files, never notes.
-136. **v1.26 - `import -` reads stdin** ✅ (delivered): piping is the
+129. **v1.26 - `import -` reads stdin** ✅ (delivered): piping is the
      agent-native ingest path — `other_tool dump | approximately
      import - --store s` lands runs in the store without a temp
      file. `-` mixes freely with file and glob arguments (per-file
@@ -1441,7 +1441,7 @@ framework adapters import lazily and degrade when the framework is absent.
      so sniffing, idempotence and skip-counting behave identically.
      RECIPES gains recipe 14: bring last month's logs in for a
      postmortem.
-137. **v1.27 - the judge learns to remember** ✅ (delivered): judge
+130. **v1.27 - the judge learns to remember** ✅ (delivered): judge
      verdicts are disk-cacheable (`--judge-cache DIR` on attribute /
      report / annotate-style consumers, `cache_dir=` on
      `judge_trace`). The key is sha256(model, preset, compact trace)
@@ -1450,7 +1450,7 @@ framework adapters import lazily and degrade when the framework is absent.
      or preset re-asks; corrupt entries are misses; a read-only or
      full cache never fails the judge; a JudgeError is never cached.
      Real money saved on the attribute→benchmark→distill loop.
-138. **v1.28 - the ops seven learn --json** ✅ (delivered): the
+131. **v1.28 - the ops seven learn --json** ✅ (delivered): the
      all-commands-`--json` rule (v1.18) was aspirational on seven
      operators' commands; annotate, anomalies, metrics, clean,
      repair, rotate and scan-tool now all emit machine-readable
@@ -1460,21 +1460,21 @@ framework adapters import lazily and degrade when the framework is absent.
      `clean` → removed/keep_days, `repair` → applied/cleared/
      remaining/unrepairable, `rotate` → rotated+trace_id or refusal,
      `scan-tool` → verdict+findings). Prose stays the default.
-139. **v1.29 - `status --watch`** ✅ (delivered): the overview that
+132. **v1.29 - `status --watch`** ✅ (delivered): the overview that
      stays up all night. `--watch` re-renders the status frame on an
      interval (`--interval SECONDS`, default 30) with a timestamp
      header per frame; `--frames N` bounds the loop for tests and
      cron wrappers; Ctrl-C exits clean. The frame renderer is shared
      with the one-shot mode (`_render_status`), so prose and `--json`
      frames stay byte-identical between the two modes.
-140. **v1.30 - ARCHITECTURE documents the interop pair** ✅
+133. **v1.30 - ARCHITECTURE documents the interop pair** ✅
      (delivered): a dedicated section for importer.py / exporter.py
      (shapes, deterministic ids, id-ordered byte-stable exports, the
      MCP mirrors), the judge disk cache, and the stats.json
      resource; the cli.py entry now mentions `status --watch` and
      that ops commands take `--json` too. Docs-only round closing
      the documentation debt the v1.19-v1.29 feature streak accrued.
-141. **v1.31 - export --since + the toolscan mirror** ✅ (delivered):
+134. **v1.31 - export --since + the toolscan mirror** ✅ (delivered):
      `export --since DAYS` puts list_traces' age window on the
      export path (CLI and MCP `export_transcripts`), so yesterday's
      failures go to a colleague without the whole store. The
@@ -1482,7 +1482,7 @@ framework adapters import lazily and degrade when the framework is absent.
      #27 `scan_tool` takes a file path or the description inline and
      returns verdict + findings; a missing file or missing input is
      a tool error, never a protocol fault.
-142. **v1.32 - precision knobs** ✅ (delivered): `similar
+135. **v1.32 - precision knobs** ✅ (delivered): `similar
      --min-score` cuts weak neighbours instead of always returning a
      full top-N (CLI and MCP `min_score` alike — the cap still
      applies on top), and `import_transcripts` grows a `glob`
@@ -1490,14 +1490,14 @@ framework adapters import lazily and degrade when the framework is absent.
      with the same aggregate + per-file counts the CLI prints.
      Similarity caps and floors compose: top-N picks, then the floor
      filters.
-143. **v1.33 - the distill loop learns to remember** ✅ (delivered):
+136. **v1.33 - the distill loop learns to remember** ✅ (delivered):
      `teacher_labeler` takes `cache_dir` and both teacher consumers
      grow `--teacher-cache DIR` (`export-dataset`, `export-sft`) —
      relabeling a dataset is free for every trace asked before;
      `benchmark --judge-cache` already had it. Low-confidence and
      OTHER verdicts still label None; a JudgeError still labels
      None; the cache only removes the repeat cost.
-144. **v1.34 - MCP tool #28 `status`** ✅ (delivered): the ops pair
+137. **v1.34 - MCP tool #28 `status`** ✅ (delivered): the ops pair
      completes its mirror — `annotate` mirrored long ago, now
      `status` returns the same one-glance payload over MCP (store
      health, top modes, triage tallies, last failure + chain
@@ -1505,7 +1505,7 @@ framework adapters import lazily and degrade when the framework is absent.
      via `digest_dir`, `since` window). A night-watch agent or
      dashboard reads exactly what the operator sees; the payload is
      the shared `_status_payload`, so CLI and MCP cannot drift.
-145. **v1.35 - per-tool latency baselines** ✅ (delivered):
+138. **v1.35 - per-tool latency baselines** ✅ (delivered):
      `detect_latency_anomalies(per_tool=True)` baselines each tool
      family separately (CLI `anomalies --per-tool`, MCP
      `per_tool`). Pooling a 2s-search trace with 30s deploys builds
@@ -1515,7 +1515,7 @@ framework adapters import lazily and degrade when the framework is absent.
      latencies judged against the whole-trace median/MAD — instead
      of going blind on rare tools. Identical-latency families are
      honest no-ops.
-146. **v1.36 - fuzz round 8: the cache and the baselines** ✅
+139. **v1.36 - fuzz round 8: the cache and the baselines** ✅
      (delivered): the fuzz tradition reaches the v1.27-v1.35
      surfaces, and every finding was real. The judge cache now
      shape-validates what it serves (poison that `_parse_verdict`
@@ -1526,27 +1526,27 @@ framework adapters import lazily and degrade when the framework is absent.
      all; `status --watch` clamps negative intervals; `scan-tool
      --text` gives the CLI the inline path the MCP tool already
      had.
-147. **v1.37 - safer store maintenance** ✅ (delivered): `clean
+140. **v1.37 - safer store maintenance** ✅ (delivered): `clean
      --dry-run` rehearses a retention policy without touching a
      file (JSON payload notes the dry run), and `rotate --all`
      re-keys every trace in one pass — the quarterly key-rotation
      story — listing refusals per trace and exiting 1 if any
      evidence was already broken (the per-trace `rotate` still
      verifies with the old key before re-signing).
-148. **v1.38 - the tool inventory as an artifact** ✅ (delivered):
+141. **v1.38 - the tool inventory as an artifact** ✅ (delivered):
      `approximately mcp --print-tools [PATH]` writes the exact
      `tools/list` inventory as JSON (stdout with `-`). The committed
      docs/mcp-tools.json mirrors it and a test pins the file against
      `_TOOLS`, so docs can cite the whole surface — descriptions,
      schemas, count — without ever drifting from the code.
-149. **v1.39 - the cache shows its work** ✅ (delivered):
+142. **v1.39 - the cache shows its work** ✅ (delivered):
      `judge.cache_stats()` counts hits and misses since process
      start (reset on read), and `export-dataset --teacher-cache`
      prints the tally after a run — a cold dataset reads
      `0 hit(s), N miss(es)`, the same dataset relabeled reads
      `N hit(s), 0 miss(es)`. Seeing is believing for the
      money-saving claim.
-150. **v1.40 - parallel ingest** ✅ (delivered): `import --jobs N`
+143. **v1.40 - parallel ingest** ✅ (delivered): `import --jobs N`
      imports files on a thread pool — store saves are atomic and
      lock-serialized, so the parallel path is safe, and aggregate +
      per-file counts stay in input order whatever the completion
@@ -1555,7 +1555,7 @@ framework adapters import lazily and degrade when the framework is absent.
      going, while a single named file that cannot be parsed stays a
      loud exit-2. Identical transcripts arriving in flight collapse
      to one trace (same deterministic id).
-151. **v1.41 - fleet-mode latency anomalies** ✅ (delivered): a
+144. **v1.41 - fleet-mode latency anomalies** ✅ (delivered): a
      per-trace baseline only knows what one run considered normal.
      `detect_fleet_anomalies` (CLI `anomalies --all`, MCP
      `anomalies` with `fleet: true`) baselines each tool family
@@ -1563,27 +1563,27 @@ framework adapters import lazily and degrade when the framework is absent.
      an otherwise boring week stands out even though that trace,
      alone, looks unremarkable. Families under `min_samples` are
      honest no-ops; findings carry their `trace_id`.
-152. **v1.42 - the ops glance knows the fleet** ✅ (delivered):
+145. **v1.42 - the ops glance knows the fleet** ✅ (delivered):
      `status` (CLI and MCP #28 alike — they share
      `_status_payload`) now carries `fleet_anomalies`: the count of
      store-wide per-tool latency outliers and the worst offender
      (tool, latency, family median, z). The prose render names it
      when nonzero, and the one-shot/watch/JSON modes now share ONE
      renderer, so the glance cannot drift between modes.
-153. **v1.43 - the fleet scan gets its own perf gate** ✅
+146. **v1.43 - the fleet scan gets its own perf gate** ✅
      (delivered): every analytic path earns a budget;
      `perf-gate[fleet-anomalies]` baselines 10k traces x 2 tools
      (crafted spikes included, and the gate fails if the crafted
      outliers are NOT found — a silent no-scan passes nothing) in
      6ms against a 2s budget. Guards the night-watch `status` frame
      against a superlinear baseline regression.
-154. **v1.44 - the fleet sweep counts slow spots** ✅ (delivered):
+147. **v1.44 - the fleet sweep counts slow spots** ✅ (delivered):
      `fleet` survey rows (and the MCP `survey` mirror and every
      webhook payload) carry `fleet_anomalies` — the store-wide
      per-tool outlier count — plus the worst offender, so a
      multi-project sweep answers "which store is quietly slow"
      without visiting each one.
-155. **v1.45 - dedupe: near-duplicate traces** ✅ (delivered):
+148. **v1.45 - dedupe: near-duplicate traces** ✅ (delivered):
      `import` deduplicates exactly (deterministic ids); `dedupe`
      catches the *almost* identical runs — retries and cron
      double-fires that quietly pollute a dataset before a
@@ -1592,13 +1592,13 @@ framework adapters import lazily and degrade when the framework is absent.
      makes groups reproducible; MCP tool #29 `find_duplicates`
      mirrors it (29 tools, `tools/list` authoritative, artifact
      regenerated).
-156. **v1.46 - the distill pipeline learns to dedupe** ✅
+149. **v1.46 - the distill pipeline learns to dedupe** ✅
      (delivered): `export-dataset --dedupe` and `distill --dedupe`
      drop near-duplicate traces before labeling — retries and cron
      double-fires otherwise get labeled, exported and trained on as
      if they were independent evidence. The pass prints what it
      dropped; without the flag nothing changes.
-157. **v1.47 - RECIPES: night watch and dedupe** ✅ (delivered):
+150. **v1.47 - RECIPES: night watch and dedupe** ✅ (delivered):
      recipe 15 ties the night story together (`status --watch` +
      fleet baselines + the multi-project sweep, with a note on
      reading modified z-scores); recipe 16 walks dedupe before a
@@ -1638,45 +1638,45 @@ Bohnet et al., *Why Do LLM Agents Fail and How Can They Learn From Failures?*, a
 Xie et al., *OSWorld: Benchmarking Multimodal Agents*, arXiv:2404.07972, 2024.
 *Efficient Context Engineering for Long-Horizon Tool-Using Agents*, arXiv:2606.10209, 2026.
 Anthropic, *Effective Context Engineering for AI Agents*, 2025.
-158. **v1.48 - floors that keep up** ✅ (delivered): `bench-gate
+151. **v1.48 - floors that keep up** ✅ (delivered): `bench-gate
      --update-floors` regenerates the floors file from a measured
      run at measured-minus-margin (default 5%) — after an
      intentional improvement or a corpus change, floors stop being
      stale. `min_records` survives regeneration unless explicitly
      set, and the regenerated file is verified to still PASS a fresh
      gate (headroom for noise, not a pass-everything gate).
-164. **v1.54 - `approximately changelog`** ✅ (delivered): the PLAN
+152. **v1.54 - `approximately changelog`** ✅ (delivered): the PLAN
      milestone ledger is the single source of truth; the new command
      renders it as a standard changelog — sorted by version
      (newest first), one section per version, early multi-item
      versions merged. The committed CHANGELOG.md is pinned against a
      fresh render, so it cannot drift from the plan. Also fixes the
      ledger's own ordering: item 157 sat physically after 163.
-165. **v1.57 - robustness: capped dedupe scans, streamed stdin** ✅
+153. **v1.57 - robustness: capped dedupe scans, streamed stdin** ✅
      (delivered): `duplicate_groups` reports `scanned` and `capped`
      (CLI notes the cap, MCP payload carries both) instead of
      silently ignoring everything past `--max-traces`; and `import -`
      now streams stdin in a single pass — the sniffed first line is
      re-joined to the iterator, so a multi-gigabyte dump never
      materializes in memory. Lists still re-iterate unchanged.
-167. **v1.58 - the judge cache without flags** ✅ (delivered):
+154. **v1.58 - the judge cache without flags** ✅ (delivered):
      `APPROXIMATELY_JUDGE_CACHE` backs every `--judge` consumer (the
      flag wins when given), and the MCP `attribute` tool opens
      `judge` + `judge_cache` — an agent stack can ask for the judge
      verdict and cache it in one call. Judge absence still degrades
      to rules-only, over MCP too.
-168. **v1.59 - the fleet sweep names slow stores in prose** ✅
+155. **v1.59 - the fleet sweep names slow stores in prose** ✅
      (delivered): `_print_fleet` gains the anomaly count —
      `prod: 412 traces, failure rate 12%, 3 slow outlier(s)` — so
      the text sweep carries what the JSON payload already had.
-169. **v1.60 - slowness pages too** ✅ (delivered): the watch webhook
+156. **v1.60 - slowness pages too** ✅ (delivered): the watch webhook
      fires on worsening trends and failure-rate thresholds; now
      `--alert-anomalies N` also fires when a store carries >= N
      fleet latency outliers. A store running slow-but-successful
      used to page nobody — the quiet kind of failure finally has a
      pager. Digest snapshots still land every cycle; the threshold
      gates the notification, never the recording.
-170. **v1.61 - fuzz round 9** ✅ (delivered): the changelog parser
+157. **v1.61 - fuzz round 9** ✅ (delivered): the changelog parser
      meets hostile ledger text — nested bold inside titles (a
      deferred line could masquerade as delivered via non-greedy
      expansion; titles may no longer contain `**`), CRLF files,
@@ -1686,36 +1686,45 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      (0.0 clusters everything into one group, >1 nothing,
      max_traces=0 scans nothing) and fleet degenerate latencies
      (zero, negative, absurd spikes — never NaN).
-171. **v1.62 - `--watch --on-change`** ✅ (delivered): long watches
+158. **v1.62 - `--watch --on-change`** ✅ (delivered): long watches
      printed the same frame every interval; `--on-change` suppresses
      an unchanged payload (frames still count so `--frames` still
      bounds the loop) and the next real change prints again — a
      night of logs stays one screen instead of five hundred.
-171. **v1.63 - the ingest path gets its own perf gate** ✅
+159. **v1.63 - the ingest path gets its own perf gate** ✅
      (delivered): `perf-gate[import]` pushes 500 mixed-shape
      transcripts (tool_calls, tool errors, multi-turn) through a
      fresh store on 4 threads — 137ms against a 2s budget, with
      count AND failure-flag assertions so a silent data-loss
      regression fails the gate, not the user's dataset.
-165. **v1.55 - postmortems name fleet outliers** ✅ (delivered):
+
+160. **v1.64 - ARCHITECTURE documents the anomaly family** ✅
+     (delivered): a dedicated section for the latency signal —
+     per-trace vs fleet baselines, the degenerate-case ladder
+     (pooled fallback, MAD-zero sentinels), the slowness trend and
+     its three surfaces, the alerting gates, and the perf budget.
+     Docs-only, closing the documentation debt of the anomaly
+     streak (v1.35-v1.60). Ledger renumbered physically (duplicate
+     171s from drifted insert anchors).
+161. **v1.55 - postmortems name fleet outliers** ✅ (delivered):
      the per-trace latency card only knows what one run considered
      normal; the postmortem now gains a "Fleet outliers" card when a
      store is given — steps that are extreme against every stored
      run of the same tool. A trace can look normal alone and still
      be the slowest search the store has ever seen. Best-effort like
      every card: no store, no card.
-166. **v1.56 - slowness trend parity** ✅ (delivered): one
+162. **v1.56 - slowness trend parity** ✅ (delivered): one
      `summarize_trend`, three surfaces — `fleet --trend` prints a
      `slowness trend:` line (verdict + slope + flagged-step count),
      the MCP `trend` payload carries `anomaly_trend` verbatim, and
      the status prose mentions it. Pinned by tests on all three.
-159. **v1.49 - triage coverage in the glance** ✅ (delivered):
+163. **v1.49 - triage coverage in the glance** ✅ (delivered):
      `status` answered "how many failures"; now it answers "how many
      has anyone actually looked at" — `triage_coverage`
      (annotated failures over total failures) in the payload, and a
      prose line whenever the ratio is below 100%. No failures on
      file is `None`, not a fake 100%.
-160. **v1.50 - store handoff: the triage story travels** ✅
+164. **v1.50 - store handoff: the triage story travels** ✅
      (delivered): `export --with-annotations` writes the triage
      sidecar next to the transcript export
      (OUT.annotations.jsonl); `import --annotations` merges a
@@ -1724,13 +1733,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      stores, so a full re-import of the same file skips instead of
      duplicating. Malformed rows are counted; the evidence chain is
      untouched.
-161. **v1.51 - the glance can fail a pipeline** ✅ (delivered):
+165. **v1.51 - the glance can fail a pipeline** ✅ (delivered):
      cron wrappers need exit codes, not prose. `status
      --fail-on-anomalies` exits 1 when fleet latency outliers
      exist; `--fail-on-worsening` exits 1 when the trend verdict is
      worsening (needs `--digest-dir`). The frame still prints first
      — the alert explains itself.
-162. **v1.52 - slowness gets a trend** ✅ (delivered): digest
+166. **v1.52 - slowness gets a trend** ✅ (delivered): digest
      snapshots already carry each store's fleet-anomaly count
      (v1.44's webhook fields flow through), so `trend.anomaly_trend`
      judges slowness over days once two days of history exist
@@ -1739,7 +1748,7 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      tail lines (trend/ledger/recidivist/last-failure-none) that the
      shared renderer silently dropped in v1.42 — a round-25
      consolidation left the renderer a subset of the one-shot.
-163. **v1.53 - MCP tool #30 `import_annotations`** ✅ (delivered):
+167. **v1.53 - MCP tool #30 `import_annotations`** ✅ (delivered):
      the v1.50 handoff pair completes its mirror — an MCP client
      merges an annotation sidecar into the store (append-only,
      content-keyed) rather than just the transcript half. Missing
