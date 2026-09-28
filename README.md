@@ -346,6 +346,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.59** — the fleet sweep names slow stores in prose
 - ✅ **v1.60** — `fleet --watch --alert-anomalies N`: slow-but-successful stores can page too
 - ✅ **v1.61** — fuzz round 9: hostile ledger text, dedupe threshold extremes, fleet degenerate latencies
+- ✅ **v1.62** — `status --watch --on-change`: unchanged frames stay off the log
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

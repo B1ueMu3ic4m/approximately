@@ -1686,6 +1686,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      (0.0 clusters everything into one group, >1 nothing,
      max_traces=0 scans nothing) and fleet degenerate latencies
      (zero, negative, absurd spikes — never NaN).
+171. **v1.62 - `--watch --on-change`** ✅ (delivered): long watches
+     printed the same frame every interval; `--on-change` suppresses
+     an unchanged payload (frames still count so `--frames` still
+     bounds the loop) and the next real change prints again — a
+     night of logs stays one screen instead of five hundred.
 165. **v1.55 - postmortems name fleet outliers** ✅ (delivered):
      the per-trace latency card only knows what one run considered
      normal; the postmortem now gains a "Fleet outliers" card when a
