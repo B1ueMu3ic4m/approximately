@@ -1533,6 +1533,12 @@ framework adapters import lazily and degrade when the framework is absent.
      story — listing refusals per trace and exiting 1 if any
      evidence was already broken (the per-trace `rotate` still
      verifies with the old key before re-signing).
+148. **v1.38 - the tool inventory as an artifact** ✅ (delivered):
+     `approximately mcp --print-tools [PATH]` writes the exact
+     `tools/list` inventory as JSON (stdout with `-`). The committed
+     docs/mcp-tools.json mirrors it and a test pins the file against
+     `_TOOLS`, so docs can cite the whole surface — descriptions,
+     schemas, count — without ever drifting from the code.
 
 
 ## 4. Launch plan

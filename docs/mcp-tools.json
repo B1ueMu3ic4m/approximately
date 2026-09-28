@@ -1,0 +1,621 @@
+{
+  "count": 28,
+  "tools": [
+    {
+      "name": "list_traces",
+      "description": "List trace ids in a store with task, success flag and step count.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string",
+            "description": "store directory (default: server's --store)"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          }
+        }
+      }
+    },
+    {
+      "name": "attribute",
+      "description": "Attribute a trace: primary MAST failure mode, confidence, and per-detection evidence. With explain=true the Bayesian fusion arithmetic (prior log-odds + LLR per detection) rides along, so the verdict is auditable.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "trace": {
+            "type": "string"
+          },
+          "store": {
+            "type": "string"
+          },
+          "explain": {
+            "type": "boolean",
+            "description": "include the fusion arithmetic"
+          }
+        },
+        "required": [
+          "trace"
+        ]
+      }
+    },
+    {
+      "name": "verify",
+      "description": "Verify the HMAC evidence chain of a trace. Returns the full verdict payload: verdict (intact, tampered, unsigned, keyed, wrong-key, rolled-back, ledger-broken), detail, chain finals, rollback flag and ledger health.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "trace": {
+            "type": "string"
+          },
+          "store": {
+            "type": "string"
+          },
+          "key_file": {
+            "type": "string",
+            "description": "signing key file for HMAC-keyed traces"
+          }
+        },
+        "required": [
+          "trace"
+        ]
+      }
+    },
+    {
+      "name": "survey",
+      "description": "Fleet summary over one or more store directories: trace counts, failure rates, trend verdicts.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "stores": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "stores"
+        ]
+      }
+    },
+    {
+      "name": "bisect",
+      "description": "First material divergence between two traces (failed vs last success is the classic use): the step where the failed run left the successful run's path, with worst-ranked divergences.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "trace": {
+            "type": "string",
+            "description": "failed trace id"
+          },
+          "other": {
+            "type": "string",
+            "description": "trace to compare against"
+          },
+          "store": {
+            "type": "string"
+          },
+          "floor": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.01,
+            "description": "mutations with similarity >= floor count as noise (default 0.8)"
+          }
+        },
+        "required": [
+          "trace",
+          "other"
+        ]
+      }
+    },
+    {
+      "name": "doctor",
+      "description": "Health check of a trace store: corrupt or misnamed records, evidence-ledger tamper, stale locks, leftover temp files, and (with digest_dir) monitoring gaps.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "digest_dir": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "trend",
+      "description": "Day-level analytics over a watch-loop digest directory: per-day failure rate, sparkline, Theil-Sen verdict. With an agent name, the per-day rollup for that one agent instead (visible while it stays among a store's top-N busiest agents in the snapshots).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "digest_dir": {
+            "type": "string",
+            "description": "directory of daily digest-*.jsonl files"
+          },
+          "agent": {
+            "type": "string",
+            "description": "per-day analytics for one named agent (optional)"
+          }
+        },
+        "required": [
+          "digest_dir"
+        ]
+      }
+    },
+    {
+      "name": "scoreboard",
+      "description": "Per-agent rollup for a store: steps, tool calls, errors, tokens, failed traces, and the touched-trace failure rate per agent (steps without identity roll up under unattributed). Optional query-expression filter, e.g. \"success == false\". min_failed keeps only repeat offenders.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "expression": {
+            "type": "string"
+          },
+          "top": {
+            "type": "number",
+            "description": "keep the first N rows (default: all)"
+          },
+          "min_failed": {
+            "type": "number",
+            "description": "keep only agents with at least N failed traces (default: all)"
+          },
+          "group_by": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "tool"
+            ],
+            "description": "roll up per agent (default) or per tool"
+          }
+        }
+      }
+    },
+    {
+      "name": "cluster",
+      "description": "Cross-trace failure clustering: attributes every trace and groups failures by (mode, tool-set); min_size keeps only recidivist clusters. by_agent switches to recidivist AGENTS instead of modes. Optional query-expression filter.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "expression": {
+            "type": "string"
+          },
+          "min_size": {
+            "type": "number",
+            "description": "cluster size threshold for recidivists (default 2)"
+          },
+          "by_agent": {
+            "type": "boolean",
+            "description": "cluster recidivist agents instead of modes"
+          },
+          "top": {
+            "type": "number",
+            "description": "keep the first N clusters (default: all)"
+          }
+        }
+      }
+    },
+    {
+      "name": "similar",
+      "description": "Most alignment-similar traces to a given trace, best first (structure-aware sequence alignment over steps, score in [0, 1]).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "trace": {
+            "type": "string"
+          },
+          "store": {
+            "type": "string"
+          },
+          "other_store": {
+            "type": "string",
+            "description": "compare against traces in another store"
+          },
+          "top": {
+            "type": "number",
+            "description": "how many candidates (default 5)"
+          },
+          "min_score": {
+            "type": "number",
+            "description": "cut matches below this similarity"
+          }
+        },
+        "required": [
+          "trace"
+        ]
+      }
+    },
+    {
+      "name": "drift",
+      "description": "Behaviour drift between the oldest and newest traces of a store: Population Stability Index over action histograms, with the biggest shifted actions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "baseline_ratio": {
+            "type": "number",
+            "description": "share of oldest traces forming the baseline window (default 0.5)"
+          }
+        }
+      }
+    },
+    {
+      "name": "counterfactual",
+      "description": "Leave-one-out attribution over every detected step of a trace: which step's removal eliminates each mode (root cause vs symptom), distributed-cause verdict and causal ranking.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "trace": {
+            "type": "string"
+          },
+          "store": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "trace"
+        ]
+      }
+    },
+    {
+      "name": "predict",
+      "description": "Failure precursor score for a trace: mines the store's other traces for action patterns that precede failures, returns a failure probability with contributors.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "trace": {
+            "type": "string"
+          },
+          "store": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "trace"
+        ]
+      }
+    },
+    {
+      "name": "context",
+      "description": "Context-runtime forecast for a trace: replay the recorded run through a budgeted context window (dry run) - what survives eviction, fact recall, tokens saved.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "trace": {
+            "type": "string"
+          },
+          "store": {
+            "type": "string"
+          },
+          "budget": {
+            "type": "number",
+            "description": "context-token budget (default 4000)"
+          }
+        },
+        "required": [
+          "trace"
+        ]
+      }
+    },
+    {
+      "name": "curve",
+      "description": "Budget-recall sweep for a trace: recall of ground-truth facts across a geometric grid of context budgets (the what-if curve).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "trace": {
+            "type": "string"
+          },
+          "store": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "trace"
+        ]
+      }
+    },
+    {
+      "name": "status",
+      "description": "The one-glance ops overview: store health, top failure modes, triage tallies, the last failure with its chain verdict, ledger health, the top recidivist agent and (with digest_dir) the fleet trend verdict. The MCP mirror of `approximately status`.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "since": {
+            "type": "number",
+            "description": "only traces created in the last N days"
+          },
+          "digest_dir": {
+            "type": "string",
+            "description": "also report the fleet trend verdict from this digest history"
+          }
+        }
+      }
+    },
+    {
+      "name": "annotate",
+      "description": "Attach an analyst note to a trace (append-only sidecar; the evidence chain stays untouched). With a note: writes it (verdict: confirmed / false-positive are the triage idioms). Without: returns the annotations on file (trace filter optional).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "trace": {
+            "type": "string",
+            "description": "omit (with note omitted) to read all annotations in the store"
+          },
+          "note": {
+            "type": "string",
+            "description": "omit to read instead of write"
+          },
+          "author": {
+            "type": "string"
+          },
+          "verdict": {
+            "type": "string",
+            "description": "write: the triage verdict; read: only annotations with this verdict"
+          }
+        }
+      }
+    },
+    {
+      "name": "anomalies",
+      "description": "Latency anomaly detection for one trace: per-step modified z-scores over tool-call latency, worst first. isError is set when anomalies exist.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "trace": {
+            "type": "string"
+          },
+          "store": {
+            "type": "string"
+          },
+          "per_tool": {
+            "type": "boolean",
+            "description": "baseline each tool family separately"
+          },
+          "threshold": {
+            "type": "number",
+            "description": "z-score threshold (default 3.5)"
+          }
+        },
+        "required": [
+          "trace"
+        ]
+      }
+    },
+    {
+      "name": "diff",
+      "description": "Structural diff of two traces (alignment ops + similarity) with the divergences ranked most-different first.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "trace": {
+            "type": "string"
+          },
+          "other": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "trace",
+          "other"
+        ]
+      }
+    },
+    {
+      "name": "regression_test",
+      "description": "Mint a self-contained pytest regression file from a failed trace (the trace rides along as base64): the failure can never silently return. Returns the file content; write it where your tests live.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "trace": {
+            "type": "string"
+          },
+          "store": {
+            "type": "string"
+          },
+          "budget": {
+            "type": "number",
+            "description": "context-token budget guard (optional)"
+          },
+          "min_recall": {
+            "type": "number",
+            "description": "fact-recall floor (default 0.8)"
+          }
+        },
+        "required": [
+          "trace"
+        ]
+      }
+    },
+    {
+      "name": "metrics",
+      "description": "Store health as Prometheus text exposition: trace count, failure rate, step/token means, per-mode failure counts (and per-agent rates with group_by agent).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "group_by": {
+            "type": "string",
+            "enum": [
+              "store",
+              "agent",
+              "tool"
+            ],
+            "description": "store totals (default), per-agent or per-tool rates"
+          }
+        }
+      }
+    },
+    {
+      "name": "import_transcripts",
+      "description": "Batch-import foreign transcript JSONL into the store: one transcript per line, shape sniffed from the first line (native Trace dumps, OpenAI chat dumps, bare message arrays). Deterministic ids make re-importing the same file a no-op.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string",
+            "description": "JSONL file, one transcript per line"
+          },
+          "format": {
+            "type": "string",
+            "description": "auto (default) / native / openai-jsonl / messages-list"
+          },
+          "glob": {
+            "type": "string",
+            "description": "import every file matching this pattern instead of a single path"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "description": "count what would be imported, write nothing"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "name": "export_transcripts",
+      "description": "Export traces from the store as foreign transcript JSONL (OpenAI chat shape by default; native is lossless) so fine-tuning and eval pipelines can consume them. Optional shared query-DSL filter.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "output": {
+            "type": "string",
+            "description": "output JSONL path"
+          },
+          "format": {
+            "type": "string",
+            "description": "openai-jsonl (default) / native"
+          },
+          "query": {
+            "type": "string",
+            "description": "shared query-DSL filter, e.g. 'success == false and tool=ls'"
+          },
+          "since": {
+            "type": "number",
+            "description": "only traces created in the last N days"
+          }
+        },
+        "required": [
+          "output"
+        ]
+      }
+    },
+    {
+      "name": "scan_tool",
+      "description": "Static-analysis for a tool description before an agent uses it: spelling tricks, directional-formatting tricks, phrasing that tries to override the operator's instructions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "path to the tool description (markdown or plain text)"
+          },
+          "text": {
+            "type": "string",
+            "description": "or pass the description inline"
+          }
+        }
+      }
+    },
+    {
+      "name": "bench_gate",
+      "description": "Attribution-quality regression gate: run the rule detectors over a labeled JSONL dataset and compare per-mode P/R/F1 plus sample macro-F1 against a floors file. Reports violations instead of exiting nonzero.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "dataset": {
+            "type": "string",
+            "description": "labeled JSONL dataset (approx format)"
+          },
+          "floors": {
+            "type": "string",
+            "description": "floors JSON (sample_f1 + per-mode minimums)"
+          }
+        },
+        "required": [
+          "dataset",
+          "floors"
+        ]
+      }
+    },
+    {
+      "name": "explain",
+      "description": "Deep dive on a MAST failure mode: definition, published share, the mechanical detectors that watch for it, and engineering fixes. Omit the mode for the overview table of all 14 modes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "description": "mode id such as FM-1.3 (optional)"
+          }
+        }
+      }
+    },
+    {
+      "name": "stats",
+      "description": "Aggregate a query selection instead of listing it: count, success split, failure rate, mode totals, mean steps/tokens.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "expression": {
+            "type": "string"
+          },
+          "store": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "expression"
+        ]
+      }
+    },
+    {
+      "name": "query",
+      "description": "Select traces with an expression, e.g. \"success == false and mode == FM-2.1\".",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "expression": {
+            "type": "string"
+          },
+          "store": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "expression"
+        ]
+      }
+    }
+  ]
+}
