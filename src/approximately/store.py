@@ -202,13 +202,16 @@ class TraceStore:
         """Trace's own creation time, falling back to file mtime."""
         return trace.created_at or path.stat().st_mtime
 
-    def clean(self, keep_days: int) -> int:
-        """Delete traces older than *keep_days*; returns the count removed."""
+    def clean(self, keep_days: int,
+              dry_run: bool = False) -> int:
+        """Delete traces older than *keep_days*; returns the count removed
+        (or that would be removed, with ``dry_run``)."""
         cutoff = time.time() - keep_days * 86400
         removed = 0
         for path in self.directory.glob("*.json"):
             if path.stat().st_mtime < cutoff:
-                path.unlink()
+                if not dry_run:
+                    path.unlink()
                 removed += 1
         return removed
 

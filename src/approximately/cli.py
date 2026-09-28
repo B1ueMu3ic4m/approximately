@@ -424,6 +424,31 @@ def cmd_rotate(args: argparse.Namespace) -> int:
     from .integrity import load_key, rotate
 
     store = TraceStore(args.store)
+    if getattr(args, "all", False):
+        new_key = load_key(args.new_key_file)
+        if new_key is None:
+            raise SystemExit("error: --new-key-file is required "
+                             "(or set APPROXIMATELY_SIGNING_KEY)")
+        old_key = load_key(args.old_key_file)
+        rotated, refused = [], []
+        for trace in store.list_traces():
+            try:
+                rotate(trace, old_key=old_key, new_key=new_key)
+            except ValueError as exc:
+                refused.append({"trace_id": trace.id,
+                                "error": str(exc)})
+                continue
+            store.save(trace)
+            rotated.append(trace.id)
+        if getattr(args, "json", False):
+            print(json.dumps({"rotated": rotated,
+                              "refused": refused}, indent=2))
+        else:
+            print(f"rotated {len(rotated)} trace(s); "
+                  f"{len(refused)} refused")
+            for row in refused:
+                print(f"  refused {row['trace_id']}: {row['error']}")
+        return 0 if not refused else 1
     trace = _load_trace(args.trace, store)
     old_key = load_key(args.old_key_file)
     new_key = load_key(args.new_key_file)
@@ -1206,12 +1231,18 @@ def cmd_convert_mast(args: argparse.Namespace) -> int:
 
 def cmd_clean(args: argparse.Namespace) -> int:
     store = TraceStore(args.store)
-    removed = store.clean(keep_days=args.keep_days)
+    removed = store.clean(keep_days=args.keep_days,
+                          dry_run=bool(getattr(args, "dry_run", False)))
     if getattr(args, "json", False):
         print(json.dumps({"removed": removed,
-                          "keep_days": args.keep_days}, indent=2))
+                          "keep_days": args.keep_days,
+                          "dry_run": bool(getattr(args, "dry_run",
+                                                  False))}, indent=2))
         return 0
-    print(f"removed {removed} traces older than {args.keep_days} days")
+    note = " would be removed" if getattr(args, "dry_run", False) \
+        else " removed"
+    print(f"{removed} trace(s){note} "
+          f"(older than {args.keep_days} days)")
     return 0
 
 
@@ -1754,11 +1785,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("rotate", parents=[common],
                        help="re-key a signed trace (old key must verify)")
-    p.add_argument("trace")
+    p.add_argument("trace", nargs="?",
+                   help="trace to rotate (omit with --all)")
     p.add_argument("--old-key-file", help="current signing key")
     p.add_argument("--new-key-file", required=True, help="new signing key")
     p.add_argument("--json", action="store_true",
            help="emit machine-readable JSON instead of prose")
+    p.add_argument("--all", action="store_true",
+                   help="rotate every trace in the store (refused "
+                        "traces are listed, exit 1 if any)")
     p.set_defaults(func=cmd_rotate)
 
     p = sub.add_parser("scan-tool", parents=[common],
@@ -1971,6 +2006,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="keep traces newer than this many days (default 30)")
     p.add_argument("--json", action="store_true",
            help="emit machine-readable JSON instead of prose")
+    p.add_argument("--dry-run", action="store_true",
+                   help="count what would be removed, delete nothing")
     p.set_defaults(func=cmd_clean)
 
     p = sub.add_parser("stats", parents=[common],
