@@ -1379,6 +1379,14 @@ framework adapters import lazily and degrade when the framework is absent.
      same file skips everything instead of duplicating. Malformed
      lines are counted, never fatal; `--dry-run` previews counts
      without writing; `--json` for scripts.
+130. **v1.20 - MCP tool #25 import_transcripts** ✅ (delivered): the
+     import path mirrors into the MCP surface per the ops-pair rule —
+     an MCP client points at a foreign transcript JSONL and pulls it
+     into the tamper-evident store with the same sniffing, sha256
+     idempotence and dry-run semantics as the CLI. A missing file is
+     a tool error (`isError: true`), never a protocol fault. The
+     authoritative tool list stays `tools/list`; the pinned count
+     test moved to 25.
 
 
 ## 4. Launch plan

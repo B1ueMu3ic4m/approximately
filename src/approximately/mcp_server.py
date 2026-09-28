@@ -411,6 +411,32 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "import_transcripts",
+        "description": "Batch-import foreign transcript JSONL into "
+                       "the store: one transcript per line, shape "
+                       "sniffed from the first line (native Trace "
+                       "dumps, OpenAI chat dumps, bare message "
+                       "arrays). Deterministic ids make re-importing "
+                       "the same file a no-op.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "path": {"type": "string",
+                         "description": "JSONL file, one transcript "
+                                        "per line"},
+                "format": {"type": "string",
+                           "description": "auto (default) / native / "
+                                          "openai-jsonl / "
+                                          "messages-list"},
+                "dry_run": {"type": "boolean",
+                            "description": "count what would be "
+                                           "imported, write nothing"},
+            },
+            "required": ["path"],
+        },
+    },
+    {
         "name": "bench_gate",
         "description": "Attribution-quality regression gate: run the "
                        "rule detectors over a labeled JSONL dataset "
@@ -900,6 +926,21 @@ def _explain_detectors(mode_id):
     return detectors_for_mode(mode_id)
 
 
+def _tool_import_transcripts(ctx: ServerContext,
+                             args: Dict[str, Any]) -> dict:
+    from .importer import import_file
+
+    path = Path(str(args["path"]))
+    if not path.is_file():
+        raise KeyError(f"no such file: {path}")
+    store = _store(ctx, args)
+    fmt = args.get("format")
+    return import_file(
+        path, store,
+        fmt=None if fmt in (None, "auto") else str(fmt),
+        dry_run=bool(args.get("dry_run", False)))
+
+
 _HANDLERS = {
     "list_traces": _tool_list_traces,
     "attribute": _tool_attribute,
@@ -925,6 +966,7 @@ _HANDLERS = {
     "diff": _tool_diff,
     "regression_test": _tool_regression_test,
     "metrics": _tool_metrics,
+    "import_transcripts": _tool_import_transcripts,
 }
 
 
