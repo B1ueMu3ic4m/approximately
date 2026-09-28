@@ -3,6 +3,11 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.66
+
+the feature table gains the interop row (logs in / transcripts out) and the slowness-is-a-signal row (per-tool + fleet baselines, alerting) — the two headline capabilities of the v1.35-v1.65 arc finally surface where first-time visitors read. Docs-only. (Also: the ledger renumbered physically; items 164-176 sit at the tail after insert-anchor drift.)
+
+
 ## v1.65
 
 (delivered): the full local gate checklist (suite, lint, types, complexity, security, bench-gate, the six perf budgets), the one-version-per-PR discipline (bump, PLAN item, regenerate the pinned changelog), the --json + MCP-mirror rule for new commands (dangerous ops deliberately CLI-only), and the real CI matrix (3 OSes × 5 Pythons). The old file predated the generated changelog and the anomaly gates.

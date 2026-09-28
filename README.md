@@ -163,6 +163,10 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 🔎 Query DSL + stats | Select traces with an expression — or aggregate the selection: counts, failure rate, mode totals, means | `approximately query "..." [--stats]` |
 | 📖 Mode explainer | "What does FM-1.3 mean *for my agent*?" — definition, published share, the detectors watching it, engineering fixes | `approximately explain FM-1.3` |
 | 👥 Agent scoreboard | Who did what in a multi-agent run: steps, tokens, errors, and the failure rate of traces each agent touched | `Recorder(agent="researcher")` + `approximately stats --by-agent` |
+| 📥📤 Log interop | Logs already on disk become tamper-evident traces — and traces export back out as OpenAI chat JSONL for fine-tuning/eval; roundtrips restore ids | `approximately import logs/*.jsonl` · `approximately export out.jsonl` |
+| 🐢 Slowness is a signal | Per-tool latency baselines per trace and fleet-wide, slowness trend over days, `--alert-anomalies` paging — slow-but-successful runs are failures too | `approximately anomalies --all` |
+| 📥📤 Log interop | Logs already on disk become tamper-evident traces — and traces export back out as OpenAI chat JSONL for fine-tuning/eval; roundtrips restore ids | `approximately import logs/*.jsonl` · `approximately export out.jsonl` |
+| 🐢 Slowness is a signal | Per-tool latency baselines per trace and fleet-wide, slowness trend over days, `--alert-anomalies` paging — slow-but-successful runs are failures too | `approximately anomalies --all` |
 | 🔌 MCP server | The whole toolkit as a Model Context Protocol stdio server (30 tools and counting — the committed [mcp-tools.json](docs/mcp-tools.json) mirrors it; `tools/list` is authoritative) — query failures and agent scoreboards from any MCP client | `approximately mcp` |
 | 🧪 Attribution quality gates | Gold-corpus + large-n synthetic floors run in CI — a detector refactor that degrades P/R fails the build | `python scripts/bench_gate.py [--synth]` |
 | 🚦 Gate as a GitHub Action | The same attribution gate as a drop-in action for your own repo's workflow | `uses: B1ueMu3ic4m/approximately@v0` |
@@ -350,6 +354,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.63** — `perf-gate[import]`: 500 mixed transcripts in 137ms (budget 2s), count + failure assertions
 - ✅ **v1.64** — ARCHITECTURE documents the anomaly family: per-trace vs fleet baselines, slowness trend, alerting
 - ✅ **v1.65** — CONTRIBUTING refreshed: the full gate checklist, one-version-per-PR, the mirror rule
+- ✅ **v1.66** — README feature table carries the interop and slowness stories
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
