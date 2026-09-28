@@ -56,6 +56,64 @@ def _mad(values: List[float], med: float) -> float:
     return _median([abs(v - med) for v in values])
 
 
+@dataclass
+class TraceLatencyAnomaly:
+    """A fleet-mode finding: the anomaly carries its trace."""
+
+    trace_id: str
+    step_index: int
+    tool: str
+    latency_ms: int
+    median_ms: float
+    robust_z: float
+
+    @property
+    def direction(self) -> str:
+        return "slow" if self.robust_z > 0 else "fast"
+
+
+def detect_fleet_anomalies(traces, threshold: float
+                           = MODIFIED_Z_THRESHOLD,
+                           min_samples: int = 5
+                           ) -> List[TraceLatencyAnomaly]:
+    """Per-tool latency baselines across a whole store.
+
+    A per-trace baseline only knows what this one run considered
+    normal; the fleet knows what `search` costs everywhere, every
+    day. Every timed tool-call step in every trace is judged against
+    its tool family's store-wide median/MAD; families under
+    ``min_samples`` are honest no-ops.
+    """
+    by_tool: dict = {}
+    for trace in traces:
+        for step in trace.steps:
+            if step.kind == TOOL_CALL and step.latency_ms                     and step.latency_ms > 0:
+                by_tool.setdefault(step.tool or "?", []).append(
+                    (trace, step))
+    anomalies: List[TraceLatencyAnomaly] = []
+    for tool, pairs in sorted(by_tool.items()):
+        if len(pairs) < min_samples:
+            continue
+        values = [float(s.latency_ms) for _, s in pairs]
+        med = _median(values)
+        mad = _mad(values, med)
+        if mad == 0:
+            continue  # identical latencies: no scale, no anomalies
+        for trace, step in pairs:
+            z = _CONSISTENCY * (float(step.latency_ms) - med) / mad
+            if abs(z) > threshold:
+                anomalies.append(TraceLatencyAnomaly(
+                    trace_id=trace.id,
+                    step_index=step.index,
+                    tool=tool,
+                    latency_ms=step.latency_ms,
+                    median_ms=med,
+                    robust_z=round(z, 2),
+                ))
+    anomalies.sort(key=lambda a: -abs(a.robust_z))
+    return anomalies
+
+
 def detect_latency_anomalies(trace: Trace, threshold: float
                              = MODIFIED_Z_THRESHOLD,
                              min_samples: int = 5,

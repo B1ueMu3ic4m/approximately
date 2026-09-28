@@ -1164,9 +1164,34 @@ def cmd_fleet(args: argparse.Namespace) -> int:
 
 
 def cmd_anomalies(args: argparse.Namespace) -> int:
-    from .anomaly import detect_latency_anomalies, summarize_anomalies
+    from .anomaly import detect_fleet_anomalies, detect_latency_anomalies, summarize_anomalies
 
     store = TraceStore(args.store)
+    if getattr(args, "all", False):
+        fleet = detect_fleet_anomalies(
+            store.list_traces(since_days=getattr(args, "since", None)),
+            threshold=args.threshold)
+        if getattr(args, "json", False):
+            print(json.dumps([{"trace_id": a.trace_id,
+                               "step_index": a.step_index,
+                               "tool": a.tool,
+                               "latency_ms": a.latency_ms,
+                               "median_ms": a.median_ms,
+                               "robust_z": round(a.robust_z, 3),
+                               "direction": a.direction}
+                              for a in fleet], indent=2))
+        else:
+            if not fleet:
+                print("no fleet latency anomalies")
+            else:
+                for a in fleet[:20]:
+                    print(f"  {a.trace_id} step {a.step_index} "
+                          f"{a.tool} {a.latency_ms}ms "
+                          f"(family median {a.median_ms:.0f}ms, "
+                          f"z={a.robust_z:+.1f})")
+                if len(fleet) > 20:
+                    print(f"  ... and {len(fleet) - 20} more")
+        return 0 if not fleet else 1
     trace = _load_trace(args.trace, store)
     anomalies = detect_latency_anomalies(
         trace, threshold=args.threshold,
@@ -2031,6 +2056,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="baseline each tool family separately (a "
                         "2s search and a 30s deploy stop masking "
                         "each other)")
+    p.add_argument("--all", action="store_true",
+                   help="fleet mode: baseline each tool family "
+                        "across the whole store instead of one "
+                        "trace")
     p.set_defaults(func=cmd_anomalies)
 
     p = sub.add_parser("merge", parents=[common],

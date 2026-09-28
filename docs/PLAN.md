@@ -1555,6 +1555,14 @@ framework adapters import lazily and degrade when the framework is absent.
      going, while a single named file that cannot be parsed stays a
      loud exit-2. Identical transcripts arriving in flight collapse
      to one trace (same deterministic id).
+151. **v1.41 - fleet-mode latency anomalies** ✅ (delivered): a
+     per-trace baseline only knows what one run considered normal.
+     `detect_fleet_anomalies` (CLI `anomalies --all`, MCP
+     `anomalies` with `fleet: true`) baselines each tool family
+     across every trace in the store, so a single 30s search inside
+     an otherwise boring week stands out even though that trace,
+     alone, looks unremarkable. Families under `min_samples` are
+     honest no-ops; findings carry their `trace_id`.
 
 
 ## 4. Launch plan
