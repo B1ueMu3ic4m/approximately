@@ -1387,6 +1387,19 @@ framework adapters import lazily and degrade when the framework is absent.
      a tool error (`isError: true`), never a protocol fault. The
      authoritative tool list stays `tools/list`; the pinned count
      test moved to 25.
+131. **v1.21 - export: the path out** ✅ (delivered): `approximately
+     export OUT.jsonl` writes traces in the dialect other pipelines
+     speak — OpenAI chat shape by default (adjacent tool_call steps
+     merge into one assistant message; observations pair with call
+     ids in order; a call whose recorder kept result/error with no
+     observation rides its own tool message with `is_error`),
+     `--format native` for the lossless chain-verifying dump. Our
+     exports carry `metadata.task` / `metadata.trace_id`, and the
+     importer reads them back, so export→import restores ids and
+     re-importing an export is idempotent. `--query` filters with
+     the shared DSL (`success == false`). Mirrored as MCP tool #26
+     `export_transcripts` (missing output directory → tool error,
+     never a protocol fault).
 
 
 ## 4. Launch plan

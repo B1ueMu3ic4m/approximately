@@ -437,6 +437,29 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "export_transcripts",
+        "description": "Export traces from the store as foreign "
+                       "transcript JSONL (OpenAI chat shape by "
+                       "default; native is lossless) so fine-tuning "
+                       "and eval pipelines can consume them. "
+                       "Optional shared query-DSL filter.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "output": {"type": "string",
+                           "description": "output JSONL path"},
+                "format": {"type": "string",
+                           "description": "openai-jsonl (default) / "
+                                          "native"},
+                "query": {"type": "string",
+                          "description": "shared query-DSL filter, "
+                                         "e.g. 'success == false and tool=ls'"},
+            },
+            "required": ["output"],
+        },
+    },
+    {
         "name": "bench_gate",
         "description": "Attribution-quality regression gate: run the "
                        "rule detectors over a labeled JSONL dataset "
@@ -941,6 +964,20 @@ def _tool_import_transcripts(ctx: ServerContext,
         dry_run=bool(args.get("dry_run", False)))
 
 
+def _tool_export_transcripts(ctx: ServerContext,
+                             args: Dict[str, Any]) -> dict:
+    from .exporter import export_store
+
+    output = Path(str(args["output"]))
+    if not output.parent.is_dir():
+        raise KeyError(f"no such directory: {output.parent}")
+    store = _store(ctx, args)
+    return export_store(store, output,
+                        fmt=str(args.get("format") or "openai-jsonl"),
+                        query_text=(str(args["query"])
+                                    if args.get("query") else None))
+
+
 _HANDLERS = {
     "list_traces": _tool_list_traces,
     "attribute": _tool_attribute,
@@ -967,6 +1004,7 @@ _HANDLERS = {
     "regression_test": _tool_regression_test,
     "metrics": _tool_metrics,
     "import_transcripts": _tool_import_transcripts,
+    "export_transcripts": _tool_export_transcripts,
 }
 
 
