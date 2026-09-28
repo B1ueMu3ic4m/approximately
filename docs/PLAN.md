@@ -1526,6 +1526,13 @@ framework adapters import lazily and degrade when the framework is absent.
      all; `status --watch` clamps negative intervals; `scan-tool
      --text` gives the CLI the inline path the MCP tool already
      had.
+147. **v1.37 - safer store maintenance** ✅ (delivered): `clean
+     --dry-run` rehearses a retention policy without touching a
+     file (JSON payload notes the dry run), and `rotate --all`
+     re-keys every trace in one pass — the quarterly key-rotation
+     story — listing refusals per trace and exiting 1 if any
+     evidence was already broken (the per-trace `rotate` still
+     verifies with the old key before re-signing).
 
 
 ## 4. Launch plan
