@@ -1369,6 +1369,16 @@ framework adapters import lazily and degrade when the framework is absent.
      map documents the ops pair (`status`, `annotate` /
      `annotations --verdict`) and the all-commands-`--json` +
      MCP-mirror rule. Docs-only.
+129. **v1.19 - import foreign transcripts** ✅ (delivered): the contrib
+     adapters transcribe live frameworks; `approximately import` is the
+     path in for logs already on disk. One JSONL file, one transcript
+     per line, three shapes sniffed from the first line: native
+     `Trace` dumps, OpenAI chat dumps (`messages`, tool `is_error`
+     becomes a failed step and a failed trace), bare message arrays.
+     Foreign lines get deterministic sha256 ids, so re-importing the
+     same file skips everything instead of duplicating. Malformed
+     lines are counted, never fatal; `--dry-run` previews counts
+     without writing; `--json` for scripts.
 
 
 ## 4. Launch plan

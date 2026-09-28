@@ -303,6 +303,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.16** — MCP `annotate` with no trace+note lists every store annotation
 - ✅ **v1.17** — `status --since` scopes triage tallies to the same window as the traces
 - ✅ **v1.18** — ARCHITECTURE documents the ops pair and the all-`--json` rule
+- ✅ **v1.19** — `import`: batch-load foreign transcript JSONL (native / OpenAI chat dumps / bare message arrays) into a tamper-evident store; re-import is a no-op
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
