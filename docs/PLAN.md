@@ -1691,6 +1691,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      an unchanged payload (frames still count so `--frames` still
      bounds the loop) and the next real change prints again — a
      night of logs stays one screen instead of five hundred.
+171. **v1.63 - the ingest path gets its own perf gate** ✅
+     (delivered): `perf-gate[import]` pushes 500 mixed-shape
+     transcripts (tool_calls, tool errors, multi-turn) through a
+     fresh store on 4 threads — 137ms against a 2s budget, with
+     count AND failure-flag assertions so a silent data-loss
+     regression fails the gate, not the user's dataset.
 165. **v1.55 - postmortems name fleet outliers** ✅ (delivered):
      the per-trace latency card only knows what one run considered
      normal; the postmortem now gains a "Fleet outliers" card when a

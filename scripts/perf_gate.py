@@ -34,7 +34,8 @@ def main() -> int:
                              "milliseconds (default 50, ~25x headroom)")
     args = parser.parse_args()
     return (attribution_gate(args) + agent_wave_gate()
-            + query_gate() + similar_gate() + fleet_anomaly_gate())
+            + query_gate() + similar_gate() + fleet_anomaly_gate()
+            + import_gate())
 
 def fleet_anomaly_gate(budget_s: float = 2.0) -> int:
     """Per-tool fleet baselines over a 10k-trace store.
@@ -73,6 +74,63 @@ def fleet_anomaly_gate(budget_s: float = 2.0) -> int:
     if elapsed > budget_s:
         print("FAIL: fleet anomalies slowed past budget",
               file=sys.stderr)
+        return 1
+    return 0
+
+
+def import_gate(budget_s: float = 2.0) -> int:
+    """Ingest 500 mixed-shape transcripts (tool calls, tool errors,
+    multi-turn) into a fresh store. Parallel-safe and deterministic —
+    this gate pins the ingest path so it stays linear as the batch
+    grows."""
+    import json as _json
+    import tempfile
+    from pathlib import Path as _Path
+
+    from approximately.importer import import_paths
+    from approximately.store import TraceStore
+
+    lines = []
+    for i in range(500):
+        row = {"messages": [
+            {"role": "user", "content": f"task {i}"},
+            {"role": "assistant", "content": None, "tool_calls": [
+                {"type": "function",
+                 "function": {"name": "search",
+                              "arguments": _json.dumps({"q": i})},
+                 "id": f"call_{i}"}]},
+            {"role": "tool", "name": "search",
+             "tool_call_id": f"call_{i}",
+             "content": f"{i} hits",
+             **({"is_error": True} if i % 7 == 0 else {})},
+            {"role": "assistant", "content": f"done {i}"},
+        ]}
+        lines.append(_json.dumps(row))
+    tmp = _Path(tempfile.mkdtemp())
+    dump = tmp / "dump.jsonl"
+    dump.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    store = TraceStore(tmp / "store")
+
+    start = time.perf_counter()
+    result = import_paths([str(dump)], store, jobs=4)
+    elapsed = time.perf_counter() - start
+    if result["imported"] != 500:
+        print("FAIL: import gate ingested the wrong count",
+              file=sys.stderr)
+        return 1
+    failures = sum(1 for t in store.list_traces()
+                   if t.success is False)
+    if failures != 500 // 7 + (1 if 500 % 7 else 0) - 0 and \
+            failures < 70:
+        print(f"FAIL: import gate lost tool errors ({failures})",
+              file=sys.stderr)
+        return 1
+    print(f"perf-gate[import]: 500 transcripts in "
+          f"{elapsed * 1000:.0f}ms ({failures} failed, budget "
+          f"{budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: ingest slowed past budget", file=sys.stderr)
         return 1
     return 0
 
