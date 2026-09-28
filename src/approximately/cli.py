@@ -171,6 +171,23 @@ def _judge_kwargs(args: argparse.Namespace) -> dict:
     return {"cache_dir": Path(cache)} if cache else {}
 
 
+def _report_judge_cache(args, payload: dict) -> None:
+    """Attach + print cache hit/miss stats when a cache was in play."""
+    from .judge import cache_stats
+
+    if not getattr(args, "judge_cache", None) and \
+        not getattr(args, "teacher_cache", None) and \
+            not getattr(args, "judge_stats", False):
+        return
+    stats = cache_stats(reset=True)
+    if isinstance(payload, dict):
+        payload["judge_cache"] = stats
+    if getattr(args, "json", False):
+        return  # already embedded in the payload
+    print(f"judge cache: {stats['hits']} hit(s), "
+          f"{stats['misses']} miss(es)")
+
+
 def cmd_report(args: argparse.Namespace) -> int:
     from .cluster import trend
     from .report import render_index_html
@@ -1513,8 +1530,16 @@ def cmd_export_dataset(args: argparse.Namespace) -> int:
         labeler = rules_labeler()
         source = "rule detectors"
     stats = export_dataset(traces, Path(args.output), labeler)
+    if getattr(args, "teacher_cache", None):
+        from .judge import cache_stats
+
+        stats["judge_cache"] = cache_stats(reset=True)
     print(f"wrote {stats['written']} labeled traces to {args.output} "
           f"({stats['skipped']} skipped, too unsure) via {source}")
+    if getattr(args, "teacher_cache", None):
+        jc = stats["judge_cache"]
+        print(f"judge cache: {jc['hits']} hit(s), "
+              f"{jc['misses']} miss(es)")
     return 0
 
 

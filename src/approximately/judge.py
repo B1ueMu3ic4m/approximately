@@ -183,6 +183,22 @@ def _cache_path(cache_dir, key: str) -> Path:
     return Path(cache_dir) / f"{key}.json"
 
 
+_CACHE_STATS = {"hits": 0, "misses": 0}
+
+
+def cache_stats(reset: bool = False) -> dict:
+    """Hits and misses since process start (or since the last reset).
+
+    Read after a judge-consuming command to see what the cache bought:
+    `{"hits": 12, "misses": 40}` on a fresh dataset is a cold cache;
+    the same dataset relabeled is `{"hits": 40, "misses": 0}`."""
+    stats = dict(_CACHE_STATS)
+    if reset:
+        _CACHE_STATS["hits"] = 0
+        _CACHE_STATS["misses"] = 0
+    return stats
+
+
 def _load_cached(cache_dir, key: str) -> Optional[JudgeVerdict]:
     """A cache hit must look exactly like a fresh verdict; anything
     unreadable is a miss, and the next write overwrites it."""
@@ -237,7 +253,9 @@ def judge_trace(
         key = _cache_key(trace, chosen_model, preset)
         cached = _load_cached(cache_dir, key)
         if cached is not None:
+            _CACHE_STATS["hits"] += 1
             return cached
+        _CACHE_STATS["misses"] += 1
     raw = _judge_request(trace, chosen_model, preset,
                          api_key=api_key, base_url=base_url)
     payload = _extract_json(raw)
