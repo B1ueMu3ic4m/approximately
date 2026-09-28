@@ -1426,6 +1426,12 @@ framework adapters import lazily and degrade when the framework is absent.
      by any MCP client without calling a tool, next to the
      annotations sidecar and per-trace entries. Dashboards get a
      browse path that stays out of the tool budget.
+135. **v1.25 - doctor finds orphan annotations** ✅ (delivered): after
+     an import/clean/rotate cycle the annotation sidecar can reference
+     traces that no longer exist. Doctor names them (count in the
+     annotations line, up to five ids listed) so triage knows which
+     notes point at nothing — read-only diagnosis; `doctor --fix`
+     still only removes locks and temp files, never notes.
 
 
 ## 4. Launch plan

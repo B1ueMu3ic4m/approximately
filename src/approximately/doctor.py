@@ -42,6 +42,7 @@ class DoctorReport:
     legacy_agents: List[str] = field(default_factory=list)
     annotation_lines: int = 0
     annotation_corrupt: int = 0
+    annotation_orphans: List[str] = field(default_factory=list)
 
     @property
     def healthy(self) -> bool:
@@ -85,7 +86,12 @@ class DoctorReport:
             note = f"  annotations: {self.annotation_lines} note(s)"
             if self.annotation_corrupt:
                 note += f", {self.annotation_corrupt} unreadable line(s)"
+            if self.annotation_orphans:
+                note += (f", {len(self.annotation_orphans)} reference "
+                         "missing trace(s)")
             lines.append(note)
+        lines.extend(f"    orphan annotation: trace {tid}"
+                     for tid in self.annotation_orphans[:5])
         if self.legacy_agents:
             lines.append(
                 f"  legacy meta['agent'] on {len(self.legacy_agents)} "
@@ -223,6 +229,12 @@ def doctor(store: Path, digest_dir: Optional[Path] = None) -> DoctorReport:
     health = TraceStore(store).annotations_health()
     report.annotation_lines = health["total"]
     report.annotation_corrupt = health["corrupt"]
+    known = {p.stem for p in Path(store).glob("*.json")}
+    report.annotation_orphans = sorted({
+        str(a.get("trace_id"))
+        for a in TraceStore(store).annotations()
+        if a.get("trace_id") and str(a.get("trace_id")) not in known
+    })
     return report
 
 
