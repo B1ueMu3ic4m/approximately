@@ -131,6 +131,10 @@ def export_store(store: TraceStore, output: Path,
         from .query import select
 
         traces = select(traces, query_text)
+    # id order, not mtime order: filesystems time-stamp with different
+    # granularity (Windows ties break by glob order), and the same
+    # content must export to identical bytes everywhere
+    traces = sorted(traces, key=lambda t: t.id)
     written = 0
     with output.open("w", encoding="utf-8") as fh:
         for trace in traces:

@@ -120,7 +120,7 @@ def test_cli_import_json(tmp_path, capsys):
     path = _write(tmp_path, "runs.jsonl", [
         {"messages": [{"role": "user", "content": "q"},
                       {"role": "assistant", "content": "a"}]}])
-    args = argparse.Namespace(store=str(store_dir), file=str(path),
+    args = argparse.Namespace(store=str(store_dir), files=[str(path)],
                               format="auto", dry_run=False, json=True)
     assert cmd_import(args) == 0
     payload = json.loads(capsys.readouterr().out)
@@ -132,7 +132,7 @@ def test_cli_import_rejects_unknown_shape(tmp_path, capsys):
     path = tmp_path / "odd.jsonl"
     path.write_text('{"foo": 1}\n', encoding="utf-8")
     args = argparse.Namespace(store=str(tmp_path / "store"),
-                              file=str(path), format="auto",
+                              files=[str(path)], format="auto",
                               dry_run=False, json=False)
     assert cmd_import(args) == 2
     assert "unrecognized" in capsys.readouterr().err

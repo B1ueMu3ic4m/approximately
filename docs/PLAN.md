@@ -1400,6 +1400,26 @@ framework adapters import lazily and degrade when the framework is absent.
      the shared DSL (`success == false`). Mirrored as MCP tool #26
      `export_transcripts` (missing output directory → tool error,
      never a protocol fault).
+132. **v1.22 - fuzz round 7: the interop surface** ✅ (delivered): the
+     fuzz tradition reaches the import/export pair. Properties, 40
+     seeded random traces (messages, tools with hostile args/results,
+     plans, error steps, unicode tricks): export→import restores
+     id/task/success and the second export is byte-identical; hostile
+     lines on either direction are counted skips or documented
+     ValueErrors, never crashes; 60 random hostile message dicts
+     always produce consistently-indexed steps; the MCP mirrors
+     roundtrip 10 traces with dry-run idempotence. Two real finds
+     fixed: assistant messages with empty content were dropped on
+     import (breaking the export fixpoint), and explicit-null
+     success now roundtrips as an open trace instead of flipping to
+     closed.
+133. **v1.23 - import at scale** ✅ (delivered): `approximately
+     import` takes several file arguments and expands glob patterns
+     (sorted, deduplicated); the JSON payload aggregates lines /
+     imported / skipped across files with a per-file breakdown.
+     Deterministic ids now dedupe across files: the same transcript
+     in two log files is one trace. No match is a documented
+     ValueError (CLI exit 2), not a silent success.
 
 
 ## 4. Launch plan

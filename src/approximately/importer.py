@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from .store import TraceStore
-from .trace import MESSAGE, OBSERVATION, RESPONSE, TOOL_CALL, Step, Trace
+from .trace import ERROR, MESSAGE, OBSERVATION, RESPONSE, TOOL_CALL, Step, Trace
 
 NATIVE = "native"
 OPENAI_JSONL = "openai-jsonl"
@@ -91,7 +91,12 @@ def _message_steps(msg: Dict[str, Any]) -> List[Step]:
         step.index = len(steps)
         steps.append(step)
     if role == "assistant":
-        if content:
+        if msg.get("is_error"):
+            # our exporter spells a failed step this way; empty
+            # content still roundtrips as a failed step
+            steps.append(Step(kind=ERROR, error=_text(content),
+                              index=len(steps), meta={"role": role}))
+        elif content is not None:
             steps.append(Step(kind=RESPONSE, result=_text(content),
                               index=len(steps), meta={"role": role}))
     elif role == "tool":
@@ -150,10 +155,19 @@ def _foreign_trace(obj: Dict[str, Any], raw_line: str,
     failed = any(m.get("is_error")
                  for m in messages if m.get("role") == "tool")
     task, trace_id = _identity(obj, task, raw_line)
+    metadata = obj.get("metadata")
+    metadata = metadata if isinstance(metadata, dict) else {}
+    stated = metadata.get("success", "absent")
+    if isinstance(stated, bool):
+        success = stated
+    elif stated == "absent":
+        success = not failed
+    else:                       # explicit null: an open trace stays open
+        success = None
     return Trace(
         task=task, id=trace_id,
         steps=messages_to_steps(messages),
-        success=not failed,
+        success=success,
         final_output=None,
         meta={"imported_from": fmt, "source_line": line_no},
     )
@@ -166,6 +180,46 @@ def _parse_line(obj: Any, raw: str, line_no: int,
     if fmt == MESSAGES_LIST:
         return _foreign_trace({"messages": obj}, raw, line_no, fmt)
     return _foreign_trace(obj, raw, line_no, fmt)
+
+def _expand(patterns: List[str]) -> List[Path]:
+    """Expand each argument as a literal path or a glob pattern."""
+    import glob as _glob
+
+    files: List[Path] = []
+    for pattern in patterns:
+        matches = sorted(_glob.glob(pattern)) if any(
+            c in pattern for c in "*?[") else [pattern]
+        for match in matches:
+            path = Path(match)
+            if path.is_file() and path not in files:
+                files.append(path)
+    return files
+
+
+def import_paths(patterns: List[str], store: TraceStore,
+                 fmt: Optional[str] = None,
+                 dry_run: bool = False) -> Dict[str, Any]:
+    """Import every transcript file the patterns name (globs welcome);
+    per-file counts ride along in ``per_file``."""
+    files = _expand(patterns)
+    if not files:
+        raise ValueError("no files matched: "
+                         + ", ".join(patterns))
+    per_file = []
+    total_ids: List[str] = []
+    lines = imported = skipped = 0
+    for path in files:
+        result = import_file(path, store, fmt=fmt, dry_run=dry_run)
+        per_file.append({"file": str(path), **{
+            k: result[k] for k in ("format", "lines", "imported",
+                                   "skipped")}})
+        total_ids.extend(result["trace_ids"])
+        lines += result["lines"]
+        imported += result["imported"]
+        skipped += result["skipped"]
+    return {"files": len(files), "lines": lines, "imported": imported,
+            "skipped": skipped, "trace_ids": total_ids,
+            "per_file": per_file}
 
 
 def import_file(path: Path, store: TraceStore,
