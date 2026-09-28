@@ -312,6 +312,29 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "status",
+        "description": "The one-glance ops overview: store health, "
+                       "top failure modes, triage tallies, the last "
+                       "failure with its chain verdict, ledger "
+                       "health, the top recidivist agent and (with "
+                       "digest_dir) the fleet trend verdict. The "
+                       "MCP mirror of `approximately status`.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "since": {"type": "number",
+                          "description": "only traces created in "
+                                         "the last N days"},
+                "digest_dir": {"type": "string",
+                               "description": "also report the "
+                                              "fleet trend verdict "
+                                              "from this digest "
+                                              "history"},
+            },
+        },
+    },
+    {
         "name": "annotate",
         "description": "Attach an analyst note to a trace "
                        "(append-only sidecar; the evidence chain "
@@ -933,6 +956,19 @@ def _tool_diff(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                             for e in td.divergences(limit=5)]}
 
 
+def _tool_status(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .cli import _status_payload
+
+    store = _store(ctx, args)
+    since = args.get("since")
+    traces = store.list_traces(
+        since_days=int(since) if since is not None else None)
+    return _status_payload(store, traces,
+                           args.get("digest_dir"),
+                           since=(int(since)
+                                  if since is not None else None))
+
+
 def _tool_annotate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     store = _store(ctx, args)
     trace_id = args.get("trace")
@@ -1057,6 +1093,7 @@ _HANDLERS = {
     "predict": _tool_predict,
     "context": _tool_context,
     "curve": _tool_curve,
+    "status": _tool_status,
     "annotate": _tool_annotate,
     "anomalies": _tool_anomalies,
     "diff": _tool_diff,
