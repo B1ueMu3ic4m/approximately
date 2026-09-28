@@ -335,6 +335,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.48** — `bench-gate --update-floors`: regenerate floors at measured-minus-margin after intentional improvements
 - ✅ **v1.49** — `status` gains triage coverage: annotated failures over total failures
 - ✅ **v1.50** — store handoff: `export --with-annotations` + `import --annotations` (append-only, content-keyed)
+- ✅ **v1.51** — `status --fail-on-anomalies` / `--fail-on-worsening`: the glance can fail a pipeline
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

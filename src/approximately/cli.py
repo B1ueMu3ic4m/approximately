@@ -927,16 +927,26 @@ def cmd_status(args: argparse.Namespace) -> int:
                 _time.sleep(interval)
         except KeyboardInterrupt:
             return 0
+    store = TraceStore(args.store)
+    traces = store.list_traces(since_days=getattr(args, "since", None))
+    payload = _status_payload(store, traces,
+                              getattr(args, "digest_dir", None),
+                              since=getattr(args, "since", None))
     if getattr(args, "json", False):
-        store = TraceStore(args.store)
-        traces = store.list_traces(
-            since_days=getattr(args, "since", None))
-        payload = _status_payload(store, traces,
-                                  getattr(args, "digest_dir", None),
-                                  since=getattr(args, "since", None))
         print(json.dumps(payload, indent=2))
-        return 0
-    print(_render_status(args))
+    else:
+        print(_render_status(args))
+    if getattr(args, "fail_on_anomalies", False) and \
+            (payload.get("fleet_anomalies") or {}).get("count"):
+        print("fleet latency anomalies present "
+              "(--fail-on-anomalies)", file=sys.stderr)
+        return 1
+    if getattr(args, "fail_on_worsening", False) and \
+            (payload.get("trend") or {}).get("verdict") == \
+            "worsening":
+        print("fleet trend is worsening (--fail-on-worsening)",
+              file=sys.stderr)
+        return 1
     return 0
 
 
@@ -1947,6 +1957,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--frames", type=int,
                    help="watch: stop after this many frames (mainly "
                         "for tests and cron wrappers)")
+    p.add_argument("--fail-on-anomalies", action="store_true",
+                   help="exit 1 when fleet latency anomalies are "
+                        "present (cron/pipeline alerting)")
+    p.add_argument("--fail-on-worsening", action="store_true",
+                   help="exit 1 when the fleet trend verdict is "
+                        "worsening (needs --digest-dir)")
     p.set_defaults(func=cmd_status)
 
     p = sub.add_parser("rotate", parents=[common],

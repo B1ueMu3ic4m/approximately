@@ -1620,6 +1620,12 @@ framework adapters import lazily and degrade when the framework is absent.
      stores, so a full re-import of the same file skips instead of
      duplicating. Malformed rows are counted; the evidence chain is
      untouched.
+161. **v1.51 - the glance can fail a pipeline** ✅ (delivered):
+     cron wrappers need exit codes, not prose. `status
+     --fail-on-anomalies` exits 1 when fleet latency outliers
+     exist; `--fail-on-worsening` exits 1 when the trend verdict is
+     worsening (needs `--digest-dir`). The frame still prints first
+     — the alert explains itself.
 157. **v1.47 - RECIPES: night watch and dedupe** ✅ (delivered):
      recipe 15 ties the night story together (`status --watch` +
      fleet baselines + the multi-project sweep, with a note on
