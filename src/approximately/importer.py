@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from .store import TraceStore
-from .trace import MESSAGE, OBSERVATION, RESPONSE, TOOL_CALL, Step, Trace
+from .trace import ERROR, MESSAGE, OBSERVATION, RESPONSE, TOOL_CALL, Step, Trace
 
 NATIVE = "native"
 OPENAI_JSONL = "openai-jsonl"
@@ -91,7 +91,12 @@ def _message_steps(msg: Dict[str, Any]) -> List[Step]:
         step.index = len(steps)
         steps.append(step)
     if role == "assistant":
-        if content:
+        if msg.get("is_error"):
+            # our exporter spells a failed step this way; empty
+            # content still roundtrips as a failed step
+            steps.append(Step(kind=ERROR, error=_text(content),
+                              index=len(steps), meta={"role": role}))
+        elif content is not None:
             steps.append(Step(kind=RESPONSE, result=_text(content),
                               index=len(steps), meta={"role": role}))
     elif role == "tool":
@@ -150,10 +155,19 @@ def _foreign_trace(obj: Dict[str, Any], raw_line: str,
     failed = any(m.get("is_error")
                  for m in messages if m.get("role") == "tool")
     task, trace_id = _identity(obj, task, raw_line)
+    metadata = obj.get("metadata")
+    metadata = metadata if isinstance(metadata, dict) else {}
+    stated = metadata.get("success", "absent")
+    if isinstance(stated, bool):
+        success = stated
+    elif stated == "absent":
+        success = not failed
+    else:                       # explicit null: an open trace stays open
+        success = None
     return Trace(
         task=task, id=trace_id,
         steps=messages_to_steps(messages),
-        success=not failed,
+        success=success,
         final_output=None,
         meta={"imported_from": fmt, "source_line": line_no},
     )
