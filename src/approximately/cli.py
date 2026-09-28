@@ -1478,6 +1478,11 @@ def cmd_distill(args: argparse.Namespace) -> int:
 
     store = TraceStore(args.store)
     traces = store.list_traces()
+    if getattr(args, "dedupe", False):
+        from .align import dedupe_traces
+
+        traces, dropped = dedupe_traces(traces)
+        print(f"dedupe: dropped {dropped} near-duplicate trace(s)")
     if args.teacher:
         labeler = teacher_labeler(
             args.teacher,
@@ -1571,6 +1576,11 @@ def cmd_export_dataset(args: argparse.Namespace) -> int:
 
     store = TraceStore(args.store)
     traces = store.list_traces()
+    if getattr(args, "dedupe", False):
+        from .align import dedupe_traces
+
+        traces, dropped = dedupe_traces(traces)
+        print(f"dedupe: dropped {dropped} near-duplicate trace(s)")
     if args.teacher:
         labeler = teacher_labeler(
             args.teacher,
@@ -2157,6 +2167,8 @@ def build_parser() -> argparse.ArgumentParser:
                        help="export SFT training data for a local judge model")
     p.add_argument("-o", "--output", default="judge-sft.jsonl",
                    help="output JSONL path (default judge-sft.jsonl)")
+    p.add_argument("--dedupe", action="store_true",
+                   help="drop near-duplicate traces before labeling")
     p.add_argument("--teacher-cache", metavar="DIR",
                    help="cache judge verdicts here (relabels are "
                         "free for traces asked before)")
@@ -2207,6 +2219,8 @@ def build_parser() -> argparse.ArgumentParser:
                        help="export labeled traces for benchmarking/sharing")
     p.add_argument("-o", "--output", default="dataset.jsonl",
                    help="output JSONL path (default dataset.jsonl)")
+    p.add_argument("--dedupe", action="store_true",
+                   help="drop near-duplicate traces before labeling")
     p.add_argument("--teacher-cache", metavar="DIR",
                    help="cache judge verdicts here (relabels are "
                         "free for traces asked before)")

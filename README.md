@@ -330,6 +330,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.43** — `perf-gate[fleet-anomalies]`: 10k traces in 6ms (budget 2s); crafted outliers must be found
 - ✅ **v1.44** — `fleet` survey rows carry per-store anomaly counts: which project is quietly slow
 - ✅ **v1.45** — `dedupe`: near-duplicate traces cluster in one pass (MCP tool #29 `find_duplicates`)
+- ✅ **v1.46** — `export-dataset --dedupe` / `distill --dedupe`: near-duplicates never reach training data
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

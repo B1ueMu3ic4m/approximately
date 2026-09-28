@@ -155,7 +155,7 @@ def duplicate_groups(traces, threshold: float = 0.95,
                 break
         else:
             clusters.append((trace, [trace]))
-    groups = [
+    groups: List[dict] = [
         {"representative": members[0].id,
          "task": (members[0].task or "")[:80],
          "size": len(members),
@@ -164,6 +164,25 @@ def duplicate_groups(traces, threshold: float = 0.95,
     ]
     groups.sort(key=lambda g: -g["size"])
     return groups
+
+
+def dedupe_traces(traces, threshold: float = 0.95,
+                  max_traces: int = 2000) -> Tuple[List[Trace], int]:
+    """The dedupe pass as data: keep one representative per cluster.
+
+    Returns (kept traces in id order, number dropped)."""
+    ordered = sorted(traces, key=lambda t: t.id)[:max_traces]
+    dropped = 0
+    kept: List[Trace] = []
+    representatives: List[Trace] = []
+    for trace in ordered:
+        if any(similarity(rep, trace) >= threshold
+               for rep in representatives):
+            dropped += 1
+            continue
+        kept.append(trace)
+        representatives.append(trace)
+    return kept, dropped
 
 
 def similar_payload(target, traces, top: int = 5,
