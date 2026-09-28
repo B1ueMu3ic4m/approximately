@@ -1583,6 +1583,15 @@ framework adapters import lazily and degrade when the framework is absent.
      per-tool outlier count — plus the worst offender, so a
      multi-project sweep answers "which store is quietly slow"
      without visiting each one.
+155. **v1.45 - dedupe: near-duplicate traces** ✅ (delivered):
+     `import` deduplicates exactly (deterministic ids); `dedupe`
+     catches the *almost* identical runs — retries and cron
+     double-fires that quietly pollute a dataset before a
+     fine-tuning export. Single-pass clustering against
+     representatives keeps it O(n·k) (not O(n²)); id-ordered scan
+     makes groups reproducible; MCP tool #29 `find_duplicates`
+     mirrors it (29 tools, `tools/list` authoritative, artifact
+     regenerated).
 
 
 ## 4. Launch plan

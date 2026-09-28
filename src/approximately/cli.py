@@ -1518,6 +1518,31 @@ def cmd_export(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_dedupe(args: argparse.Namespace) -> int:
+    from .align import duplicate_groups
+
+    store = TraceStore(args.store)
+    groups = duplicate_groups(store.list_traces(),
+                              threshold=args.threshold,
+                              max_traces=args.max_traces)
+    duplicates = sum(g["size"] - 1 for g in groups)
+    payload = {"threshold": args.threshold,
+               "groups": groups,
+               "redundant_traces": duplicates}
+    if getattr(args, "json", False):
+        print(json.dumps(payload, indent=2))
+        return 0
+    if not groups:
+        print("no near-duplicate traces "
+              f"(threshold {args.threshold})")
+        return 0
+    print(f"{len(groups)} near-duplicate group(s), "
+          f"{duplicates} redundant trace(s):")
+    for g in groups:
+        print(f"  [{g['size']}x] {g['task']}: {g['ids']}")
+    return 0
+
+
 def cmd_import(args: argparse.Namespace) -> int:
     from .importer import import_paths
 
@@ -2151,6 +2176,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--since", type=int, metavar="DAYS",
                    help="only traces created in the last DAYS days")
     p.set_defaults(func=cmd_export)
+
+    p = sub.add_parser("dedupe", parents=[common],
+                       help="find near-duplicate traces (alignment "
+                            "similarity clusters)")
+    p.add_argument("--threshold", type=float, default=0.95,
+                   help="similarity floor for 'same run' "
+                        "(default 0.95)")
+    p.add_argument("--max-traces", type=int, default=2000,
+                   help="scan cap (default 2000)")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_dedupe)
 
     p = sub.add_parser("import", parents=[common],
                        help="batch-import foreign transcript JSONL")
