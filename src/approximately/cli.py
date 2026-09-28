@@ -309,8 +309,20 @@ def cmd_explain(args: argparse.Namespace) -> int:
 
 
 def cmd_bench_gate(args: argparse.Namespace) -> int:
-    from .benchgate import gate_result, run_gate
+    from .benchgate import gate_result, run_gate, update_floors
 
+    if getattr(args, "update_floors", False):
+        result = update_floors(
+            Path(args.dataset), Path(args.floors),
+            margin=float(getattr(args, "margin", 0.05) or 0.05),
+            min_records=(int(args.min_records)
+                         if getattr(args, "min_records", None)
+                         else None))
+        print(f"floors regenerated at measured-minus-"
+              f"{float(getattr(args, 'margin', 0.05) or 0.05):.0%}: "
+              f"{result['modes']} (sample_f1 floor "
+              f"{result['sample_f1']})")
+        return 0
     if getattr(args, "json", False):
         result = gate_result(Path(args.dataset), Path(args.floors))
         print(json.dumps(result, indent=2))
@@ -2277,6 +2289,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_gate.add_argument("--json", action="store_true",
                         help="emit the structured gate result instead "
                              "of the log (exit 1 on any violation)")
+    p_gate.add_argument("--update-floors", action="store_true",
+                        help="regenerate the floors file from a "
+                             "measured run (measured-minus-margin)")
+    p_gate.add_argument("--margin", type=float, default=0.05,
+                        help="headroom below measured values "
+                             "(default 0.05)")
+    p_gate.add_argument("--min-records", type=int,
+                        help="keep/set the min_records floor")
     p_gate.set_defaults(func=cmd_bench_gate)
     return parser
 
