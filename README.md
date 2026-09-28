@@ -332,6 +332,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.45** — `dedupe`: near-duplicate traces cluster in one pass (MCP tool #29 `find_duplicates`)
 - ✅ **v1.46** — `export-dataset --dedupe` / `distill --dedupe`: near-duplicates never reach training data
 - ✅ **v1.47** — RECIPES 15-16: the night-watch loop and dedupe-before-training
+- ✅ **v1.48** — `bench-gate --update-floors`: regenerate floors at measured-minus-margin after intentional improvements
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
