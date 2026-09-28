@@ -539,6 +539,9 @@ _TOOLS: List[Dict[str, Any]] = [
                 "since": {"type": "number",
                           "description": "only traces created in the "
                                          "last N days"},
+                "dedupe": {"type": "boolean",
+                           "description": "drop near-duplicate "
+                                          "traces"},
             },
             "required": ["output"],
         },
@@ -1182,7 +1185,8 @@ def _tool_export_transcripts(ctx: ServerContext,
                         query_text=(str(args["query"])
                                     if args.get("query") else None),
                         since_days=(int(since)
-                                    if since is not None else None))
+                                    if since is not None else None),
+                        dedupe=bool(args.get("dedupe")))
 
 
 _HANDLERS = {

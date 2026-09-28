@@ -1592,7 +1592,9 @@ def cmd_export(args: argparse.Namespace) -> int:
     try:
         result = export_store(store, output, fmt=args.format,
                               query_text=args.query,
-                              since_days=getattr(args, "since", None))
+                              since_days=getattr(args, "since", None),
+                              dedupe=bool(getattr(args, "dedupe",
+                                                  False)))
         if getattr(args, "with_annotations", False):
             from .exporter import export_annotations
 
@@ -2333,6 +2335,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--with-annotations", action="store_true",
                    help="also write the triage sidecar next to the "
                         "export (OUT.annotations.jsonl)")
+    p.add_argument("--dedupe", action="store_true",
+                   help="drop near-duplicate traces from the export")
     p.set_defaults(func=cmd_export)
 
     p = sub.add_parser("changelog", parents=[common],

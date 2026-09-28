@@ -132,9 +132,12 @@ def export_annotations(store: TraceStore, output: Path) -> int:
 def export_store(store: TraceStore, output: Path,
                  fmt: str = OPENAI_JSONL,
                  query_text: Optional[str] = None,
-                 since_days: Optional[int] = None) -> Dict[str, Any]:
+                 since_days: Optional[int] = None,
+                 dedupe: bool = False) -> Dict[str, Any]:
     """Write every trace (or the query/age-selected subset) to
-    ``output`` as JSONL; returns the counts written."""
+    ``output`` as JSONL; returns the counts written. ``dedupe``
+    drops near-duplicate traces (alignment clustering) so a shared
+    export carries one copy of each run."""
     if fmt not in _FORMATS:
         raise ValueError(f"unknown format {fmt!r}; expected one of "
                          f"{', '.join(_FORMATS)}")
@@ -143,6 +146,11 @@ def export_store(store: TraceStore, output: Path,
         from .query import select
 
         traces = select(traces, query_text)
+    dropped = 0
+    if dedupe:
+        from .align import dedupe_traces
+
+        traces, dropped = dedupe_traces(traces)
     # id order, not mtime order: filesystems time-stamp with different
     # granularity (Windows ties break by glob order), and the same
     # content must export to identical bytes everywhere
@@ -158,4 +166,4 @@ def export_store(store: TraceStore, output: Path,
             fh.write(json.dumps(row, default=str) + "\n")
             written += 1
     return {"format": fmt, "traces": len(traces), "written": written,
-            "output": str(output)}
+            "dedupe_dropped": dropped, "output": str(output)}

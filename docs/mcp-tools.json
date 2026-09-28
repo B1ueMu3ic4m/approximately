@@ -574,6 +574,10 @@
           "since": {
             "type": "number",
             "description": "only traces created in the last N days"
+          },
+          "dedupe": {
+            "type": "boolean",
+            "description": "drop near-duplicate traces"
           }
         },
         "required": [
