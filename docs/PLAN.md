@@ -1707,7 +1707,7 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      streak (v1.35-v1.60). Ledger renumbered physically (duplicate
      171s from drifted insert anchors).
 
-174. **v1.65 - CONTRIBUTING refreshed for the community phase** ✅
+161. **v1.65 - CONTRIBUTING refreshed for the community phase** ✅
      (delivered): the full local gate checklist (suite, lint, types,
      complexity, security, bench-gate, the six perf budgets), the
      one-version-per-PR discipline (bump, PLAN item, regenerate the
@@ -1715,25 +1715,25 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      commands (dangerous ops deliberately CLI-only), and the real
      CI matrix (3 OSes × 5 Pythons). The old file predated the
      generated changelog and the anomaly gates.
-161. **v1.55 - postmortems name fleet outliers** ✅ (delivered):
+162. **v1.55 - postmortems name fleet outliers** ✅ (delivered):
      the per-trace latency card only knows what one run considered
      normal; the postmortem now gains a "Fleet outliers" card when a
      store is given — steps that are extreme against every stored
      run of the same tool. A trace can look normal alone and still
      be the slowest search the store has ever seen. Best-effort like
      every card: no store, no card.
-162. **v1.56 - slowness trend parity** ✅ (delivered): one
+163. **v1.56 - slowness trend parity** ✅ (delivered): one
      `summarize_trend`, three surfaces — `fleet --trend` prints a
      `slowness trend:` line (verdict + slope + flagged-step count),
      the MCP `trend` payload carries `anomaly_trend` verbatim, and
      the status prose mentions it. Pinned by tests on all three.
-163. **v1.49 - triage coverage in the glance** ✅ (delivered):
+164. **v1.49 - triage coverage in the glance** ✅ (delivered):
      `status` answered "how many failures"; now it answers "how many
      has anyone actually looked at" — `triage_coverage`
      (annotated failures over total failures) in the payload, and a
      prose line whenever the ratio is below 100%. No failures on
      file is `None`, not a fake 100%.
-164. **v1.50 - store handoff: the triage story travels** ✅
+165. **v1.50 - store handoff: the triage story travels** ✅
      (delivered): `export --with-annotations` writes the triage
      sidecar next to the transcript export
      (OUT.annotations.jsonl); `import --annotations` merges a
@@ -1742,13 +1742,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      stores, so a full re-import of the same file skips instead of
      duplicating. Malformed rows are counted; the evidence chain is
      untouched.
-165. **v1.51 - the glance can fail a pipeline** ✅ (delivered):
+166. **v1.51 - the glance can fail a pipeline** ✅ (delivered):
      cron wrappers need exit codes, not prose. `status
      --fail-on-anomalies` exits 1 when fleet latency outliers
      exist; `--fail-on-worsening` exits 1 when the trend verdict is
      worsening (needs `--digest-dir`). The frame still prints first
      — the alert explains itself.
-166. **v1.52 - slowness gets a trend** ✅ (delivered): digest
+167. **v1.52 - slowness gets a trend** ✅ (delivered): digest
      snapshots already carry each store's fleet-anomaly count
      (v1.44's webhook fields flow through), so `trend.anomaly_trend`
      judges slowness over days once two days of history exist
@@ -1757,9 +1757,17 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      tail lines (trend/ledger/recidivist/last-failure-none) that the
      shared renderer silently dropped in v1.42 — a round-25
      consolidation left the renderer a subset of the one-shot.
-167. **v1.53 - MCP tool #30 `import_annotations`** ✅ (delivered):
+168. **v1.53 - MCP tool #30 `import_annotations`** ✅ (delivered):
      the v1.50 handoff pair completes its mirror — an MCP client
      merges an annotation sidecar into the store (append-only,
      content-keyed) rather than just the transcript half. Missing
      file is a tool error, never a protocol fault. 30 tools,
      `tools/list` authoritative, artifact regenerated.
+
+169. **v1.66 - README carries the new stories** ✅ (delivered): the
+     feature table gains the interop row (logs in / transcripts out)
+     and the slowness-is-a-signal row (per-tool + fleet baselines,
+     alerting) — the two headline capabilities of the v1.35-v1.65
+     arc finally surface where first-time visitors read. Docs-only.
+     (Also: the ledger renumbered physically; items 164-176 sit at
+     the tail after insert-anchor drift.)
