@@ -1432,6 +1432,15 @@ framework adapters import lazily and degrade when the framework is absent.
      annotations line, up to five ids listed) so triage knows which
      notes point at nothing — read-only diagnosis; `doctor --fix`
      still only removes locks and temp files, never notes.
+136. **v1.26 - `import -` reads stdin** ✅ (delivered): piping is the
+     agent-native ingest path — `other_tool dump | approximately
+     import - --store s` lands runs in the store without a temp
+     file. `-` mixes freely with file and glob arguments (per-file
+     counts list `<stdin>`); empty stdin is a documented ValueError.
+     The line loop is shared by files and streams (`import_lines`),
+     so sniffing, idempotence and skip-counting behave identically.
+     RECIPES gains recipe 14: bring last month's logs in for a
+     postmortem.
 
 
 ## 4. Launch plan
