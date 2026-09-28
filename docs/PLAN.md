@@ -1652,6 +1652,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      versions merged. The committed CHANGELOG.md is pinned against a
      fresh render, so it cannot drift from the plan. Also fixes the
      ledger's own ordering: item 157 sat physically after 163.
+165. **v1.55 - postmortems name fleet outliers** ✅ (delivered):
+     the per-trace latency card only knows what one run considered
+     normal; the postmortem now gains a "Fleet outliers" card when a
+     store is given — steps that are extreme against every stored
+     run of the same tool. A trace can look normal alone and still
+     be the slowest search the store has ever seen. Best-effort like
+     every card: no store, no card.
 159. **v1.49 - triage coverage in the glance** ✅ (delivered):
      `status` answered "how many failures"; now it answers "how many
      has anyone actually looked at" — `triage_coverage`
