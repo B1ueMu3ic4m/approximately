@@ -1295,6 +1295,32 @@ def cmd_distill(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_import(args: argparse.Namespace) -> int:
+    from .importer import import_file
+
+    path = Path(args.file)
+    if not path.is_file():
+        print(f"error: no such file: {path}", file=sys.stderr)
+        return 2
+    store = TraceStore(args.store)
+    try:
+        result = import_file(
+            path, store,
+            fmt=None if args.format == "auto" else args.format,
+            dry_run=args.dry_run)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print(f"imported {result['imported']} of {result['lines']} "
+              f"transcripts from {path} ({result['skipped']} skipped, "
+              f"format {result['format']})"
+              + (" [dry run]" if args.dry_run else ""))
+    return 0
+
+
 def cmd_export_dataset(args: argparse.Namespace) -> int:
     from .distill import export_dataset, rules_labeler, teacher_labeler
 
@@ -1826,6 +1852,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--teacher", help="label with a strong judge model instead "
                                      "of the rule detectors")
     p.set_defaults(func=cmd_distill)
+
+    p = sub.add_parser("import", parents=[common],
+                       help="batch-import foreign transcript JSONL")
+    p.add_argument("file", help="JSONL file, one transcript per line")
+    p.add_argument("--format", choices=["auto", "native", "openai-jsonl",
+                                        "messages-list"],
+                   default="auto",
+                   help="transcript shape (default: sniff first line)")
+    p.add_argument("--dry-run", action="store_true",
+                   help="count what would be imported, write nothing")
+    p.set_defaults(func=cmd_import)
 
     p = sub.add_parser("export-dataset", parents=[common],
                        help="export labeled traces for benchmarking/sharing")
