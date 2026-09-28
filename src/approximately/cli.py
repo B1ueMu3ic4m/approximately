@@ -1501,7 +1501,8 @@ def cmd_import(args: argparse.Namespace) -> int:
         result = import_paths(
             args.files, store,
             fmt=None if args.format == "auto" else args.format,
-            dry_run=args.dry_run)
+            dry_run=args.dry_run,
+            jobs=int(getattr(args, "jobs", 1) or 1))
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -2133,6 +2134,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="transcript shape (default: sniff first line)")
     p.add_argument("--dry-run", action="store_true",
                    help="count what would be imported, write nothing")
+    p.add_argument("--jobs", type=int, default=1, metavar="N",
+                   help="import files on N threads (default 1)")
     p.set_defaults(func=cmd_import)
 
     p = sub.add_parser("export-dataset", parents=[common],

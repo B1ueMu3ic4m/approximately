@@ -324,6 +324,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.37** — `clean --dry-run` rehearses retention; `rotate --all` rekeys the store in one pass
 - ✅ **v1.38** — `mcp --print-tools`: the tool inventory is a committed JSON artifact ([docs/mcp-tools.json](docs/mcp-tools.json)), pinned against `tools/list`
 - ✅ **v1.39** — judge-cache hit/miss tallies: `0 hits, N misses` cold, `N hits, 0 misses` on relabel
+- ✅ **v1.40** — `import --jobs N`: parallel ingest over the thread pool; one bad file no longer kills a batch
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

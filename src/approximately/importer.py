@@ -181,48 +181,85 @@ def _parse_line(obj: Any, raw: str, line_no: int,
         return _foreign_trace({"messages": obj}, raw, line_no, fmt)
     return _foreign_trace(obj, raw, line_no, fmt)
 
+def _merge(per_file: List[Dict[str, Any]], result: Dict[str, Any],
+           name: str, totals: Dict[str, int],
+           total_ids: List[str]) -> None:
+    row = {"file": name, **{
+        k: result[k] for k in ("format", "lines", "imported",
+                               "skipped")}}
+    if "error" in result:
+        row["error"] = result["error"]
+    per_file.append(row)
+    total_ids.extend(result["trace_ids"])
+    totals["lines"] += result["lines"]
+    totals["imported"] += result["imported"]
+    totals["skipped"] += result["skipped"]
+
+
 def import_paths(patterns: List[str], store: TraceStore,
                  fmt: Optional[str] = None,
-                 dry_run: bool = False) -> Dict[str, Any]:
+                 dry_run: bool = False,
+                 jobs: int = 1) -> Dict[str, Any]:
     """Import transcript files named by the patterns; ``-`` reads
-    stdin. Per-file counts ride along in ``per_file``."""
-    per_file = []
+    stdin. Per-file counts ride along in ``per_file``.
+
+    ``jobs > 1`` imports files on a thread pool — store saves are
+    atomic and lock-serialized, so parallel ingest is safe; identical
+    transcripts arriving twice in flight collapse to one trace (same
+    deterministic id)."""
+    per_file: List[Dict[str, Any]] = []
     total_ids: List[str] = []
-    lines = imported = skipped = 0
+    totals = {"lines": 0, "imported": 0, "skipped": 0}
     files = 0
     patterns = list(patterns)
-    if "-" in patterns:
-        patterns = [p for p in patterns if p != "-"]
-        import sys
-
-        result = import_lines(list(sys.stdin), store, fmt=fmt,
-                              dry_run=dry_run)
-        per_file.append({"file": "<stdin>",
-                         **{k: result[k] for k in
-                            ("format", "lines", "imported",
-                             "skipped")}})
-        total_ids.extend(result["trace_ids"])
-        lines += result["lines"]
-        imported += result["imported"]
-        skipped += result["skipped"]
-        files += 1
-    for path in _expand(patterns):
-        files += 1
-        result = import_file(path, store, fmt=fmt, dry_run=dry_run)
-        per_file.append({"file": str(path), **{
-            k: result[k] for k in ("format", "lines", "imported",
-                                   "skipped")}})
-        total_ids.extend(result["trace_ids"])
-        lines += result["lines"]
-        imported += result["imported"]
-        skipped += result["skipped"]
-    if files == 0:
+    stdin_pending = "-" in patterns
+    patterns = [p for p in patterns if p != "-"]
+    paths = _expand(patterns)
+    if not paths and not stdin_pending:
         raise ValueError("no files matched: "
                          + ", ".join(patterns) if patterns
                          else "nothing to import")
-    return {"files": files, "lines": lines, "imported": imported,
-            "skipped": skipped, "trace_ids": total_ids,
-            "per_file": per_file}
+    if stdin_pending:
+        import sys
+
+        files += 1
+        result = import_lines(list(sys.stdin), store, fmt=fmt,
+                              dry_run=dry_run)
+        _merge(per_file, result, "<stdin>", totals, total_ids)
+    errors = 0
+
+    tolerate = len(paths) > 1  # one bad file must not kill a batch,
+    # but a single named file that cannot be parsed stays a loud error
+
+    def import_one(path):
+        nonlocal errors
+        try:
+            return import_file(path, store, fmt=fmt, dry_run=dry_run)
+        except ValueError as exc:
+            if not tolerate:
+                raise
+            errors += 1
+            return {"format": "?", "lines": 0, "imported": 0,
+                    "skipped": 0, "trace_ids": [],
+                    "error": str(exc)}
+
+    if jobs > 1 and len(paths) > 1:
+        from concurrent.futures import ThreadPoolExecutor
+
+        with ThreadPoolExecutor(max_workers=min(jobs, len(paths))) \
+                as pool:
+            for path, result in zip(
+                    paths,
+                    pool.map(import_one, paths)):
+                files += 1
+                _merge(per_file, result, str(path), totals, total_ids)
+    else:
+        for path in paths:
+            files += 1
+            _merge(per_file, import_one(path), str(path), totals,
+                   total_ids)
+    return {"files": files, "errors": errors, **totals,
+            "trace_ids": total_ids, "per_file": per_file}
 
 
 def _expand(patterns: List[str]) -> List[Path]:
