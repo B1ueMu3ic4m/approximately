@@ -3,6 +3,11 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.67
+
+the sharing side learns the same trick as the distill side — `export --dedupe` (CLI + MCP `dedupe` param) drops near-duplicate traces from the export, so retries and cron double-fires never reach a colleague's attention. The payload reports what it dropped.
+
+
 ## v1.66
 
 the feature table gains the interop row (logs in / transcripts out) and the slowness-is-a-signal row (per-tool + fleet baselines, alerting) — the two headline capabilities of the v1.35-v1.65 arc finally surface where first-time visitors read. Docs-only. (Also: the ledger renumbered physically; items 164-176 sit at the tail after insert-anchor drift.)

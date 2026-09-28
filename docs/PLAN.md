@@ -1771,3 +1771,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      arc finally surface where first-time visitors read. Docs-only.
      (Also: the ledger renumbered physically; items 164-176 sit at
      the tail after insert-anchor drift.)
+
+170. **v1.67 - `export --dedupe`** ✅ (delivered): the sharing side
+     learns the same trick as the distill side — `export --dedupe`
+     (CLI + MCP `dedupe` param) drops near-duplicate traces from the
+     export, so retries and cron double-fires never reach a
+     colleague's attention. The payload reports what it dropped.
