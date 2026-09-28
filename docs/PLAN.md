@@ -1546,6 +1546,15 @@ framework adapters import lazily and degrade when the framework is absent.
      `0 hit(s), N miss(es)`, the same dataset relabeled reads
      `N hit(s), 0 miss(es)`. Seeing is believing for the
      money-saving claim.
+150. **v1.40 - parallel ingest** ✅ (delivered): `import --jobs N`
+     imports files on a thread pool — store saves are atomic and
+     lock-serialized, so the parallel path is safe, and aggregate +
+     per-file counts stay in input order whatever the completion
+     order was. One bad file no longer kills a batch: multi-file
+     runs record a per-file `error` and an `errors` count and keep
+     going, while a single named file that cannot be parsed stays a
+     loud exit-2. Identical transcripts arriving in flight collapse
+     to one trace (same deterministic id).
 
 
 ## 4. Launch plan
