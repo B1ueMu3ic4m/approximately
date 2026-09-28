@@ -1592,6 +1592,12 @@ framework adapters import lazily and degrade when the framework is absent.
      makes groups reproducible; MCP tool #29 `find_duplicates`
      mirrors it (29 tools, `tools/list` authoritative, artifact
      regenerated).
+156. **v1.46 - the distill pipeline learns to dedupe** ✅
+     (delivered): `export-dataset --dedupe` and `distill --dedupe`
+     drop near-duplicate traces before labeling — retries and cron
+     double-fires otherwise get labeled, exported and trained on as
+     if they were independent evidence. The pass prints what it
+     dropped; without the flag nothing changes.
 
 
 ## 4. Launch plan
