@@ -776,8 +776,52 @@ def _status_payload(store, traces, digest_dir, since=None):
     }
 
 
+def _render_status(args: argparse.Namespace) -> str:
+    """One status frame — shared by the one-shot and watch modes."""
+    import io as _io
+
+    store = TraceStore(args.store)
+    traces = store.list_traces(since_days=getattr(args, "since", None))
+    payload = _status_payload(store, traces,
+                              getattr(args, "digest_dir", None),
+                              since=getattr(args, "since", None))
+    if getattr(args, "json", False):
+        return json.dumps(payload, indent=2)
+    buf = _io.StringIO()
+    rate = f"{payload['failure_rate']:.0%}" if payload["traces"] else "-"
+    buf.write(f"{payload['store']}: {payload['traces']} traces, "
+              f"{payload['failures']} failed ({rate})\n")
+    if payload["top_modes"]:
+        top = ", ".join(f"{m} x{c}"
+                        for m, c in payload["top_modes"].items())
+        buf.write(f"  top modes: {top}\n")
+    buf.write(f"  annotations: {payload['annotations']} "
+              f"({payload['annotations_confirmed']} confirmed)\n")
+    last = payload["last_failure"]
+    if last is not None:
+        buf.write(f"  last failure: {last['id']} chain={last['chain']} "
+                  f"— {(last['task'] or '')[:60]}\n")
+    return buf.getvalue().rstrip("\n")
+
+
 def cmd_status(args: argparse.Namespace) -> int:
     """One-glance ops overview: health, last failure, triage, trend."""
+    interval = getattr(args, "interval", 30.0)
+    if getattr(args, "watch", False):
+        import time as _time
+
+        frames = 0
+        try:
+            while True:
+                print(f"=== {(_time.strftime('%H:%M:%S'))} ===")
+                print(_render_status(args), flush=True)
+                frames += 1
+                if getattr(args, "frames", None) and \
+                        frames >= args.frames:
+                    return 0
+                _time.sleep(interval)
+        except KeyboardInterrupt:
+            return 0
     store = TraceStore(args.store)
     traces = store.list_traces(since_days=getattr(args, "since", None))
     payload = _status_payload(store, traces,
@@ -1677,6 +1721,15 @@ def build_parser() -> argparse.ArgumentParser:
                    help="also report the fleet trend verdict from "
                         "this digest history")
     p.add_argument("--json", action="store_true")
+    p.add_argument("--watch", action="store_true",
+                   help="re-render the overview forever (Ctrl-C to "
+                        "stop)")
+    p.add_argument("--interval", type=float, default=30.0,
+                   metavar="SECONDS",
+                   help="seconds between watch frames (default 30)")
+    p.add_argument("--frames", type=int,
+                   help="watch: stop after this many frames (mainly "
+                        "for tests and cron wrappers)")
     p.set_defaults(func=cmd_status)
 
     p = sub.add_parser("rotate", parents=[common],
