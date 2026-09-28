@@ -1605,6 +1605,12 @@ framework adapters import lazily and degrade when the framework is absent.
      stale. `min_records` survives regeneration unless explicitly
      set, and the regenerated file is verified to still PASS a fresh
      gate (headroom for noise, not a pass-everything gate).
+159. **v1.49 - triage coverage in the glance** ✅ (delivered):
+     `status` answered "how many failures"; now it answers "how many
+     has anyone actually looked at" — `triage_coverage`
+     (annotated failures over total failures) in the payload, and a
+     prose line whenever the ratio is below 100%. No failures on
+     file is `None`, not a fake 100%.
 157. **v1.47 - RECIPES: night watch and dedupe** ✅ (delivered):
      recipe 15 ties the night story together (`status --watch` +
      fleet baselines + the multi-project sweep, with a note on
