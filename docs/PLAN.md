@@ -1598,6 +1598,11 @@ framework adapters import lazily and degrade when the framework is absent.
      double-fires otherwise get labeled, exported and trained on as
      if they were independent evidence. The pass prints what it
      dropped; without the flag nothing changes.
+157. **v1.47 - RECIPES: night watch and dedupe** ✅ (delivered):
+     recipe 15 ties the night story together (`status --watch` +
+     fleet baselines + the multi-project sweep, with a note on
+     reading modified z-scores); recipe 16 walks dedupe before a
+     fine-tuning export, with the teacher cache tally. Docs-only.
 
 
 ## 4. Launch plan

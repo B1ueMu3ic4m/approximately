@@ -257,3 +257,54 @@ Details worth knowing:
 - `approximately export OUT.jsonl` is the reverse path (OpenAI chat
   shape by default, `--format native` lossless), and an export→import
   roundtrip restores ids and tasks, so mirrors stay in sync.
+
+## 15. Night watch: the store that pings only when something is slow
+
+Cron a frame of `status --watch`, or run it in a tmux pane and read
+it in the morning. With fleet baselines in the payload, the glance
+answers "is anything *slow* in a way this store never sees" — not
+just "is anything failing".
+
+```bash
+# the all-night frame (Ctrl-C to stop)
+approximately status --store ~/agents/store --watch --interval 300
+
+# the same answer as one JSON frame for a dashboard
+approximately status --store ~/agents/store --json
+
+# drill into the fleet baseline: which tool family, how bad
+approximately anomalies --store ~/agents/store --all --json | jq '.[0:5]'
+
+# multi-project sweep: which store is quietly slow?
+approximately fleet --stores prod,lab --json | jq '.stores[] |
+  {name, fleet_anomalies, worst: .worst_anomaly.latency_ms}'
+```
+
+Reading the numbers: `z` is a modified z-score (robust to the
+outliers you are hunting — see the module docstring in
+`anomaly.py`). A family under five timed samples is an honest no-op;
+rare tools are judged against the whole-trace scale instead.
+
+## 16. Dedupe before you train
+
+Retries and cron double-fires land in the store wearing different
+ids. Before a fine-tuning export, let alignment find the near
+identical runs and drop the extras:
+
+```bash
+# see what would go
+approximately dedupe --store ~/agents/store --json | jq '.groups'
+
+# then exclude the extras from the training export
+approximately export-dataset --store ~/agents/store \
+  --dedupe -o dataset.jsonl
+approximately distill --store ~/agents/store \
+  --dedupe --teacher gpt-4o-mini --teacher-cache ~/jcache \
+  -o judge-sft.jsonl
+```
+
+`--teacher-cache` makes the second labeling pass free for every trace
+asked before — the tally prints at the end (`judge cache: N hit(s),
+0 miss(es)`). Exact duplicates never even reach this step: imports
+carry deterministic ids, so the same transcript in two log files is
+one trace.
