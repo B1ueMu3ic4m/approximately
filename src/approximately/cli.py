@@ -1549,6 +1549,12 @@ def cmd_export(args: argparse.Namespace) -> int:
         result = export_store(store, output, fmt=args.format,
                               query_text=args.query,
                               since_days=getattr(args, "since", None))
+        if getattr(args, "with_annotations", False):
+            from .exporter import export_annotations
+
+            sidecar = output.with_name(output.stem + ".annotations.jsonl")
+            result["annotations"] = export_annotations(store, sidecar)
+            result["annotations_file"] = str(sidecar)
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -1589,6 +1595,30 @@ def cmd_import(args: argparse.Namespace) -> int:
     from .importer import import_paths
 
     store = TraceStore(args.store)
+    if getattr(args, "annotations", False):
+        from .importer import import_annotations
+
+        if args.dry_run:
+            print("error: --annotations cannot be combined with "
+                  "--dry-run", file=sys.stderr)
+            return 2
+        merged = {"added": 0, "skipped": 0}
+        for pattern in args.files:
+            for path in Path(".").glob(pattern) \
+                    if any(c in pattern for c in "*?[]") else [Path(pattern)]:
+                if not path.is_file():
+                    print(f"error: no such file: {path}",
+                          file=sys.stderr)
+                    return 2
+                row = import_annotations(path, store)
+                merged["added"] += row["added"]
+                merged["skipped"] += row["skipped"]
+        if args.json:
+            print(json.dumps({"annotations": merged}, indent=2))
+        else:
+            print(f"annotations merged: {merged['added']} added, "
+                  f"{merged['skipped']} skipped")
+        return 0
     try:
         result = import_paths(
             args.files, store,
@@ -2224,6 +2254,9 @@ def build_parser() -> argparse.ArgumentParser:
                         "e.g. 'success == false and tool=ls'")
     p.add_argument("--since", type=int, metavar="DAYS",
                    help="only traces created in the last DAYS days")
+    p.add_argument("--with-annotations", action="store_true",
+                   help="also write the triage sidecar next to the "
+                        "export (OUT.annotations.jsonl)")
     p.set_defaults(func=cmd_export)
 
     p = sub.add_parser("dedupe", parents=[common],
@@ -2250,6 +2283,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="count what would be imported, write nothing")
     p.add_argument("--jobs", type=int, default=1, metavar="N",
                    help="import files on N threads (default 1)")
+    p.add_argument("--annotations", action="store_true",
+                   help="files are annotation sidecars (JSONL), not "
+                        "transcripts; merge them append-only")
     p.set_defaults(func=cmd_import)
 
     p = sub.add_parser("export-dataset", parents=[common],

@@ -118,6 +118,17 @@ def trace_to_messages(trace: Trace) -> List[Dict[str, Any]]:
     return _tool_messages(trace.steps)
 
 
+def export_annotations(store: TraceStore, output: Path) -> int:
+    """Write the annotation sidecar alongside a transcript export so
+    a store handoff carries the triage story too. Returns the row
+    count."""
+    rows = store.annotations()
+    with output.open("w", encoding="utf-8") as fh:
+        for row in rows:
+            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+    return len(rows)
+
+
 def export_store(store: TraceStore, output: Path,
                  fmt: str = OPENAI_JSONL,
                  query_text: Optional[str] = None,

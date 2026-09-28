@@ -323,6 +323,43 @@ def import_lines(raw_lines: List[str], store: TraceStore,
             "skipped": skipped, "trace_ids": imported}
 
 
+def import_annotations(path: Path, store: TraceStore) -> Dict[str, Any]:
+    """Merge a foreign annotation sidecar: append-only, so only rows
+    the store has never seen are added (exact row match on the
+    whole entry). Returns the counts."""
+    def _key(row):
+        # stable identity: timestamps differ between stores, the
+        # triage content does not
+        return (str(row.get("trace_id")), str(row.get("note", "")),
+                str(row.get("author", "") or ""),
+                str(row.get("verdict", "") or ""))
+
+    existing = {_key(r) for r in store.annotations()}
+    added = skipped = 0
+    with path.open("r", encoding="utf-8", errors="replace") as fh:
+        for raw in fh:
+            if not raw.strip():
+                continue
+            try:
+                row = json.loads(raw)
+            except json.JSONDecodeError:
+                skipped += 1
+                continue
+            if not isinstance(row, dict) or not row.get("trace_id"):
+                skipped += 1
+                continue
+            if _key(row) in existing:
+                skipped += 1
+                continue
+            store.annotate(str(row["trace_id"]),
+                           str(row.get("note", "")),
+                           author=str(row.get("author", "") or ""),
+                           verdict=str(row.get("verdict", "") or ""))
+            existing.add(_key(row))
+            added += 1
+    return {"added": added, "skipped": skipped}
+
+
 def import_file(path: Path, store: TraceStore,
                 fmt: Optional[str] = None,
                 dry_run: bool = False) -> Dict[str, Any]:
