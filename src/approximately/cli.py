@@ -431,9 +431,16 @@ def cmd_rotate(args: argparse.Namespace) -> int:
     try:
         rotate(trace, old_key=old_key, new_key=new_key)
     except ValueError as exc:
-        print(f"rotation refused: {exc}")
+        if getattr(args, "json", False):
+            print(json.dumps({"rotated": False, "error": str(exc)}))
+        else:
+            print(f"rotation refused: {exc}")
         return 1
     store.save(trace)
+    if getattr(args, "json", False):
+        print(json.dumps({"rotated": True, "trace_id": trace.id},
+                         indent=2))
+        return 0
     print(f"rotated {trace.id} to a new signing key "
           f"(old key no longer verifies the chain)")
     return 0
@@ -444,6 +451,11 @@ def cmd_scan_tool(args: argparse.Namespace) -> int:
 
     text = Path(args.file).read_text(encoding="utf-8")
     result = scan(text)
+    if getattr(args, "json", False):
+        from dataclasses import asdict
+
+        print(json.dumps(asdict(result), indent=2, default=str))
+        return 0 if result.is_clean else 1
     print(result.summary())
     return 0 if result.is_clean else 1
 
@@ -602,11 +614,21 @@ def cmd_repair(args: argparse.Namespace) -> int:
     store = TraceStore(args.store)
     trace = _load_trace(args.trace, store)
     result = plan_repair(trace)
-    print(result.summary())
+    written = None
     if result.repaired_trace is not None and args.apply:
         out = store.directory / f"{trace.id}.repaired.json"
         out.write_text(result.repaired_trace.to_json(), encoding="utf-8")
+        written = str(out)
         print(f"repaired trace written: {out}")
+    if getattr(args, "json", False):
+        print(json.dumps({"applied": result.applied,
+                          "cleared_modes": sorted(result.cleared_modes),
+                          "remaining_modes": sorted(result.remaining_modes),
+                          "unrepairable": result.unrepairable,
+                          "repaired": result.repaired,
+                          "written": written}, indent=2))
+        return 0
+    print(result.summary())
     return 0
 
 
@@ -644,7 +666,19 @@ def cmd_metrics(args: argparse.Namespace) -> int:
                                       extra_labels=_parse_labels(args.label)))
         return 0
     if args.prometheus:
+        if getattr(args, "json", False):
+            print(json.dumps({"format": "prometheus",
+                              "text": render_prometheus(
+                                  stats,
+                                  extra_labels=_parse_labels(args.label))},
+                             indent=2))
+            return 0
         print(render_prometheus(stats, extra_labels=_parse_labels(args.label)))
+        return 0
+    if getattr(args, "json", False):
+        from dataclasses import asdict
+
+        print(json.dumps(asdict(stats), indent=2, default=str))
         return 0
     print(stats.summary())
     return 0
@@ -656,6 +690,12 @@ def cmd_annotate(args: argparse.Namespace) -> int:
     entry = store.annotate(args.trace, args.note,
                            author=getattr(args, "author", "") or "",
                            verdict=getattr(args, "verdict", "") or "")
+    if getattr(args, "json", False):
+        print(json.dumps({"annotated": True, "entry": entry,
+                          "notes_on_file":
+                          len(store.annotations(entry["trace_id"]))},
+                         indent=2))
+        return 0
     print(f"annotated {entry['trace_id']} "
           f"({len(store.annotations(entry['trace_id']))} note(s) on file)")
     return 0
@@ -1025,7 +1065,15 @@ def cmd_anomalies(args: argparse.Namespace) -> int:
     store = TraceStore(args.store)
     trace = _load_trace(args.trace, store)
     anomalies = detect_latency_anomalies(trace, threshold=args.threshold)
-    print(summarize_anomalies(anomalies))
+    if getattr(args, "json", False):
+        print(json.dumps([{"step_index": a.step_index, "tool": a.tool,
+                           "latency_ms": a.latency_ms,
+                           "median_ms": a.median_ms,
+                           "robust_z": round(a.robust_z, 3),
+                           "direction": a.direction}
+                          for a in anomalies], indent=2))
+    else:
+        print(summarize_anomalies(anomalies))
     return 0 if not anomalies else 1
 
 
@@ -1108,6 +1156,10 @@ def cmd_convert_mast(args: argparse.Namespace) -> int:
 def cmd_clean(args: argparse.Namespace) -> int:
     store = TraceStore(args.store)
     removed = store.clean(keep_days=args.keep_days)
+    if getattr(args, "json", False):
+        print(json.dumps({"removed": removed,
+                          "keep_days": args.keep_days}, indent=2))
+        return 0
     print(f"removed {removed} traces older than {args.keep_days} days")
     return 0
 
@@ -1603,6 +1655,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--verdict", default="",
                    help="triage verdict, e.g. confirmed / "
                         "false-positive")
+    p.add_argument("--json", action="store_true",
+           help="emit machine-readable JSON instead of prose")
     p.set_defaults(func=cmd_annotate)
 
     p = sub.add_parser("annotations", parents=[common],
@@ -1630,11 +1684,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("trace")
     p.add_argument("--old-key-file", help="current signing key")
     p.add_argument("--new-key-file", required=True, help="new signing key")
+    p.add_argument("--json", action="store_true",
+           help="emit machine-readable JSON instead of prose")
     p.set_defaults(func=cmd_rotate)
 
     p = sub.add_parser("scan-tool", parents=[common],
                        help="scan an MCP tool description for poisoning")
     p.add_argument("file", help="tool description (text) to scan")
+    p.add_argument("--json", action="store_true",
+           help="emit machine-readable JSON instead of prose")
     p.set_defaults(func=cmd_scan_tool)
 
     p = sub.add_parser("counterfactual", parents=[common],
@@ -1694,6 +1752,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("trace")
     p.add_argument("--apply", action="store_true",
                    help="write the repaired trace into the store")
+    p.add_argument("--json", action="store_true",
+           help="emit machine-readable JSON instead of prose")
     p.set_defaults(func=cmd_repair)
 
     p = sub.add_parser("metrics", parents=[common],
@@ -1706,6 +1766,8 @@ def build_parser() -> argparse.ArgumentParser:
                         "of store totals")
     p.add_argument("--label", action="append",
                    help="extra label k=v for the --prometheus output")
+    p.add_argument("--json", action="store_true",
+           help="emit machine-readable JSON instead of prose")
     p.set_defaults(func=cmd_metrics)
 
     p = sub.add_parser("verify", parents=[common],
@@ -1809,6 +1871,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--threshold", type=float, default=3.5,
                    help="modified z-score threshold (default 3.5, "
                         "Iglewicz & Hoaglin)")
+    p.add_argument("--json", action="store_true",
+           help="emit machine-readable JSON instead of prose")
     p.set_defaults(func=cmd_anomalies)
 
     p = sub.add_parser("merge", parents=[common],
@@ -1825,6 +1889,8 @@ def build_parser() -> argparse.ArgumentParser:
                        help="delete traces older than N days")
     p.add_argument("--keep-days", type=int, default=30,
                    help="keep traces newer than this many days (default 30)")
+    p.add_argument("--json", action="store_true",
+           help="emit machine-readable JSON instead of prose")
     p.set_defaults(func=cmd_clean)
 
     p = sub.add_parser("stats", parents=[common],
