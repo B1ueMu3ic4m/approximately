@@ -224,6 +224,9 @@ _TOOLS: List[Dict[str, Any]] = [
                 "top": {"type": "number",
                         "description": "how many candidates "
                                        "(default 5)"},
+                "min_score": {"type": "number",
+                              "description": "cut matches below "
+                                             "this similarity"},
             },
             "required": ["trace"],
         },
@@ -429,6 +432,10 @@ _TOOLS: List[Dict[str, Any]] = [
                            "description": "auto (default) / native / "
                                           "openai-jsonl / "
                                           "messages-list"},
+                "glob": {"type": "string",
+                         "description": "import every file matching "
+                                        "this pattern instead of a "
+                                        "single path"},
                 "dry_run": {"type": "boolean",
                             "description": "count what would be "
                                            "imported, write nothing"},
@@ -759,6 +766,8 @@ def _tool_similar(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     top = int(args["top"]) if args.get("top") else 5
+    min_score = (float(args["min_score"])
+                 if args.get("min_score") is not None else 0.0)
     candidates = store.list_traces()
     if args.get("other_store"):
         from pathlib import Path as _Path
@@ -766,7 +775,7 @@ def _tool_similar(ctx: ServerContext, args: Dict[str, Any]) -> dict:
         from .store import TraceStore as _TS
 
         candidates = _TS(_Path(str(args["other_store"]))).list_traces()
-    return similar_payload(trace, candidates, top=top)
+    return similar_payload(trace, candidates, top=top, min_score=min_score)
 
 
 def _tool_drift(ctx: ServerContext, args: Dict[str, Any]) -> dict:
@@ -993,11 +1002,18 @@ def _tool_import_transcripts(ctx: ServerContext,
                              args: Dict[str, Any]) -> dict:
     from .importer import import_file
 
+    store = _store(ctx, args)
+    fmt = args.get("format")
+    if args.get("glob"):
+        from .importer import import_paths
+
+        return import_paths([str(args["glob"])], store,
+                            fmt=None if fmt in (None, "auto")
+                            else str(fmt),
+                            dry_run=bool(args.get("dry_run", False)))
     path = Path(str(args["path"]))
     if not path.is_file():
         raise KeyError(f"no such file: {path}")
-    store = _store(ctx, args)
-    fmt = args.get("format")
     return import_file(
         path, store,
         fmt=None if fmt in (None, "auto") else str(fmt),
