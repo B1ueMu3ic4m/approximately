@@ -1539,6 +1539,13 @@ framework adapters import lazily and degrade when the framework is absent.
      docs/mcp-tools.json mirrors it and a test pins the file against
      `_TOOLS`, so docs can cite the whole surface — descriptions,
      schemas, count — without ever drifting from the code.
+149. **v1.39 - the cache shows its work** ✅ (delivered):
+     `judge.cache_stats()` counts hits and misses since process
+     start (reset on read), and `export-dataset --teacher-cache`
+     prints the tally after a run — a cold dataset reads
+     `0 hit(s), N miss(es)`, the same dataset relabeled reads
+     `N hit(s), 0 miss(es)`. Seeing is believing for the
+     money-saving claim.
 
 
 ## 4. Launch plan
