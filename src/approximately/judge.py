@@ -8,9 +8,11 @@ CLI path falls back to rules when the judge is unavailable.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from .detectors import Detection
@@ -169,12 +171,37 @@ def _parse_verdict(payload: dict, chosen_model: str, raw: str) -> JudgeVerdict:
     return JudgeVerdict(detection=detection, rationale=rationale, raw=raw)
 
 
+def _cache_key(trace: Trace, chosen_model: str, preset: str) -> str:
+    canonical = json.dumps(
+        {"model": chosen_model, "preset": preset,
+         "trace": _compact_trace(trace)},
+        sort_keys=True, default=str)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _cache_path(cache_dir, key: str) -> Path:
+    return Path(cache_dir) / f"{key}.json"
+
+
+def _load_cached(cache_dir, key: str) -> Optional[JudgeVerdict]:
+    """A cache hit must look exactly like a fresh verdict; anything
+    unreadable is a miss, and the next write overwrites it."""
+    try:
+        data = json.loads(
+            _cache_path(cache_dir, key).read_text(encoding="utf-8"))
+        return _parse_verdict(data["payload"], data["model"],
+                              data.get("raw", ""))
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
 def judge_trace(
     trace: Trace,
     model: Optional[str] = None,
     base_url: Optional[str] = None,
     api_key: Optional[str] = None,
     preset: str = "strong",
+    cache_dir: Optional[Path] = None,
 ) -> JudgeVerdict:
     """Ask an OpenAI-compatible model to classify the failure.
 
@@ -184,11 +211,32 @@ def judge_trace(
 
     Reads OPENAI_API_KEY / OPENAI_BASE_URL by default; ``model`` defaults to
     APPROXIMATELY_JUDGE_MODEL or "gpt-4o-mini".
+
+    ``cache_dir`` makes repeat verdicts free: the key is a hash of
+    (model, preset, compact trace), so the same failure asked twice —
+    or by two commands — hits the disk once and skips the API call.
+    Corrupt cache entries are misses, never errors.
     """
     chosen_model = model or os.environ.get(
         "APPROXIMATELY_JUDGE_MODEL", "gpt-4o-mini"
     )
+    if cache_dir is not None:
+        key = _cache_key(trace, chosen_model, preset)
+        cached = _load_cached(cache_dir, key)
+        if cached is not None:
+            return cached
     raw = _judge_request(trace, chosen_model, preset,
                          api_key=api_key, base_url=base_url)
     payload = _extract_json(raw)
-    return _parse_verdict(payload, chosen_model, raw)
+    verdict = _parse_verdict(payload, chosen_model, raw)
+    if cache_dir is not None:
+        try:
+            cache = Path(cache_dir)
+            cache.mkdir(parents=True, exist_ok=True)
+            _cache_path(cache, key).write_text(
+                json.dumps({"model": chosen_model, "preset": preset,
+                            "payload": payload, "raw": raw}),
+                encoding="utf-8")
+        except OSError:
+            pass  # a full or read-only cache must not fail the judge
+    return verdict

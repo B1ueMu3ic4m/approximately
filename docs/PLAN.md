@@ -1441,6 +1441,15 @@ framework adapters import lazily and degrade when the framework is absent.
      so sniffing, idempotence and skip-counting behave identically.
      RECIPES gains recipe 14: bring last month's logs in for a
      postmortem.
+137. **v1.27 - the judge learns to remember** ✅ (delivered): judge
+     verdicts are disk-cacheable (`--judge-cache DIR` on attribute /
+     report / annotate-style consumers, `cache_dir=` on
+     `judge_trace`). The key is sha256(model, preset, compact trace)
+     — the same failure asked twice skips the API call entirely, and
+     a hit is indistinguishable from a fresh answer. Different model
+     or preset re-asks; corrupt entries are misses; a read-only or
+     full cache never fails the judge; a JudgeError is never cached.
+     Real money saved on the attribute→benchmark→distill loop.
 
 
 ## 4. Launch plan

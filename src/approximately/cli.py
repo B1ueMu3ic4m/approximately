@@ -165,6 +165,12 @@ def cmd_test(args: argparse.Namespace) -> int:
     return 0
 
 
+def _judge_kwargs(args: argparse.Namespace) -> dict:
+    """Judge options shared by every --judge consumer."""
+    cache = getattr(args, "judge_cache", None)
+    return {"cache_dir": Path(cache)} if cache else {}
+
+
 def cmd_report(args: argparse.Namespace) -> int:
     from .cluster import trend
     from .report import render_index_html
@@ -175,7 +181,8 @@ def cmd_report(args: argparse.Namespace) -> int:
         traces = []
         written = 0
         for trace in store.list_traces():
-            report = attribute(trace, use_judge=args.judge)
+            report = attribute(trace, use_judge=args.judge,
+                          **_judge_kwargs(args))
             pairs.append((trace, report))
             traces.append(trace)
             # write every individual report so the index links resolve
@@ -190,7 +197,8 @@ def cmd_report(args: argparse.Namespace) -> int:
               f"({written} individual reports generated)")
         return 0
     trace = _load_trace(args.trace, store)
-    report = attribute(trace, use_judge=args.judge)
+    report = attribute(trace, use_judge=args.judge,
+                          **_judge_kwargs(args))
     if getattr(args, "markdown", False):
         from .markdown_report import render_markdown
 
@@ -1174,7 +1182,8 @@ def cmd_attribute(args: argparse.Namespace) -> int:
 
     store = TraceStore(args.store)
     if args.sarif:
-        pairs = [(t, attribute(t, use_judge=args.judge))
+        pairs = [(t, attribute(t, use_judge=args.judge,
+                      **_judge_kwargs(args)))
                  for t in store.list_traces()]
         out = Path(args.sarif)
         out.write_text(json.dumps(to_sarif([r for _, r in pairs]),
@@ -1185,7 +1194,8 @@ def cmd_attribute(args: argparse.Namespace) -> int:
         results = []
         for trace in store.list_traces(since_days=args.since):
             report = attribute(trace, use_judge=args.judge,
-                               min_confidence=args.min_confidence)
+                               min_confidence=args.min_confidence,
+                               **_judge_kwargs(args))
             entry = report.to_dict()
             entry["trace"] = {"id": trace.id, "task": trace.task,
                               "success": trace.success,
@@ -1195,7 +1205,8 @@ def cmd_attribute(args: argparse.Namespace) -> int:
         return 0
     trace = _load_trace(args.trace, store)
     report = attribute(trace, use_judge=args.judge,
-                       min_confidence=args.min_confidence)
+                       min_confidence=args.min_confidence,
+                       **_judge_kwargs(args))
     if args.json:
         print(json.dumps(report.to_dict(), indent=2))
     else:
@@ -1518,6 +1529,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--mermaid", help="also write a mermaid sequence "
                                      "diagram of the trace to this path "
                                      "(pastes into GitHub markdown)")
+    p.add_argument("--judge-cache", metavar="DIR",
+                   help="cache judge verdicts (repeat calls free)")
     p.add_argument("--judge", action="store_true")
     p.add_argument("--markdown", action="store_true",
                    help="write the postmortem as issue-ready Markdown "
@@ -1905,6 +1918,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("dataset", help="JSONL dataset path")
     p.add_argument("--format", choices=["approx", "mast"], default="approx",
                    help="dataset format (default approx)")
+    p.add_argument("--judge-cache", metavar="DIR",
+                   help="cache judge verdicts (repeat calls free)")
     p.add_argument("--judge", action="store_true", help="evaluate the LLM judge "
                                                         "instead of rules")
     p.add_argument("--judge-model", help="model for --judge")
