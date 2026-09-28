@@ -1590,6 +1590,21 @@ def cmd_export(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_changelog(args: argparse.Namespace) -> int:
+    from .changelog import write_changelog
+
+    plan = Path(args.plan) if getattr(args, "plan", None) \
+        else Path("docs/PLAN.md")
+    if not plan.is_file():
+        print(f"error: no PLAN ledger at {plan}", file=sys.stderr)
+        return 2
+    output = Path(args.output) if getattr(args, "output", None) \
+        else Path("CHANGELOG.md")
+    count = write_changelog(plan, output)
+    print(f"wrote {count} delivered item(s) to {output}")
+    return 0
+
+
 def cmd_dedupe(args: argparse.Namespace) -> int:
     from .align import duplicate_groups
 
@@ -2288,6 +2303,16 @@ def build_parser() -> argparse.ArgumentParser:
                    help="also write the triage sidecar next to the "
                         "export (OUT.annotations.jsonl)")
     p.set_defaults(func=cmd_export)
+
+    p = sub.add_parser("changelog", parents=[common],
+                       help="generate CHANGELOG.md from the PLAN "
+                            "milestone ledger")
+    p.add_argument("-o", "--output", default="CHANGELOG.md",
+                   help="output path (default CHANGELOG.md)")
+    p.add_argument("--plan",
+                   help="PLAN ledger path (default: the packaged "
+                        "docs/PLAN.md)")
+    p.set_defaults(func=cmd_changelog)
 
     p = sub.add_parser("dedupe", parents=[common],
                        help="find near-duplicate traces (alignment "
