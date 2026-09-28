@@ -45,12 +45,16 @@ def rules_labeler(min_confidence: float = 0.7) -> Labeler:
 
 def teacher_labeler(model: str, base_url: Optional[str] = None,
                     api_key: Optional[str] = None,
-                    min_confidence: float = 0.6) -> Labeler:
-    """Label with a strong judge model; None when it is unsure or fails."""
+                    min_confidence: float = 0.6,
+                    cache_dir=None) -> Labeler:
+    """Label with a strong judge model; None when it is unsure or fails.
+
+    ``cache_dir`` feeds the judge disk cache: relabeling a dataset is
+    free for every trace asked before."""
     def label(trace: Trace) -> Optional[str]:
         try:
             verdict = judge_trace(trace, model=model, base_url=base_url,
-                                  api_key=api_key)
+                                  api_key=api_key, cache_dir=cache_dir)
         except Exception:
             return None
         det = verdict.detection
