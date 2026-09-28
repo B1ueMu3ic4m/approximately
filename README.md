@@ -349,6 +349,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.62** — `status --watch --on-change`: unchanged frames stay off the log
 - ✅ **v1.63** — `perf-gate[import]`: 500 mixed transcripts in 137ms (budget 2s), count + failure assertions
 - ✅ **v1.64** — ARCHITECTURE documents the anomaly family: per-trace vs fleet baselines, slowness trend, alerting
+- ✅ **v1.65** — CONTRIBUTING refreshed: the full gate checklist, one-version-per-PR, the mirror rule
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

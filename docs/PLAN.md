@@ -1706,6 +1706,15 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      Docs-only, closing the documentation debt of the anomaly
      streak (v1.35-v1.60). Ledger renumbered physically (duplicate
      171s from drifted insert anchors).
+
+174. **v1.65 - CONTRIBUTING refreshed for the community phase** ✅
+     (delivered): the full local gate checklist (suite, lint, types,
+     complexity, security, bench-gate, the six perf budgets), the
+     one-version-per-PR discipline (bump, PLAN item, regenerate the
+     pinned changelog), the --json + MCP-mirror rule for new
+     commands (dangerous ops deliberately CLI-only), and the real
+     CI matrix (3 OSes × 5 Pythons). The old file predated the
+     generated changelog and the anomaly gates.
 161. **v1.55 - postmortems name fleet outliers** ✅ (delivered):
      the per-trace latency card only knows what one run considered
      normal; the postmortem now gains a "Fleet outliers" card when a

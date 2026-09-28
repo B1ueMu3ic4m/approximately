@@ -56,9 +56,37 @@ Core dependency rule is enforced by review: `src/approximately/**` (except
 `contrib/`) may import only the standard library; optional integrations are
 lazy imports behind extras.
 
+## The full local gate checklist
+
+CI runs the same gates — run them all before pushing:
+
+```bash
+pytest -q                                                        # suite
+ruff check .                                                     # lint
+mypy src/approximately --ignore-missing-imports                  # types
+xenon --max-absolute C --max-modules B --max-average A src       # complexity
+bandit -q -r src                                                 # security
+approximately bench-gate docs/mast-bench-multi.jsonl \
+    --floors docs/bench-floors.json --label gold                 # attribution quality
+python3 scripts/perf_gate.py                                     # 6 perf budgets
+```
+
+`bench-gate` fails on any attribution regression (P/R/F1 below the
+floors); `perf-gate` fails on any budget breach — both are
+assertions about behavior, not style.
+
 ## Pull requests
 
-- Branch from `main`, keep the change focused.
-- `pytest -q` green locally; CI runs the same suite on 3 OSes × 3 Pythons
-  plus judge-integration and framework-adapter jobs.
-- Update `CHANGELOG.md` under the unreleased heading.
+- Branch from `main`, keep the change focused. One version per PR:
+  bump `pyproject.toml`, append a PLAN item to `docs/PLAN.md`
+  (`**vX.Y - title** ✅ (delivered): ...`), regenerate the changelog
+  with `approximately changelog` — the committed CHANGELOG.md is
+  pinned against the ledger and must not drift.
+- `pytest -q` green locally; CI runs the same suite on 3 OSes × 5
+  Pythons plus bench-gate, judge-integration and framework-adapter
+  jobs.
+- New CLI commands: support `--json` and mirror into the MCP surface
+  (`mcp_server.py` `_TOOLS` + a pinned count test), then
+  `approximately mcp --print-tools docs/mcp-tools.json` to refresh
+  the artifact. Destructive operations (clean, rotate) are
+  deliberately CLI-only.
