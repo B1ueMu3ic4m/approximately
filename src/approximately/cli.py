@@ -1110,7 +1110,9 @@ def cmd_anomalies(args: argparse.Namespace) -> int:
 
     store = TraceStore(args.store)
     trace = _load_trace(args.trace, store)
-    anomalies = detect_latency_anomalies(trace, threshold=args.threshold)
+    anomalies = detect_latency_anomalies(
+        trace, threshold=args.threshold,
+        per_tool=bool(getattr(args, "per_tool", False)))
     if getattr(args, "json", False):
         print(json.dumps([{"step_index": a.step_index, "tool": a.tool,
                            "latency_ms": a.latency_ms,
@@ -1941,6 +1943,10 @@ def build_parser() -> argparse.ArgumentParser:
                         "Iglewicz & Hoaglin)")
     p.add_argument("--json", action="store_true",
            help="emit machine-readable JSON instead of prose")
+    p.add_argument("--per-tool", action="store_true",
+                   help="baseline each tool family separately (a "
+                        "2s search and a 30s deploy stop masking "
+                        "each other)")
     p.set_defaults(func=cmd_anomalies)
 
     p = sub.add_parser("merge", parents=[common],

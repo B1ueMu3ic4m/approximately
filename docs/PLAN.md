@@ -1505,6 +1505,16 @@ framework adapters import lazily and degrade when the framework is absent.
      via `digest_dir`, `since` window). A night-watch agent or
      dashboard reads exactly what the operator sees; the payload is
      the shared `_status_payload`, so CLI and MCP cannot drift.
+145. **v1.35 - per-tool latency baselines** ✅ (delivered):
+     `detect_latency_anomalies(per_tool=True)` baselines each tool
+     family separately (CLI `anomalies --per-tool`, MCP
+     `per_tool`). Pooling a 2s-search trace with 30s deploys builds
+     one scale where neither family's spikes stand out; per-tool
+     medians catch the 3x deploy immediately. Families smaller than
+     `min_samples` fall back to the pooled scale — their own
+     latencies judged against the whole-trace median/MAD — instead
+     of going blind on rare tools. Identical-latency families are
+     honest no-ops.
 
 
 ## 4. Launch plan

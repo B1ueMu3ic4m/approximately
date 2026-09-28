@@ -58,22 +58,54 @@ def _mad(values: List[float], med: float) -> float:
 
 def detect_latency_anomalies(trace: Trace, threshold: float
                              = MODIFIED_Z_THRESHOLD,
-                             min_samples: int = 5) -> List[LatencyAnomaly]:
+                             min_samples: int = 5,
+                             per_tool: bool = False
+                             ) -> List[LatencyAnomaly]:
     """Flag per-step latencies whose modified z-score exceeds threshold.
 
     Only tool-call steps are measured (plans/observations carry no
     meaningful latency). Returns anomalies sorted by |z| descending.
+
+    ``per_tool`` baselines each tool family separately: a trace that
+    mixes 2-second searches with 30-second deploys pools them into one
+    scale where neither looks anomalous. Families smaller than
+    ``min_samples`` fall back to the pooled baseline rather than going
+    blind on rare tools.
     """
     timed = [s for s in trace.steps
              if s.kind == TOOL_CALL and s.latency_ms and s.latency_ms > 0]
     if len(timed) < min_samples:
         return []
-    values = [float(s.latency_ms) for s in timed]
-    med = _median(values)
-    mad = _mad(values, med)
-    if mad == 0:
-        return []  # identical latencies: no scale, no anomalies
-    return _flagged(timed, values, med, mad, threshold)
+    if not per_tool:
+        values = [float(s.latency_ms) for s in timed]
+        med = _median(values)
+        mad = _mad(values, med)
+        if mad == 0:
+            return []  # identical latencies: no scale, no anomalies
+        return _flagged(timed, values, med, mad, threshold)
+    by_tool: dict = {}
+    for step in timed:
+        by_tool.setdefault(step.tool or "?", []).append(step)
+    anomalies: List[LatencyAnomaly] = []
+    for _tool, steps in sorted(by_tool.items()):
+        if len(steps) >= min_samples:
+            values = [float(s.latency_ms) for s in steps]
+            med = _median(values)
+            mad = _mad(values, med)
+            if mad == 0:
+                continue  # identical latencies: no scale
+            anomalies.extend(_flagged(steps, values, med, mad,
+                                      threshold))
+            continue
+        # rare tool: judge its own latencies against the pooled scale
+        med = _median([float(s.latency_ms) for s in timed])
+        mad = _mad([float(s.latency_ms) for s in timed], med)
+        if mad == 0:
+            continue
+        family = [float(s.latency_ms) for s in steps]
+        anomalies.extend(_flagged(steps, family, med, mad, threshold))
+    anomalies.sort(key=lambda a: -abs(a.robust_z))
+    return anomalies
 
 
 def _flagged(timed, values, med: float, mad: float,
