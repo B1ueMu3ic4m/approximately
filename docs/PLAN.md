@@ -1482,6 +1482,14 @@ framework adapters import lazily and degrade when the framework is absent.
      #27 `scan_tool` takes a file path or the description inline and
      returns verdict + findings; a missing file or missing input is
      a tool error, never a protocol fault.
+142. **v1.32 - precision knobs** ✅ (delivered): `similar
+     --min-score` cuts weak neighbours instead of always returning a
+     full top-N (CLI and MCP `min_score` alike — the cap still
+     applies on top), and `import_transcripts` grows a `glob`
+     parameter so an MCP client pulls a whole directory of dumps
+     with the same aggregate + per-file counts the CLI prints.
+     Similarity caps and floors compose: top-N picks, then the floor
+     filters.
 
 
 ## 4. Launch plan

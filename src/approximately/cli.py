@@ -334,7 +334,9 @@ def cmd_similar(args: argparse.Namespace) -> int:
     if other:
         # cross-store comparison: search a different store's traces
         candidates = TraceStore(other).list_traces()
-    payload = similar_payload(trace, candidates, top=args.top)
+    payload = similar_payload(trace, candidates, top=args.top,
+                              min_score=getattr(args, "min_score",
+                                                0.0) or 0.0)
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2))
         return 0
@@ -1654,6 +1656,9 @@ def build_parser() -> argparse.ArgumentParser:
                             "to a trace")
     p.add_argument("trace")
     p.add_argument("--top", type=int, default=5)
+    p.add_argument("--min-score", type=float, default=0.0,
+                   help="cut matches below this similarity "
+                        "(default: keep all)")
     p.add_argument("--other-store", metavar="DIR",
                    help="compare against traces in another store "
                         "(cross-project nearest neighbours)")

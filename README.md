@@ -316,6 +316,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.29** — `status --watch`: the ops overview re-renders on an interval, all night
 - ✅ **v1.30** — ARCHITECTURE documents the interop pair, the judge cache and the stats resource
 - ✅ **v1.31** — `export --since` age windows; MCP tool #27 `scan_tool` (the toolscan mirrors)
+- ✅ **v1.32** — `similar --min-score` floors the neighbours; `import_transcripts` grows a glob parameter
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
