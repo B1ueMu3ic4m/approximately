@@ -1474,6 +1474,14 @@ framework adapters import lazily and degrade when the framework is absent.
      resource; the cli.py entry now mentions `status --watch` and
      that ops commands take `--json` too. Docs-only round closing
      the documentation debt the v1.19-v1.29 feature streak accrued.
+141. **v1.31 - export --since + the toolscan mirror** ✅ (delivered):
+     `export --since DAYS` puts list_traces' age window on the
+     export path (CLI and MCP `export_transcripts`), so yesterday's
+     failures go to a colleague without the whole store. The
+     toolscan finally mirrors into MCP per the ops-pair rule — tool
+     #27 `scan_tool` takes a file path or the description inline and
+     returns verdict + findings; a missing file or missing input is
+     a tool error, never a protocol fault.
 
 
 ## 4. Launch plan

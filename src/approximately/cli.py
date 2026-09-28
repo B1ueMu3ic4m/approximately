@@ -1409,7 +1409,8 @@ def cmd_export(args: argparse.Namespace) -> int:
     output = Path(args.output)
     try:
         result = export_store(store, output, fmt=args.format,
-                              query_text=args.query)
+                              query_text=args.query,
+                              since_days=getattr(args, "since", None))
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -2009,6 +2010,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--query",
                    help="select traces with the shared query DSL, "
                         "e.g. 'success == false and tool=ls'")
+    p.add_argument("--since", type=int, metavar="DAYS",
+                   help="only traces created in the last DAYS days")
     p.set_defaults(func=cmd_export)
 
     p = sub.add_parser("import", parents=[common],
