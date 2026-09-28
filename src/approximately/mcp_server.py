@@ -312,6 +312,25 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "find_duplicates",
+        "description": "Near-duplicate clusters: traces so aligned "
+                       "they are the same run wearing a different "
+                       "id (import hygiene before a fine-tuning "
+                       "export).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "threshold": {"type": "number",
+                              "description": "similarity floor "
+                                             "(default 0.95)"},
+                "max_traces": {"type": "number",
+                               "description": "scan cap "
+                                              "(default 2000)"},
+            },
+        },
+    },
+    {
         "name": "status",
         "description": "The one-glance ops overview: store health, "
                        "top failure modes, triage tallies, the last "
@@ -983,6 +1002,23 @@ def _tool_diff(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                             for e in td.divergences(limit=5)]}
 
 
+def _tool_find_duplicates(ctx: ServerContext,
+                          args: Dict[str, Any]) -> dict:
+    from .align import duplicate_groups
+
+    store = _store(ctx, args)
+    threshold = (float(args["threshold"])
+                 if args.get("threshold") is not None else 0.95)
+    max_traces = (int(args["max_traces"])
+                  if args.get("max_traces") else 2000)
+    groups = duplicate_groups(store.list_traces(),
+                              threshold=threshold,
+                              max_traces=max_traces)
+    return {"threshold": threshold,
+            "groups": groups,
+            "redundant_traces": sum(g["size"] - 1 for g in groups)}
+
+
 def _tool_status(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .cli import _status_payload
 
@@ -1120,6 +1156,7 @@ _HANDLERS = {
     "predict": _tool_predict,
     "context": _tool_context,
     "curve": _tool_curve,
+    "find_duplicates": _tool_find_duplicates,
     "status": _tool_status,
     "annotate": _tool_annotate,
     "anomalies": _tool_anomalies,

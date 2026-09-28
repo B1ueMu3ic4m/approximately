@@ -134,6 +134,38 @@ def rank_similar(target: Trace, traces: List[Trace],
     return scored
 
 
+def duplicate_groups(traces, threshold: float = 0.95,
+                     max_traces: int = 2000) -> List[dict]:
+    """Near-duplicate clusters: traces so aligned they are the same
+    run wearing a different id.
+
+    Single pass: each trace either joins an existing representative
+    cluster (first member >= threshold) or founds one — O(n · k) in
+    traces and clusters, not O(n²). Exact-shape guards apply: traces
+    are compared in id order so groups are reproducible, and the scan
+    caps at ``max_traces`` (beyond that, say so in the payload).
+    Returns groups of member ids, largest first.
+    """
+    ordered = sorted(traces, key=lambda t: t.id)[:max_traces]
+    clusters: List[Tuple[Trace, List[Trace]]] = []
+    for trace in ordered:
+        for rep, members in clusters:
+            if similarity(rep, trace) >= threshold:
+                members.append(trace)
+                break
+        else:
+            clusters.append((trace, [trace]))
+    groups = [
+        {"representative": members[0].id,
+         "task": (members[0].task or "")[:80],
+         "size": len(members),
+         "ids": [m.id for m in members]}
+        for _, members in clusters if len(members) > 1
+    ]
+    groups.sort(key=lambda g: -g["size"])
+    return groups
+
+
 def similar_payload(target, traces, top: int = 5,
                     min_score: float = 0.0) -> dict:
     """The `similar` answer as data (shared by CLI --json and MCP).

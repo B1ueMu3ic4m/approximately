@@ -1,5 +1,5 @@
 {
-  "count": 28,
+  "count": 29,
   "tools": [
     {
       "name": "list_traces",
@@ -324,6 +324,26 @@
         "required": [
           "trace"
         ]
+      }
+    },
+    {
+      "name": "find_duplicates",
+      "description": "Near-duplicate clusters: traces so aligned they are the same run wearing a different id (import hygiene before a fine-tuning export).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "threshold": {
+            "type": "number",
+            "description": "similarity floor (default 0.95)"
+          },
+          "max_traces": {
+            "type": "number",
+            "description": "scan cap (default 2000)"
+          }
+        }
       }
     },
     {
