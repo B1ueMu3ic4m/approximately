@@ -309,6 +309,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.22** — fuzz round 7 on the interop surface: roundtrip fixpoint, hostile-line tolerance, two real edge bugs fixed
 - ✅ **v1.23** — `import` at scale: multiple files + glob patterns with per-file counts; identical transcripts dedupe across files
 - ✅ **v1.24** — MCP resource `stats.json`: store health browsable without tools; export byte-stability hardened (id order, not mtime)
+- ✅ **v1.25** — doctor flags orphan annotations: notes that reference traces no longer in the store
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
