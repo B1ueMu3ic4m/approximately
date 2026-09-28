@@ -98,14 +98,29 @@ def detect_latency_anomalies(trace: Trace, threshold: float
                                       threshold))
             continue
         # rare tool: judge its own latencies against the pooled scale
-        med = _median([float(s.latency_ms) for s in timed])
-        mad = _mad([float(s.latency_ms) for s in timed], med)
+        values = [float(s.latency_ms) for s in timed]
+        med = _median(values)
+        mad = _mad(values, med)
         if mad == 0:
+            anomalies.extend(_flag_zero_scale(steps, med))
             continue
         family = [float(s.latency_ms) for s in steps]
         anomalies.extend(_flagged(steps, family, med, mad, threshold))
     anomalies.sort(key=lambda a: -abs(a.robust_z))
     return anomalies
+
+
+def _flag_zero_scale(steps, med: float) -> List[LatencyAnomaly]:
+    """>50% identical steps leave no scale (MAD == 0); a rare call
+    that differs from the median at all is then the anomaly
+    (Iglewicz-Hoaglin: its z is unboundedly large)."""
+    return [LatencyAnomaly(
+        step_index=step.index,
+        tool=step.tool or "?",
+        latency_ms=step.latency_ms,
+        median_ms=med,
+        robust_z=9999.0 if step.latency_ms > med else -9999.0,
+    ) for step in steps if float(step.latency_ms) != med]
 
 
 def _flagged(timed, values, med: float, mad: float,

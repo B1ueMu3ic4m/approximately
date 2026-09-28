@@ -189,7 +189,20 @@ def _load_cached(cache_dir, key: str) -> Optional[JudgeVerdict]:
     try:
         data = json.loads(
             _cache_path(cache_dir, key).read_text(encoding="utf-8"))
-        return _parse_verdict(data["payload"], data["model"],
+        payload = data["payload"]
+        # a cache hit must be indistinguishable from a fresh answer:
+        # _parse_verdict coerces garbage (mode_id 3.5 -> OTHER,
+        # dict rationale -> its repr), so validate the raw shape
+        # before trusting what a poisoned entry "says"
+        if not isinstance(payload, dict):
+            return None
+        if not isinstance(payload.get("mode_id"), str):
+            return None
+        if not isinstance(payload.get("rationale"), str):
+            return None
+        if not isinstance(payload.get("confidence"), (int, float)):
+            return None
+        return _parse_verdict(payload, data["model"],
                               data.get("raw", ""))
     except (OSError, ValueError, KeyError, TypeError):
         return None
