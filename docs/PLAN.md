@@ -1676,6 +1676,16 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      used to page nobody — the quiet kind of failure finally has a
      pager. Digest snapshots still land every cycle; the threshold
      gates the notification, never the recording.
+170. **v1.61 - fuzz round 9** ✅ (delivered): the changelog parser
+     meets hostile ledger text — nested bold inside titles (a
+     deferred line could masquerade as delivered via non-greedy
+     expansion; titles may no longer contain `**`), CRLF files,
+     emoji headings, fullwidth colons, missing versions, future
+     versions — deferred and versionless stay out, everything else
+     parses sorted and reproducible. Plus dedupe threshold extremes
+     (0.0 clusters everything into one group, >1 nothing,
+     max_traces=0 scans nothing) and fleet degenerate latencies
+     (zero, negative, absurd spikes — never NaN).
 165. **v1.55 - postmortems name fleet outliers** ✅ (delivered):
      the per-trace latency card only knows what one run considered
      normal; the postmortem now gains a "Fleet outliers" card when a
