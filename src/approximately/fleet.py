@@ -551,6 +551,12 @@ def render_trend(summary: dict) -> str:
             if prev is not None else "")
     lines.append(f"  verdict: {summary['verdict']} "
                  f"(slope {summary['slope']:+.4f}/day){tail}")
+    anomaly_trend = summary.get("anomaly_trend")
+    if anomaly_trend:
+        lines.append(
+            f"  slowness trend: {anomaly_trend['verdict']} "
+            f"(slope {anomaly_trend['slope']:+.4f}/day, latest "
+            f"{anomaly_trend['latest']} flagged step(s))")
     return "\n".join(lines)
 
 
