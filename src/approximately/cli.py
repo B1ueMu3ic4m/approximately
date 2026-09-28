@@ -905,6 +905,20 @@ def _render_status(args: argparse.Namespace) -> str:
     if last is not None:
         buf.write(f"  last failure: {last['id']} chain={last['chain']} "
                   f"— {(last['task'] or '')[:60]}\n")
+    else:
+        buf.write("  last failure: none\n")
+    if payload["trend"]:
+        buf.write(f"  fleet trend: {payload['trend']['verdict']}\n")
+        anomaly_trend = payload["trend"].get("anomaly_trend")
+        if anomaly_trend:
+            buf.write(f"  slowness trend: {anomaly_trend['verdict']} "
+                      f"(latest {anomaly_trend['latest']} flag(s))\n")
+    ledger_intact = payload["ledger_intact"]
+    if ledger_intact is not None:
+        buf.write("  ledger: "
+                  + ("intact" if ledger_intact else "BROKEN") + "\n")
+    if payload["top_recidivist"]:
+        buf.write(f"  top recidivist: {payload['top_recidivist']}\n")
     return buf.getvalue().rstrip("\n")
 
 

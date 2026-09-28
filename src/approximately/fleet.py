@@ -448,6 +448,7 @@ def _trend_row(entry: dict) -> dict:
         for m in s.get("top_modes") or []:
             modes[m.get("mode", "?")] = (
                 modes.get(m.get("mode", "?"), 0) + m.get("count", 0))
+    anomalies = sum(s.get("fleet_anomalies", 0) for s in stores)
     return {
         "day": entry["day"],
         "snapshots": entry["snapshots"],
@@ -456,6 +457,7 @@ def _trend_row(entry: dict) -> dict:
         "failure_rate": round(weighted / traces, 4) if traces else 0.0,
         "worsening": snap.get("worsening") or [],
         "top_modes": sorted(modes.items(), key=lambda kv: -kv[1])[:3],
+        "fleet_anomalies": anomalies,
     }
 
 
@@ -468,8 +470,16 @@ def summarize_trend(days: List[dict]) -> dict:
     """
     rows = [_trend_row(entry) for entry in days]
     verdict, slope = trend_verdict([r["failure_rate"] for r in rows])
+    anomaly_series = [r["fleet_anomalies"] for r in rows]
+    anomaly_verdict = None
+    if len(anomaly_series) >= 2 and any(anomaly_series):
+        a_verdict, a_slope = trend_verdict(anomaly_series)
+        anomaly_verdict = {"verdict": a_verdict,
+                           "slope": round(a_slope, 4),
+                           "latest": anomaly_series[-1]}
     return {"days": rows, "verdict": verdict, "slope": round(slope, 4),
-            "snapshots": sum(r["snapshots"] for r in rows)}
+            "snapshots": sum(r["snapshots"] for r in rows),
+            "anomaly_trend": anomaly_verdict}
 
 
 AGENT_TREND_KEYS = ("steps", "tool_calls", "errors",
