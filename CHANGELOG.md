@@ -3,6 +3,11 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.68
+
+pointing the command at a directory means every `*.jsonl` inside it — the ergonomic zero-thought form of the glob. Non-transcript files are ignored by the expansion.
+
+
 ## v1.67
 
 the sharing side learns the same trick as the distill side — `export --dedupe` (CLI + MCP `dedupe` param) drops near-duplicate traces from the export, so retries and cron double-fires never reach a colleague's attention. The payload reports what it dropped.

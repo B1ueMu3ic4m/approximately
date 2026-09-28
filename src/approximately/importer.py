@@ -264,17 +264,23 @@ def import_paths(patterns: List[str], store: TraceStore,
 
 
 def _expand(patterns: List[str]) -> List[Path]:
-    """Expand each argument as a literal path or a glob pattern."""
+    """Expand each argument as a literal path, a glob pattern, or a
+    directory (a directory means every ``*.jsonl`` inside it)."""
     import glob as _glob
 
     files: List[Path] = []
     for pattern in patterns:
-        matches = sorted(_glob.glob(pattern)) if any(
-            c in pattern for c in "*?[") else [pattern]
+        path = Path(pattern)
+        if path.is_dir():
+            matches = sorted(str(p) for p in path.glob("*.jsonl"))
+        elif any(c in pattern for c in "*?["):
+            matches = sorted(_glob.glob(pattern))
+        else:
+            matches = [pattern]
         for match in matches:
-            path = Path(match)
-            if path.is_file() and path not in files:
-                files.append(path)
+            candidate = Path(match)
+            if candidate.is_file() and candidate not in files:
+                files.append(candidate)
     return files
 
 

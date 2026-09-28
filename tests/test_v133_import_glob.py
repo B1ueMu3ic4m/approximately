@@ -87,3 +87,18 @@ def test_cli_missing_everything_exits_two(tmp_path, capsys):
                               format="auto", dry_run=False, json=False)
     assert cmd_import(args) == 2
     assert "no files matched" in capsys.readouterr().err
+
+
+def test_import_directory_arg(tmp_path):
+    for i in range(3):
+        (tmp_path / f"run-{i}.jsonl").write_text(
+            json.dumps({"messages": [
+                {"role": "user", "content": f"task {i}"},
+                {"role": "assistant", "content": "ok"}]}) + "\n",
+            encoding="utf-8")
+    (tmp_path / "notes.txt").write_text("not a transcript\n",
+                                        encoding="utf-8")
+    store = TraceStore(tmp_path / "s")
+    result = import_paths([str(tmp_path)], store)
+    assert result["files"] == 3
+    assert result["imported"] == 3

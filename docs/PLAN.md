@@ -1777,3 +1777,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      (CLI + MCP `dedupe` param) drops near-duplicate traces from the
      export, so retries and cron double-fires never reach a
      colleague's attention. The payload reports what it dropped.
+
+171. **v1.68 - `import` takes a directory** ✅ (delivered): pointing
+     the command at a directory means every `*.jsonl` inside it —
+     the ergonomic zero-thought form of the glob. Non-transcript
+     files are ignored by the expansion.
