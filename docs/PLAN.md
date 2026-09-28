@@ -1611,6 +1611,15 @@ framework adapters import lazily and degrade when the framework is absent.
      (annotated failures over total failures) in the payload, and a
      prose line whenever the ratio is below 100%. No failures on
      file is `None`, not a fake 100%.
+160. **v1.50 - store handoff: the triage story travels** ✅
+     (delivered): `export --with-annotations` writes the triage
+     sidecar next to the transcript export
+     (OUT.annotations.jsonl); `import --annotations` merges a
+     sidecar append-only. Identity is the stable triage content
+     (trace_id, note, author, verdict) — timestamps differ between
+     stores, so a full re-import of the same file skips instead of
+     duplicating. Malformed rows are counted; the evidence chain is
+     untouched.
 157. **v1.47 - RECIPES: night watch and dedupe** ✅ (delivered):
      recipe 15 ties the night story together (`status --watch` +
      fleet baselines + the multi-project sweep, with a note on
