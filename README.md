@@ -311,6 +311,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.24** — MCP resource `stats.json`: store health browsable without tools; export byte-stability hardened (id order, not mtime)
 - ✅ **v1.25** — doctor flags orphan annotations: notes that reference traces no longer in the store
 - ✅ **v1.26** — `import -`: pipe transcripts straight from stdin; recipe 14 covers the log-ingest postmortem loop
+- ✅ **v1.27** — `--judge-cache`: repeat judge verdicts are free (keyed by model+preset+trace; corrupt entries are misses)
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
