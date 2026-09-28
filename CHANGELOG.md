@@ -3,6 +3,11 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.65
+
+(delivered): the full local gate checklist (suite, lint, types, complexity, security, bench-gate, the six perf budgets), the one-version-per-PR discipline (bump, PLAN item, regenerate the pinned changelog), the --json + MCP-mirror rule for new commands (dangerous ops deliberately CLI-only), and the real CI matrix (3 OSes × 5 Pythons). The old file predated the generated changelog and the anomaly gates.
+
+
 ## v1.64
 
 (delivered): a dedicated section for the latency signal — per-trace vs fleet baselines, the degenerate-case ladder (pooled fallback, MAD-zero sentinels), the slowness trend and its three surfaces, the alerting gates, and the perf budget. Docs-only, closing the documentation debt of the anomaly streak (v1.35-v1.60). Ledger renumbered physically (duplicate 171s from drifted insert anchors).
