@@ -1460,6 +1460,13 @@ framework adapters import lazily and degrade when the framework is absent.
      `clean` → removed/keep_days, `repair` → applied/cleared/
      remaining/unrepairable, `rotate` → rotated+trace_id or refusal,
      `scan-tool` → verdict+findings). Prose stays the default.
+139. **v1.29 - `status --watch`** ✅ (delivered): the overview that
+     stays up all night. `--watch` re-renders the status frame on an
+     interval (`--interval SECONDS`, default 30) with a timestamp
+     header per frame; `--frames N` bounds the loop for tests and
+     cron wrappers; Ctrl-C exits clean. The frame renderer is shared
+     with the one-shot mode (`_render_status`), so prose and `--json`
+     frames stay byte-identical between the two modes.
 
 
 ## 4. Launch plan
