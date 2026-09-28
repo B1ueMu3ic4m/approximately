@@ -1295,6 +1295,25 @@ def cmd_distill(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_export(args: argparse.Namespace) -> int:
+    from .exporter import export_store
+
+    store = TraceStore(args.store)
+    output = Path(args.output)
+    try:
+        result = export_store(store, output, fmt=args.format,
+                              query_text=args.query)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print(f"exported {result['written']} of {result['traces']} "
+              f"traces to {output} (format {result['format']})")
+    return 0
+
+
 def cmd_import(args: argparse.Namespace) -> int:
     from .importer import import_file
 
@@ -1852,6 +1871,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--teacher", help="label with a strong judge model instead "
                                      "of the rule detectors")
     p.set_defaults(func=cmd_distill)
+
+    p = sub.add_parser("export", parents=[common],
+                       help="export traces as foreign transcript JSONL")
+    p.add_argument("output", help="output JSONL path")
+    p.add_argument("--format", choices=["openai-jsonl", "native"],
+                   default="openai-jsonl",
+                   help="transcript shape (default openai-jsonl)")
+    p.add_argument("--query",
+                   help="select traces with the shared query DSL, "
+                        "e.g. 'success == false and tool=ls'")
+    p.set_defaults(func=cmd_export)
 
     p = sub.add_parser("import", parents=[common],
                        help="batch-import foreign transcript JSONL")

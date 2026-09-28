@@ -14,7 +14,9 @@ transcript per line, three shapes:
 
 Foreign transcripts get deterministic ids (sha256 of the raw line), so
 re-importing the same file is a no-op instead of a duplicate — the
-second pass skips every trace the first one already stored.
+second pass skips every trace the first one already stored.  Lines that
+carry our own export metadata (``metadata.task`` / ``metadata.trace_id``)
+roundtrip losslessly: the original task and id are restored.
 """
 
 from __future__ import annotations
@@ -22,7 +24,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from .store import TraceStore
 from .trace import MESSAGE, OBSERVATION, RESPONSE, TOOL_CALL, Step, Trace
@@ -52,51 +54,87 @@ def sniff_format(path: Path) -> str:
                 obj = json.loads(line)
             except json.JSONDecodeError as exc:
                 raise ValueError(f"first line is not JSON: {exc}") from exc
-            if isinstance(obj, list):
-                return MESSAGES_LIST
-            if not isinstance(obj, dict):
-                raise ValueError("first line is neither object nor array")
-            if "steps" in obj or ("task" in obj and "id" in obj):
-                return NATIVE
-            if "messages" in obj:
-                return OPENAI_JSONL
-            raise ValueError(
-                "unrecognized transcript shape; "
-                "pass --format explicitly")
+            return _sniff_object(obj)
     raise ValueError("file has no transcript lines")
+
+
+def _sniff_object(obj: Any) -> str:
+    if isinstance(obj, list):
+        return MESSAGES_LIST
+    if not isinstance(obj, dict):
+        raise ValueError("first line is neither object nor array")
+    if "steps" in obj or ("task" in obj and "id" in obj):
+        return NATIVE
+    if "messages" in obj:
+        return OPENAI_JSONL
+    raise ValueError("unrecognized transcript shape; "
+                     "pass --format explicitly")
+
+
+def _tool_call_step(call: Dict[str, Any], role: str) -> Step:
+    fn = call.get("function") or {}
+    try:
+        args = json.loads(fn.get("arguments") or "{}")
+    except json.JSONDecodeError:
+        args = {"raw": fn.get("arguments")}
+    return Step(kind=TOOL_CALL, tool=fn.get("name"), args=args,
+                meta={"role": role})
+
+
+def _message_steps(msg: Dict[str, Any]) -> List[Step]:
+    """Map one chat-API message onto 0..n recorder steps."""
+    role = str(msg.get("role", "user"))
+    content = msg.get("content")
+    steps: List[Step] = []
+    for call in msg.get("tool_calls") or []:
+        step = _tool_call_step(call, role)
+        step.index = len(steps)
+        steps.append(step)
+    if role == "assistant":
+        if content:
+            steps.append(Step(kind=RESPONSE, result=_text(content),
+                              index=len(steps), meta={"role": role}))
+    elif role == "tool":
+        errored = bool(msg.get("is_error"))
+        steps.append(Step(
+            kind=OBSERVATION, tool=msg.get("name") or msg.get("tool_call_id"),
+            result=_text(content),
+            error="tool reported an error" if errored else None,
+            index=len(steps), meta={"role": role}))
+    else:
+        steps.append(Step(kind=MESSAGE, result=_text(content),
+                          index=len(steps), meta={"role": role}))
+    return steps
 
 
 def messages_to_steps(messages: List[Dict[str, Any]]) -> List[Step]:
     """Map chat-API messages onto the recorder's step vocabulary."""
     steps: List[Step] = []
     for msg in messages:
-        role = str(msg.get("role", "user"))
-        content = msg.get("content")
-        for call in msg.get("tool_calls") or []:
-            fn = call.get("function") or {}
-            try:
-                args = json.loads(fn.get("arguments") or "{}")
-            except json.JSONDecodeError:
-                args = {"raw": fn.get("arguments")}
-            steps.append(Step(kind=TOOL_CALL, tool=fn.get("name"),
-                              args=args, index=len(steps),
-                              meta={"role": role}))
-        if role == "assistant":
-            if content:
-                steps.append(Step(kind=RESPONSE, result=_text(content),
-                                  index=len(steps), meta={"role": role}))
-        elif role == "tool":
-            errored = bool(msg.get("is_error"))
-            steps.append(Step(
-                kind=OBSERVATION, tool=msg.get("name")
-                or msg.get("tool_call_id"),
-                result=_text(content), index=len(steps),
-                error="tool reported an error" if errored else None,
-                meta={"role": role}))
-        else:
-            steps.append(Step(kind=MESSAGE, result=_text(content),
-                              index=len(steps), meta={"role": role}))
+        steps.extend(_message_steps(msg))
+    return _renumber(steps)
+
+
+def _renumber(steps: List[Step]) -> List[Step]:
+    for i, step in enumerate(steps):
+        step.index = i
     return steps
+
+
+def _identity(obj: Dict[str, Any], task: str,
+              raw_line: str) -> Tuple[str, str]:
+    """Deterministic sha256 id; our own export metadata restores the
+    original task and id so export→import roundtrips losslessly."""
+    trace_id = hashlib.sha256(raw_line.encode("utf-8")).hexdigest()[:12]
+    metadata = obj.get("metadata")
+    if not isinstance(metadata, dict):
+        return task, trace_id
+    task = str(metadata.get("task") or task)
+    candidate = metadata.get("trace_id")
+    if (isinstance(candidate, str) and len(candidate) == 12
+            and all(c in "0123456789abcdef" for c in candidate)):
+        trace_id = candidate
+    return task, trace_id
 
 
 def _foreign_trace(obj: Dict[str, Any], raw_line: str,
@@ -111,7 +149,7 @@ def _foreign_trace(obj: Dict[str, Any], raw_line: str,
             break
     failed = any(m.get("is_error")
                  for m in messages if m.get("role") == "tool")
-    trace_id = hashlib.sha256(raw_line.encode("utf-8")).hexdigest()[:12]
+    task, trace_id = _identity(obj, task, raw_line)
     return Trace(
         task=task, id=trace_id,
         steps=messages_to_steps(messages),
@@ -119,6 +157,15 @@ def _foreign_trace(obj: Dict[str, Any], raw_line: str,
         final_output=None,
         meta={"imported_from": fmt, "source_line": line_no},
     )
+
+
+def _parse_line(obj: Any, raw: str, line_no: int,
+                fmt: str) -> Trace:
+    if fmt == NATIVE:
+        return Trace.from_dict(obj)
+    if fmt == MESSAGES_LIST:
+        return _foreign_trace({"messages": obj}, raw, line_no, fmt)
+    return _foreign_trace(obj, raw, line_no, fmt)
 
 
 def import_file(path: Path, store: TraceStore,
@@ -141,19 +188,9 @@ def import_file(path: Path, store: TraceStore,
                 continue
             lines += 1
             try:
-                obj = json.loads(raw)
-            except json.JSONDecodeError:
-                skipped += 1
-                continue
-            try:
-                if fmt == NATIVE:
-                    trace = Trace.from_dict(obj)
-                elif fmt == MESSAGES_LIST:
-                    trace = _foreign_trace({"messages": obj}, raw,
-                                           line_no, fmt)
-                else:
-                    trace = _foreign_trace(obj, raw, line_no, fmt)
-            except (AttributeError, KeyError, TypeError, ValueError):
+                trace = _parse_line(json.loads(raw), raw, line_no, fmt)
+            except (AttributeError, KeyError, TypeError, ValueError,
+                    json.JSONDecodeError):
                 skipped += 1
                 continue
             if trace.id in existing:
