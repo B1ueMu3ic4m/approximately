@@ -374,6 +374,9 @@ _TOOLS: List[Dict[str, Any]] = [
             "properties": {
                 "trace": {"type": "string"},
                 "store": {"type": "string"},
+                "per_tool": {"type": "boolean",
+                             "description": "baseline each tool "
+                                            "family separately"},
                 "threshold": {"type": "number",
                               "description": "z-score threshold "
                                              "(default 3.5)"},
@@ -922,8 +925,11 @@ def _tool_anomalies(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     threshold = (float(args["threshold"])
                  if args.get("threshold")
                  else MODIFIED_Z_THRESHOLD)
-    anomalies = detect_latency_anomalies(trace, threshold=threshold)
+    anomalies = detect_latency_anomalies(
+        trace, threshold=threshold,
+        per_tool=bool(args.get("per_tool")))
     return {"trace": trace.id,
+            "per_tool": bool(args.get("per_tool")),
             "count": len(anomalies),
             "summary": summarize_anomalies(anomalies),
             "anomalies": [{"step": a.step_index,
