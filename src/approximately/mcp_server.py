@@ -455,8 +455,31 @@ _TOOLS: List[Dict[str, Any]] = [
                 "query": {"type": "string",
                           "description": "shared query-DSL filter, "
                                          "e.g. 'success == false and tool=ls'"},
+                "since": {"type": "number",
+                          "description": "only traces created in the "
+                                         "last N days"},
             },
             "required": ["output"],
+        },
+    },
+    {
+        "name": "scan_tool",
+        "description": "Static-analysis for a tool description "
+                       "before an agent uses it: spelling tricks, "
+                       "directional-formatting tricks, phrasing "
+                       "that tries to override the operator's "
+                       "instructions.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "file": {"type": "string",
+                         "description": "path to the tool "
+                                        "description (markdown or "
+                                        "plain text)"},
+                "text": {"type": "string",
+                         "description": "or pass the description "
+                                        "inline"},
+            },
         },
     },
     {
@@ -949,6 +972,23 @@ def _explain_detectors(mode_id):
     return detectors_for_mode(mode_id)
 
 
+def _tool_scan_tool(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from dataclasses import asdict
+
+    from .toolscan import scan
+
+    if args.get("text"):
+        text = str(args["text"])
+    elif args.get("file"):
+        path = Path(str(args["file"]))
+        if not path.is_file():
+            raise KeyError(f"no such file: {path}")
+        text = path.read_text(encoding="utf-8", errors="replace")
+    else:
+        raise KeyError("scan_tool needs 'file' or 'text'")
+    return asdict(scan(text))
+
+
 def _tool_import_transcripts(ctx: ServerContext,
                              args: Dict[str, Any]) -> dict:
     from .importer import import_file
@@ -972,10 +1012,13 @@ def _tool_export_transcripts(ctx: ServerContext,
     if not output.parent.is_dir():
         raise KeyError(f"no such directory: {output.parent}")
     store = _store(ctx, args)
+    since = args.get("since")
     return export_store(store, output,
                         fmt=str(args.get("format") or "openai-jsonl"),
                         query_text=(str(args["query"])
-                                    if args.get("query") else None))
+                                    if args.get("query") else None),
+                        since_days=(int(since)
+                                    if since is not None else None))
 
 
 _HANDLERS = {
@@ -1005,6 +1048,7 @@ _HANDLERS = {
     "metrics": _tool_metrics,
     "import_transcripts": _tool_import_transcripts,
     "export_transcripts": _tool_export_transcripts,
+    "scan_tool": _tool_scan_tool,
 }
 
 

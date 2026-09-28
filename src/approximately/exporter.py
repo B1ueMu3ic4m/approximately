@@ -120,13 +120,14 @@ def trace_to_messages(trace: Trace) -> List[Dict[str, Any]]:
 
 def export_store(store: TraceStore, output: Path,
                  fmt: str = OPENAI_JSONL,
-                 query_text: Optional[str] = None) -> Dict[str, Any]:
-    """Write every trace (or the query-selected subset) to ``output``
-    as JSONL; returns the counts written."""
+                 query_text: Optional[str] = None,
+                 since_days: Optional[int] = None) -> Dict[str, Any]:
+    """Write every trace (or the query/age-selected subset) to
+    ``output`` as JSONL; returns the counts written."""
     if fmt not in _FORMATS:
         raise ValueError(f"unknown format {fmt!r}; expected one of "
                          f"{', '.join(_FORMATS)}")
-    traces = store.list_traces()
+    traces = store.list_traces(since_days=since_days)
     if query_text:
         from .query import select
 
