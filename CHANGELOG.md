@@ -3,6 +3,46 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.61
+
+the changelog parser meets hostile ledger text — nested bold inside titles (a deferred line could masquerade as delivered via non-greedy expansion; titles may no longer contain `**`), CRLF files, emoji headings, fullwidth colons, missing versions, future versions — deferred and versionless stay out, everything else parses sorted and reproducible. Plus dedupe threshold extremes (0.0 clusters everything into one group, >1 nothing, max_traces=0 scans nothing) and fleet degenerate latencies (zero, negative, absurd spikes — never NaN).
+
+
+## v1.60
+
+the watch webhook fires on worsening trends and failure-rate thresholds; now `--alert-anomalies N` also fires when a store carries >= N fleet latency outliers. A store running slow-but-successful used to page nobody — the quiet kind of failure finally has a pager. Digest snapshots still land every cycle; the threshold gates the notification, never the recording.
+
+
+## v1.59
+
+(delivered): `_print_fleet` gains the anomaly count — `prod: 412 traces, failure rate 12%, 3 slow outlier(s)` — so the text sweep carries what the JSON payload already had.
+
+
+## v1.58
+
+`APPROXIMATELY_JUDGE_CACHE` backs every `--judge` consumer (the flag wins when given), and the MCP `attribute` tool opens `judge` + `judge_cache` — an agent stack can ask for the judge verdict and cache it in one call. Judge absence still degrades to rules-only, over MCP too.
+
+
+## v1.57
+
+(delivered): `duplicate_groups` reports `scanned` and `capped` (CLI notes the cap, MCP payload carries both) instead of silently ignoring everything past `--max-traces`; and `import -` now streams stdin in a single pass — the sniffed first line is re-joined to the iterator, so a multi-gigabyte dump never materializes in memory. Lists still re-iterate unchanged.
+
+
+## v1.56
+
+one `summarize_trend`, three surfaces — `fleet --trend` prints a `slowness trend:` line (verdict + slope + flagged-step count), the MCP `trend` payload carries `anomaly_trend` verbatim, and the status prose mentions it. Pinned by tests on all three.
+
+
+## v1.55
+
+the per-trace latency card only knows what one run considered normal; the postmortem now gains a "Fleet outliers" card when a store is given — steps that are extreme against every stored run of the same tool. A trace can look normal alone and still be the slowest search the store has ever seen. Best-effort like every card: no store, no card.
+
+
+## v1.54
+
+the PLAN milestone ledger is the single source of truth; the new command renders it as a standard changelog — sorted by version (newest first), one section per version, early multi-item versions merged. The committed CHANGELOG.md is pinned against a fresh render, so it cannot drift from the plan. Also fixes the ledger's own ordering: item 157 sat physically after 163.
+
+
 ## v1.53
 
 the v1.50 handoff pair completes its mirror — an MCP client merges an annotation sidecar into the store (append-only, content-keyed) rather than just the transcript half. Missing file is a tool error, never a protocol fault. 30 tools, `tools/list` authoritative, artifact regenerated.

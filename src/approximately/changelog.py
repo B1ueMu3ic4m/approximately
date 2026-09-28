@@ -14,7 +14,8 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 _HEADING = re.compile(
-    r"^(\d+)\. \*\*(v\d+(?:\.\d+)*) [-\u2013\u2014] (.+?)\*\*"
+    r"^(\d+)\. \*\*(v\d+(?:\.\d+)*) [-\u2013\u2014] "
+    r"((?:[^*]|\*(?!\*))+?)\*\*"
     r"(?: \u2705[^:]*)?(?:[:]\s*(.*))?$")
 
 
