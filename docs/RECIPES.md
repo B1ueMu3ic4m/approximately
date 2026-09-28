@@ -220,3 +220,40 @@ approximately fleet storeA --watch 300 --digest-dir digests \
 watch. A torn digest line, a dead endpoint, or a crashed writer must
 never stop the loop — the toolkit treats the watch itself as the
 thing that has to survive the night.
+
+## 14. Bring last month's logs in for a postmortem
+
+You already have transcripts on disk — a chat-API dump, a JSONL export
+from another stack. No re-running required: import them, and every
+run gets a hash chain, attribution, and a place in the fleet view.
+
+```bash
+# one file, shape sniffed from the first line (native Trace dump,
+# OpenAI chat dump, or a bare message array)
+approximately import logs/2026-08.jsonl --store ~/agents/store
+
+# a whole directory of dumps, with per-file counts
+approximately import 'logs/*.jsonl' --store ~/agents/store --json
+
+# or pipe it straight in
+other_tool dump --jsonl | approximately import - --store ~/agents/store
+
+# now the usual loop works on history
+approximately status --store ~/agents/store
+approximately cluster --store ~/agents/store --min-size 3
+approximately similar "$(approximately status --store ~/agents/store --json | jq -r .last_failure.id)" \
+  --store ~/agents/store
+```
+
+Details worth knowing:
+
+- foreign transcripts get deterministic sha256 ids — re-importing the
+  same dump (or the same transcript in two files) skips instead of
+  duplicating;
+- tool errors ride the OpenAI `is_error` flag: those transcripts
+  import as failed runs, so attribution has something to say;
+- malformed lines are counted, never fatal — a half-torn log still
+  imports its good rows;
+- `approximately export OUT.jsonl` is the reverse path (OpenAI chat
+  shape by default, `--format native` lossless), and an export→import
+  roundtrip restores ids and tasks, so mirrors stay in sync.

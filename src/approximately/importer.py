@@ -181,6 +181,50 @@ def _parse_line(obj: Any, raw: str, line_no: int,
         return _foreign_trace({"messages": obj}, raw, line_no, fmt)
     return _foreign_trace(obj, raw, line_no, fmt)
 
+def import_paths(patterns: List[str], store: TraceStore,
+                 fmt: Optional[str] = None,
+                 dry_run: bool = False) -> Dict[str, Any]:
+    """Import transcript files named by the patterns; ``-`` reads
+    stdin. Per-file counts ride along in ``per_file``."""
+    per_file = []
+    total_ids: List[str] = []
+    lines = imported = skipped = 0
+    files = 0
+    patterns = list(patterns)
+    if "-" in patterns:
+        patterns = [p for p in patterns if p != "-"]
+        import sys
+
+        result = import_lines(list(sys.stdin), store, fmt=fmt,
+                              dry_run=dry_run)
+        per_file.append({"file": "<stdin>",
+                         **{k: result[k] for k in
+                            ("format", "lines", "imported",
+                             "skipped")}})
+        total_ids.extend(result["trace_ids"])
+        lines += result["lines"]
+        imported += result["imported"]
+        skipped += result["skipped"]
+        files += 1
+    for path in _expand(patterns):
+        files += 1
+        result = import_file(path, store, fmt=fmt, dry_run=dry_run)
+        per_file.append({"file": str(path), **{
+            k: result[k] for k in ("format", "lines", "imported",
+                                   "skipped")}})
+        total_ids.extend(result["trace_ids"])
+        lines += result["lines"]
+        imported += result["imported"]
+        skipped += result["skipped"]
+    if files == 0:
+        raise ValueError("no files matched: "
+                         + ", ".join(patterns) if patterns
+                         else "nothing to import")
+    return {"files": files, "lines": lines, "imported": imported,
+            "skipped": skipped, "trace_ids": total_ids,
+            "per_file": per_file}
+
+
 def _expand(patterns: List[str]) -> List[Path]:
     """Expand each argument as a literal path or a glob pattern."""
     import glob as _glob
@@ -196,30 +240,50 @@ def _expand(patterns: List[str]) -> List[Path]:
     return files
 
 
-def import_paths(patterns: List[str], store: TraceStore,
+def import_lines(raw_lines: List[str], store: TraceStore,
                  fmt: Optional[str] = None,
                  dry_run: bool = False) -> Dict[str, Any]:
-    """Import every transcript file the patterns name (globs welcome);
-    per-file counts ride along in ``per_file``."""
-    files = _expand(patterns)
-    if not files:
-        raise ValueError("no files matched: "
-                         + ", ".join(patterns))
-    per_file = []
-    total_ids: List[str] = []
-    lines = imported = skipped = 0
-    for path in files:
-        result = import_file(path, store, fmt=fmt, dry_run=dry_run)
-        per_file.append({"file": str(path), **{
-            k: result[k] for k in ("format", "lines", "imported",
-                                   "skipped")}})
-        total_ids.extend(result["trace_ids"])
-        lines += result["lines"]
-        imported += result["imported"]
-        skipped += result["skipped"]
-    return {"files": len(files), "lines": lines, "imported": imported,
-            "skipped": skipped, "trace_ids": total_ids,
-            "per_file": per_file}
+    """Import transcript lines (a file's content or stdin); malformed
+    lines are skipped, not fatal. Returns counts and stored ids."""
+    if fmt is not None and fmt not in _FORMATS:
+        raise ValueError(f"unknown format {fmt!r}; expected one of "
+                         f"{', '.join(_FORMATS)}")
+    if fmt is None:
+        for raw in raw_lines:
+            if not raw.strip():
+                continue
+            try:
+                obj = json.loads(raw)
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    f"first line is not JSON: {exc}") from exc
+            fmt = _sniff_object(obj)
+            break
+        else:
+            raise ValueError("no transcript lines to sniff")
+    existing = {t.id for t in store.list_traces()}
+    imported: List[str] = []
+    skipped = 0
+    lines = 0
+    for line_no, raw in enumerate(raw_lines, start=1):
+        if not raw.strip():
+            continue
+        lines += 1
+        try:
+            trace = _parse_line(json.loads(raw), raw, line_no, fmt)
+        except (AttributeError, KeyError, TypeError, ValueError,
+                json.JSONDecodeError):
+            skipped += 1
+            continue
+        if trace.id in existing:
+            skipped += 1
+            continue
+        if not dry_run:
+            store.save(trace)
+        existing.add(trace.id)
+        imported.append(trace.id)
+    return {"format": fmt, "lines": lines, "imported": len(imported),
+            "skipped": skipped, "trace_ids": imported}
 
 
 def import_file(path: Path, store: TraceStore,
@@ -227,32 +291,5 @@ def import_file(path: Path, store: TraceStore,
                 dry_run: bool = False) -> Dict[str, Any]:
     """Import every line of ``path``; malformed lines are skipped, not
     fatal.  Returns per-format counts plus the ids actually stored."""
-    if fmt is None:
-        fmt = sniff_format(path)
-    elif fmt not in _FORMATS:
-        raise ValueError(f"unknown format {fmt!r}; expected one of "
-                         f"{', '.join(_FORMATS)}")
-    existing = {t.id for t in store.list_traces()}
-    imported: List[str] = []
-    skipped = 0
-    lines = 0
     with path.open("r", encoding="utf-8", errors="replace") as fh:
-        for line_no, raw in enumerate(fh, start=1):
-            if not raw.strip():
-                continue
-            lines += 1
-            try:
-                trace = _parse_line(json.loads(raw), raw, line_no, fmt)
-            except (AttributeError, KeyError, TypeError, ValueError,
-                    json.JSONDecodeError):
-                skipped += 1
-                continue
-            if trace.id in existing:
-                skipped += 1
-                continue
-            if not dry_run:
-                store.save(trace)
-            existing.add(trace.id)
-            imported.append(trace.id)
-    return {"format": fmt, "lines": lines, "imported": len(imported),
-            "skipped": skipped, "trace_ids": imported}
+        return import_lines(list(fh), store, fmt=fmt, dry_run=dry_run)

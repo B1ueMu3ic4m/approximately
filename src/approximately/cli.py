@@ -1882,8 +1882,8 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("import", parents=[common],
                        help="batch-import foreign transcript JSONL")
     p.add_argument("files", nargs="+",
-                   help="JSONL file(s), one transcript per line; "
-                        "glob patterns welcome")
+                   help="JSONL file(s), one transcript per line; glob "
+                        "patterns welcome; '-' reads stdin")
     p.add_argument("--format", choices=["auto", "native", "openai-jsonl",
                                         "messages-list"],
                    default="auto",
