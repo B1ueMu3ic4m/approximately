@@ -933,11 +933,22 @@ def cmd_status(args: argparse.Namespace) -> int:
         import time as _time
 
         frames = 0
+        on_change = bool(getattr(args, "on_change", False))
+        last_body = None
         try:
             interval = max(0.0, float(interval or 0.0))
             while True:
+                body = _render_status(args)
+                if on_change and body == last_body and frames:
+                    frames += 1
+                    if getattr(args, "frames", None) and \
+                            frames >= args.frames:
+                        return 0
+                    _time.sleep(interval)
+                    continue
+                last_body = body
                 print(f"=== {(_time.strftime('%H:%M:%S'))} ===")
-                print(_render_status(args), flush=True)
+                print(body, flush=True)
                 frames += 1
                 if getattr(args, "frames", None) and \
                         frames >= args.frames:
@@ -2000,6 +2011,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--frames", type=int,
                    help="watch: stop after this many frames (mainly "
                         "for tests and cron wrappers)")
+    p.add_argument("--on-change", action="store_true",
+                   help="watch: print a frame only when the payload "
+                        "changed (no more identical spam)")
     p.add_argument("--fail-on-anomalies", action="store_true",
                    help="exit 1 when fleet latency anomalies are "
                         "present (cron/pipeline alerting)")
