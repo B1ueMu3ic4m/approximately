@@ -1467,6 +1467,13 @@ framework adapters import lazily and degrade when the framework is absent.
      cron wrappers; Ctrl-C exits clean. The frame renderer is shared
      with the one-shot mode (`_render_status`), so prose and `--json`
      frames stay byte-identical between the two modes.
+140. **v1.30 - ARCHITECTURE documents the interop pair** ✅
+     (delivered): a dedicated section for importer.py / exporter.py
+     (shapes, deterministic ids, id-ordered byte-stable exports, the
+     MCP mirrors), the judge disk cache, and the stats.json
+     resource; the cli.py entry now mentions `status --watch` and
+     that ops commands take `--json` too. Docs-only round closing
+     the documentation debt the v1.19-v1.29 feature streak accrued.
 
 
 ## 4. Launch plan

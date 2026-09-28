@@ -105,6 +105,40 @@ binary-search) · `drift.py` (PSI action drift) · `precursor.py`
 (failure prediction from history) · `streaming.py` (live in-flight
 risk monitor).
 
+## Interop: logs in, transcripts out
+
+```
+foreign JSONL ──► importer.py ──► TraceStore
+TraceStore ──► exporter.py ──► foreign JSONL
+```
+
+- **`importer.py`** — the path in for logs already on disk: one
+  transcript per line, shape sniffed from the first line (native
+  Trace dumps, OpenAI chat dumps — tool `is_error` becomes a failed
+  step and a failed trace — or bare message arrays). Foreign lines
+  get deterministic sha256 ids, so re-importing the same dump (or the
+  same transcript in two files) skips instead of duplicating; our own
+  export metadata (task / trace_id / success, explicit nulls
+  included) roundtrips losslessly; malformed lines are counted
+  skips, never fatal. `import -` reads stdin; glob patterns fan out
+  with per-file counts. Mirrored as MCP tool `import_transcripts`.
+- **`exporter.py`** — the path out: OpenAI chat shape by default
+  (adjacent tool_call steps merge into one assistant message,
+  observations pair with call ids in order, a call whose result/error
+  rode on the step itself emits its own tool message), `--format
+  native` for the lossless chain-verifying dump. Rows export in id
+  order — the same content exports to identical bytes on every
+  filesystem, mtime granularity included. Mirrored as MCP tool
+  `export_transcripts`.
+- **`judge.py` cache** — `--judge-cache DIR` keys verdicts by
+  sha256(model, preset, compact trace): repeat asks are free, hits
+  are indistinguishable from fresh answers, corrupt entries are
+  misses, a read-only cache never fails the judge, and a JudgeError
+  is never cached.
+- **MCP resources** — `approximately://{store}/stats.json` (store
+  health snapshot for dashboards) beside `annotations.jsonl` and the
+  per-trace entries.
+
 ## Fleet operations
 
 - **`fleet.py`** — multi-store survey (failure rates, Theil-Sen trend
@@ -127,9 +161,10 @@ risk monitor).
 - **`cli.py`** — every surface above as a subcommand, including the
   ops pair: `status` (one-glance overview: health, top modes,
   triage tallies, last failure + chain verdict, optional fleet
-  trend) and `annotate` / `annotations --verdict` (the triage log).
-  All analysis commands take `--json`; the MCP surface mirrors them
-  1:1.
+  trend; `--watch` re-renders it on an interval all night) and
+  `annotate` / `annotations --verdict` (the triage log). All
+  analysis and ops commands take `--json`; the MCP surface mirrors
+  them 1:1.
 
 ## Interfaces
 
