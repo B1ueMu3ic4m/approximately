@@ -1563,6 +1563,13 @@ framework adapters import lazily and degrade when the framework is absent.
      an otherwise boring week stands out even though that trace,
      alone, looks unremarkable. Families under `min_samples` are
      honest no-ops; findings carry their `trace_id`.
+152. **v1.42 - the ops glance knows the fleet** ✅ (delivered):
+     `status` (CLI and MCP #28 alike — they share
+     `_status_payload`) now carries `fleet_anomalies`: the count of
+     store-wide per-tool latency outliers and the worst offender
+     (tool, latency, family median, z). The prose render names it
+     when nonzero, and the one-shot/watch/JSON modes now share ONE
+     renderer, so the glance cannot drift between modes.
 
 
 ## 4. Launch plan

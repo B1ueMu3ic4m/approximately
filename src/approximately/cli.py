@@ -802,6 +802,10 @@ def _status_payload(store, traces, digest_dir, since=None):
         trend = summarize_trend(trend_days(Path(digest_dir)))
     recidivists = agent_scorecard(traces, min_failed=2)
     ledger = verify_ledger(store.directory)
+    from .anomaly import detect_fleet_anomalies
+
+    fleet_anoms = detect_fleet_anomalies(traces)
+    worst = fleet_anoms[0] if fleet_anoms else None
     return {
         "store": str(store.directory),
         "traces": stats.traces,
@@ -819,6 +823,16 @@ def _status_payload(store, traces, digest_dir, since=None):
         "ledger_intact": None if not ledger.entries else ledger.intact,
         "top_recidivist": (recidivists[0]["agent"]
                            if recidivists else None),
+        "fleet_anomalies": {
+            "count": len(fleet_anoms),
+            "worst": None if worst is None else {
+                "trace_id": worst.trace_id,
+                "tool": worst.tool,
+                "latency_ms": worst.latency_ms,
+                "median_ms": worst.median_ms,
+                "robust_z": worst.robust_z,
+            },
+        },
     }
 
 
@@ -843,6 +857,13 @@ def _render_status(args: argparse.Namespace) -> str:
         buf.write(f"  top modes: {top}\n")
     buf.write(f"  annotations: {payload['annotations']} "
               f"({payload['annotations_confirmed']} confirmed)\n")
+    fleet = payload.get("fleet_anomalies") or {}
+    if fleet.get("count"):
+        worst = fleet.get("worst") or {}
+        buf.write(f"  fleet anomalies: {fleet['count']}"
+                  f" (worst: {worst.get('tool')} "
+                  f"{worst.get('latency_ms')}ms, "
+                  f"z={worst.get('robust_z'):+.1f})\n")
     last = payload["last_failure"]
     if last is not None:
         buf.write(f"  last failure: {last['id']} chain={last['chain']} "
@@ -869,37 +890,16 @@ def cmd_status(args: argparse.Namespace) -> int:
                 _time.sleep(interval)
         except KeyboardInterrupt:
             return 0
-    store = TraceStore(args.store)
-    traces = store.list_traces(since_days=getattr(args, "since", None))
-    payload = _status_payload(store, traces,
-                              getattr(args, "digest_dir", None),
-                              since=getattr(args, "since", None))
     if getattr(args, "json", False):
+        store = TraceStore(args.store)
+        traces = store.list_traces(
+            since_days=getattr(args, "since", None))
+        payload = _status_payload(store, traces,
+                                  getattr(args, "digest_dir", None),
+                                  since=getattr(args, "since", None))
         print(json.dumps(payload, indent=2))
         return 0
-    rate = f"{payload['failure_rate']:.0%}" if payload["traces"] else "-"
-    print(f"{payload['store']}: {payload['traces']} traces, "
-          f"{payload['failures']} failed ({rate})")
-    if payload["top_modes"]:
-        top = ", ".join(f"{m} x{c}"
-                        for m, c in payload["top_modes"].items())
-        print(f"  top modes: {top}")
-    print(f"  annotations: {payload['annotations']} "
-          f"({payload['annotations_confirmed']} confirmed)")
-    last = payload["last_failure"]
-    if last is not None:
-        print(f"  last failure: {last['id']} chain={last['chain']} "
-              f"— {(last['task'] or '')[:60]}")
-    else:
-        print("  last failure: none")
-    if payload["trend"]:
-        print(f"  fleet trend: {payload['trend']['verdict']}")
-    ledger_intact = payload["ledger_intact"]
-    if ledger_intact is not None:
-        print("  ledger: "
-              + ("intact" if ledger_intact else "BROKEN"))
-    if payload["top_recidivist"]:
-        print(f"  top recidivist: {payload['top_recidivist']}")
+    print(_render_status(args))
     return 0
 
 
