@@ -1450,6 +1450,16 @@ framework adapters import lazily and degrade when the framework is absent.
      or preset re-asks; corrupt entries are misses; a read-only or
      full cache never fails the judge; a JudgeError is never cached.
      Real money saved on the attribute→benchmark→distill loop.
+138. **v1.28 - the ops seven learn --json** ✅ (delivered): the
+     all-commands-`--json` rule (v1.18) was aspirational on seven
+     operators' commands; annotate, anomalies, metrics, clean,
+     repair, rotate and scan-tool now all emit machine-readable
+     payloads (`annotate` → the stored entry + note count,
+     `anomalies` → per-step robust-z rows with direction, `metrics`
+     → the stats snapshot or `{"format": "prometheus", "text"}`,
+     `clean` → removed/keep_days, `repair` → applied/cleared/
+     remaining/unrepairable, `rotate` → rotated+trace_id or refusal,
+     `scan-tool` → verdict+findings). Prose stays the default.
 
 
 ## 4. Launch plan
