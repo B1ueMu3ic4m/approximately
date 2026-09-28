@@ -1490,6 +1490,13 @@ framework adapters import lazily and degrade when the framework is absent.
      with the same aggregate + per-file counts the CLI prints.
      Similarity caps and floors compose: top-N picks, then the floor
      filters.
+143. **v1.33 - the distill loop learns to remember** ✅ (delivered):
+     `teacher_labeler` takes `cache_dir` and both teacher consumers
+     grow `--teacher-cache DIR` (`export-dataset`, `export-sft`) —
+     relabeling a dataset is free for every trace asked before;
+     `benchmark --judge-cache` already had it. Low-confidence and
+     OTHER verdicts still label None; a JudgeError still labels
+     None; the cache only removes the repeat cost.
 
 
 ## 4. Launch plan

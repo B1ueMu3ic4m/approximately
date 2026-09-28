@@ -1388,7 +1388,10 @@ def cmd_distill(args: argparse.Namespace) -> int:
     store = TraceStore(args.store)
     traces = store.list_traces()
     if args.teacher:
-        labeler = teacher_labeler(args.teacher)
+        labeler = teacher_labeler(
+            args.teacher,
+            cache_dir=(Path(args.teacher_cache)
+                       if getattr(args, "teacher_cache", None) else None))
         source = f"teacher {args.teacher}"
     else:
         labeler = rules_labeler()
@@ -1452,7 +1455,10 @@ def cmd_export_dataset(args: argparse.Namespace) -> int:
     store = TraceStore(args.store)
     traces = store.list_traces()
     if args.teacher:
-        labeler = teacher_labeler(args.teacher)
+        labeler = teacher_labeler(
+            args.teacher,
+            cache_dir=(Path(args.teacher_cache)
+                       if getattr(args, "teacher_cache", None) else None))
         source = f"teacher {args.teacher}"
     else:
         labeler = rules_labeler()
@@ -1504,7 +1510,10 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
         return _benchmark_multi(labeled, args)
 
     if args.judge:
-        labeler = teacher_labeler(args.judge_model or "gpt-4o-mini")
+        labeler = teacher_labeler(
+            args.judge_model or "gpt-4o-mini",
+            cache_dir=(Path(args.judge_cache)
+                       if getattr(args, "judge_cache", None) else None))
         source = f"judge {args.judge_model or 'gpt-4o-mini'}"
     else:
         labeler = rules_labeler()
@@ -2002,6 +2011,9 @@ def build_parser() -> argparse.ArgumentParser:
                        help="export SFT training data for a local judge model")
     p.add_argument("-o", "--output", default="judge-sft.jsonl",
                    help="output JSONL path (default judge-sft.jsonl)")
+    p.add_argument("--teacher-cache", metavar="DIR",
+                   help="cache judge verdicts here (relabels are "
+                        "free for traces asked before)")
     p.add_argument("--teacher", help="label with a strong judge model instead "
                                      "of the rule detectors")
     p.set_defaults(func=cmd_distill)
@@ -2036,6 +2048,9 @@ def build_parser() -> argparse.ArgumentParser:
                        help="export labeled traces for benchmarking/sharing")
     p.add_argument("-o", "--output", default="dataset.jsonl",
                    help="output JSONL path (default dataset.jsonl)")
+    p.add_argument("--teacher-cache", metavar="DIR",
+                   help="cache judge verdicts here (relabels are "
+                        "free for traces asked before)")
     p.add_argument("--teacher", help="label with a strong judge model instead "
                                      "of the rule detectors")
     p.set_defaults(func=cmd_export_dataset)
