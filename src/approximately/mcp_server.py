@@ -1037,12 +1037,15 @@ def _tool_find_duplicates(ctx: ServerContext,
                  if args.get("threshold") is not None else 0.95)
     max_traces = (int(args["max_traces"])
                   if args.get("max_traces") else 2000)
-    groups = duplicate_groups(store.list_traces(),
+    result = duplicate_groups(store.list_traces(),
                               threshold=threshold,
                               max_traces=max_traces)
     return {"threshold": threshold,
-            "groups": groups,
-            "redundant_traces": sum(g["size"] - 1 for g in groups)}
+            "groups": result["groups"],
+            "redundant_traces": sum(g["size"] - 1
+                                    for g in result["groups"]),
+            "scanned": result["scanned"],
+            "capped": result["capped"]}
 
 
 def _tool_status(ctx: ServerContext, args: Dict[str, Any]) -> dict:

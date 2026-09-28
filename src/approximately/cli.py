@@ -1609,13 +1609,16 @@ def cmd_dedupe(args: argparse.Namespace) -> int:
     from .align import duplicate_groups
 
     store = TraceStore(args.store)
-    groups = duplicate_groups(store.list_traces(),
+    result = duplicate_groups(store.list_traces(),
                               threshold=args.threshold,
                               max_traces=args.max_traces)
+    groups = result["groups"]
     duplicates = sum(g["size"] - 1 for g in groups)
     payload = {"threshold": args.threshold,
                "groups": groups,
-               "redundant_traces": duplicates}
+               "redundant_traces": duplicates,
+               "scanned": result["scanned"],
+               "capped": result["capped"]}
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2))
         return 0
@@ -1623,8 +1626,10 @@ def cmd_dedupe(args: argparse.Namespace) -> int:
         print("no near-duplicate traces "
               f"(threshold {args.threshold})")
         return 0
+    cap_note = (f" (scan capped at {args.max_traces} traces)"
+                if result["capped"] else "")
     print(f"{len(groups)} near-duplicate group(s), "
-          f"{duplicates} redundant trace(s):")
+          f"{duplicates} redundant trace(s){cap_note}:")
     for g in groups:
         print(f"  [{g['size']}x] {g['task']}: {g['ids']}")
     return 0

@@ -34,16 +34,18 @@ def _seed(directory, twin_count=2):
 
 def test_duplicate_groups_found(tmp_path):
     store, ids = _seed(tmp_path / "s")
-    groups = duplicate_groups(store.list_traces())
+    result = duplicate_groups(store.list_traces())
+    groups = result["groups"]
     assert len(groups) == 1
     assert groups[0]["size"] == 2
+    assert result["capped"] is False
     assert sorted(groups[0]["ids"]) == sorted(ids)
     assert groups[0]["task"] == "book a flight to Oslo"
 
 
 def test_distinct_traces_form_no_groups(tmp_path):
     store, _ = _seed(tmp_path / "s", twin_count=1)
-    assert duplicate_groups(store.list_traces()) == []
+    assert duplicate_groups(store.list_traces())["groups"] == []
 
 
 def test_threshold_strictness(tmp_path):
@@ -61,7 +63,7 @@ def test_threshold_strictness(tmp_path):
     # never clusters it, and no floor in (0.25, 1) can either unless
     # the runs truly align
     strict = duplicate_groups(store.list_traces(), threshold=0.99)
-    assert strict == []
+    assert strict["groups"] == []
     assert similarity(store.list_traces()[0],
                       store.list_traces()[1]) < 0.5
 

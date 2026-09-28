@@ -60,3 +60,15 @@ def test_cli_stdin_import(tmp_path, monkeypatch, capsys):
     payload = json.loads(capsys.readouterr().out)
     assert payload["imported"] == 1
     assert TraceStore(tmp_path / "s").load(payload["trace_ids"][0])
+
+
+def test_import_lines_accepts_one_pass_stream(tmp_path):
+    # a generator (like real stdin): the sniffed first line must be
+    # re-joined, not lost, and nothing may be processed twice
+    store = TraceStore(tmp_path / "s")
+    stream = iter([_line("first via stream"), "",
+                   "{broken"])
+    result = import_lines(stream, store)
+    assert result["imported"] == 1
+    assert result["skipped"] == 1
+    assert len(store.list_traces()) == 1
