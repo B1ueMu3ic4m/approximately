@@ -385,6 +385,10 @@
           "store": {
             "type": "string"
           },
+          "fleet": {
+            "type": "boolean",
+            "description": "baseline each tool family across the whole store instead of one trace"
+          },
           "per_tool": {
             "type": "boolean",
             "description": "baseline each tool family separately"

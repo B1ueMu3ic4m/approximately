@@ -374,6 +374,10 @@ _TOOLS: List[Dict[str, Any]] = [
             "properties": {
                 "trace": {"type": "string"},
                 "store": {"type": "string"},
+                "fleet": {"type": "boolean",
+                          "description": "baseline each tool family "
+                                         "across the whole store "
+                                         "instead of one trace"},
                 "per_tool": {"type": "boolean",
                              "description": "baseline each tool "
                                             "family separately"},
@@ -919,12 +923,29 @@ def _tool_anomalies(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .anomaly import MODIFIED_Z_THRESHOLD, detect_latency_anomalies, summarize_anomalies
 
     store = _store(ctx, args)
-    trace = store.load(str(args["trace"]))
-    if trace is None:
-        raise KeyError(f"no trace {args['trace']!r} in store")
     threshold = (float(args["threshold"])
                  if args.get("threshold")
                  else MODIFIED_Z_THRESHOLD)
+    if args.get("fleet"):
+        from .anomaly import detect_fleet_anomalies
+
+        store_traces = store.list_traces()
+        fleet = detect_fleet_anomalies(store_traces,
+                                       threshold=threshold)
+        return {"fleet": True,
+                "traces": len(store_traces),
+                "count": len(fleet),
+                "anomalies": [{"trace_id": a.trace_id,
+                               "step_index": a.step_index,
+                               "tool": a.tool,
+                               "latency_ms": a.latency_ms,
+                               "median_ms": a.median_ms,
+                               "robust_z": a.robust_z,
+                               "direction": a.direction}
+                              for a in fleet[:50]]}
+    trace = store.load(str(args["trace"]))
+    if trace is None:
+        raise KeyError(f"no trace {args['trace']!r} in store")
     anomalies = detect_latency_anomalies(
         trace, threshold=threshold,
         per_tool=bool(args.get("per_tool")))
