@@ -341,6 +341,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.54** — `approximately changelog`: the PLAN ledger renders as [CHANGELOG.md](CHANGELOG.md), pinned against the plan
 - ✅ **v1.55** — postmortems gain a Fleet-outliers card: this run's steps against every stored run of the same tool
 - ✅ **v1.56** — slowness trend parity across `fleet --trend`, MCP `trend` and `status`
+- ✅ **v1.57** — dedupe reports scan caps; `import -` streams stdin in one pass
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

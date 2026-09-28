@@ -1652,6 +1652,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      versions merged. The committed CHANGELOG.md is pinned against a
      fresh render, so it cannot drift from the plan. Also fixes the
      ledger's own ordering: item 157 sat physically after 163.
+165. **v1.57 - robustness: capped dedupe scans, streamed stdin** ✅
+     (delivered): `duplicate_groups` reports `scanned` and `capped`
+     (CLI notes the cap, MCP payload carries both) instead of
+     silently ignoring everything past `--max-traces`; and `import -`
+     now streams stdin in a single pass — the sniffed first line is
+     re-joined to the iterator, so a multi-gigabyte dump never
+     materializes in memory. Lists still re-iterate unchanged.
 165. **v1.55 - postmortems name fleet outliers** ✅ (delivered):
      the per-trace latency card only knows what one run considered
      normal; the postmortem now gains a "Fleet outliers" card when a

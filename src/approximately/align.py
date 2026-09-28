@@ -147,6 +147,7 @@ def duplicate_groups(traces, threshold: float = 0.95,
     Returns groups of member ids, largest first.
     """
     ordered = sorted(traces, key=lambda t: t.id)[:max_traces]
+    capped = len(ordered) >= max_traces
     clusters: List[Tuple[Trace, List[Trace]]] = []
     for trace in ordered:
         for rep, members in clusters:
@@ -163,7 +164,8 @@ def duplicate_groups(traces, threshold: float = 0.95,
         for _, members in clusters if len(members) > 1
     ]
     groups.sort(key=lambda g: -g["size"])
-    return groups
+    return {"groups": groups, "scanned": len(ordered),
+            "capped": capped}
 
 
 def dedupe_traces(traces, threshold: float = 0.95,

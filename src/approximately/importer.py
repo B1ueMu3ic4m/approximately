@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from itertools import chain
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -223,8 +224,8 @@ def import_paths(patterns: List[str], store: TraceStore,
         import sys
 
         files += 1
-        result = import_lines(list(sys.stdin), store, fmt=fmt,
-                              dry_run=dry_run)
+        result = import_lines(sys.stdin, store, fmt=fmt,
+                              dry_run=dry_run)  # streamed
         _merge(per_file, result, "<stdin>", totals, total_ids)
     errors = 0
 
@@ -286,18 +287,24 @@ def import_lines(raw_lines: List[str], store: TraceStore,
         raise ValueError(f"unknown format {fmt!r}; expected one of "
                          f"{', '.join(_FORMATS)}")
     if fmt is None:
+        first = None
         for raw in raw_lines:
             if not raw.strip():
                 continue
-            try:
-                obj = json.loads(raw)
-            except json.JSONDecodeError as exc:
-                raise ValueError(
-                    f"first line is not JSON: {exc}") from exc
-            fmt = _sniff_object(obj)
+            first = raw
             break
-        else:
+        if first is None:
             raise ValueError("no transcript lines to sniff")
+        try:
+            fmt = _sniff_object(json.loads(first))
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"first line is not JSON: {exc}") from exc
+        # raw_lines may be a one-pass stream (stdin): put the sniffed
+        # line back at the head instead of materializing everything;
+        # lists are re-iterable and must not be wrapped
+        if not isinstance(raw_lines, (list, tuple)):
+            raw_lines = chain([first], raw_lines)
     existing = {t.id for t in store.list_traces()}
     imported: List[str] = []
     skipped = 0
