@@ -338,6 +338,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.51** — `status --fail-on-anomalies` / `--fail-on-worsening`: the glance can fail a pipeline
 - ✅ **v1.52** — slowness trend over digest days; status tail lines restored to the shared renderer
 - ✅ **v1.53** — MCP tool #30 `import_annotations`: the handoff pair completes its mirror; 30 tools
+- ✅ **v1.54** — `approximately changelog`: the PLAN ledger renders as [CHANGELOG.md](CHANGELOG.md), pinned against the plan
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

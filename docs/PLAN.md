@@ -1598,49 +1598,6 @@ framework adapters import lazily and degrade when the framework is absent.
      double-fires otherwise get labeled, exported and trained on as
      if they were independent evidence. The pass prints what it
      dropped; without the flag nothing changes.
-158. **v1.48 - floors that keep up** ✅ (delivered): `bench-gate
-     --update-floors` regenerates the floors file from a measured
-     run at measured-minus-margin (default 5%) — after an
-     intentional improvement or a corpus change, floors stop being
-     stale. `min_records` survives regeneration unless explicitly
-     set, and the regenerated file is verified to still PASS a fresh
-     gate (headroom for noise, not a pass-everything gate).
-159. **v1.49 - triage coverage in the glance** ✅ (delivered):
-     `status` answered "how many failures"; now it answers "how many
-     has anyone actually looked at" — `triage_coverage`
-     (annotated failures over total failures) in the payload, and a
-     prose line whenever the ratio is below 100%. No failures on
-     file is `None`, not a fake 100%.
-160. **v1.50 - store handoff: the triage story travels** ✅
-     (delivered): `export --with-annotations` writes the triage
-     sidecar next to the transcript export
-     (OUT.annotations.jsonl); `import --annotations` merges a
-     sidecar append-only. Identity is the stable triage content
-     (trace_id, note, author, verdict) — timestamps differ between
-     stores, so a full re-import of the same file skips instead of
-     duplicating. Malformed rows are counted; the evidence chain is
-     untouched.
-161. **v1.51 - the glance can fail a pipeline** ✅ (delivered):
-     cron wrappers need exit codes, not prose. `status
-     --fail-on-anomalies` exits 1 when fleet latency outliers
-     exist; `--fail-on-worsening` exits 1 when the trend verdict is
-     worsening (needs `--digest-dir`). The frame still prints first
-     — the alert explains itself.
-162. **v1.52 - slowness gets a trend** ✅ (delivered): digest
-     snapshots already carry each store's fleet-anomaly count
-     (v1.44's webhook fields flow through), so `trend.anomaly_trend`
-     judges slowness over days once two days of history exist
-     (verdict + slope + latest count); the status prose prints
-     `slowness trend: ...` when present. Also restores the status
-     tail lines (trend/ledger/recidivist/last-failure-none) that the
-     shared renderer silently dropped in v1.42 — a round-25
-     consolidation left the renderer a subset of the one-shot.
-163. **v1.53 - MCP tool #30 `import_annotations`** ✅ (delivered):
-     the v1.50 handoff pair completes its mirror — an MCP client
-     merges an annotation sidecar into the store (append-only,
-     content-keyed) rather than just the transcript half. Missing
-     file is a tool error, never a protocol fault. 30 tools,
-     `tools/list` authoritative, artifact regenerated.
 157. **v1.47 - RECIPES: night watch and dedupe** ✅ (delivered):
      recipe 15 ties the night story together (`status --watch` +
      fleet baselines + the multi-project sweep, with a note on
@@ -1681,3 +1638,53 @@ Bohnet et al., *Why Do LLM Agents Fail and How Can They Learn From Failures?*, a
 Xie et al., *OSWorld: Benchmarking Multimodal Agents*, arXiv:2404.07972, 2024.
 *Efficient Context Engineering for Long-Horizon Tool-Using Agents*, arXiv:2606.10209, 2026.
 Anthropic, *Effective Context Engineering for AI Agents*, 2025.
+158. **v1.48 - floors that keep up** ✅ (delivered): `bench-gate
+     --update-floors` regenerates the floors file from a measured
+     run at measured-minus-margin (default 5%) — after an
+     intentional improvement or a corpus change, floors stop being
+     stale. `min_records` survives regeneration unless explicitly
+     set, and the regenerated file is verified to still PASS a fresh
+     gate (headroom for noise, not a pass-everything gate).
+164. **v1.54 - `approximately changelog`** ✅ (delivered): the PLAN
+     milestone ledger is the single source of truth; the new command
+     renders it as a standard changelog — sorted by version
+     (newest first), one section per version, early multi-item
+     versions merged. The committed CHANGELOG.md is pinned against a
+     fresh render, so it cannot drift from the plan. Also fixes the
+     ledger's own ordering: item 157 sat physically after 163.
+159. **v1.49 - triage coverage in the glance** ✅ (delivered):
+     `status` answered "how many failures"; now it answers "how many
+     has anyone actually looked at" — `triage_coverage`
+     (annotated failures over total failures) in the payload, and a
+     prose line whenever the ratio is below 100%. No failures on
+     file is `None`, not a fake 100%.
+160. **v1.50 - store handoff: the triage story travels** ✅
+     (delivered): `export --with-annotations` writes the triage
+     sidecar next to the transcript export
+     (OUT.annotations.jsonl); `import --annotations` merges a
+     sidecar append-only. Identity is the stable triage content
+     (trace_id, note, author, verdict) — timestamps differ between
+     stores, so a full re-import of the same file skips instead of
+     duplicating. Malformed rows are counted; the evidence chain is
+     untouched.
+161. **v1.51 - the glance can fail a pipeline** ✅ (delivered):
+     cron wrappers need exit codes, not prose. `status
+     --fail-on-anomalies` exits 1 when fleet latency outliers
+     exist; `--fail-on-worsening` exits 1 when the trend verdict is
+     worsening (needs `--digest-dir`). The frame still prints first
+     — the alert explains itself.
+162. **v1.52 - slowness gets a trend** ✅ (delivered): digest
+     snapshots already carry each store's fleet-anomaly count
+     (v1.44's webhook fields flow through), so `trend.anomaly_trend`
+     judges slowness over days once two days of history exist
+     (verdict + slope + latest count); the status prose prints
+     `slowness trend: ...` when present. Also restores the status
+     tail lines (trend/ledger/recidivist/last-failure-none) that the
+     shared renderer silently dropped in v1.42 — a round-25
+     consolidation left the renderer a subset of the one-shot.
+163. **v1.53 - MCP tool #30 `import_annotations`** ✅ (delivered):
+     the v1.50 handoff pair completes its mirror — an MCP client
+     merges an annotation sidecar into the store (append-only,
+     content-keyed) rather than just the transcript half. Missing
+     file is a tool error, never a protocol fault. 30 tools,
+     `tools/list` authoritative, artifact regenerated.
