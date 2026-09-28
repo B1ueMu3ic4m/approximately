@@ -780,6 +780,25 @@ def cmd_annotations(args: argparse.Namespace) -> int:
     return 0
 
 
+def _fleet_and_coverage(traces, annotations, stats):
+    """Fleet latency outliers + triage coverage, for the glance."""
+    from .anomaly import detect_fleet_anomalies
+
+    fleet_anoms = detect_fleet_anomalies(traces)
+    annotated_failures = len({
+        a.get("trace_id") for a in annotations
+        if a.get("trace_id")
+    } & {t.id for t in traces if t.success is False})
+    failures = stats.failures
+    ratio = (annotated_failures / failures) if failures else None
+    coverage = {
+        "annotated_failures": annotated_failures,
+        "failures": failures,
+        "ratio": round(ratio, 4) if ratio is not None else None,
+    }
+    return fleet_anoms, coverage
+
+
 def _status_payload(store, traces, digest_dir, since=None):
     """Build the status overview data (shared by text and JSON)."""
     import time as _time
@@ -814,9 +833,8 @@ def _status_payload(store, traces, digest_dir, since=None):
         trend = summarize_trend(trend_days(Path(digest_dir)))
     recidivists = agent_scorecard(traces, min_failed=2)
     ledger = verify_ledger(store.directory)
-    from .anomaly import detect_fleet_anomalies
-
-    fleet_anoms = detect_fleet_anomalies(traces)
+    fleet_anoms, coverage = _fleet_and_coverage(traces, annotations,
+                                                stats)
     worst = fleet_anoms[0] if fleet_anoms else None
     return {
         "store": str(store.directory),
@@ -845,6 +863,7 @@ def _status_payload(store, traces, digest_dir, since=None):
                 "robust_z": worst.robust_z,
             },
         },
+        "triage_coverage": coverage,
     }
 
 
@@ -869,6 +888,12 @@ def _render_status(args: argparse.Namespace) -> str:
         buf.write(f"  top modes: {top}\n")
     buf.write(f"  annotations: {payload['annotations']} "
               f"({payload['annotations_confirmed']} confirmed)\n")
+    coverage = payload.get("triage_coverage") or {}
+    if coverage.get("ratio") is not None and coverage["ratio"] < 1:
+        buf.write(f"  triage coverage: "
+                  f"{coverage['annotated_failures']}/"
+                  f"{coverage['failures']} failures annotated "
+                  f"({coverage['ratio']:.0%})\n")
     fleet = payload.get("fleet_anomalies") or {}
     if fleet.get("count"):
         worst = fleet.get("worst") or {}
