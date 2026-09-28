@@ -1022,6 +1022,12 @@ def _resources(ctx: ServerContext) -> List[dict]:
         "uri": f"approximately://{store.directory}/annotations.jsonl",
         "name": "annotations",
         "mimeType": "application/x-ndjson",
+    }, {
+        "uri": f"approximately://{store.directory}/stats.json",
+        "name": "stats",
+        "mimeType": "application/json",
+        "description": "store health snapshot: trace count, failure "
+                       "rate, top failure modes",
     }]
     out.extend({
         "uri": f"approximately://{store.directory}/traces/{trace.id}",
@@ -1050,6 +1056,15 @@ def _resources_read(msg: Dict[str, Any], ctx: ServerContext,
                        for r in rows)
         text = body
         mime = "application/x-ndjson"
+    elif rest == f"{store.directory}/stats.json":
+        from .cluster import store_stats
+
+        stats = store_stats(store.list_traces())
+        snapshot = {"traces": stats.traces, "failures": stats.failures,
+                    "failure_rate": round(stats.failure_rate, 4),
+                    "top_modes": dict(list(stats.mode_counts.items())[:5])}
+        text = json.dumps(snapshot, ensure_ascii=False, indent=2)
+        mime = "application/json"
     elif rest.startswith(prefix):
         trace_id = rest[len(prefix):]
         trace = store.load(trace_id)

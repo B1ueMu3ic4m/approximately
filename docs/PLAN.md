@@ -1420,6 +1420,12 @@ framework adapters import lazily and degrade when the framework is absent.
      Deterministic ids now dedupe across files: the same transcript
      in two log files is one trace. No match is a documented
      ValueError (CLI exit 2), not a silent success.
+134. **v1.24 - MCP stats resource** ✅ (delivered): the resource
+     surface grows `approximately://{store}/stats.json` — store
+     health (trace count, failure rate, top failure modes) readable
+     by any MCP client without calling a tool, next to the
+     annotations sidecar and per-trace entries. Dashboards get a
+     browse path that stays out of the tool budget.
 
 
 ## 4. Launch plan
