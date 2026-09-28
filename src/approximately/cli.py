@@ -451,7 +451,9 @@ def cmd_rotate(args: argparse.Namespace) -> int:
 def cmd_scan_tool(args: argparse.Namespace) -> int:
     from .toolscan import scan
 
-    text = Path(args.file).read_text(encoding="utf-8")
+    text = getattr(args, "text", None)
+    if text is None:
+        text = Path(args.file).read_text(encoding="utf-8")
     result = scan(text)
     if getattr(args, "json", False):
         from dataclasses import asdict
@@ -814,6 +816,7 @@ def cmd_status(args: argparse.Namespace) -> int:
 
         frames = 0
         try:
+            interval = max(0.0, float(interval or 0.0))
             while True:
                 print(f"=== {(_time.strftime('%H:%M:%S'))} ===")
                 print(_render_status(args), flush=True)
@@ -1761,6 +1764,9 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("scan-tool", parents=[common],
                        help="scan an MCP tool description for poisoning")
     p.add_argument("file", help="tool description (text) to scan")
+    p.add_argument("--text",
+                   help="scan this description inline instead of a "
+                        "file")
     p.add_argument("--json", action="store_true",
            help="emit machine-readable JSON instead of prose")
     p.set_defaults(func=cmd_scan_tool)

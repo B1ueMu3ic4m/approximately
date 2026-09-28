@@ -1515,6 +1515,17 @@ framework adapters import lazily and degrade when the framework is absent.
      latencies judged against the whole-trace median/MAD — instead
      of going blind on rare tools. Identical-latency families are
      honest no-ops.
+146. **v1.36 - fuzz round 8: the cache and the baselines** ✅
+     (delivered): the fuzz tradition reaches the v1.27-v1.35
+     surfaces, and every finding was real. The judge cache now
+     shape-validates what it serves (poison that `_parse_verdict`
+     would coerce — numeric mode_ids, dict rationales, string
+     confidence — is a miss, not a corrupted hit); the rare-tool
+     fallback names the MAD==0 case (">50% identical steps leave no
+     scale") and flags a rare call that differs from the median at
+     all; `status --watch` clamps negative intervals; `scan-tool
+     --text` gives the CLI the inline path the MCP tool already
+     had.
 
 
 ## 4. Launch plan

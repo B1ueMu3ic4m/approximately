@@ -320,6 +320,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.33** — `--teacher-cache` on the distill loop: relabeling a dataset is free for traces asked before
 - ✅ **v1.34** — MCP tool #28 `status`: the ops pair completes its MCP mirror; 28 tools
 - ✅ **v1.35** — `anomalies --per-tool`: each tool family gets its own latency baseline; rare tools fall back to the pooled scale
+- ✅ **v1.36** — fuzz round 8: poisoned judge-cache entries are misses, MAD==0 rare tools get named, watch clamps negative intervals
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
