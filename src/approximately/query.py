@@ -37,7 +37,8 @@ _TOKEN = re.compile(
     re.VERBOSE)
 
 _FIELDS = ("id", "task", "success", "model", "created", "steps",
-           "tokens", "duration", "mode", "agents", "tools", "errors")
+           "tokens", "duration", "max_latency", "mode", "agents",
+           "tools", "errors")
 
 _MAX_EXPR_CHARS = 4000
 
@@ -92,6 +93,12 @@ def _field_getter(name: str,
     elif name == "tokens":
         def getter(t: Trace) -> Any:
             return sum(s.tokens for s in t.steps)
+    elif name == "max_latency":
+        def getter(t: Trace) -> Any:
+            timed = [s.latency_ms for s in t.steps
+                     if s.kind == "tool_call"
+                     and s.latency_ms and s.latency_ms > 0]
+            return max(timed) if timed else 0
     elif name == "duration":
         def getter(t: Trace) -> Any:
             return sum(s.latency_ms for s in t.steps)
