@@ -35,7 +35,7 @@ def main() -> int:
     args = parser.parse_args()
     return (attribution_gate(args) + agent_wave_gate()
             + query_gate() + similar_gate() + fleet_anomaly_gate()
-            + import_gate() + doctor_gate())
+            + import_gate() + export_gate() + doctor_gate())
 
 def fleet_anomaly_gate(budget_s: float = 2.0) -> int:
     """Per-tool fleet baselines over a 10k-trace store.
@@ -168,6 +168,47 @@ def doctor_gate(budget_s: float = 5.0) -> int:
           + ("PASS" if elapsed <= budget_s else "FAIL"))
     if elapsed > budget_s:
         print("FAIL: doctor slowed past budget", file=sys.stderr)
+        return 1
+    return 0
+
+
+def export_gate(budget_s: float = 2.0) -> int:
+    """Export 500 traces as OpenAI chat JSONL. The inverse of the
+    ingest gate: tool-call steps, observations and metadata must all
+    serialize within budget, with every trace accounted for."""
+    import json as _json
+    import tempfile
+    from pathlib import Path as _Path
+
+    from approximately.exporter import export_store
+    from approximately.recorder import Recorder
+    from approximately.store import TraceStore
+
+    tmp = _Path(tempfile.mkdtemp())
+    store = TraceStore(tmp / "store")
+    for i in range(500):
+        rec = Recorder(f"task {i}", save=False)
+        rec.tool("search", {"q": i}, result=f"{i} hits")
+        rec.respond(f"done {i}", success=i % 7 != 0)
+        store.save(rec.trace)
+    out = tmp / "out.jsonl"
+
+    start = time.perf_counter()
+    result = export_store(store, out)
+    elapsed = time.perf_counter() - start
+    if result["written"] != 500:
+        print("FAIL: export gate wrote the wrong count", file=sys.stderr)
+        return 1
+    rows = out.read_text(encoding="utf-8").splitlines()
+    if len(rows) != 500 or not all(
+            _json.loads(r).get("messages") for r in rows):
+        print("FAIL: export gate produced malformed rows", file=sys.stderr)
+        return 1
+    print(f"perf-gate[export]: 500 traces in "
+          f"{elapsed * 1000:.0f}ms (budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: export slowed past budget", file=sys.stderr)
         return 1
     return 0
 

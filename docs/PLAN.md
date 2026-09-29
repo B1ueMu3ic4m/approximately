@@ -1935,3 +1935,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      clustering (which modes keep recurring on deploy runs).
      Mirrored into the MCP cluster tool's existing expression
      parameter, so no schema change was needed.
+
+193. **v1.89 - the export path gets its own perf gate** ✅
+     (delivered): `perf-gate[export]` — 500 traces as OpenAI chat
+     JSONL in 21ms (budget 2s), with row-count and parseability
+     assertions. Eight perf gates now cover both directions of the
+     store's I/O plus every analytic pass.
