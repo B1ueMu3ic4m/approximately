@@ -775,6 +775,35 @@ def cmd_metrics(args: argparse.Namespace) -> int:
 def cmd_annotate(args: argparse.Namespace) -> int:
     """Attach an analyst note (append-only sidecar, chain untouched)."""
     store = TraceStore(args.store)
+    if getattr(args, "from_anomalies", False):
+        from .anomaly import detect_fleet_anomalies
+
+        fleet = detect_fleet_anomalies(store.list_traces())
+        drafted = 0
+        for a in fleet[:int(args.anomaly_count)]:
+            existing = store.annotations(a.trace_id)
+            if existing:
+                continue  # a human already looked at this trace
+            store.annotate(
+                a.trace_id,
+                f"draft: {a.tool} {a.latency_ms}ms vs family median "
+                f"{a.median_ms:.0f}ms (z={a.robust_z:+.1f})",
+                author="approximately", verdict="")
+            drafted += 1
+        if getattr(args, "json", False):
+            print(json.dumps({"drafted": drafted,
+                              "fleet_anomalies": len(fleet)},
+                             indent=2))
+        else:
+            print(f"drafted {drafted} triage note(s) from "
+                  f"{len(fleet)} fleet anomaly(ies) — verdicts left "
+                  "empty for human review")
+        return 0
+    if not getattr(args, "from_anomalies", False) and (
+            not args.trace or not args.note):
+        print("error: trace and note are required "
+              "(or use --from-anomalies)", file=sys.stderr)
+        return 2
     entry = store.annotate(args.trace, args.note,
                            author=getattr(args, "author", "") or "",
                            verdict=getattr(args, "verdict", "") or "")
@@ -1387,7 +1416,7 @@ def _verify_all(store, key, as_json: bool = False,
             print(f"{row['trace_id']}: {row['verdict']}{flag}")
     if ledger_broken:
         print(f"LEDGER BROKEN: {ledger_check.detail}")
-    print(f"\n{counts['intact']} intact · {counts['unsigned']} unsigned · "
+    print(f"{counts['intact']} intact · {counts['unsigned']} unsigned · "
           f"{counts['keyed']} keyed (locked) · {counts['problem']} failed"
           + ("  [strict]" if strict else ""))
     return 1 if _verify_fails(counts, strict) else 0
@@ -2062,8 +2091,11 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("annotate", parents=[common],
                        help="attach an analyst note to a trace "
                             "(append-only sidecar)")
-    p.add_argument("trace")
-    p.add_argument("note")
+    p.add_argument("trace", nargs="?",
+                   help="trace the note belongs to (omit with "
+                        "--from-anomalies)")
+    p.add_argument("note", nargs="?",
+                   help="the note (required unless --from-anomalies)")
     p.add_argument("--author", default="",
                    help="who is annotating (free-form)")
     p.add_argument("--verdict", default="",
@@ -2071,6 +2103,13 @@ def build_parser() -> argparse.ArgumentParser:
                         "false-positive")
     p.add_argument("--json", action="store_true",
            help="emit machine-readable JSON instead of prose")
+    p.add_argument("--from-anomalies", action="store_true",
+                   help="draft triage notes from the store's fleet "
+                        "latency anomalies (verdicts left empty for "
+                        "human review)")
+    p.add_argument("--anomaly-count", type=int, default=5,
+                   metavar="N",
+                   help="draft at most N notes (default 5)")
     p.set_defaults(func=cmd_annotate)
 
     p = sub.add_parser("annotations", parents=[common],
