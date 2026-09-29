@@ -430,7 +430,15 @@
           },
           "trace": {
             "type": "string",
-            "description": "omit (with note omitted) to read all annotations in the store"
+            "description": "omit (with note omitted) to read all annotations in the store; omit with from_anomalies to draft"
+          },
+          "from_anomalies": {
+            "type": "boolean",
+            "description": "draft triage notes from the store's fleet latency anomalies (verdicts left empty)"
+          },
+          "anomaly_count": {
+            "type": "number",
+            "description": "draft at most N notes (default 5)"
           },
           "note": {
             "type": "string",

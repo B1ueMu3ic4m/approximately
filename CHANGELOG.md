@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.98
+
+- MCP `annotate` mirrors `from_anomalies`. triage drafts itself over MCP too — same semantics as the CLI (evidence inline, author `approximately`, verdict empty, no re-drafts). An MCP agent can start the triage queue; a human names the verdicts.
+
 ## v1.97
 
 - `annotate --from-anomalies`. triage starts itself — the command drafts one note per top fleet anomaly (evidence inline: tool, latency, family median, z; author `approximately`; verdict left EMPTY for human review) for every trace that has no notes yet. Traces a human already touched are never re-drafted, and `--anomaly-count` caps the batch. `trace`/`note` become optional on the command (required in the single-note mode).
