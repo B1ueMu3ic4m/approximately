@@ -31,15 +31,24 @@ def test_every_relative_link_resolves():
     assert broken == [], broken
 
 
+
+def _version_key(version: str):
+    parts = tuple(int(p) for p in re.findall(r"\d+", version))
+    return parts + (0,) * (3 - len(parts)) if len(parts) < 3 else parts
+
+
 def test_changelog_newest_tracks_pyproject():
     expected = re.search(r'^version = "(.+?)"',
                          (ROOT / "pyproject.toml").read_text(
                              encoding="utf-8"),
                          re.M).group(1)
-    short = "v" + ".".join(expected.split(".")[:2])
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     # PLAN headings use short versions (v1.93); pyproject is 1.93.0
-    assert f"## {short}" in changelog or f"## v{expected}" in changelog
+    key = _version_key(f"v{expected}")
+    # the changelog is newest-first: the FIRST section is the release
+    first = re.search(r"^## v([\d.]+)", changelog, re.M)
+    assert first is not None
+    assert _version_key(first.group(1)) == key
 
 
 def test_readme_roadmap_newest_tracks_pyproject():
@@ -47,11 +56,10 @@ def test_readme_roadmap_newest_tracks_pyproject():
                          (ROOT / "pyproject.toml").read_text(
                              encoding="utf-8"),
                          re.M).group(1)
-    short = "v" + ".".join(expected.split(".")[:2])
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     rows = re.findall(r"- ✅ \*\*(v[\d.]+)\*\*", readme)
     assert rows, "roadmap rows vanished"
-    assert rows[-1] in (f"v{expected}", short)
+    assert _version_key(rows[-1]) == _version_key(f"v{expected}")
 
 
 def test_plan_newest_item_tracks_pyproject():
@@ -62,5 +70,4 @@ def test_plan_newest_item_tracks_pyproject():
                              encoding="utf-8"),
                          re.M).group(1)
     entries = parse_plan(ROOT / "docs" / "PLAN.md")
-    short = "v" + ".".join(expected.split(".")[:2])
-    assert entries[0][0] in (f"v{expected}", short)
+    assert _version_key(entries[0][0]) == _version_key(f"v{expected}")

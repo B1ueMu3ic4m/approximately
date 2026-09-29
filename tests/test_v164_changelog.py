@@ -14,6 +14,11 @@ from approximately.changelog import parse_plan, write_changelog
 from approximately.cli import cmd_changelog
 
 
+def _version_key(version: str):
+    parts = tuple(int(p) for p in re.findall(r"\d+", version))
+    return parts + (0,) * (3 - len(parts)) if len(parts) < 3 else parts
+
+
 def test_parse_orders_newest_first():
     from pathlib import Path
 
@@ -26,8 +31,7 @@ def test_parse_orders_newest_first():
                              encoding="utf-8"),
                          re.M).group(1)
     # PLAN headings use short versions (v1.55); pyproject is 1.55.0
-    short = "v" + ".".join(expected.split(".")[:2])
-    assert versions[0] in (f"v{expected}", short)
+    assert _version_key(versions[0]) == _version_key(f"v{expected}")
     assert versions[-1] == "v0.30"
     assert versions == sorted(versions, key=lambda v: [int(x) for x
                                                        in v[1:].split(".")],
