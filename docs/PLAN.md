@@ -2012,3 +2012,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      wrapped titles still parse — the road to a v1.100 milestone is
      clear. Also recovered the PLAN item 203 label that a branch
      tangle had mislabeled.
+204. **v1.100 - the one-hundredth minor release** ✅ (delivered):
+     the milestone version the v1.99 round made the tooling ready
+     for. State of the toolkit at v1.100: 31 MCP tools + resources,
+     7 framework adapters, the interop loop (import/export/dedupe
+     with roundtrip-stable ids), the slowness story (per-tool and
+     fleet baselines, slowness trend, anomaly paging, triage
+     drafting), the judge economy (disk cache + tallies), 8 perf
+     gates, and a docs set that fails a test when it drifts.
+

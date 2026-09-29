@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.100
+
+- the one-hundredth minor release. the milestone version the v1.99 round made the tooling ready for. State of the toolkit at v1.100: 31 MCP tools + resources, 7 framework adapters, the interop loop (import/export/dedupe with roundtrip-stable ids), the slowness story (per-tool and fleet baselines, slowness trend, anomaly paging, triage drafting), the judge economy (disk cache + tallies), 8 perf gates, and a docs set that fails a test when it drifts.
+
 ## v1.99
 
 - the changelog is milestone-proof. pinned that version sorting stays numeric past v1.99 (v1.100 sorts after, tuple comparison not string order) and that wrapped titles still parse — the road to a v1.100 milestone is clear. Also recovered the PLAN item 203 label that a branch tangle had mislabeled.
