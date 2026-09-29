@@ -3,6 +3,11 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.71
+
+(delivered): `anomaly_trend` (v1.52) now renders in the fleet dashboard's digest-history block — a slowness badge, slope and latest flagged-step count, and the per-day table grows a `slow outliers` column. One day of history keeps the old shape.
+
+
 ## v1.70
 
 (delivered): survey rows carried `fleet_anomalies` (v1.44) but the rendered dashboard only showed failure rates — a store running slow-but-successful looked perfectly healthy in the HTML. Store cards now grow a slowness section: outlier count plus the worst step (tool, latency, family median, z). Healthy stores render no section at all.

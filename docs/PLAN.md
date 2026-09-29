@@ -1800,3 +1800,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      HTML. Store cards now grow a slowness section: outlier count
      plus the worst step (tool, latency, family median, z). Healthy
      stores render no section at all.
+
+174. **v1.71 - the dashboard's trend section judges slowness** ✅
+     (delivered): `anomaly_trend` (v1.52) now renders in the fleet
+     dashboard's digest-history block — a slowness badge, slope and
+     latest flagged-step count, and the per-day table grows a
+     `slow outliers` column. One day of history keeps the old
+     shape.

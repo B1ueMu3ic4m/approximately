@@ -318,6 +318,30 @@ def _trend_section(summary: dict) -> str:
     spark = render_sparkline(rates, width=420, height=70) if rates \
         else "<p>(no snapshots with traces yet)</p>"
     badge_cls, trend_label = TREND_LABELS[summary["verdict"]]
+    anomaly_trend = summary.get("anomaly_trend")
+    if anomaly_trend:
+        rows = (f"<tr><td>{esc(r['day'])}</td>"
+                f"<td>{r['traces']}</td>"
+                f"<td>{r['fleet_anomalies']}</td>"
+                f"<td>{r['failure_rate']:.0%}</td></tr>"
+                for r in summary["days"])
+        a_cls, a_label = TREND_LABELS[anomaly_trend["verdict"]]
+        return (
+            '<div class="store"><h2>Fleet trend (digest history)</h2>'
+            f'<div class="row"><span class="badge {badge_cls}">'
+            f'{esc(trend_label)}</span>'
+            f'<span class="sub">slope {summary["slope"]:+.4f}/day · '
+            f'{summary["snapshots"]} snapshot(s) over '
+            f'{len(summary["days"])} day(s)</span></div>'
+            f"{spark}"
+            '<div class="row"><span class="badge ' + a_cls + '">'
+            f'{esc(a_label)}</span>'
+            '<span class="sub">slowness: latest '
+            f'{anomaly_trend["latest"]} flagged step(s), slope '
+            f'{anomaly_trend["slope"]:+.4f}/day</span></div>'
+            "<table><tr><th>day</th><th>traces</th>"
+            "<th>slow outliers</th><th>failure rate</th></tr>"
+            + "".join(rows) + "</table></div>")
     rows = "".join(
         f"<tr><td>{esc(r['day'])}</td>"
         f"<td>{r['traces']}</td>"
