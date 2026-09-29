@@ -83,8 +83,14 @@ def test_metrics_json_store_and_prometheus(tmp_path, capsys):
 
 
 def test_clean_json(tmp_path, capsys):
-    _slow_trace(tmp_path / "s")
-    args = argparse.Namespace(store=str(tmp_path / "s"),
+    import time
+
+    trace, store = _slow_trace(tmp_path / "s")
+    # keep_days=0 races the clock on fast filesystems; make the trace
+    # unambiguously a day old instead
+    trace.created_at = time.time() - 86400
+    store.save(trace)
+    args = argparse.Namespace(store=str(store.directory),
                               keep_days=0, json=True)
     assert cmd_clean(args) == 0
     payload = json.loads(capsys.readouterr().out)
