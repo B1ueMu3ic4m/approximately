@@ -88,6 +88,14 @@ def similarity(a: Trace, b: Trace) -> float:
     """Normalized alignment similarity of two traces, in [0, 1]."""
     ta, tb = tokens(a), tokens(b)
     if not ta or not tb:
+        # tool-less traces (respond-only runs) have no alignment
+        # tokens; two such runs are duplicates exactly when their
+        # task and final output agree
+        if not ta and not tb:
+            same_task = (a.task or "") == (b.task or "")
+            same_output = ((a.final_output or "")
+                           == (b.final_output or ""))
+            return 1.0 if same_task and same_output else 0.0
         return 0.0
     score = align_score(ta, tb)
     best = MATCH_SCORE * max(len(ta), len(tb))

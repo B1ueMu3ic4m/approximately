@@ -3,6 +3,11 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.78
+
+the changelog generator on adversarial ledgers (versions out of physical order, blank-line storms, duplicate item numbers) — sorted, stable, every input version rendered exactly once; `max_latency` on degenerate traces (zero/negative/absurd); `export --dedupe` bounds; status payload shape on tiny stores. One real find: respond-only traces scored 0.0 similarity (no alignment tokens) so dedupe was blind to tool-less duplicates — two such runs are now duplicates exactly when task and final output agree.
+
+
 ## v1.77
 
 the index manifest as data — traces (id/task/failed/primary_mode), the index path, generated-report count. Also pinned: the query DSL's `max_latency` predicate flows through the MCP `query` tool unchanged.
