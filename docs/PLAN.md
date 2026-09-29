@@ -1941,3 +1941,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      JSONL in 21ms (budget 2s), with row-count and parseability
      assertions. Eight perf gates now cover both directions of the
      store's I/O plus every analytic pass.
+
+194. **v1.90 - fuzz round 11** ✅ (delivered): the derived query
+     fields (`max_latency`, `failed_tools`, `failed_agents`) survive
+     hostile traces — untimed and negative latencies, unicode and
+     200-char tool names, unnamed agents, 10^11 spikes — composed
+     predicates stay deterministic across runs, dedupe + export keep
+     their counts on the same stores, and fleet z-scores are never
+     NaN or infinite.
