@@ -3,6 +3,11 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.83
+
+`failed_tools` (v1.82) names the tools that errored; `failed_agents` names the agents whose named tool calls errored — sorted and deduplicated so repeat offenders list once. Multi-agent night ops can now ask `failed_agents contains 'researcher' and success == false` with zero grammar changes.
+
+
 ## v1.82
 
 `tools contains search` matches any run that used search; night ops want the runs where search *errored*. `failed_tools` is the derived list of tool names whose tool-call step carries an error, composing with every predicate (`failed_tools contains 'search' and success == false`). Zero grammar changes — just another derived list field. The insert initially split the field-getter if/elif chain and the memo/fuzz tests caught it immediately (`tokens` fell through to the fallback getattr) — fixed to a single chain before release.

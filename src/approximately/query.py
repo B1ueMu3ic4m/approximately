@@ -38,7 +38,7 @@ _TOKEN = re.compile(
 
 _FIELDS = ("id", "task", "success", "model", "created", "steps",
            "tokens", "duration", "max_latency", "mode", "agents",
-           "tools", "failed_tools", "errors")
+           "tools", "failed_tools", "failed_agents", "errors")
 
 _MAX_EXPR_CHARS = 4000
 
@@ -93,6 +93,11 @@ def _field_getter(name: str,
     elif name == "tokens":
         def getter(t: Trace) -> Any:
             return sum(s.tokens for s in t.steps)
+    elif name == "failed_agents":
+        def getter(t: Trace) -> Any:
+            return sorted({s.agent for s in t.steps
+                           if s.kind == "tool_call" and s.agent
+                           and s.error})
     elif name == "failed_tools":
         def getter(t: Trace) -> Any:
             return [s.tool or "?"
