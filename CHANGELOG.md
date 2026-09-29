@@ -3,6 +3,11 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.80
+
+`perf-gate[doctor]` walks 2000 traces + a judge cache in 86ms (budget 5s), with a record-count assertion — doctor has grown several passes (orphans, judge cache, ledger) and the night-watch invocation must stay bounded. Seven perf gates now cover attribution, scorecards, query, similarity, fleet baselines, ingest and store health.
+
+
 ## v1.79.1
 
 (delivered): the backdate fix from the v1.52 era was lost in a later branch tangle and Windows CI failed three jobs on main. `test_clean_json` backdates the trace's created_at explicitly instead of racing `keep_days=0` against a just-written file.

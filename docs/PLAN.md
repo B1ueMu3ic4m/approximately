@@ -1867,3 +1867,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      later branch tangle and Windows CI failed three jobs on main.
      `test_clean_json` backdates the trace's created_at explicitly
      instead of racing `keep_days=0` against a just-written file.
+
+184. **v1.80 - the doctor gets its own perf gate** ✅ (delivered):
+     `perf-gate[doctor]` walks 2000 traces + a judge cache in 86ms
+     (budget 5s), with a record-count assertion — doctor has grown
+     several passes (orphans, judge cache, ledger) and the
+     night-watch invocation must stay bounded. Seven perf gates now
+     cover attribution, scorecards, query, similarity, fleet
+     baselines, ingest and store health.
