@@ -386,6 +386,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.93** — docs health as a permanent test: links resolve, version claims stay fresh
 - ✅ **v1.94** — MCP `import_annotations` takes globs: every matching sidecar in one call
 - ✅ **v1.95** — `status` names the worst tool (>= 50% failure rate, >= 2 traces)
+- ✅ **v1.96** — closing sweep: artifacts regenerated, sequence audited, next-steps refreshed
+- 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**
@@ -399,7 +401,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**
-- 🔜 **next** — community feedback, more adapters, judge-distillation recipes
+- 🔜 **next** — community feedback (CONTRIBUTING has the full gate checklist), more framework adapters, judge-distillation recipes with the shared cache, and whatever the fleet's slowest tool turns out to be
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 

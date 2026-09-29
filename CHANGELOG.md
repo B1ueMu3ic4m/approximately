@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.96
+
+- closing sweep. artifacts regenerated (mcp-tools.json, CHANGELOG.md), the release sequence audited (v1.19→v1.95 complete with the one documented fold at v1.22), and the README's next-steps refreshed to name the real candidates. Docs-only; the round that closes the night.
+
 ## v1.95
 
 - `status` names the worst tool. the glance names the top recidivist agent; now it names the worst tool too — the action-side twin. A tool whose trace failure rate is >= 50% (with >= 2 traces of evidence) shows in the payload (`worst_tool`) and the prose; quiet tools stay quiet. Participation, not proven causation — the payload carries the numbers, the prose stays one line.

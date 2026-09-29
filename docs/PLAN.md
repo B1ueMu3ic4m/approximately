@@ -1984,3 +1984,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      payload (`worst_tool`) and the prose; quiet tools stay quiet.
      Participation, not proven causation — the payload carries the
      numbers, the prose stays one line.
+
+200. **v1.96 - closing sweep** ✅ (delivered): artifacts regenerated
+     (mcp-tools.json, CHANGELOG.md), the release sequence audited
+     (v1.19→v1.95 complete with the one documented fold at v1.22),
+     and the README's next-steps refreshed to name the real
+     candidates. Docs-only; the round that closes the night.
