@@ -384,6 +384,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.91** — README's query row teaches the derived fields
 - ✅ **v1.92** — `test --json`: the regression scaffold as data
 - ✅ **v1.93** — docs health as a permanent test: links resolve, version claims stay fresh
+- ✅ **v1.94** — MCP `import_annotations` takes globs: every matching sidecar in one call
+- 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**

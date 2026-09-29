@@ -357,8 +357,12 @@ _TOOLS: List[Dict[str, Any]] = [
                 "store": {"type": "string"},
                 "path": {"type": "string",
                          "description": "annotation sidecar (JSONL)"},
+                "glob": {"type": "string",
+                         "description": "merge every sidecar matching "
+                                        "this pattern instead of a "
+                                        "single path"},
             },
-            "required": ["path"],
+            "required": [],
         },
     },
     {
@@ -1103,12 +1107,25 @@ def _tool_plan_repair(ctx: ServerContext, args: Dict[str, Any]) -> dict:
 
 def _tool_import_annotations(ctx: ServerContext,
                              args: Dict[str, Any]) -> dict:
+    import glob as _glob
+
     from .importer import import_annotations
 
+    store = _store(ctx, args)
+    if args.get("glob"):
+        merged = {"added": 0, "skipped": 0}
+        for match in sorted(_glob.glob(str(args["glob"]))):
+            path = Path(match)
+            if not path.is_file():
+                continue
+            row = import_annotations(path, store)
+            merged["added"] += row["added"]
+            merged["skipped"] += row["skipped"]
+        return merged
     path = Path(str(args["path"]))
     if not path.is_file():
         raise KeyError(f"no such file: {path}")
-    return import_annotations(path, _store(ctx, args))
+    return import_annotations(path, store)
 
 
 def _tool_find_duplicates(ctx: ServerContext,

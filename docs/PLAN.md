@@ -1970,3 +1970,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      README roadmap's newest row and the PLAN's newest item all
      track pyproject. The audits that used to be nightly chores now
      fail a test the moment docs drift.
+
+198. **v1.94 - the sidecar mirror takes globs too** ✅ (delivered):
+     MCP \`import_annotations\` grows a \`glob\` parameter — every
+     matching sidecar merges in one call, mirroring the CLI's
+     multi-file behavior. Either path or glob selects the input;
+     both omitted stays a tool error.
