@@ -375,6 +375,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.83** — `failed_agents` completes the pair: runs where a named agent's tool call errored
 - ✅ **v1.84** — the query tool's schema teaches the derived fields
 - ✅ **v1.85** — markdown postmortems name fleet outliers too
+- ✅ **v1.86** — MCP `verify` gains `all`: the whole-store tally over MCP
+- 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**
