@@ -117,11 +117,14 @@ class TraceStore:
         the trace file, so the tamper-evident hash chain stays intact
         and notes are themselves an append-only audit log (a note is
         never edited or removed, only superseded by later ones).
-        ``verdict`` is free-form; ``confirmed`` and ``false-positive``
-        are the idioms for triage workflow.
+        ``verdict`` is free-form but normalized (stripped,
+        lower-cased) so ``Confirmed`` and ``confirmed`` read as the
+        same triage word; ``confirmed`` and ``false-positive`` are
+        the idioms.
         """
         entry = {"ts": time.time(), "trace_id": trace_id,
-                 "author": author, "verdict": verdict, "note": note}
+                 "author": author, "verdict": verdict.strip().lower(),
+                 "note": note}
         path = self.directory / "annotations.jsonl"
         with path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")

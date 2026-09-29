@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.87
+
+- triage verdicts normalize. `Confirmed` and `confirmed` used to be two different verdicts — stored verbatim, filtered exactly, counted only in lower case. Writes normalize (strip + lower), the `--verdict` filter compares case-insensitively (so pre-normalization rows still match), and the coverage tally counts the pretty-cased idiom too.
+
 ## v1.86
 
 - MCP `verify` gains `all`. the CLI's whole-store verify has an MCP answer as data — per-trace verdict rows plus a tally (intact/unsigned/keyed/rolled-back/...), `key_file` applying to every trace like the CLI's. `trace` becomes optional; the single-trace path is unchanged.
