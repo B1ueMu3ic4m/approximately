@@ -1586,6 +1586,9 @@ def cmd_distill(args: argparse.Namespace) -> int:
         labeler = rules_labeler()
         source = "rule detectors"
     stats = export_sft(traces, Path(args.output), labeler)
+    if getattr(args, "json", False):
+        print(json.dumps({**stats, "source": source}, indent=2))
+        return 0
     print(f"labeled {stats['labeled']} traces via {source} "
           f"({stats['skipped']} skipped, too unsure)")
     for mode_id, count in sorted(stats["modes"].items()):
@@ -1740,6 +1743,9 @@ def cmd_export_dataset(args: argparse.Namespace) -> int:
         from .judge import cache_stats
 
         stats["judge_cache"] = cache_stats(reset=True)
+    if getattr(args, "json", False):
+        print(json.dumps({**stats, "source": source}, indent=2))
+        return 0
     print(f"wrote {stats['written']} labeled traces to {args.output} "
           f"({stats['skipped']} skipped, too unsure) via {source}")
     if getattr(args, "teacher_cache", None):
@@ -2332,6 +2338,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="output JSONL path (default judge-sft.jsonl)")
     p.add_argument("--dedupe", action="store_true",
                    help="drop near-duplicate traces before labeling")
+    p.add_argument("--json", action="store_true",
+                   help="emit the export stats as JSON")
     p.add_argument("--teacher-cache", metavar="DIR",
                    help="cache judge verdicts here (relabels are "
                         "free for traces asked before)")
@@ -2402,6 +2410,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="output JSONL path (default dataset.jsonl)")
     p.add_argument("--dedupe", action="store_true",
                    help="drop near-duplicate traces before labeling")
+    p.add_argument("--json", action="store_true",
+                   help="emit the export stats as JSON")
     p.add_argument("--teacher-cache", metavar="DIR",
                    help="cache judge verdicts here (relabels are "
                         "free for traces asked before)")

@@ -3,6 +3,11 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.73
+
+(delivered): both labeling exporters emit their stats dicts as data (written/labeled/skipped/modes, a `source` field naming the labeler, and the judge-cache tally when a teacher cache was in play) — the last human-only tallies in the labeling loop.
+
+
 ## v1.72
 
 A/B replay verification is scriptable — `--json` emits both verdicts plus the step-level diffs as data (`ReplayDiff.to_dict`, asdict of the dataclasses), so a pipeline gates on `verdict == "diverged"` without parsing prose. Exit codes unchanged.

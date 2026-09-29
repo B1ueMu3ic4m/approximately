@@ -1814,3 +1814,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      the dataclasses), so a pipeline gates on
      `verdict == "diverged"` without parsing prose. Exit codes
      unchanged.
+
+176. **v1.73 - `export-dataset --json` / `distill --json`** ✅
+     (delivered): both labeling exporters emit their stats dicts as
+     data (written/labeled/skipped/modes, a `source` field naming
+     the labeler, and the judge-cache tally when a teacher cache was
+     in play) — the last human-only tallies in the labeling loop.
