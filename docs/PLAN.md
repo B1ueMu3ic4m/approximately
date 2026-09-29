@@ -1861,3 +1861,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      (delivered): the canonical walkthrough gains the ingest loop
      (import directory/anomalies/report) pointing at RECIPES 14.
      Docs-only.
+
+183. **v1.79.1 - hotfix: the clean-test clock race returns** ✅
+     (delivered): the backdate fix from the v1.52 era was lost in a
+     later branch tangle and Windows CI failed three jobs on main.
+     `test_clean_json` backdates the trace's created_at explicitly
+     instead of racing `keep_days=0` against a just-written file.
