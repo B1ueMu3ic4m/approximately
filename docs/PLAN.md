@@ -1845,3 +1845,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      index path, generated-report count. Also pinned: the query
      DSL's `max_latency` predicate flows through the MCP `query`
      tool unchanged.
+
+181. **v1.78 - fuzz round 10** ✅ (delivered): the changelog
+     generator on adversarial ledgers (versions out of physical
+     order, blank-line storms, duplicate item numbers) — sorted,
+     stable, every input version rendered exactly once;
+     `max_latency` on degenerate traces (zero/negative/absurd);
+     `export --dedupe` bounds; status payload shape on tiny stores.
+     One real find: respond-only traces scored 0.0 similarity (no
+     alignment tokens) so dedupe was blind to tool-less duplicates —
+     two such runs are now duplicates exactly when task and final
+     output agree.
