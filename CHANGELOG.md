@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.99
+
+- the changelog is milestone-proof. pinned that version sorting stays numeric past v1.99 (v1.100 sorts after, tuple comparison not string order) and that wrapped titles still parse — the road to a v1.100 milestone is clear. Also recovered the PLAN item 203 label that a branch tangle had mislabeled.
+
 ## v1.98
 
 - MCP `annotate` mirrors `from_anomalies`. triage drafts itself over MCP too — same semantics as the CLI (evidence inline, author `approximately`, verdict empty, no re-drafts). An MCP agent can start the triage queue; a human names the verdicts.
