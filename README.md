@@ -377,6 +377,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.85** — markdown postmortems name fleet outliers too
 - ✅ **v1.86** — MCP `verify` gains `all`: the whole-store tally over MCP
 - ✅ **v1.87** — triage verdicts normalize: `Confirmed` and `confirmed` are one word
+- ✅ **v1.88** — `cluster --query`: cluster the failures you care about
+- 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**

@@ -1526,6 +1526,10 @@ def cmd_cluster(args: argparse.Namespace) -> int:
 
     store = TraceStore(args.store)
     traces = store.list_traces(since_days=getattr(args, "since", None))
+    if getattr(args, "query", None):
+        from .query import select
+
+        traces = select(traces, args.query)
     if args.last:
         traces = traces[-args.last:]
     if getattr(args, "by_agent", False):
@@ -2357,6 +2361,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--since", type=int, metavar="DAYS",
                    help="only traces created in the last DAYS days")
     p.add_argument("--json", action="store_true", help="emit JSON")
+    p.add_argument("--query", metavar="EXPR",
+                   help="cluster only the traces matching the shared "
+                        "query DSL, e.g. \"tool = deploy\"")
     p.set_defaults(func=cmd_cluster)
 
     p = sub.add_parser("curve", parents=[common],

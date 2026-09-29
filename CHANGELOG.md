@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.88
+
+- `cluster --query`. cluster the failures you care about — the shared query DSL filters before clustering (which modes keep recurring on deploy runs). Mirrored into the MCP cluster tool's existing expression parameter, so no schema change was needed.
+
 ## v1.87
 
 - triage verdicts normalize. `Confirmed` and `confirmed` used to be two different verdicts — stored verbatim, filtered exactly, counted only in lower case. Writes normalize (strip + lower), the `--verdict` filter compares case-insensitively (so pre-normalization rows still match), and the coverage tally counts the pretty-cased idiom too.
