@@ -1839,3 +1839,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      slowest *timed tool call* crossed the line — the fleet-anomaly
      story in query form, composable with every other predicate
      (`success == false and max_latency > 5000`).
+
+180. **v1.77 - `report --all --json`** ✅ (delivered): the index
+     manifest as data — traces (id/task/failed/primary_mode), the
+     index path, generated-report count. Also pinned: the query
+     DSL's `max_latency` predicate flows through the MCP `query`
+     tool unchanged.

@@ -3,6 +3,11 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.77
+
+the index manifest as data — traces (id/task/failed/primary_mode), the index path, generated-report count. Also pinned: the query DSL's `max_latency` predicate flows through the MCP `query` tool unchanged.
+
+
 ## v1.76
 
 `duration` sums every step; night ops ask "which runs had a step slower than N". `max_latency > 5000` selects traces whose slowest *timed tool call* crossed the line — the fleet-anomaly story in query form, composable with every other predicate (`success == false and max_latency > 5000`).

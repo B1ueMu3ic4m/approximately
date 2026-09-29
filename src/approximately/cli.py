@@ -223,6 +223,16 @@ def cmd_report(args: argparse.Namespace) -> int:
         out = Path(args.output) if args.output else store.directory / "index.html"
         out.write_text(render_index_html(pairs, trend_rows=trend(traces)),
                        encoding="utf-8")
+        if getattr(args, "json", False):
+            print(json.dumps({
+                "index": str(out),
+                "traces": [{"id": t.id, "task": (t.task or "")[:80],
+                            "failed": r.failed,
+                            "primary_mode": r.primary_mode.id}
+                           for t, r in pairs],
+                "generated_reports": written,
+                "output": str(out)}, indent=2))
+            return 0
         print(f"wrote index over {len(pairs)} traces: {out} "
               f"({written} individual reports generated)")
         return 0
@@ -1950,6 +1960,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--markdown", action="store_true",
                    help="write the postmortem as issue-ready Markdown "
                         "instead of HTML")
+    p.add_argument("--json", action="store_true",
+                   help="--all: emit the index manifest as JSON")
     p.set_defaults(func=cmd_report)
 
     p = sub.add_parser("context", parents=[common],
