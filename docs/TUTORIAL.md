@@ -153,6 +153,21 @@ In another repo's workflow, the shipped action does the same gate:
   with: { dataset: eval/attribution.jsonl, floors: eval/floors.json }
 ```
 
+## 9. Or start from the logs you already have
+
+No instrumentation? No problem — a JSONL dump of past runs becomes a
+tamper-evident store in one command, and the whole tutorial above
+works on it exactly as on freshly recorded runs.
+
+```bash
+approximately import logs/ --store ~/agents/store   # a directory, glob, or -
+approximately report ~/agents/store --all           # postmortems for history
+approximately anomalies ~/agents/store --all        # was anything quietly slow?
+```
+
+Details and the round-trip (export back out, ids restored) live in
+[RECIPES 14](RECIPES.md).
+
 ## Where to go next
 
 - Capabilities overview: [README](../README.md#the-capabilities-at-a-glance)

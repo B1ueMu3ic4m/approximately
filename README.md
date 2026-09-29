@@ -367,6 +367,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.76** — `max_latency` joins the query DSL: `success == false and max_latency > 5000`
 - ✅ **v1.77** — `report --all --json`: the index manifest as data
 - ✅ **v1.78** — fuzz round 10: adversarial ledgers, degenerate max_latency, dedupe bounds; tool-less dedupe blindness fixed
+- ✅ **v1.79** — TUTORIAL section 9: start the walkthrough from the logs you already have
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
