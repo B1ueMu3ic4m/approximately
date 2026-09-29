@@ -313,7 +313,7 @@ def import_lines(raw_lines: List[str], store: TraceStore,
             raw_lines = chain([first], raw_lines)
     existing = {t.id for t in store.list_traces()}
     imported: List[str] = []
-    skipped = 0
+    malformed = duplicates = 0
     lines = 0
     for line_no, raw in enumerate(raw_lines, start=1):
         if not raw.strip():
@@ -323,17 +323,19 @@ def import_lines(raw_lines: List[str], store: TraceStore,
             trace = _parse_line(json.loads(raw), raw, line_no, fmt)
         except (AttributeError, KeyError, TypeError, ValueError,
                 json.JSONDecodeError):
-            skipped += 1
+            malformed += 1
             continue
         if trace.id in existing:
-            skipped += 1
+            duplicates += 1
             continue
         if not dry_run:
             store.save(trace)
         existing.add(trace.id)
         imported.append(trace.id)
     return {"format": fmt, "lines": lines, "imported": len(imported),
-            "skipped": skipped, "trace_ids": imported}
+            "skipped": malformed + duplicates,
+            "malformed": malformed, "duplicates": duplicates,
+            "trace_ids": imported}
 
 
 def import_annotations(path: Path, store: TraceStore) -> Dict[str, Any]:

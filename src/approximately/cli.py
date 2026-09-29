@@ -1729,9 +1729,13 @@ def cmd_import(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps(result, indent=2))
     else:
+        detail = ""
+        if result.get("malformed") or result.get("duplicates"):
+            detail = (f" ({result.get('malformed', 0)} malformed, "
+                      f"{result.get('duplicates', 0)} duplicate)")
         print(f"imported {result['imported']} of {result['lines']} "
               f"transcripts from {result['files']} file(s) "
-              f"({result['skipped']} skipped)"
+              f"({result['skipped']} skipped){detail}"
               + (" [dry run]" if args.dry_run else ""))
     return 0
 
