@@ -1976,3 +1976,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      matching sidecar merges in one call, mirroring the CLI's
      multi-file behavior. Either path or glob selects the input;
      both omitted stays a tool error.
+
+199. **v1.95 - `status` names the worst tool** ✅ (delivered): the
+     glance names the top recidivist agent; now it names the worst
+     tool too — the action-side twin. A tool whose trace failure
+     rate is >= 50% (with >= 2 traces of evidence) shows in the
+     payload (`worst_tool`) and the prose; quiet tools stay quiet.
+     Participation, not proven causation — the payload carries the
+     numbers, the prose stays one line.

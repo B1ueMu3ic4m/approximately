@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.95
+
+- `status` names the worst tool. the glance names the top recidivist agent; now it names the worst tool too — the action-side twin. A tool whose trace failure rate is >= 50% (with >= 2 traces of evidence) shows in the payload (`worst_tool`) and the prose; quiet tools stay quiet. Participation, not proven causation — the payload carries the numbers, the prose stays one line.
+
 ## v1.94
 
 - the sidecar mirror takes globs too. MCP \`import_annotations\` grows a \`glob\` parameter — every matching sidecar merges in one call, mirroring the CLI's multi-file behavior. Either path or glob selects the input; both omitted stays a tool error.
