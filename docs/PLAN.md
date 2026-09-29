@@ -1949,3 +1949,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      predicates stay deterministic across runs, dedupe + export keep
      their counts on the same stores, and fleet z-scores are never
      NaN or infinite.
+
+195. **v1.91 - README's query row teaches the derived fields** ✅
+     (delivered): the feature-table row for the query DSL now shows
+     `max_latency` / `failed_tools` / `failed_agents` with a
+     composed example — first-time visitors see the newest
+     predicates where they read. Docs-only.

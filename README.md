@@ -160,7 +160,7 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 🪮 First-fault bisect | "Where did this run leave the good path?" — earliest *material* divergence on the edit script, timestamp noise floored | `approximately bisect FAILED SUCCESS` |
 | 🩺 Store doctor | Parseable records, ledger tamper, stale locks, digest gaps — self-healing with `--fix` | `approximately doctor STORE [--fix]` |
 | 📡 Fleet trend gate | Day-level digest analytics with a Theil–Sen verdict that fails CI when the fleet worsens | `approximately fleet --trend --fail-on-worsening` |
-| 🔎 Query DSL + stats | Select traces with an expression — or aggregate the selection: counts, failure rate, mode totals, means | `approximately query "..." [--stats]` |
+| 🔎 Query DSL + stats | Select traces with an expression — or aggregate the selection: counts, failure rate, mode totals, means. Derived fields: `max_latency` (slowest timed tool call), `failed_tools` / `failed_agents` (names behind errored calls) | `approximately query "failed_tools contains 'search' and success == false"` |
 | 📖 Mode explainer | "What does FM-1.3 mean *for my agent*?" — definition, published share, the detectors watching it, engineering fixes | `approximately explain FM-1.3` |
 | 👥 Agent scoreboard | Who did what in a multi-agent run: steps, tokens, errors, and the failure rate of traces each agent touched | `Recorder(agent="researcher")` + `approximately stats --by-agent` |
 | 📥📤 Log interop | Logs already on disk become tamper-evident traces — and traces export back out as OpenAI chat JSONL for fine-tuning/eval; roundtrips restore ids | `approximately import logs/*.jsonl` · `approximately export out.jsonl` |
@@ -381,6 +381,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 
 - ✅ **v1.89** — `perf-gate[export]`: 500 traces in 21ms; eight perf gates
 - ✅ **v1.90** — fuzz round 11: the derived query fields survive hostile traces
+- ✅ **v1.91** — README's query row teaches the derived fields
+- 🔜 **next**
 - 🔜 **next**- 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**
