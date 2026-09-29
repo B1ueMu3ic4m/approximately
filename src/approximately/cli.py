@@ -1218,7 +1218,10 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     from .doctor import doctor, fix_hygiene
 
     report = doctor(Path(args.store),
-                    Path(args.digest_dir) if args.digest_dir else None)
+                    Path(args.digest_dir) if args.digest_dir else None,
+                    judge_cache=(Path(args.judge_cache) if
+                                 getattr(args, "judge_cache", None)
+                                 else None))
     if getattr(args, "fix", False):
         removed = fix_hygiene(Path(args.store), report)
         report.stale_locks = [n for n in report.stale_locks
@@ -2220,6 +2223,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--fix", action="store_true",
                    help="remove stale writer locks and leftover temp "
                         "files (never record data, ledger, or digests)")
+    p.add_argument("--judge-cache", metavar="DIR",
+                   help="also count judge-cache entries and unreadable "
+                        "ones (read-only; corrupt entries are safe "
+                        "misses)")
     p.add_argument("--json", action="store_true",
                    help="emit the full report as JSON")
     p.set_defaults(func=cmd_doctor)

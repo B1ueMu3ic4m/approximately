@@ -1782,3 +1782,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      the command at a directory means every `*.jsonl` inside it —
      the ergonomic zero-thought form of the glob. Non-transcript
      files are ignored by the expansion.
+
+172. **v1.69 - doctor reads the judge cache's pulse** ✅ (delivered):
+     the judge disk cache lives outside the store, so doctor never
+     saw it. `doctor --judge-cache DIR` (CLI and MCP #7 alike)
+     counts entries and names unreadable ones — read-only, because a
+     corrupt entry is already a safe miss at query time and deletion
+     stays the operator's call. Also fixes doctor --json: the
+     annotation fields (lines/corrupt/orphans, v1.25-v1.49) were
+     never in `to_dict`, so --json has been silently narrower than
+     the prose since the orphan feature shipped.
