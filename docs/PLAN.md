@@ -1990,3 +1990,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      (v1.19→v1.95 complete with the one documented fold at v1.22),
      and the README's next-steps refreshed to name the real
      candidates. Docs-only; the round that closes the night.
+
+201. **v1.97 - `annotate --from-anomalies`** ✅ (delivered): triage
+     starts itself — the command drafts one note per top fleet
+     anomaly (evidence inline: tool, latency, family median, z;
+     author `approximately`; verdict left EMPTY for human review)
+     for every trace that has no notes yet. Traces a human already
+     touched are never re-drafted, and `--anomaly-count` caps the
+     batch. `trace`/`note` become optional on the command (required
+     in the single-note mode).
