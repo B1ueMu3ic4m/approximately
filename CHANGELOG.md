@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.100.1
+
+- hotfix: the clean-test mtime race, properly. the v1.79.1 hotfix backdated created_at, but `clean` gates on file mtime — so the race resurfaced on Windows. The test now backdates the trace file's mtime directly with os.utime, which is what the store actually reads.
+
 ## v1.100
 
 - the one-hundredth minor release. the milestone version the v1.99 round made the tooling ready for. State of the toolkit at v1.100: 31 MCP tools + resources, 7 framework adapters, the interop loop (import/export/dedupe with roundtrip-stable ids), the slowness story (per-tool and fleet baselines, slowness trend, anomaly paging, triage drafting), the judge economy (disk cache + tallies), 8 perf gates, and a docs set that fails a test when it drifts.

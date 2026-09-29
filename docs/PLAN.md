@@ -2021,3 +2021,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      drafting), the judge economy (disk cache + tallies), 8 perf
      gates, and a docs set that fails a test when it drifts.
 
+205. **v1.100.1 - hotfix: the clean-test mtime race, properly** ✅
+     (delivered): the v1.79.1 hotfix backdated created_at, but
+     `clean` gates on file mtime — so the race resurfaced on
+     Windows. The test now backdates the trace file's mtime
+     directly with os.utime, which is what the store actually
+     reads.

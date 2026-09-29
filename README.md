@@ -391,7 +391,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.98** — MCP `annotate` mirrors `from_anomalies`
 
 - ✅ **v1.99** — the changelog is milestone-proof (v1.100 sorts after v1.99)- 🔜 **next**
-- ✅ **v1.100** — the one-hundredth minor release- 🔜 **next**
+- ✅ **v1.100.1** — the one-hundredth minor release (+ a clean-test mtime hotfix)- 🔜 **next**
 
 - 🔜 **next**
 - 🔜 **next**
