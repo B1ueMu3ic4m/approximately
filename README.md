@@ -364,6 +364,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.73** — `export-dataset --json` / `distill --json`: labeling stats as data
 - ✅ **v1.74** — `benchmark --json` / `convert-mast --json`: the --json sweep is complete
 - ✅ **v1.75** — MCP tool #31 `plan_repair`: the read-only planning half mirrors; 31 tools
+- ✅ **v1.76** — `max_latency` joins the query DSL: `success == false and max_latency > 5000`
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

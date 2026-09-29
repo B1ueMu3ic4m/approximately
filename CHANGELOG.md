@@ -3,6 +3,11 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.76
+
+`duration` sums every step; night ops ask "which runs had a step slower than N". `max_latency > 5000` selects traces whose slowest *timed tool call* crossed the line — the fleet-anomaly story in query form, composable with every other predicate (`success == false and max_latency > 5000`).
+
+
 ## v1.75
 
 the read-only planning half of `repair` mirrors into MCP — applied/cleared/remaining/unrepairable as data, `--apply` stays deliberately CLI-only (31 tools, `tools/list` authoritative, artifact regenerated).

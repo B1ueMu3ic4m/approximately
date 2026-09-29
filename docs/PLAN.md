@@ -1832,3 +1832,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      applied/cleared/remaining/unrepairable as data, `--apply`
      stays deliberately CLI-only (31 tools, `tools/list`
      authoritative, artifact regenerated).
+
+179. **v1.76 - `max_latency` joins the query DSL** ✅ (delivered):
+     `duration` sums every step; night ops ask "which runs had a
+     step slower than N". `max_latency > 5000` selects traces whose
+     slowest *timed tool call* crossed the line — the fleet-anomaly
+     story in query form, composable with every other predicate
+     (`success == false and max_latency > 5000`).
