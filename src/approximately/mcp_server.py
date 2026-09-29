@@ -639,7 +639,12 @@ _TOOLS: List[Dict[str, Any]] = [
     {
         "name": "query",
         "description": "Select traces with an expression, e.g. "
-                       "\"success == false and mode == FM-2.1\".",
+                       "\"success == false and mode == FM-2.1\". "
+                       "Derived fields include max_latency (slowest "
+                       "timed tool call), failed_tools and "
+                       "failed_agents (names behind errored calls), "
+                       "e.g. \"failed_tools contains 'search' and "
+                       "max_latency > 5000\".",
         "inputSchema": {
             "type": "object",
             "properties": {
