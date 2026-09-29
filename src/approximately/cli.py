@@ -168,6 +168,13 @@ def cmd_test(args: argparse.Namespace) -> int:
     out = Path(args.output) if args.output else Path(f"test_approximately_{trace.id}.py")
     out.write_text(render_regression(trace, report, budget=budget,
                                      min_recall=args.min_recall), encoding="utf-8")
+    if getattr(args, "json", False):
+        print(json.dumps({"output": str(out), "trace": trace.id,
+                          "primary_mode": report.primary_mode.id,
+                          "next_step": "wire EXECUTOR and "
+                                       "AGENT_ENTRY, then run pytest "
+                                       + str(out)}, indent=2))
+        return 0
     print(f"wrote {out}")
     print("wire EXECUTOR (replay guard) and AGENT_ENTRY (contract guards), "
           "then run: pytest " + str(out))
@@ -1953,6 +1960,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--min-recall", type=float, default=0.8,
                    help="required effective recall for the budget guard "
                         "(default 0.8)")
+    p.add_argument("--json", action="store_true",
+                   help="emit the generated-artifact info as JSON")
     p.set_defaults(func=cmd_test)
 
     p = sub.add_parser("report", parents=[common],

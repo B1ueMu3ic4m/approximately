@@ -1955,3 +1955,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      `max_latency` / `failed_tools` / `failed_agents` with a
      composed example — first-time visitors see the newest
      predicates where they read. Docs-only.
+
+196. **v1.92 - `test --json`** ✅ (delivered): the regression
+     scaffold command emits its artifact info as data — where the
+     scaffold landed, the attributed mode, the next step — so a
+     pipeline can wire EXECUTOR/AGENT_ENTRY and run pytest
+     programmatically. The --json sweep now covers every
+     developer-facing command.
