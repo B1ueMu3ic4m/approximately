@@ -1999,3 +1999,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      touched are never re-drafted, and `--anomaly-count` caps the
      batch. `trace`/`note` become optional on the command (required
      in the single-note mode).
+
+202. **v1.98 - MCP `annotate` mirrors `from_anomalies`** ✅
+     (delivered): triage drafts itself over MCP too — same semantics
+     as the CLI (evidence inline, author `approximately`, verdict
+     empty, no re-drafts). An MCP agent can start the triage queue;
+     a human names the verdicts.

@@ -423,7 +423,17 @@ _TOOLS: List[Dict[str, Any]] = [
                 "trace": {"type": "string",
                           "description": "omit (with note omitted) to "
                                          "read all annotations in the "
-                                         "store"},
+                                         "store; omit with "
+                                         "from_anomalies to draft"},
+                "from_anomalies": {"type": "boolean",
+                                   "description": "draft triage notes "
+                                                  "from the store's "
+                                                  "fleet latency "
+                                                  "anomalies (verdicts "
+                                                  "left empty)"},
+                "anomaly_count": {"type": "number",
+                                  "description": "draft at most N "
+                                                 "notes (default 5)"},
                 "note": {"type": "string",
                          "description": "omit to read instead of "
                                         "write"},
@@ -1163,6 +1173,22 @@ def _tool_status(ctx: ServerContext, args: Dict[str, Any]) -> dict:
 
 def _tool_annotate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     store = _store(ctx, args)
+    if args.get("from_anomalies"):
+        from .anomaly import detect_fleet_anomalies
+
+        fleet = detect_fleet_anomalies(store.list_traces())
+        cap = int(args.get("anomaly_count") or 5)
+        drafted = 0
+        for a in fleet[:cap]:
+            if store.annotations(a.trace_id):
+                continue
+            store.annotate(
+                a.trace_id,
+                f"draft: {a.tool} {a.latency_ms}ms vs family median "
+                f"{a.median_ms:.0f}ms (z={a.robust_z:+.1f})",
+                author="approximately", verdict="")
+            drafted += 1
+        return {"drafted": drafted, "fleet_anomalies": len(fleet)}
     trace_id = args.get("trace")
     if not args.get("note") and not trace_id:
         return {"annotations": store.annotations()}
