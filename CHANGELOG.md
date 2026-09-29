@@ -3,6 +3,11 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.75
+
+the read-only planning half of `repair` mirrors into MCP — applied/cleared/remaining/unrepairable as data, `--apply` stays deliberately CLI-only (31 tools, `tools/list` authoritative, artifact regenerated).
+
+
 ## v1.74
 
 (delivered): the benchmark result (multi-label path included — sample metrics, per-mode CIs) and the MAST-Data conversion stats emit as data. The `--json` sweep is now complete: every command that prints numbers also prints them as data.

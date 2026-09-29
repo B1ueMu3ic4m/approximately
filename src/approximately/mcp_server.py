@@ -325,6 +325,23 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "plan_repair",
+        "description": "Smallest honest intervention set that clears "
+                       "a trace's failure modes: dedupe repeats, "
+                       "insert verifications, re-attribute. Planning "
+                       "only — the repaired trace is described, not "
+                       "written; whatever still fires needs an "
+                       "agent-level change.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "trace": {"type": "string"},
+                "store": {"type": "string"},
+            },
+            "required": ["trace"],
+        },
+    },
+    {
         "name": "import_annotations",
         "description": "Merge an annotation sidecar (JSONL) into the "
                        "store, append-only: rows the store has never "
@@ -1048,6 +1065,23 @@ def _tool_diff(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                             for e in td.divergences(limit=5)]}
 
 
+def _tool_plan_repair(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .repair import plan_repair
+
+    store = _store(ctx, args)
+    trace = store.load(str(args["trace"]))
+    if trace is None:
+        raise KeyError(f"no trace {args['trace']!r} in store")
+    result = plan_repair(trace)
+    return {"trace": trace.id,
+            "applied": result.applied,
+            "cleared_modes": sorted(result.cleared_modes),
+            "remaining_modes": sorted(result.remaining_modes),
+            "unrepairable": result.unrepairable,
+            "repaired": result.repaired,
+            "summary": result.summary()}
+
+
 def _tool_import_annotations(ctx: ServerContext,
                              args: Dict[str, Any]) -> dict:
     from .importer import import_annotations
@@ -1217,6 +1251,7 @@ _HANDLERS = {
     "context": _tool_context,
     "curve": _tool_curve,
     "import_annotations": _tool_import_annotations,
+    "plan_repair": _tool_plan_repair,
     "find_duplicates": _tool_find_duplicates,
     "status": _tool_status,
     "annotate": _tool_annotate,

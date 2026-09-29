@@ -1826,3 +1826,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      sample metrics, per-mode CIs) and the MAST-Data conversion
      stats emit as data. The `--json` sweep is now complete: every
      command that prints numbers also prints them as data.
+
+178. **v1.75 - MCP tool #31 `plan_repair`** ✅ (delivered): the
+     read-only planning half of `repair` mirrors into MCP —
+     applied/cleared/remaining/unrepairable as data, `--apply`
+     stays deliberately CLI-only (31 tools, `tools/list`
+     authoritative, artifact regenerated).
