@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.92
+
+- `test --json`. the regression scaffold command emits its artifact info as data — where the scaffold landed, the attributed mode, the next step — so a pipeline can wire EXECUTOR/AGENT_ENTRY and run pytest programmatically. The --json sweep now covers every developer-facing command.
+
 ## v1.91
 
 - README's query row teaches the derived fields. the feature-table row for the query DSL now shows `max_latency` / `failed_tools` / `failed_agents` with a composed example — first-time visitors see the newest predicates where they read. Docs-only.
