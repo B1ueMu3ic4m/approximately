@@ -272,6 +272,20 @@ def _store_card(s: StoreSummary) -> str:
         f"<td>{r['failure_rate']:.0%}</td></tr>"
         for r in s.top_agents
     ) or "<tr><td>no named agents recorded</td></tr>"
+    anomalies = getattr(s, "fleet_anomalies", 0) or 0
+    worst = getattr(s, "worst_anomaly", None)
+    anomaly_html = ""
+    if anomalies:
+        slow_cls = "bad" if anomalies >= 3 else "ok"
+        anomaly_html = (
+            f'<div class="row"><span class="rate {slow_cls}">'
+            f'{anomalies}</span><span class="badge {slow_cls}">'
+            "slow outlier(s)</span></div>"
+            "<h3>Slowest step</h3><table>"
+            f"<tr><td class='mono'>{esc(worst['tool'])}</td>"
+            f"<td>{worst['latency_ms']}ms</td>"
+            f"<td>family median {worst['median_ms']:.0f}ms · "
+            f"z={worst['robust_z']}</td></tr></table>")
     return (
         f'<div class="store"><h2>{esc(s.name)}</h2>'
         f'<div class="sub">{esc(s.path)} · '
@@ -283,6 +297,7 @@ def _store_card(s: StoreSummary) -> str:
         f"{spark}"
         f'<span class="badge {badge_cls}">{esc(trend_label)}</span>'
         "</div>"
+        + anomaly_html +
         "<h3>Top failure modes</h3>"
         f"<table>{modes_html}</table>"
         "<h3>Busiest agents</h3>"

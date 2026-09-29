@@ -3,6 +3,11 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.70
+
+(delivered): survey rows carried `fleet_anomalies` (v1.44) but the rendered dashboard only showed failure rates — a store running slow-but-successful looked perfectly healthy in the HTML. Store cards now grow a slowness section: outlier count plus the worst step (tool, latency, family median, z). Healthy stores render no section at all.
+
+
 ## v1.69
 
 the judge disk cache lives outside the store, so doctor never saw it. `doctor --judge-cache DIR` (CLI and MCP #7 alike) counts entries and names unreadable ones — read-only, because a corrupt entry is already a safe miss at query time and deletion stays the operator's call. Also fixes doctor --json: the annotation fields (lines/corrupt/orphans, v1.25-v1.49) were never in `to_dict`, so --json has been silently narrower than the prose since the orphan feature shipped.
