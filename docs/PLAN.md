@@ -1882,3 +1882,15 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      design). The payload now carries `malformed` and `duplicates`
      separately (`skipped` stays the sum for compatibility), and
      the prose names both kinds.
+
+186. **v1.82 - `failed_tools` joins the query DSL** ✅ (delivered):
+     `tools contains search` matches any run that used search; night
+     ops want the runs where search *errored*. `failed_tools` is the
+     derived list of tool names whose tool-call step carries an
+     error, composing with every predicate
+     (`failed_tools contains 'search' and success == false`).
+     Zero grammar changes — just another derived list field.
+     The insert initially split the field-getter if/elif chain and
+     the memo/fuzz tests caught it immediately (`tokens` fell through
+     to the fallback getattr) — fixed to a single chain before
+     release.
