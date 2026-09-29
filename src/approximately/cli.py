@@ -788,7 +788,9 @@ def cmd_annotations(args: argparse.Namespace) -> int:
     rows = store.annotations(getattr(args, "trace", None))
     verdict = getattr(args, "verdict", None)
     if verdict:
-        rows = [r for r in rows if r.get("verdict") == verdict]
+        want = str(verdict).strip().lower()
+        rows = [r for r in rows
+                if str(r.get("verdict", "")).lower() == want]
     if getattr(args, "json", False):
         print(json.dumps(rows, indent=2))
         return 0
@@ -838,7 +840,7 @@ def _status_payload(store, traces, digest_dir, since=None):
         annotations = [a for a in annotations
                        if a.get("ts", 0) >= cutoff]
     confirmed = [a for a in annotations
-                 if a.get("verdict") == "confirmed"]
+                 if str(a.get("verdict", "")).lower() == "confirmed"]
     last_failed = None
     for trace in reversed(traces):
         if trace.success is False:
