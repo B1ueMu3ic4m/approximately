@@ -5,74 +5,76 @@ a numbered item whose heading carries the version ("**v1.53 - MCP
 tool #30 ...** ✅ (delivered): ..."). This module turns that ledger
 into a standard changelog, newest first, one section per version —
 so the changelog cannot drift from the plan it summarizes.
+
+Item headings may wrap across lines (long titles do), so the parser
+scans the full text: an item runs from its `N. **vX.Y - title**`
+opener to the next opener or end of file. Titles may not contain
+nested `**` (the round-9 rule) — which also keeps deferred lines
+like `**deferred with reasons**` from masquerading as closings;
+deferred/queued items are additionally excluded by content.
 """
 
 from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
-_HEADING = re.compile(
-    r"^(\d+)\. \*\*(v\d+(?:\.\d+)*) [-\u2013\u2014] "
+_ITEM = re.compile(
+    r"^\d+\. \*\*(v\d+(?:\.\d+)*) [-\u2013\u2014] "
     r"((?:[^*]|\*(?!\*))+?)\*\*"
-    r"(?: \u2705[^:]*)?(?:[:]\s*(.*))?$")
+    r"(?P<rest>.*?)"
+    r"(?=^\d+\. \*\*v\d|\Z)",
+    re.M | re.S)
+
+_DELIVERED = re.compile(r"^\u2705[^:]*:\s*")
 
 
 def parse_plan(plan_path: Path) -> List[Tuple[str, str, str]]:
-    """(version, title, body) per delivered item, newest first."""
+    """(version, title, body) per delivered item, newest first.
+
+    Titles unwrap (newlines collapse to spaces). Deferred and queued
+    items are excluded by content, not by punctuation luck.
+    """
     entries: List[Tuple[str, str, str]] = []
-    current: Optional[Tuple[str, str, List[str]]] = None
-
-    def close():
-        nonlocal current
-        if current is not None:
-            entries.append(current)
-            current = None
-
-    for line in plan_path.read_text(encoding="utf-8").splitlines():
-        head = _HEADING.match(line)
-        if head:
-            close()
-            current = (head.group(2), head.group(3),
-                       [head.group(4)] if head.group(4) else [])
+    for match in _ITEM.finditer(
+            plan_path.read_text(encoding="utf-8")):
+        if match.group(1) is None:
+            continue  # the trailing \Z alternative: no item here
+        version = match.group(1)
+        title = " ".join(match.group(2).split())
+        rest = " ".join(match.group("rest").split())
+        if re.search(r"\bdeferred\b|\bqueued\b", rest, re.I):
             continue
-        if current is not None:
-            if line.strip():
-                current[2].append(line.strip())
-            elif current[2]:
-                close()  # blank line after the body: item over
-    close()
+        body = _DELIVERED.sub("", rest).strip()
+        entries.append((version, title, body))
 
     def version_key(version: str) -> tuple:
         return tuple(int(part) for part in version[1:].split("."))
 
     entries.sort(key=lambda e: version_key(e[0]), reverse=True)
-    return [(version, title, " ".join(body))
-            for version, title, body in entries]
+    return entries
 
 
 def render(entries: List[Tuple[str, str, str]]) -> str:
     # early plans shipped several items per version: one section
-    # per version, bodies joined
-    merged: List[Tuple[str, str, List[str]]] = []
+    # per version, bullets joined
+    merged: List[Tuple[str, List[str]]] = []
     for version, title, body in entries:
+        bullet = f"- {title.rstrip('.')}."
+        if body:
+            bullet += f" {body}"
         if merged and merged[-1][0] == version:
-            merged[-1][2].append(f"{title.rstrip('.')}.")
-            merged[-1][2].append(body)
+            merged[-1][1].append(bullet)
         else:
-            merged.append((version, title, [body]))
+            merged.append((version, [bullet]))
     out = ["# Changelog", "",
            "Generated from [docs/PLAN.md](docs/PLAN.md) — the single",
            "source of truth. Newest first.", ""]
-    for version, _title, bodies in merged:
+    for version, bullets in merged:
         out.append(f"## {version}")
         out.append("")
-        for chunk in bodies:
-            if chunk:
-                out.append(chunk)
-                out.append("")
-        out[-1] = out[-1].rstrip()
+        out.extend(bullets)
         out.append("")
     return "\n".join(out)
 

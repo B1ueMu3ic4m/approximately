@@ -373,6 +373,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.81** — the import tally splits its skip kinds: malformed vs duplicate
 - ✅ **v1.82** — `failed_tools` joins the query DSL: runs where search *errored*
 - ✅ **v1.83** — `failed_agents` completes the pair: runs where a named agent's tool call errored
+- ✅ **v1.84** — the query tool's schema teaches the derived fields
+- 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**

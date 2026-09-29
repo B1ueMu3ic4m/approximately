@@ -1902,3 +1902,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      once. Multi-agent night ops can now ask
      `failed_agents contains 'researcher' and success == false`
      with zero grammar changes.
+
+188. **v1.84 - the query tool's description teaches the derived
+     fields** ✅ (delivered): the MCP query schema now names
+     `max_latency`, `failed_tools` and `failed_agents` with a
+     composed example — schema-as-documentation, refreshed into
+     docs/mcp-tools.json. An MCP client discovers the newest
+     predicates without reading the source.
