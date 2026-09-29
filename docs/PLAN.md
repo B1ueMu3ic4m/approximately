@@ -1856,3 +1856,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      alignment tokens) so dedupe was blind to tool-less duplicates —
      two such runs are now duplicates exactly when task and final
      output agree.
+
+182. **v1.79 - TUTORIAL section 9: start from existing logs** ✅
+     (delivered): the canonical walkthrough gains the ingest loop
+     (import directory/anomalies/report) pointing at RECIPES 14.
+     Docs-only.
