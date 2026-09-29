@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.85
+
+- markdown postmortems name fleet outliers too. the HTML postmortem grew a Fleet-outliers card in v1.55; the markdown issue-ready version gets the same section — an issue filed from the markdown carries the slowness evidence (step, tool, latency, family median, z) without opening the HTML. Best-effort like every card.
+
 ## v1.84
 
 - the query tool's description teaches the derived fields. the MCP query schema now names `max_latency`, `failed_tools` and `failed_agents` with a composed example — schema-as-documentation, refreshed into docs/mcp-tools.json. An MCP client discovers the newest predicates without reading the source.

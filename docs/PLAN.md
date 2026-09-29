@@ -1909,3 +1909,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      composed example — schema-as-documentation, refreshed into
      docs/mcp-tools.json. An MCP client discovers the newest
      predicates without reading the source.
+
+189. **v1.85 - markdown postmortems name fleet outliers too** ✅
+     (delivered): the HTML postmortem grew a Fleet-outliers card in
+     v1.55; the markdown issue-ready version gets the same section —
+     an issue filed from the markdown carries the slowness evidence
+     (step, tool, latency, family median, z) without opening the
+     HTML. Best-effort like every card.

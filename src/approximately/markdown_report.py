@@ -84,6 +84,31 @@ def _counterfactual_lines(trace) -> list:
     return lines
 
 
+def _fleet_lines(trace: "Trace", store) -> list:
+    """Fleet-outlier bullets (best-effort: no store, no section)."""
+    if store is None:
+        return []
+    try:
+        from .anomaly import detect_fleet_anomalies
+
+        fleet = [a for a in detect_fleet_anomalies(store.list_traces())
+                 if a.trace_id == trace.id]
+    except Exception:
+        return []
+    if not fleet:
+        return []
+    lines = ["", "### Fleet outliers", "",
+             ("*Steps that are extreme against every stored run of "
+              "the same tool — this trace can look normal alone:*"),
+             ""]
+    lines.extend(
+        f"- `#{a.step_index}` {a.tool} {a.latency_ms}ms — "
+        f"family median {a.median_ms:.0f}ms, z={a.robust_z} "
+        f"({a.direction})"
+        for a in fleet[:5])
+    return lines
+
+
 def render_markdown(trace: "Trace", report: "FailureReport",
                     store=None) -> str:
     """Issue-ready Markdown postmortem for one attributed trace."""
@@ -114,6 +139,7 @@ def render_markdown(trace: "Trace", report: "FailureReport",
                      for i, fix in enumerate(report.suggested_fixes, 1))
     lines.append("")
     lines.extend(_counterfactual_lines(trace))
+    lines.extend(_fleet_lines(trace, store))
     if store is not None:
         try:
             from .align import rank_similar
