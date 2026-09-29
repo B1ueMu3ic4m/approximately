@@ -1894,3 +1894,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      the memo/fuzz tests caught it immediately (`tokens` fell through
      to the fallback getattr) — fixed to a single chain before
      release.
+
+187. **v1.83 - `failed_agents` completes the pair** ✅ (delivered):
+     `failed_tools` (v1.82) names the tools that errored;
+     `failed_agents` names the agents whose named tool calls
+     errored — sorted and deduplicated so repeat offenders list
+     once. Multi-agent night ops can now ask
+     `failed_agents contains 'researcher' and success == false`
+     with zero grammar changes.

@@ -372,6 +372,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.80** — `perf-gate[doctor]`: 2000 traces + judge cache in 86ms (budget 5s); seven perf gates
 - ✅ **v1.81** — the import tally splits its skip kinds: malformed vs duplicate
 - ✅ **v1.82** — `failed_tools` joins the query DSL: runs where search *errored*
+- ✅ **v1.83** — `failed_agents` completes the pair: runs where a named agent's tool call errored
+- 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
