@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.93
+
+- docs health as a permanent test. the v1.15 link audit becomes automation — every relative Markdown link in README/docs must resolve, and the version claims that matter stay fresh: CHANGELOG's newest section, the README roadmap's newest row and the PLAN's newest item all track pyproject. The audits that used to be nightly chores now fail a test the moment docs drift.
+
 ## v1.92
 
 - `test --json`. the regression scaffold command emits its artifact info as data — where the scaffold landed, the attributed mode, the next step — so a pipeline can wire EXECUTOR/AGENT_ENTRY and run pytest programmatically. The --json sweep now covers every developer-facing command.
