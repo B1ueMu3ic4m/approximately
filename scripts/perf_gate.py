@@ -35,7 +35,7 @@ def main() -> int:
     args = parser.parse_args()
     return (attribution_gate(args) + agent_wave_gate()
             + query_gate() + similar_gate() + fleet_anomaly_gate()
-            + import_gate())
+            + import_gate() + doctor_gate())
 
 def fleet_anomaly_gate(budget_s: float = 2.0) -> int:
     """Per-tool fleet baselines over a 10k-trace store.
@@ -131,6 +131,43 @@ def import_gate(budget_s: float = 2.0) -> int:
           + ("PASS" if elapsed <= budget_s else "FAIL"))
     if elapsed > budget_s:
         print("FAIL: ingest slowed past budget", file=sys.stderr)
+        return 1
+    return 0
+
+
+def doctor_gate(budget_s: float = 5.0) -> int:
+    """The store health check over 2k traces, orphan annotations and
+    a judge cache included. Doctor grew several passes (orphans,
+    judge cache, ledger) — this gate pins the whole walk so the
+    night-watch invocation stays bounded."""
+    import tempfile
+    from pathlib import Path as _Path
+
+    from approximately.doctor import doctor
+    from approximately.recorder import Recorder
+    from approximately.store import TraceStore
+
+    tmp = _Path(tempfile.mkdtemp())
+    store = TraceStore(tmp / "store")
+    for i in range(2000):
+        rec = Recorder(f"run {i}", save=False)
+        rec.tool("deploy", {}, result="ok")
+        rec.respond("done", success=not rec.trace.steps)
+        store.save(rec.trace)
+    cache = tmp / "jcache"
+    cache.mkdir()
+    start = time.perf_counter()
+    report = doctor(store.directory, judge_cache=cache)
+    elapsed = time.perf_counter() - start
+    if report.records != 2000:
+        print("FAIL: doctor gate saw the wrong record count",
+              file=sys.stderr)
+        return 1
+    print(f"perf-gate[doctor]: 2000 traces + judge cache in "
+          f"{elapsed * 1000:.0f}ms (budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: doctor slowed past budget", file=sys.stderr)
         return 1
     return 0
 
