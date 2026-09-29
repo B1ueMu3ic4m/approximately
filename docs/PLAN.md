@@ -1792,3 +1792,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      annotation fields (lines/corrupt/orphans, v1.25-v1.49) were
      never in `to_dict`, so --json has been silently narrower than
      the prose since the orphan feature shipped.
+
+173. **v1.70 - the fleet dashboard shows the slow stores too** ✅
+     (delivered): survey rows carried `fleet_anomalies` (v1.44) but
+     the rendered dashboard only showed failure rates — a store
+     running slow-but-successful looked perfectly healthy in the
+     HTML. Store cards now grow a slowness section: outlier count
+     plus the worst step (tool, latency, family median, z). Healthy
+     stores render no section at all.
