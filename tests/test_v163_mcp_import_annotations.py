@@ -52,4 +52,28 @@ def test_missing_file_is_tool_error(tmp_path):
 def test_listed_with_required_path():
     schema = next(t for t in _TOOLS
                   if t["name"] == "import_annotations")
-    assert schema["inputSchema"]["required"] == ["path"]
+    # path OR glob: either selects the sidecars
+    assert schema["inputSchema"]["required"] == []
+
+
+def test_glob_merges_every_sidecar(tmp_path):
+    store = TraceStore(tmp_path / "s")
+    rec = Recorder("glob target", save=False)
+    rec.respond("done", success=True)
+    store.save(rec.trace)
+    for i in range(2):
+        sidecar = tmp_path / f"part{i}.jsonl"
+        sidecar.write_text(json.dumps({
+            "trace_id": rec.trace.id, "note": f"note {i}",
+            "author": "op", "verdict": "confirmed"}) + "\n",
+            encoding="utf-8")
+    ctx = ServerContext(str(store.directory))
+    payload = handle_request({
+        "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+        "params": {"name": "import_annotations",
+                   "arguments": {"glob": str(tmp_path / "*.jsonl"),
+                                 "store": str(store.directory)}},
+    }, ctx)
+    result = json.loads(payload["result"]["content"][0]["text"])
+    assert result["added"] == 2
+    assert len(store.annotations()) == 2

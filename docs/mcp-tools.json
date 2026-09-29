@@ -370,11 +370,13 @@
           "path": {
             "type": "string",
             "description": "annotation sidecar (JSONL)"
+          },
+          "glob": {
+            "type": "string",
+            "description": "merge every sidecar matching this pattern instead of a single path"
           }
         },
-        "required": [
-          "path"
-        ]
+        "required": []
       }
     },
     {
