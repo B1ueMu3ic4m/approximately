@@ -1820,3 +1820,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      data (written/labeled/skipped/modes, a `source` field naming
      the labeler, and the judge-cache tally when a teacher cache was
      in play) — the last human-only tallies in the labeling loop.
+
+177. **v1.74 - `benchmark --json` / `convert-mast --json`** ✅
+     (delivered): the benchmark result (multi-label path included —
+     sample metrics, per-mode CIs) and the MAST-Data conversion
+     stats emit as data. The `--json` sweep is now complete: every
+     command that prints numbers also prints them as data.

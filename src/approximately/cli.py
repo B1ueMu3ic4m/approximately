@@ -1370,6 +1370,13 @@ def cmd_convert_mast(args: argparse.Namespace) -> int:
 
     stats = convert_mast(Path(args.source), Path(args.output),
                          multi_label=getattr(args, "multi_label", False))
+    if getattr(args, "json", False):
+        from dataclasses import asdict
+
+        print(json.dumps({**asdict(stats),
+                          "output": args.output}, indent=2,
+                         default=str))
+        return 0 if stats.converted else 1
     print(stats.summary())
     for mode_id, count in sorted(stats.labels.items()):
         print(f"  {mode_id}: {count} traces")
@@ -1766,6 +1773,12 @@ def _benchmark_multi(labeled, args: argparse.Namespace) -> int:
     multi = evaluate_multi(pairs)
     source = "rule detectors (set-based)"
     n = len(pairs)
+    if getattr(args, "json", False):
+        from dataclasses import asdict
+
+        print(json.dumps({**asdict(multi), "records": n,
+                          "source": source}, indent=2))
+        return 0
     print(f"labeled {n} multi-label traces · predictor: {source}")
     print(f"sample-averaged precision {multi.sample_precision:.2f}, "
           f"recall {multi.sample_recall:.2f}, F1 {multi.macro_f1:.2f}")
@@ -1805,6 +1818,12 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
         labeler = rules_labeler()
         source = "rule detectors"
     result = evaluate(labeled, labeler)
+    if getattr(args, "json", False):
+        from dataclasses import asdict
+
+        print(json.dumps({**asdict(result), "records": len(labeled),
+                          "source": source}, indent=2))
+        return 0
     print(f"labeled {len(labeled)} traces · predictor: {source}")
     print(result.summary())
     if args.html:
@@ -2172,6 +2191,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--multi-label", action="store_true",
                    help="emit a labels SET per record (for set-based "
                         "evaluation) instead of a single label")
+    p.add_argument("--json", action="store_true",
+                   help="emit the conversion stats as JSON")
     p.set_defaults(func=cmd_convert_mast)
 
     p = sub.add_parser("fleet", help="aggregate several stores into one "
@@ -2434,6 +2455,8 @@ def build_parser() -> argparse.ArgumentParser:
                         "--multi-label); evaluate set-based P/R/F1")
     p.add_argument("--html", help="also write a self-contained HTML leaderboard "
                                   "to this path")
+    p.add_argument("--json", action="store_true",
+                   help="emit the benchmark result as JSON")
     p.set_defaults(func=cmd_benchmark)
 
     p_tax = sub.add_parser("taxonomy", parents=[common],

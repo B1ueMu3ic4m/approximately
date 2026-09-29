@@ -362,6 +362,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.71** — the dashboard's trend section renders the slowness verdict and per-day outlier counts
 - ✅ **v1.72** — `replay --json`: A/B verdicts and step diffs as data
 - ✅ **v1.73** — `export-dataset --json` / `distill --json`: labeling stats as data
+- ✅ **v1.74** — `benchmark --json` / `convert-mast --json`: the --json sweep is complete
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
