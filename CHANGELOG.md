@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.91
+
+- README's query row teaches the derived fields. the feature-table row for the query DSL now shows `max_latency` / `failed_tools` / `failed_agents` with a composed example — first-time visitors see the newest predicates where they read. Docs-only.
+
 ## v1.90
 
 - fuzz round 11. the derived query fields (`max_latency`, `failed_tools`, `failed_agents`) survive hostile traces — untimed and negative latencies, unicode and 200-char tool names, unnamed agents, 10^11 spikes — composed predicates stay deterministic across runs, dedupe + export keep their counts on the same stores, and fleet z-scores are never NaN or infinite.
