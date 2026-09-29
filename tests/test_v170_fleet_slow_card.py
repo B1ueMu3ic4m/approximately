@@ -46,3 +46,21 @@ def test_healthy_store_has_no_slowness_section(tmp_path):
     html = render_fleet_html(survey([tmp_path / "calm"]))
     assert "slow outlier(s)" not in html
     assert "Slowest step" not in html
+
+
+def test_trend_section_shows_slowness(tmp_path):
+    import time
+
+    _seed(tmp_path / "s")
+    digest = tmp_path / "d"
+    from approximately.fleet import append_digest, digest_snapshot, summarize_trend, trend_days
+
+    summaries = survey([tmp_path / "s"])
+    for offset in (2, 1):
+        snap = digest_snapshot(summaries)
+        snap["ts"] = time.time() - offset * 86400
+        append_digest(digest, snap)
+    summary = summarize_trend(trend_days(digest))
+    html = render_fleet_html(survey([tmp_path / "s"]), summary)
+    assert "slowness:" in html
+    assert "slow outliers" in html
