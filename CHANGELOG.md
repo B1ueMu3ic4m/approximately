@@ -3,6 +3,11 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.72
+
+A/B replay verification is scriptable — `--json` emits both verdicts plus the step-level diffs as data (`ReplayDiff.to_dict`, asdict of the dataclasses), so a pipeline gates on `verdict == "diverged"` without parsing prose. Exit codes unchanged.
+
+
 ## v1.71
 
 (delivered): `anomaly_trend` (v1.52) now renders in the fleet dashboard's digest-history block — a slowness badge, slope and latest flagged-step count, and the per-day table grows a `slow outliers` column. One day of history keeps the old shape.

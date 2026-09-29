@@ -133,11 +133,20 @@ def cmd_replay(args: argparse.Namespace) -> int:
     if args.patched:
         patched = _resolve_executor(args.patched)
         diff_b = replay(trace, patched, threshold=args.threshold)
-        print(compare(diff, diff_b))
-        print("--- original:")
-        print(diff.summary())
-        print("--- patched:")
-        print(diff_b.summary())
+        if getattr(args, "json", False):
+            print(json.dumps({"verdict": diff.verdict,
+                              "patched_verdict": diff_b.verdict,
+                              "original": diff.to_dict(),
+                              "patched": diff_b.to_dict()},
+                             indent=2))
+        else:
+            print(compare(diff, diff_b))
+            print("--- original:")
+            print(diff.summary())
+            print("--- patched:")
+            print(diff_b.summary())
+    elif getattr(args, "json", False):
+        print(json.dumps(diff.to_dict(), indent=2))
     else:
         print(diff.summary())
     if getattr(args, "html", None):
@@ -1886,6 +1895,8 @@ def build_parser() -> argparse.ArgumentParser:
                                   "page to this path")
     p.add_argument("--threshold", type=float, default=0.85,
                    help="step-result similarity floor (default 0.85)")
+    p.add_argument("--json", action="store_true",
+                   help="emit the replay diff as JSON")
     p.set_defaults(func=cmd_replay)
 
     p = sub.add_parser("test", parents=[common],

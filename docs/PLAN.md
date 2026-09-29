@@ -1807,3 +1807,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      latest flagged-step count, and the per-day table grows a
      `slow outliers` column. One day of history keeps the old
      shape.
+
+175. **v1.72 - `replay --json`** ✅ (delivered): A/B replay
+     verification is scriptable — `--json` emits both verdicts plus
+     the step-level diffs as data (`ReplayDiff.to_dict`, asdict of
+     the dataclasses), so a pipeline gates on
+     `verdict == "diverged"` without parsing prose. Exit codes
+     unchanged.

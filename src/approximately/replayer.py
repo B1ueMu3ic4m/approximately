@@ -60,6 +60,11 @@ class ReplayDiff:
         lines += ["  " + s.headline for s in self.steps if not s.match]
         return "\n".join(lines)
 
+    def to_dict(self) -> dict:
+        from dataclasses import asdict
+
+        return asdict(self)
+
 
 def compare(a: ReplayDiff, b: ReplayDiff) -> str:
     """Summarize an A/B replay: original executor *a* vs patched executor *b*."""
