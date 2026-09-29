@@ -360,6 +360,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.69** — `doctor --judge-cache`: entry/corruption counts (read-only); doctor --json regains the annotation fields
 - ✅ **v1.70** — the fleet dashboard shows slow stores: outlier count + worst step per store card
 - ✅ **v1.71** — the dashboard's trend section renders the slowness verdict and per-day outlier counts
+- ✅ **v1.72** — `replay --json`: A/B verdicts and step diffs as data
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
