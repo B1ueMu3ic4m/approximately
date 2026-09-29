@@ -86,8 +86,12 @@ _TOOLS: List[Dict[str, Any]] = [
                 "key_file": {"type": "string",
                              "description": "signing key file for "
                                             "HMAC-keyed traces"},
+                "all": {"type": "boolean",
+                        "description": "verify every trace in the "
+                                       "store and return the tally "
+                                       "(trace omitted)"},
             },
-            "required": ["trace"],
+            "required": [],
         },
     },
     {
@@ -719,14 +723,24 @@ def _tool_attribute(ctx: ServerContext, args: Dict[str, Any]) -> dict:
 
 
 def _tool_verify(ctx: ServerContext, args: Dict[str, Any]) -> dict:
-    from .integrity import load_key, verdict_payload
+    from .integrity import load_key, verdict_payload, verify
 
     store = _store(ctx, args)
+    key = (load_key(str(args["key_file"]))
+           if args.get("key_file") else None)
+    if args.get("all") and not args.get("trace"):
+        counts: dict = {}
+        rows = []
+        for trace in store.list_traces():
+            result = verify(trace, key=key)
+            counts[result.verdict] = counts.get(result.verdict, 0) + 1
+            rows.append({"trace_id": trace.id,
+                         "verdict": result.verdict})
+        return {"all": True, "traces": len(rows), "tally": counts,
+                "rows": rows}
     trace = store.load(str(args["trace"]))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
-    key = (load_key(str(args["key_file"]))
-           if args.get("key_file") else None)
     return {"trace": trace.id,
             **verdict_payload(trace, store.directory, key=key)}
 

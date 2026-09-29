@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.86
+
+- MCP `verify` gains `all`. the CLI's whole-store verify has an MCP answer as data — per-trace verdict rows plus a tally (intact/unsigned/keyed/rolled-back/...), `key_file` applying to every trace like the CLI's. `trace` becomes optional; the single-trace path is unchanged.
+
 ## v1.85
 
 - markdown postmortems name fleet outliers too. the HTML postmortem grew a Fleet-outliers card in v1.55; the markdown issue-ready version gets the same section — an issue filed from the markdown carries the slowness evidence (step, tool, latency, family median, z) without opening the HTML. Best-effort like every card.

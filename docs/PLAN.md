@@ -1916,3 +1916,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      an issue filed from the markdown carries the slowness evidence
      (step, tool, latency, family median, z) without opening the
      HTML. Best-effort like every card.
+
+190. **v1.86 - MCP `verify` gains `all`** ✅ (delivered): the CLI's
+     whole-store verify has an MCP answer as data — per-trace verdict
+     rows plus a tally (intact/unsigned/keyed/rolled-back/...),
+     `key_file` applying to every trace like the CLI's. `trace`
+     becomes optional; the single-trace path is unchanged.

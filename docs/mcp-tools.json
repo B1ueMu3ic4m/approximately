@@ -64,11 +64,13 @@
           "key_file": {
             "type": "string",
             "description": "signing key file for HMAC-keyed traces"
+          },
+          "all": {
+            "type": "boolean",
+            "description": "verify every trace in the store and return the tally (trace omitted)"
           }
         },
-        "required": [
-          "trace"
-        ]
+        "required": []
       }
     },
     {
