@@ -389,7 +389,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.96** — closing sweep: artifacts regenerated, sequence audited, next-steps refreshed
 - ✅ **v1.97** — `annotate --from-anomalies`: triage drafts itself, humans name the verdicts
 - ✅ **v1.98** — MCP `annotate` mirrors `from_anomalies`
-- 🔜 **next**
+
+- ✅ **v1.99** — the changelog is milestone-proof (v1.100 sorts after v1.99)- 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**
