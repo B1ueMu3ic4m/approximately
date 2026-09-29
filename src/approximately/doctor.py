@@ -43,6 +43,9 @@ class DoctorReport:
     annotation_lines: int = 0
     annotation_corrupt: int = 0
     annotation_orphans: List[str] = field(default_factory=list)
+    judge_cache_dir: str = ""
+    judge_cache_entries: int = 0
+    judge_cache_corrupt: int = 0
 
     @property
     def healthy(self) -> bool:
@@ -68,6 +71,12 @@ class DoctorReport:
             "torn_lines": self.torn_lines,
             "unsigned": self.unsigned,
             "legacy_agents": self.legacy_agents,
+            "annotation_lines": self.annotation_lines,
+            "annotation_corrupt": self.annotation_corrupt,
+            "annotation_orphans": self.annotation_orphans,
+            "judge_cache_dir": self.judge_cache_dir,
+            "judge_cache_entries": self.judge_cache_entries,
+            "judge_cache_corrupt": self.judge_cache_corrupt,
         }
 
     def render(self) -> str:
@@ -92,6 +101,13 @@ class DoctorReport:
             lines.append(note)
         lines.extend(f"    orphan annotation: trace {tid}"
                      for tid in self.annotation_orphans[:5])
+        if self.judge_cache_dir:
+            note = (f"  judge cache: {self.judge_cache_entries} "
+                    "entry(ies)")
+            if self.judge_cache_corrupt:
+                note += (f", {self.judge_cache_corrupt} unreadable "
+                         "(they are misses; safe to delete)")
+            lines.append(note)
         if self.legacy_agents:
             lines.append(
                 f"  legacy meta['agent'] on {len(self.legacy_agents)} "
@@ -218,7 +234,30 @@ def _gap_days(stamps: List[str]) -> List[str]:
     return gaps
 
 
-def doctor(store: Path, digest_dir: Optional[Path] = None) -> DoctorReport:
+def _check_judge_cache(report: DoctorReport, cache: Path) -> None:
+    """Count judge-cache entries and unreadable ones. Read-only: a
+    corrupt entry is already a safe miss at query time, so doctor
+    only names it."""
+    if not cache.is_dir():
+        return
+    report.judge_cache_dir = str(cache)
+    entries = corrupt = 0
+    for path in cache.glob("*.json"):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if not (isinstance(data, dict) and "payload" in data
+                    and "model" in data):
+                corrupt += 1
+                continue
+            entries += 1
+        except (OSError, ValueError):
+            corrupt += 1
+    report.judge_cache_entries = entries
+    report.judge_cache_corrupt = corrupt
+
+
+def doctor(store: Path, digest_dir: Optional[Path] = None,
+           judge_cache: Optional[Path] = None) -> DoctorReport:
     """Run every check and return the structured report."""
     report = DoctorReport(store=str(store))
     _check_records(store, report)
@@ -235,6 +274,8 @@ def doctor(store: Path, digest_dir: Optional[Path] = None) -> DoctorReport:
         for a in TraceStore(store).annotations()
         if a.get("trace_id") and str(a.get("trace_id")) not in known
     })
+    if judge_cache is not None:
+        _check_judge_cache(report, judge_cache)
     return report
 
 

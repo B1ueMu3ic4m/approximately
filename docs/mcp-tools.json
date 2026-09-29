@@ -130,6 +130,10 @@
           },
           "digest_dir": {
             "type": "string"
+          },
+          "judge_cache": {
+            "type": "string",
+            "description": "also count judge-cache entries and unreadable ones"
           }
         }
       }

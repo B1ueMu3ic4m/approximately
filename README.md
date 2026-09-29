@@ -357,6 +357,7 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.66** — README feature table carries the interop and slowness stories
 - ✅ **v1.67** — `export --dedupe`: near-duplicates never reach a colleague either
 - ✅ **v1.68** — `import` takes a directory: every `*.jsonl` inside it
+- ✅ **v1.69** — `doctor --judge-cache`: entry/corruption counts (read-only); doctor --json regains the annotation fields
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

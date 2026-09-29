@@ -139,6 +139,10 @@ _TOOLS: List[Dict[str, Any]] = [
             "properties": {
                 "store": {"type": "string"},
                 "digest_dir": {"type": "string"},
+                "judge_cache": {"type": "string",
+                                "description": "also count judge-"
+                                               "cache entries and "
+                                               "unreadable ones"},
             },
         },
     },
@@ -756,8 +760,11 @@ def _tool_doctor(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .doctor import doctor
 
     digest_dir = args.get("digest_dir")
+    judge_cache = args.get("judge_cache")
     report = doctor(_store(ctx, args).directory,
-                    Path(digest_dir) if digest_dir else None)
+                    Path(digest_dir) if digest_dir else None,
+                    judge_cache=(Path(str(judge_cache))
+                                 if judge_cache else None))
     return report.to_dict()
 
 
