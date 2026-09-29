@@ -1,5 +1,5 @@
 {
-  "count": 30,
+  "count": 31,
   "tools": [
     {
       "name": "list_traces",
@@ -323,6 +323,24 @@
     {
       "name": "curve",
       "description": "Budget-recall sweep for a trace: recall of ground-truth facts across a geometric grid of context budgets (the what-if curve).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "trace": {
+            "type": "string"
+          },
+          "store": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "trace"
+        ]
+      }
+    },
+    {
+      "name": "plan_repair",
+      "description": "Smallest honest intervention set that clears a trace's failure modes: dedupe repeats, insert verifications, re-attribute. Planning only \u2014 the repaired trace is described, not written; whatever still fires needs an agent-level change.",
       "inputSchema": {
         "type": "object",
         "properties": {
