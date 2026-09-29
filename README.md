@@ -383,6 +383,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.90** — fuzz round 11: the derived query fields survive hostile traces
 - ✅ **v1.91** — README's query row teaches the derived fields
 - ✅ **v1.92** — `test --json`: the regression scaffold as data
+- ✅ **v1.93** — docs health as a permanent test: links resolve, version claims stay fresh
+- 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**- 🔜 **next**

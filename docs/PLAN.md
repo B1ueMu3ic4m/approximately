@@ -1962,3 +1962,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      pipeline can wire EXECUTOR/AGENT_ENTRY and run pytest
      programmatically. The --json sweep now covers every
      developer-facing command.
+
+197. **v1.93 - docs health as a permanent test** ✅ (delivered):
+     the v1.15 link audit becomes automation — every relative
+     Markdown link in README/docs must resolve, and the version
+     claims that matter stay fresh: CHANGELOG's newest section, the
+     README roadmap's newest row and the PLAN's newest item all
+     track pyproject. The audits that used to be nightly chores now
+     fail a test the moment docs drift.
