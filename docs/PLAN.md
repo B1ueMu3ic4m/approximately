@@ -1875,3 +1875,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      night-watch invocation must stay bounded. Seven perf gates now
      cover attribution, scorecards, query, similarity, fleet
      baselines, ingest and store health.
+
+185. **v1.81 - the import tally splits its skip kinds** ✅
+     (delivered): `skipped` conflated two very different things —
+     malformed lines (data loss) and duplicate transcripts (by
+     design). The payload now carries `malformed` and `duplicates`
+     separately (`skipped` stays the sum for compatibility), and
+     the prose names both kinds.

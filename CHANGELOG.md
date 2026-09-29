@@ -3,6 +3,11 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.81
+
+(delivered): `skipped` conflated two very different things — malformed lines (data loss) and duplicate transcripts (by design). The payload now carries `malformed` and `duplicates` separately (`skipped` stays the sum for compatibility), and the prose names both kinds.
+
+
 ## v1.80
 
 `perf-gate[doctor]` walks 2000 traces + a judge cache in 86ms (budget 5s), with a record-count assertion — doctor has grown several passes (orphans, judge cache, ledger) and the night-watch invocation must stay bounded. Seven perf gates now cover attribution, scorecards, query, similarity, fleet baselines, ingest and store health.

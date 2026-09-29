@@ -72,3 +72,17 @@ def test_import_lines_accepts_one_pass_stream(tmp_path):
     assert result["imported"] == 1
     assert result["skipped"] == 1
     assert len(store.list_traces()) == 1
+
+
+def test_skips_split_into_malformed_and_duplicates(tmp_path):
+    from approximately.importer import import_lines
+
+    store = TraceStore(tmp_path / "s")
+    line = json.dumps({"messages": [
+        {"role": "user", "content": "q"},
+        {"role": "assistant", "content": "a"}]})
+    result = import_lines([line, "{broken", line], store)
+    assert result["imported"] == 1
+    assert result["malformed"] == 1
+    assert result["duplicates"] == 1
+    assert result["skipped"] == 2

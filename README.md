@@ -370,6 +370,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.79** — TUTORIAL section 9: start the walkthrough from the logs you already have
 - ✅ **v1.79.1** — hotfix: the clean-test clock race on Windows
 - ✅ **v1.80** — `perf-gate[doctor]`: 2000 traces + judge cache in 86ms (budget 5s); seven perf gates
+- ✅ **v1.81** — the import tally splits its skip kinds: malformed vs duplicate
+- 🔜 **next**
 - 🔜 **next** — community feedback, more adapters, judge-distillation recipes
 
 Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
