@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.90
+
+- fuzz round 11. the derived query fields (`max_latency`, `failed_tools`, `failed_agents`) survive hostile traces — untimed and negative latencies, unicode and 200-char tool names, unnamed agents, 10^11 spikes — composed predicates stay deterministic across runs, dedupe + export keep their counts on the same stores, and fleet z-scores are never NaN or infinite.
+
 ## v1.89
 
 - the export path gets its own perf gate. `perf-gate[export]` — 500 traces as OpenAI chat JSONL in 21ms (budget 2s), with row-count and parseability assertions. Eight perf gates now cover both directions of the store's I/O plus every analytic pass.

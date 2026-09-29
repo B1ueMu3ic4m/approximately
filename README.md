@@ -379,7 +379,9 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.87** — triage verdicts normalize: `Confirmed` and `confirmed` are one word
 - ✅ **v1.88** — `cluster --query`: cluster the failures you care about
 
-- ✅ **v1.89** — `perf-gate[export]`: 500 traces in 21ms; eight perf gates- 🔜 **next**
+- ✅ **v1.89** — `perf-gate[export]`: 500 traces in 21ms; eight perf gates
+- ✅ **v1.90** — fuzz round 11: the derived query fields survive hostile traces
+- 🔜 **next**- 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**
