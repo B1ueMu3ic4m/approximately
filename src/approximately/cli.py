@@ -864,6 +864,17 @@ def _status_payload(store, traces, digest_dir, since=None):
 
         trend = summarize_trend(trend_days(Path(digest_dir)))
     recidivists = agent_scorecard(traces, min_failed=2)
+    from .cluster import tool_scorecard
+
+    tool_rows = [r for r in tool_scorecard(traces)
+                 if r["traces"] >= 2]
+    tool_rows.sort(key=lambda r: -r["failure_rate"])
+    worst_tool = None if not tool_rows else {
+        "tool": tool_rows[0]["tool"],
+        "failed_traces": tool_rows[0]["failed_traces"],
+        "traces": tool_rows[0]["traces"],
+        "failure_rate": round(tool_rows[0]["failure_rate"], 4),
+    }
     ledger = verify_ledger(store.directory)
     fleet_anoms, coverage = _fleet_and_coverage(traces, annotations,
                                                 stats)
@@ -885,6 +896,7 @@ def _status_payload(store, traces, digest_dir, since=None):
         "ledger_intact": None if not ledger.entries else ledger.intact,
         "top_recidivist": (recidivists[0]["agent"]
                            if recidivists else None),
+        "worst_tool": worst_tool,
         "fleet_anomalies": {
             "count": len(fleet_anoms),
             "worst": None if worst is None else {
@@ -951,6 +963,11 @@ def _render_status(args: argparse.Namespace) -> str:
                   + ("intact" if ledger_intact else "BROKEN") + "\n")
     if payload["top_recidivist"]:
         buf.write(f"  top recidivist: {payload['top_recidivist']}\n")
+    worst_tool = payload.get("worst_tool")
+    if worst_tool and worst_tool["failure_rate"] >= 0.5:
+        buf.write(f"  worst tool: {worst_tool['tool']} "
+                  f"({worst_tool['failed_traces']}/"
+                  f"{worst_tool['traces']} runs failed)\n")
     return buf.getvalue().rstrip("\n")
 
 

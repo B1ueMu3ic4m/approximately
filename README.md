@@ -385,6 +385,8 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 - ✅ **v1.92** — `test --json`: the regression scaffold as data
 - ✅ **v1.93** — docs health as a permanent test: links resolve, version claims stay fresh
 - ✅ **v1.94** — MCP `import_annotations` takes globs: every matching sidecar in one call
+- ✅ **v1.95** — `status` names the worst tool (>= 50% failure rate, >= 2 traces)
+- 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**
 - 🔜 **next**
