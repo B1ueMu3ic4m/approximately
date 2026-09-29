@@ -1929,3 +1929,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      normalize (strip + lower), the `--verdict` filter compares
      case-insensitively (so pre-normalization rows still match), and
      the coverage tally counts the pretty-cased idiom too.
+
+192. **v1.88 - `cluster --query`** ✅ (delivered): cluster the
+     failures you care about — the shared query DSL filters before
+     clustering (which modes keep recurring on deploy runs).
+     Mirrored into the MCP cluster tool's existing expression
+     parameter, so no schema change was needed.
