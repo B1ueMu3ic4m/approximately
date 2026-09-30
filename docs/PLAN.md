@@ -2094,3 +2094,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      token_anomalies + worst_token_anomaly per store — shown on the
      store card as a token-burn badge and the hardest-working step,
      and in `fleet --json`. 5 tests; latency cards untouched.
+
+215. **v2.5.0 - spool: the directory that feeds the store** ✅
+     (delivered): `approximately spool --dir D` watches a spool
+     directory and ingests every transcript/OTLP file that lands —
+     shared sniffer (native/openai/messages-list/otel), files move
+     to done/ once parsed, unparseable files stay for a human,
+     deterministic ids make re-delivery a no-op, --once is the cron
+     mode with a gateable exit code (1 = a failed trace came in),
+     --interval loops as a daemon.  10 tests; ARCHITECTURE +
+     RECIPES 18.

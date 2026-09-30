@@ -1781,6 +1781,24 @@ def cmd_dedupe(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_spool(args: argparse.Namespace) -> int:
+    from .spool import watch_spool
+
+    store = TraceStore(args.store)
+    try:
+        return watch_spool(
+            store, Path(args.dir), interval=float(args.interval),
+            once=bool(args.once), delete=bool(args.delete),
+            dry_run=bool(args.dry_run),
+            max_passes=int(getattr(args, "max_passes", 0) or 0)
+            or None)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    except KeyboardInterrupt:
+        return 0
+
+
 def cmd_import(args: argparse.Namespace) -> int:
     from .importer import import_paths
 
@@ -2534,6 +2552,27 @@ def build_parser() -> argparse.ArgumentParser:
                    help="scan cap (default 2000)")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_dedupe)
+
+    p = sub.add_parser("spool", parents=[common],
+                       help="watch a directory, ingest every "
+                            "transcript/OTLP file that lands in it")
+    p.add_argument("dir", help="spool directory to watch")
+    p.add_argument("--interval", type=float, default=60.0,
+                   metavar="SECONDS",
+                   help="seconds between passes (default 60)")
+    p.add_argument("--once", action="store_true",
+                   help="one pass and exit (cron mode; exit 1 when "
+                        "a failed trace was ingested)")
+    p.add_argument("--delete", action="store_true",
+                   help="delete processed files instead of moving "
+                        "them to done/")
+    p.add_argument("--dry-run", action="store_true",
+                   help="count what would be imported, move nothing")
+    p.add_argument("--max-passes", type=int, default=None,
+                   metavar="N",
+                   help="stop after N passes (tests and systemd "
+                        "restart loops)")
+    p.set_defaults(func=cmd_spool)
 
     p = sub.add_parser("import", parents=[common],
                        help="batch-import foreign transcript JSONL")
