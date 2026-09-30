@@ -46,10 +46,6 @@ def _content(text: str) -> Any:
     return text if text else ""
 
 
-def _content(text: str) -> Any:
-    return text if text else ""
-
-
 def _tool_result(name, call_id, text, error) -> Dict[str, Any]:
     msg: Dict[str, Any] = {"role": "tool",
                            "name": name or "tool",
