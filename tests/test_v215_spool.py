@@ -152,3 +152,37 @@ def test_cli_spool_once(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "spool pass 1" in out
     assert len(TraceStore(store_dir).list_traces()) == 1
+
+
+def test_pass_reports_failure_modes(tmp_path):
+    # ingest-time attribution: the pass says WHAT landed
+    store = TraceStore(tmp_path / "s")
+    spool = tmp_path / "spool"
+    spool.mkdir()
+    rec = Recorder("looping run", save=False)
+    for _ in range(6):
+        rec.tool("search", {"q": "same"}, result="same")
+    rec.respond("gave up", success=False)
+    (spool / "loop.jsonl").write_text(
+        json.dumps(rec.trace.to_dict()) + "\n", encoding="utf-8")
+    result = spool_pass(store, spool)
+    assert result["failed_traces"] == 1
+    assert result["failure_modes"]
+    mode = next(iter(result["failure_modes"]))
+    assert mode != "OTHER"
+
+
+def test_watch_line_mentions_modes(tmp_path, capsys):
+    store = TraceStore(tmp_path / "s")
+    spool = tmp_path / "spool"
+    spool.mkdir()
+    rec = Recorder("looping run", save=False)
+    for _ in range(6):
+        rec.tool("search", {"q": "same"}, result="same")
+    rec.respond("gave up", success=False)
+    (spool / "loop.jsonl").write_text(
+        json.dumps(rec.trace.to_dict()) + "\n", encoding="utf-8")
+    code = watch_spool(store, spool, once=True, max_passes=1)
+    assert code == 1
+    out = capsys.readouterr().out
+    assert "failures:" in out

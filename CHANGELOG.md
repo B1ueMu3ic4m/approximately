@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.9.1
+
+- the spool pass says WHAT landed. ingest-time attribution — the pass report counts primary failure modes of newly ingested failed traces (rule detectors, deterministic, no network), in the JSON result and on the watch line (`failures: FM-1.3 x2`). Best-effort: an attribution trouble yields no label, never a crash. 2 tests.
+
 ## v2.9.0
 
 - the money number: stats --price-per-1k. "too big wastes money" gets a dollar figure — `stats --price-per-1k RATE` sums the recorded tokens and estimates spend at a blended rate, JSON and prose, honestly labelled (the recorder keeps one token count per step, no in/out split). 4 tests.
