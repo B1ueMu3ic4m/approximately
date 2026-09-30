@@ -110,15 +110,15 @@ def test_mcp_spool_once_garbage(tmp_path):
     assert payload["result"]["isError"] is not True
 
 
-def test_own_tools_scan_clean():
+def test_own_tools_scan_clean(tmp_path):
     # the shipped tool inventory must pass our own poisoning scan
     import argparse
 
     from approximately.cli import cmd_mcp
 
-    target = "/tmp/approx-self-tools.json"
-    args = argparse.Namespace(store=".", print_tools=target)
+    target = tmp_path / "self-tools.json"
+    args = argparse.Namespace(store=".", print_tools=str(target))
     assert cmd_mcp(args) == 0
-    result = scan(target)
+    result = scan(str(target))
     assert result.verdict == "clean"
     assert result.findings == []
