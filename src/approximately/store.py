@@ -60,11 +60,17 @@ class TraceStore:
         # acquire the per-id lock (bounded spin; stale locks time out)
         deadline = time.time() + 10.0
         fd = None
+        # Windows maps a sharing violation on an existing lock to
+        # EACCES (PermissionError) instead of EEXIST — it means the
+        # same thing: someone holds the lock.  Spinning is bounded:
+        # a permissions problem that never clears raises.
+        permission_since = None
         try:
             while fd is None:
                 try:
                     fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
                 except FileExistsError:
+                    permission_since = None
                     if time.time() > deadline:
                         # stale lock from a crashed writer: break it.
                         # On Windows a held file cannot be unlinked
@@ -75,6 +81,13 @@ class TraceStore:
                         except (FileNotFoundError, PermissionError):
                             pass
                         deadline = time.time() + 10.0
+                    time.sleep(0.005)
+                except PermissionError:
+                    now = time.time()
+                    if permission_since is None:
+                        permission_since = now
+                    if now - permission_since > 10.0:
+                        raise
                     time.sleep(0.005)
             tmp = self.directory / f".{trace.id}.{os.getpid()}.tmp"
             tmp.write_text(payload, encoding="utf-8")

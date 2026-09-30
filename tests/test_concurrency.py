@@ -182,3 +182,53 @@ def test_replace_survives_windows_sharing_clash(store, failing_trace,
 
     with pytest.raises(PermissionError):
         store.save(failing_trace)
+
+
+def test_windows_sharing_violation_counts_as_held_lock(store,
+                                                       failing_trace,
+                                                       monkeypatch):
+    """Windows maps EACCES (not EEXIST) onto `open` of an existing
+    file someone still holds open — the CI race that killed a saver
+    mid-spin.  The acquire loop must treat it as contention, spin,
+    and succeed once it clears; a permanent EACCES still raises."""
+    import os as _os
+    import time as _time
+
+    real_open = _os.open
+    state = {"calls": 0}
+
+    def flaky_open(path, flags, *args, **kwargs):
+        if str(path).endswith(".lock"):
+            state["calls"] += 1
+            if state["calls"] <= 3:
+                raise PermissionError(13, "Permission denied", str(path))
+        return real_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(_os, "open", flaky_open)
+    monkeypatch.setattr(_time, "time", _time.time)  # real clock
+    path = store.save(failing_trace)
+    assert path.exists()
+    assert state["calls"] > 3        # spun past the sharing violations
+
+
+def test_permanent_permission_error_still_raises(store, failing_trace,
+                                                 monkeypatch):
+    import os as _os
+    import time as _time
+
+    real_open = _os.open
+    real_time = _time.time
+
+    def denied_open(path, flags, *args, **kwargs):
+        if str(path).endswith(".lock"):
+            raise PermissionError(13, "Permission denied", str(path))
+        return real_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(_os, "open", denied_open)
+    # start the clock already past the bounded-spin window
+    monkeypatch.setattr(_time, "time",
+                        lambda: real_time() + 100.0)
+    import pytest
+
+    with pytest.raises(PermissionError):
+        store.save(failing_trace)
