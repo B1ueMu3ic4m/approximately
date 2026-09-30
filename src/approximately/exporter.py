@@ -169,7 +169,10 @@ def _trace_id(trace_id: str) -> str:
 
 
 def _nanos(t: float) -> str:
-    return str(int(t * 1_000_000_000))
+    # microsecond quantization: time.time() precision is µs, and the
+    # integer µs value is exact below 2^53 — so export→import→export
+    # closes byte-for-byte instead of drifting in the last ns digit
+    return str(round(t * 1_000_000) * 1000)
 
 
 _STATUS_OK = 1
@@ -230,9 +233,13 @@ def trace_to_spans(trace: Trace) -> List[Dict[str, Any]]:
             ("approximately.final_output", trace.final_output),
             ("approximately.step.count", len(trace.steps)),
             ("approximately.time.derived", True),
+            # imported_from is this store's provenance, not run
+            # evidence — skipping it keeps export→import→export
+            # closed byte-for-byte
             *((f"approximately.meta.{k}", v)
               for k, v in sorted((trace.meta or {}).items())
-              if isinstance(v, (str, int, float, bool))),
+              if k != "imported_from"
+              and isinstance(v, (str, int, float, bool))),
         ]),
         "status": ({"code": _STATUS_ERROR}
                    if trace.success is False

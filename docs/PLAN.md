@@ -2114,3 +2114,15 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      own Theil-Sen verdict (token-burn trend line in prose and the
      fleet HTML), and webhook/fleet JSON fields flow through.  7
      tests; RECIPES 15/18 updated.
+
+217. **v2.6.1 - integration round: four seams the module tests missed** ✅
+     (delivered): walking export→import→export and spool→fleet end
+     to end found four real bugs.  (1) ns timestamps drifted in the
+     last digit — OTLP times are now µs-quantized (time.time()
+     precision; exact integer math below 2^53), so the loop closes
+     byte-for-byte.  (2) OTLP import dropped step tokens, tool_call
+     results and errors — restored.  (3) imported steps all carried
+     index 0, colliding span ids on re-export — renumbered.  (4)
+     imported_from rode the wire and broke closure — exporter skips
+     it; foreign backend attrs land in meta under attr. prefixes.
+     6 integration tests.
