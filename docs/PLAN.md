@@ -2198,3 +2198,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      (delivered): `stats --by-tool` and `--by-agent` grow an
      `est_cost` column (JSON + prose) when `--price-per-1k` is set
      — which tool, which agent, how much.  3 tests.
+
+227. **v2.9.4 - the perf gate watches the spool too** ✅
+     (delivered): perf-gate[spool] — 200 mixed files (150
+     transcripts + 2 OTLP envelopes) through one spool_pass within
+     budget, so the forever-running watch loop's pass stays cheap
+     as the format surface grows.  Gate count: 9.
