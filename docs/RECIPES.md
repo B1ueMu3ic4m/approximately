@@ -350,4 +350,9 @@ Files move to `spool/done/` once parsed; unparseable files stay put
 for a human.  Deterministic ids make at-least-once delivery a no-op —
 the same export landing twice is one trace.  Pair with
 `fleet --watch` (recipe 15) and the anomaly gates for a night watch
-that notices failures, slowdowns and token burns on its own.
+that notices failures, slowdowns and token burns on its own:
+
+```bash
+approximately fleet --watch 300 --digest-dir ~/digest --webhook https://hook \
+  --alert-worse-than 0.5 --alert-anomalies 3 --alert-tokens 3
+```
