@@ -54,6 +54,21 @@ def _archive(path: Path, done_dir: Path, delete: bool = False) -> str:
     return "archived"
 
 
+def _primary_mode(trace) -> Optional[str]:
+    """Rule-detector attribution of a failed trace (deterministic,
+    no network) — the pass report says WHAT landed, not just how
+    much.  Best-effort: attribution trouble yields no label."""
+    try:
+        from .attributor import attribute
+
+        report = attribute(trace)
+        if report.primary_mode.id != "OTHER":
+            return report.primary_mode.id
+    except Exception:
+        return None
+    return None
+
+
 def spool_pass(store: TraceStore, directory: Path,
                delete: bool = False,
                dry_run: bool = False) -> Dict[str, object]:
@@ -64,7 +79,7 @@ def spool_pass(store: TraceStore, directory: Path,
     result: Dict[str, Any] = {
         "files": len(files), "imported": 0, "skipped": 0,
         "failures": 0, "failed_traces": 0, "archived": 0,
-        "deleted": 0, "left": 0, "errors": [],
+        "deleted": 0, "left": 0, "errors": [], "failure_modes": {},
     }
     for path in files:
         try:
@@ -83,6 +98,10 @@ def spool_pass(store: TraceStore, directory: Path,
                 trace = store.load(trace_id)
                 if trace is not None and trace.success is False:
                     failed_here += 1
+                    mode = _primary_mode(trace)
+                    if mode:
+                        result["failure_modes"][mode] = (
+                            result["failure_modes"].get(mode, 0) + 1)
         result["failed_traces"] += failed_here
         if not dry_run:
             what = _archive(path, directory / "done", delete=delete)
@@ -105,10 +124,16 @@ def watch_spool(store: TraceStore, directory: Path,
                              dry_run=dry_run)
         if outcome["failed_traces"]:
             exit_code = 1
-        print(f"spool pass {passes}: {outcome['files']} file(s), "
-              f"{outcome['imported']} imported, "
-              f"{outcome['skipped']} skipped, "
-              f"{outcome['failures']} unparsed")
+        line = (f"spool pass {passes}: {outcome['files']} file(s), "
+                f"{outcome['imported']} imported, "
+                f"{outcome['skipped']} skipped, "
+                f"{outcome['failures']} unparsed")
+        modes = outcome.get("failure_modes") or {}
+        if modes:
+            detail = ", ".join(f"{m} x{c}"
+                               for m, c in sorted(modes.items()))
+            line += f" | failures: {detail}"
+        print(line)
         if once or (max_passes is not None
                     and passes >= max_passes):
             return exit_code
