@@ -11,9 +11,9 @@
 <b>Free & open source · Zero dependencies · MIT · Python 3.9+ · pip install approximately</b>
 </p>
 
-> **v2.0** — the toolkit is production-stable: 31 MCP tools (+resources), 7 framework
+> **v2.0** — the toolkit is production-stable: 32 MCP tools (+resources), 7 framework
 > adapters, MAST attribution with a gated quality floor, tamper-evident evidence,
-> fleet monitoring with quiet alerting, and 1,200+ tests across a 15-job CI matrix.
+> fleet monitoring with quiet alerting, and 1,300+ tests across a 15-job CI matrix.
 > Semver with teeth: major for big or breaking updates, minor for features,
 > patch for fixes — the 1.x line ran 100+ minors; 2.0 resets that.
 
@@ -168,7 +168,7 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 🐢 Slowness is a signal | Per-tool latency baselines per trace and fleet-wide, slowness trend over days, `--alert-anomalies` paging — slow-but-successful runs are failures too | `approximately anomalies --all` |
 | 📥📤 Log interop | Logs already on disk become tamper-evident traces — and traces export back out as OpenAI chat JSONL for fine-tuning/eval; roundtrips restore ids | `approximately import logs/*.jsonl` · `approximately export out.jsonl` |
 | 🐢 Slowness is a signal | Per-tool latency baselines per trace and fleet-wide, slowness trend over days, `--alert-anomalies` paging — slow-but-successful runs are failures too | `approximately anomalies --all` |
-| 🔌 MCP server | The whole toolkit as a Model Context Protocol stdio server (31 tools and counting — the committed [mcp-tools.json](docs/mcp-tools.json) mirrors it; `tools/list` is authoritative) — query failures and agent scoreboards from any MCP client | `approximately mcp` |
+| 🔌 MCP server | The whole toolkit as a Model Context Protocol stdio server (32 tools and counting — the committed [mcp-tools.json](docs/mcp-tools.json) mirrors it; `tools/list` is authoritative) — query failures and agent scoreboards from any MCP client | `approximately mcp` |
 | 🧪 Attribution quality gates | Gold-corpus + large-n synthetic floors run in CI — a detector refactor that degrades P/R fails the build | `python scripts/bench_gate.py [--synth]` |
 | 🚦 Gate as a GitHub Action | The same attribution gate as a drop-in action for your own repo's workflow | `uses: B1ueMu3ic4m/approximately@v0` |
 
@@ -216,7 +216,7 @@ this README stays lean. The delivered capability eras, in order:
 - **Prove the fix** — replay, regression guards, `bisect`, structural diff, failure-to-test pipeline
 - **Ask anything** — query DSL + stats, reports (HTML/Mermaid/SARIF/Prometheus), fleet dashboards, trend gates
 - **Learn from real data** — MAST-Data annotations + benchmarks, prose detector family, leaderboard, distillation
-- **Meet agents where they are** — 7 framework adapters, 31-tool MCP server, OpenAI/OTel/native import-export
+- **Meet agents where they are** — 7 framework adapters, 32-tool MCP server, OpenAI/OTel/native import-export
 - **Slowness is a signal** — per-tool & fleet latency baselines, anomaly surfacing in reports and CI
 
 What ships next is decided item by item in [docs/PLAN.md](docs/PLAN.md).
