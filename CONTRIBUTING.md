@@ -36,6 +36,9 @@ absent): `pip install openai langchain-core openai-agents`
   FM-2.5 are covered; FM-1.2 role-spec heuristics are open)
 - More framework adapters (AutoGen, LlamaIndex, ...)
 - Optional exact tokenizer integrations beyond tiktoken
+- OTLP import: map the GenAI semantic-convention attributes
+  (`gen_ai.request.model`, `gen_ai.usage.*`) onto steps when present,
+  so token baselines work on traces that never touched our recorder
 
 ## Complexity gate
 
