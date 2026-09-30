@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.10.0
+
+- foreign agents join the token baselines. OTLP import maps the GenAI semantic conventions — `gen_ai.usage.{completion,output,prompt,input}_tokens`, any naming a backend picks — onto step tokens, and a span that metered usage becomes a tool_call step (the vocabulary token baselines measure). A third-party agent's burn is now baselined, flagged and priced straight from the OTLP it already exports. 3 tests; the CONTRIBUTING good-first-issue closes itself.
+
 ## v2.9.7
 
 - the front doors mention the new rooms. README's step-by-step gains step 5 — circulate (OTel/OTLP export-import, the spool that feeds itself); CONTRIBUTING's good-first-issues grows the GenAI semantic-conventions mapping (map gen_ai.* attrs onto steps at OTLP import so token baselines work on traces that never touched our recorder).

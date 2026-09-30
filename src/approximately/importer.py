@@ -256,6 +256,24 @@ def _valid_id(candidate: Any) -> Optional[str]:
     return None
 
 
+def _genai_tokens(attrs: Dict[str, Any]) -> int:
+    """Sum the GenAI usage attributes, whichever naming a backend
+    picked (completion/output + prompt/input)."""
+    total = 0
+    for key in ("gen_ai.usage.completion_tokens",
+                "gen_ai.usage.output_tokens",
+                "gen_ai.usage.prompt_tokens",
+                "gen_ai.usage.input_tokens"):
+        value = attrs.get(key)
+        if value is None:
+            continue
+        try:
+            total += int(value)
+        except (TypeError, ValueError):
+            continue
+    return total
+
+
 def _span_step(span: Dict[str, Any]) -> Step:
     """One span back onto a recorder step; spans that carry none of
     our attributes (a foreign backend's spans) land as message steps
@@ -271,10 +289,30 @@ def _span_step(span: Dict[str, Any]) -> Step:
         tokens = int(attrs.get("approximately.tokens") or 0)
     except (TypeError, ValueError):
         tokens = 0
+    if tokens == 0:
+        # the GenAI semantic conventions: a foreign backend's spans
+        # carry usage under gen_ai.* — mapped so token baselines
+        # work on traces that never touched our recorder
+        tokens = _genai_tokens(attrs)
 
     def build(**over):
         return Step(tokens=tokens, latency_ms=latency, **over)
 
+    step = _known_kind_step(kind, attrs, tool, name, build)
+    if step is not None:
+        return step
+    if tokens > 0:
+        # a foreign span that metered usage is a model call — the
+        # tool-call vocabulary is what token baselines measure
+        return build(kind=TOOL_CALL, tool=_text(tool, 200) or name,
+                     result=name or "call")
+    return build(kind=MESSAGE, result=name or "span",
+                 meta={"span_name": name})
+
+
+def _known_kind_step(kind, attrs, tool, name, build):
+    """Map a span carrying our approximately.kind attribute onto its
+    recorder step; None when the kind is foreign."""
     if kind == "tool_call":
         raw_args = attrs.get("approximately.args")
         try:
@@ -308,8 +346,7 @@ def _span_step(span: Dict[str, Any]) -> Step:
         return build(kind=MESSAGE,
                      result=_attr_text(attrs, "approximately.result"),
                      meta={"role": str(role or "user")})
-    return build(kind=MESSAGE, result=name or "span",
-                 meta={"span_name": name})
+    return None
 
 
 def _root_success(root: Dict[str, Any]) -> Optional[bool]:
