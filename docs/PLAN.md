@@ -2065,3 +2065,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      Sniffing recognizes the shape; a parsed line that is not an
      envelope under an explicit --format otel is a loud error.
      14 tests; mcp-tools.json regenerated.
+
+212. **v2.2.1 - fuzz round 12: the OTLP surface under attack** ✅
+     (delivered): the importer eats untrusted envelopes now, so the
+     round-4 contract extends to it — documented errors or clean
+     skips, never a crash.  Found and fixed: a recursion bomb
+     (100k-deep JSON) escaped as RecursionError, now a ValueError;
+     a 300k-attribute flood could bloat trace meta, now capped at
+     128 keys; a 200k-span flood became a 200k-step trace, now
+     capped at 10k steps per trace with an honest truncated count.
+     Envelopes shaped right but broken inside count as skips;
+     7 fuzz tests with a fixed seed.
