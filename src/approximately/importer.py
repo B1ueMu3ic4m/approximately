@@ -25,7 +25,7 @@ import hashlib
 import json
 from itertools import chain
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from .store import TraceStore
 from .trace import ERROR, MESSAGE, OBSERVATION, RESPONSE, TOOL_CALL, Step, Trace
@@ -284,7 +284,7 @@ def _expand(patterns: List[str]) -> List[Path]:
     return files
 
 
-def import_lines(raw_lines: List[str], store: TraceStore,
+def import_lines(raw_lines: Iterable[str], store: TraceStore,
                  fmt: Optional[str] = None,
                  dry_run: bool = False) -> Dict[str, Any]:
     """Import transcript lines (a file's content or stdin); malformed

@@ -143,7 +143,7 @@ def rank_similar(target: Trace, traces: List[Trace],
 
 
 def duplicate_groups(traces, threshold: float = 0.95,
-                     max_traces: int = 2000) -> List[dict]:
+                     max_traces: int = 2000) -> dict:
     """Near-duplicate clusters: traces so aligned they are the same
     run wearing a different id.
 
