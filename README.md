@@ -216,7 +216,7 @@ this README stays lean. The delivered capability eras, in order:
 - **Prove the fix** — replay, regression guards, `bisect`, structural diff, failure-to-test pipeline
 - **Ask anything** — query DSL + stats, reports (HTML/Mermaid/SARIF/Prometheus), fleet dashboards, trend gates
 - **Learn from real data** — MAST-Data annotations + benchmarks, prose detector family, leaderboard, distillation
-- **Meet agents where they are** — 7 framework adapters, 31-tool MCP server, OpenAI/native import-export
+- **Meet agents where they are** — 7 framework adapters, 31-tool MCP server, OpenAI/OTel/native import-export
 - **Slowness is a signal** — per-tool & fleet latency baselines, anomaly surfacing in reports and CI
 
 What ships next is decided item by item in [docs/PLAN.md](docs/PLAN.md).

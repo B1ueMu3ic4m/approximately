@@ -571,7 +571,9 @@ _TOOLS: List[Dict[str, Any]] = [
                            "description": "output JSONL path"},
                 "format": {"type": "string",
                            "description": "openai-jsonl (default) / "
-                                          "native"},
+                                          "native / otel (OTLP JSON "
+                                          "for Jaeger, Tempo, "
+                                          "Honeycomb)"},
                 "query": {"type": "string",
                           "description": "shared query-DSL filter, "
                                          "e.g. 'success == false and tool=ls'"},

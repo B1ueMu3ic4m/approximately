@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.1.0
+
+- OTLP export: agent runs as OpenTelemetry spans. `export --format otel` emits an OTLP JSON ExportTraceServiceRequest — a root span per run, one span per step, deterministic sha256 ids, the per-step timeline rebuilt from latency_ms and honestly marked with an approximately.time.derived attribute. Jaeger, Tempo and Honeycomb ingest agent failures next to the rest of the stack's telemetry. CLI flag, MCP export_transcripts format, 11 tests including byte-stability, mcp-tools.json artifact regenerated.
+
 ## v2.0.0
 
 - version discipline: 2.0, and a lean README. the 1.x line ran 100+ minors — anything that big is a major. pyproject moves to 2.0.0 and semver discipline is explicit: major for big or breaking updates, minor for features, patch for fixes. The README drops its 100+-row per-version roadmap (400+ lines with drifted "next" placeholders); release notes belong on the Releases page, which now renders this tag's CHANGELOG section as its body. The docs-health pin inverts to keep the README version-lean, and the repo description is one line instead of a feature dump.

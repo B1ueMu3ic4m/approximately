@@ -599,7 +599,7 @@
           },
           "format": {
             "type": "string",
-            "description": "openai-jsonl (default) / native"
+            "description": "openai-jsonl (default) / native / otel (OTLP JSON for Jaeger, Tempo, Honeycomb)"
           },
           "query": {
             "type": "string",

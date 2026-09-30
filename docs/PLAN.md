@@ -2043,3 +2043,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      CHANGELOG section as its body. The docs-health pin inverts to
      keep the README version-lean, and the repo description is one
      line instead of a feature dump.
+
+210. **v2.1.0 - OTLP export: agent runs as OpenTelemetry spans** ✅
+     (delivered): `export --format otel` emits an OTLP JSON
+     ExportTraceServiceRequest — a root span per run, one span per
+     step, deterministic sha256 ids, the per-step timeline rebuilt
+     from latency_ms and honestly marked with an
+     approximately.time.derived attribute. Jaeger, Tempo and
+     Honeycomb ingest agent failures next to the rest of the
+     stack's telemetry. CLI flag, MCP export_transcripts format,
+     11 tests including byte-stability, mcp-tools.json artifact
+     regenerated.

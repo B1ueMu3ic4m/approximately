@@ -153,7 +153,7 @@ TraceStore ──► exporter.py ──► foreign JSONL
   included) roundtrips losslessly; malformed lines are counted
   skips, never fatal. `import -` reads stdin; glob patterns fan out
   with per-file counts. Mirrored as MCP tool `import_transcripts`.
-- **`exporter.py`** — the path out: OpenAI chat shape by default
+- **`exporter.py`** — the path out: OpenAI chat shape by default, lossless `native`, and OTLP JSON (`--format otel`) for tracing backends (Jaeger/Tempo/Honeycomb ingest agent runs as spans)
   (adjacent tool_call steps merge into one assistant message,
   observations pair with call ids in order, a call whose result/error
   rode on the step itself emits its own tool message), `--format
