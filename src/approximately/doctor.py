@@ -282,8 +282,8 @@ def _check_spool(spool: Path, report: DoctorReport) -> None:
     report.spool_dir = str(spool)
     files = _spool_files(spool) if spool.is_dir() else []
     report.spool_pending = len(files)
-    store = TraceStore(report.store) if Path(report.store).is_dir() \
-        else None
+    store = TraceStore(Path(report.store)) \
+        if Path(report.store).is_dir() else None
     for path in files:
         if store is None:
             break
