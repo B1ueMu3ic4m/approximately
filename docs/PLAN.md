@@ -2054,3 +2054,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      stack's telemetry. CLI flag, MCP export_transcripts format,
      11 tests including byte-stability, mcp-tools.json artifact
      regenerated.
+
+211. **v2.2.0 - OTLP import: the OpenTelemetry loop closes** ✅
+     (delivered): `import --format otel` takes OTLP trace documents
+     in — compact envelopes one per line (the shape v2.1.0 writes)
+     or a pretty-printed document (what backends export).  Our own
+     exports roundtrip idempotently via the approximately.trace.id
+     attribute; foreign spans keep their name as message steps
+     instead of being dropped; status codes map to success flags.
+     Sniffing recognizes the shape; a parsed line that is not an
+     envelope under an explicit --format otel is a loud error.
+     14 tests; mcp-tools.json regenerated.

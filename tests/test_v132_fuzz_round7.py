@@ -139,7 +139,8 @@ def test_unknown_format_and_output_shapes(tmp_path):
     path = tmp_path / "x.jsonl"
     with pytest.raises(ValueError):
         export_store(store, path, fmt="parquet")
-    assert IMPORT_FORMATS == ("native", "openai-jsonl", "messages-list")
+    assert IMPORT_FORMATS == ("native", "openai-jsonl",
+                              "messages-list", "otel")
     assert set(_FORMATS) == {"openai-jsonl", "native", "otel"}
 
 
