@@ -1863,8 +1863,10 @@ def cmd_import(args: argparse.Namespace) -> int:
         if result.get("malformed") or result.get("duplicates"):
             detail = (f" ({result.get('malformed', 0)} malformed, "
                       f"{result.get('duplicates', 0)} duplicate)")
+        # "records": for OTLP a line is a whole envelope holding
+        # many spans, so "transcripts" would miscount
         print(f"imported {result['imported']} of {result['lines']} "
-              f"transcripts from {result['files']} file(s) "
+              f"record(s) from {result['files']} file(s) "
               f"({result['skipped']} skipped){detail}"
               + (" [dry run]" if args.dry_run else ""))
     return 0
@@ -2555,6 +2557,8 @@ def build_parser() -> argparse.ArgumentParser:
                         "e.g. 'success == false and tool=ls'")
     p.add_argument("--since", type=int, metavar="DAYS",
                    help="only traces created in the last DAYS days")
+    p.add_argument("--json", action="store_true",
+                   help="emit the export stats as JSON")
     p.add_argument("--with-annotations", action="store_true",
                    help="also write the triage sidecar next to the "
                         "export (OUT.annotations.jsonl)")
@@ -2621,6 +2625,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--annotations", action="store_true",
                    help="files are annotation sidecars (JSONL), not "
                         "transcripts; merge them append-only")
+    p.add_argument("--json", action="store_true",
+                   help="emit the import stats as JSON")
     p.set_defaults(func=cmd_import)
 
     p = sub.add_parser("export-dataset", parents=[common],

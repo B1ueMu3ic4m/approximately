@@ -2182,3 +2182,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      detectors, deterministic, no network), in the JSON result and
      on the watch line (`failures: FM-1.3 x2`).  Best-effort: an
      attribution trouble yields no label, never a crash.  2 tests.
+
+225. **v2.9.2 - the CLI tour: real argv through every wired door** ✅
+     (delivered): per-command tests own the semantics; the tour owns
+     the wiring — main() with actual argv lists.  It caught two
+     real bugs immediately: `approximately export` and `approximately
+     import` read args.json unconditionally but their parsers never
+     defined --json, so the plain commands crashed with
+     AttributeError (per-command tests built Namespaces by hand and
+     masked it).  Flags added; a sweep proves no other command has
+     the gap; import's prose now says "records" (an OTLP envelope
+     holds many spans, so "transcripts" miscounted).  10 tour tests.
