@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.9.5
+
+- the demo carries a token receipt. the 30-second tour's panic re-checks now record their token cost (800 / 850 / 9,500), so `stats --price-per-1k` on the demo store prints a real spend line — $33 at a $3/1k blended rate for one 40-second booking attempt. The token-anomaly card stays absent on purpose: 3 metered calls is under min_samples, and the demo is honest about that too.
+
 ## v2.9.4
 
 - the perf gate watches the spool too. perf-gate[spool] — 200 mixed files (150 transcripts + 2 OTLP envelopes) through one spool_pass within budget, so the forever-running watch loop's pass stays cheap as the format surface grows. Gate count: 9.
