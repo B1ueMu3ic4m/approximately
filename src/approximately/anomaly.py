@@ -17,6 +17,11 @@ standard deviation around the mean, use median absolute deviation"):
 computed over the steps of one trace. Degenerate cases are honest:
 fewer than `min_samples` calls, or MAD == 0 (all samples identical —
 no scale information), yield no anomalies rather than made-up ones.
+
+The same ruler measures a second meter: **tokens**.  Latency catches
+the call that ran long; token burn catches the call that worked too
+hard — the receipt a retry loop or a context-stuffing derailment
+leaves behind even when every call came back quickly.
 """
 
 from __future__ import annotations
@@ -206,6 +211,172 @@ def summarize_anomalies(anomalies: List[LatencyAnomaly]) -> str:
               f"(median {med:.0f}ms):")]
     lines.extend(
         f"  step #{a.step_index} {a.tool}: {a.latency_ms}ms "
+        f"({a.direction}, z={a.robust_z})"
+        for a in anomalies
+    )
+    return "\n".join(lines)
+
+
+# ------------------------------------------------------------- tokens
+#
+# The same ruler, a different meter.  Latency catches the call that
+# ran long; token burn catches the call that *worked too hard* — the
+# receipt a retry loop or a context-stuffing derailment leaves behind
+# even when every call came back quickly.
+
+
+@dataclass
+class TokenAnomaly:
+    step_index: int
+    tool: str
+    tokens: int
+    median_tokens: float
+    robust_z: float
+
+    @property
+    def direction(self) -> str:
+        return "burn" if self.robust_z > 0 else "frugal"
+
+
+@dataclass
+class TraceTokenAnomaly:
+    """A fleet-mode token finding: the anomaly carries its trace."""
+
+    trace_id: str
+    step_index: int
+    tool: str
+    tokens: int
+    median_tokens: float
+    robust_z: float
+
+    @property
+    def direction(self) -> str:
+        return "burn" if self.robust_z > 0 else "frugal"
+
+
+def _metered_steps(trace: Trace) -> List:
+    """Tool-call steps that carry a positive token count."""
+    return [s for s in trace.steps
+            if s.kind == TOOL_CALL and s.tokens and s.tokens > 0]
+
+
+def detect_token_anomalies(trace: Trace, threshold: float
+                           = MODIFIED_Z_THRESHOLD,
+                           min_samples: int = 5,
+                           per_tool: bool = False
+                           ) -> List[TokenAnomaly]:
+    """Flag per-step token counts whose modified z-score exceeds
+    threshold.  Same robust ruler as the latency family; only
+    tool-call steps that report tokens are measured."""
+    metered = _metered_steps(trace)
+    if len(metered) < min_samples:
+        return []
+    if not per_tool:
+        values = [float(s.tokens) for s in metered]
+        med = _median(values)
+        mad = _mad(values, med)
+        if mad == 0:
+            return []  # identical token counts: no scale
+        return _flagged_tokens(metered, values, med, mad, threshold)
+    by_tool: dict = {}
+    for step in metered:
+        by_tool.setdefault(step.tool or "?", []).append(step)
+    anomalies: List[TokenAnomaly] = []
+    for _tool, steps in sorted(by_tool.items()):
+        if len(steps) >= min_samples:
+            values = [float(s.tokens) for s in steps]
+            med = _median(values)
+            mad = _mad(values, med)
+            if mad == 0:
+                continue
+            anomalies.extend(_flagged_tokens(steps, values, med, mad,
+                                             threshold))
+            continue
+        # rare tool: judge against the run's pooled token scale
+        values = [float(s.tokens) for s in metered]
+        med = _median(values)
+        mad = _mad(values, med)
+        if mad == 0:
+            anomalies.extend(_flagged_zero_scale_tokens(steps, med))
+            continue
+        family = [float(s.tokens) for s in steps]
+        anomalies.extend(_flagged_tokens(steps, family, med, mad,
+                                         threshold))
+    anomalies.sort(key=lambda a: -abs(a.robust_z))
+    return anomalies
+
+
+def _flagged_zero_scale_tokens(steps, med: float) -> List[TokenAnomaly]:
+    return [TokenAnomaly(
+        step_index=step.index,
+        tool=step.tool or "?",
+        tokens=step.tokens,
+        median_tokens=med,
+        robust_z=9999.0 if step.tokens > med else -9999.0,
+    ) for step in steps if float(step.tokens) != med]
+
+
+def _flagged_tokens(metered, values, med: float, mad: float,
+                    threshold: float) -> List[TokenAnomaly]:
+    anomalies = []
+    for step, value in zip(metered, values):
+        z = _CONSISTENCY * (value - med) / mad
+        if abs(z) > threshold:
+            anomalies.append(TokenAnomaly(
+                step_index=step.index,
+                tool=step.tool or "?",
+                tokens=step.tokens,
+                median_tokens=med,
+                robust_z=round(z, 2),
+            ))
+    anomalies.sort(key=lambda a: -abs(a.robust_z))
+    return anomalies
+
+
+def detect_fleet_token_anomalies(traces, threshold: float
+                                 = MODIFIED_Z_THRESHOLD,
+                                 min_samples: int = 5
+                                 ) -> List[TraceTokenAnomaly]:
+    """Per-tool token baselines across a whole store — the fleet
+    knows what `search` should cost in tokens everywhere, every
+    day; families under ``min_samples`` are honest no-ops."""
+    by_tool: dict = {}
+    for trace in traces:
+        for step in _metered_steps(trace):
+            by_tool.setdefault(step.tool or "?", []).append(
+                (trace, step))
+    anomalies: List[TraceTokenAnomaly] = []
+    for tool, pairs in sorted(by_tool.items()):
+        if len(pairs) < min_samples:
+            continue
+        values = [float(s.tokens) for _, s in pairs]
+        med = _median(values)
+        mad = _mad(values, med)
+        if mad == 0:
+            continue
+        for trace, step in pairs:
+            z = _CONSISTENCY * (float(step.tokens) - med) / mad
+            if abs(z) > threshold:
+                anomalies.append(TraceTokenAnomaly(
+                    trace_id=trace.id,
+                    step_index=step.index,
+                    tool=tool,
+                    tokens=step.tokens,
+                    median_tokens=med,
+                    robust_z=round(z, 2),
+                ))
+    anomalies.sort(key=lambda a: -abs(a.robust_z))
+    return anomalies
+
+
+def summarize_token_anomalies(anomalies: List[TokenAnomaly]) -> str:
+    if not anomalies:
+        return "no token anomalies"
+    med = anomalies[0].median_tokens
+    lines = [(f"{len(anomalies)} token anomaly/anomalies "
+              f"(median {med:.0f} tokens):")]
+    lines.extend(
+        f"  step #{a.step_index} {a.tool}: {a.tokens} tokens "
         f"({a.direction}, z={a.robust_z})"
         for a in anomalies
     )

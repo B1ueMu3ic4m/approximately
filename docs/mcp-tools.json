@@ -456,7 +456,7 @@
     },
     {
       "name": "anomalies",
-      "description": "Latency anomaly detection for one trace: per-step modified z-scores over tool-call latency, worst first. isError is set when anomalies exist.",
+      "description": "Robust anomaly detection (modified z-scores over tool-call steps, worst first): latency by default, tokens with the tokens flag. isError is set when anomalies exist.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -473,6 +473,10 @@
           "per_tool": {
             "type": "boolean",
             "description": "baseline each tool family separately"
+          },
+          "tokens": {
+            "type": "boolean",
+            "description": "meter on tokens instead of milliseconds \u2014 burn flags the receipt a retry loop leaves"
           },
           "threshold": {
             "type": "number",

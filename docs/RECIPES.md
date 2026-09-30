@@ -308,3 +308,25 @@ asked before — the tally prints at the end (`judge cache: N hit(s),
 0 miss(es)`). Exact duplicates never even reach this step: imports
 carry deterministic ids, so the same transcript in two log files is
 one trace.
+
+## 17. Catch the run that worked too hard
+
+Latency anomalies catch the call that ran *long*; token anomalies
+catch the call that *worked too hard* — the receipt a retry loop or a
+context-stuffing derailment leaves even when every call came back
+quickly. Same robust ruler (per-tool modified z-scores), different
+meter:
+
+```bash
+# did any step in this run burn tokens unlike its tool family?
+approximately anomalies --store ~/agents/store latest --tokens
+
+# fleet-wide: what does `search` normally cost, and who broke it?
+approximately anomalies --store ~/agents/store --tokens --all
+
+# MCP: the same from your editor
+#   anomalies { "trace": "latest", "tokens": true, "fleet": true }
+```
+
+`burn` is the direction to page on; `frugal` (unusually few tokens)
+usually means a truncated response — worth a look, rarely a page.
