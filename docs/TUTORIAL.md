@@ -168,6 +168,25 @@ approximately anomalies ~/agents/store --all        # was anything quietly slow?
 Details and the round-trip (export back out, ids restored) live in
 [RECIPES 14](RECIPES.md).
 
+## 10. The OpenTelemetry loop
+
+Your agent's failures can live next to the rest of the stack's
+telemetry, and the loop goes both ways:
+
+```bash
+# out: Jaeger/Tempo/Honeycomb ingest agent runs as spans
+approximately export --store ~/agents/store runs.otlp.json --format otel
+
+# in: a backend export (or any OTLP document) becomes a store
+approximately import --store ~/agents/store runs.otlp.json   # sniffed
+```
+
+Deterministic ids make the loop idempotent, and export → import →
+export closes byte-for-byte — the same run always produces the same
+document.  Or let it happen on its own: `approximately spool --dir
+~/spool` watches a directory (recipe 18), and `doctor --spool`
+tells you when a file needs a human.
+
 ## Where to go next
 
 - Capabilities overview: [README](../README.md#the-capabilities-at-a-glance)

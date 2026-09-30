@@ -350,11 +350,13 @@ def _meta_passthrough(attrs: Dict[str, Any]) -> Dict[str, Any]:
     return meta
 
 
-def _group_trace(trace_key: str,
-                 spans: List[Dict[str, Any]]) -> Tuple[Trace, int]:
+def _group_trace(trace_key: str, spans: List[Dict[str, Any]],
+                 resource_attrs: Optional[Dict[str, Any]] = None
+                 ) -> Tuple[Trace, int]:
     roots = [s for s in spans if not s.get("parentSpanId")]
     root = roots[0] if roots else spans[0]
-    attrs = _span_attrs(root)
+    # span attrs override the resource's (per-run beats per-service)
+    attrs = {**(resource_attrs or {}), **_span_attrs(root)}
     task = (_attr_text(attrs, "approximately.task", 200)
             or _text(root.get("name"), 200) or "imported trace")
     trace_id = (_valid_id(attrs.get("approximately.trace.id"))
@@ -390,20 +392,30 @@ def otlp_to_traces(document: Any) -> Tuple[List[Trace], int, int, int]:
         raise ValueError("not an OTLP trace document: "
                          "missing resourceSpans")
     groups: Dict[str, List[Dict[str, Any]]] = {}
+    resource_of: Dict[str, Dict[str, Any]] = {}
     seen = 0
     for resource in document["resourceSpans"]:
         if not isinstance(resource, dict):
             seen += 1          # counted, not fatal: an envelope that
             continue           # is shaped right stays importable
+        rattrs = resource.get("resource") or {}
+        rattrs = _span_attrs(rattrs) if isinstance(rattrs, dict) else {}
+        if rattrs.get("service.name") == "approximately":
+            # our own resource marker rides every export; keeping it
+            # in meta would break export→import→export byte closure.
+            # A foreign service's name is context a postmortem wants.
+            rattrs.pop("service.name", None)
         for scope in resource.get("scopeSpans") or []:
             if not isinstance(scope, dict):
                 continue
             for span in scope.get("spans") or []:
                 seen += 1
                 if isinstance(span, dict) and span.get("traceId"):
-                    groups.setdefault(str(span["traceId"]),
-                                      []).append(span)
-    pairs = [_group_trace(key, spans) for key, spans in groups.items()]
+                    key = str(span["traceId"])
+                    groups.setdefault(key, []).append(span)
+                    resource_of[key] = rattrs
+    pairs = [_group_trace(key, spans, resource_of.get(key))
+             for key, spans in groups.items()]
     traces = [t for t, _ in pairs]
     traces.sort(key=lambda t: t.id)
     truncated = sum(n for _, n in pairs)
