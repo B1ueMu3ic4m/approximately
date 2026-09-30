@@ -2168,3 +2168,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      v2.0 callout).  ANNOUNCEMENT gains the 2.x era: the OTel loop,
      token-burn detection, the spool watcher.  Historical ledger
      entries stay as written — they were true then.
+
+223. **v2.9.0 - the money number: stats --price-per-1k** ✅
+     (delivered): "too big wastes money" gets a dollar figure —
+     `stats --price-per-1k RATE` sums the recorded tokens and
+     estimates spend at a blended rate, JSON and prose, honestly
+     labelled (the recorder keeps one token count per step, no
+     in/out split).  4 tests.
