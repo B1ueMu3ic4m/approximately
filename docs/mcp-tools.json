@@ -1,5 +1,5 @@
 {
-  "count": 31,
+  "count": 32,
   "tools": [
     {
       "name": "list_traces",
@@ -133,11 +133,42 @@
           "digest_dir": {
             "type": "string"
           },
+          "spool_dir": {
+            "type": "string",
+            "description": "also check a spool directory: pending files and ones no pass could parse"
+          },
           "judge_cache": {
             "type": "string",
             "description": "also count judge-cache entries and unreadable ones"
           }
         }
+      }
+    },
+    {
+      "name": "spool_once",
+      "description": "One ingest pass over a spool directory: import every transcript/OTLP file that is waiting, then report counts. Parse-able files move to done/ (or are deleted); unparseable files stay for a human.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "dir": {
+            "type": "string",
+            "description": "spool directory to ingest"
+          },
+          "delete": {
+            "type": "boolean",
+            "description": "delete processed files instead of archiving"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "description": "count only, touch nothing"
+          }
+        },
+        "required": [
+          "dir"
+        ]
       }
     },
     {

@@ -1298,7 +1298,9 @@ def cmd_doctor(args: argparse.Namespace) -> int:
                     Path(args.digest_dir) if args.digest_dir else None,
                     judge_cache=(Path(args.judge_cache) if
                                  getattr(args, "judge_cache", None)
-                                 else None))
+                                 else None),
+                    spool_dir=(Path(args.spool) if
+                               getattr(args, "spool", None) else None))
     if getattr(args, "fix", False):
         removed = fix_hygiene(Path(args.store), report)
         report.stale_locks = [n for n in report.stale_locks
@@ -2409,6 +2411,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="also count judge-cache entries and unreadable "
                         "ones (read-only; corrupt entries are safe "
                         "misses)")
+    p.add_argument("--spool", metavar="DIR",
+                   help="also check a spool directory: pending files "
+                        "and ones no pass could parse")
     p.add_argument("--json", action="store_true",
                    help="emit the full report as JSON")
     p.set_defaults(func=cmd_doctor)

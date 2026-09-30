@@ -143,11 +143,39 @@ _TOOLS: List[Dict[str, Any]] = [
             "properties": {
                 "store": {"type": "string"},
                 "digest_dir": {"type": "string"},
+                "spool_dir": {"type": "string",
+                              "description": "also check a spool "
+                                             "directory: pending "
+                                             "files and ones no "
+                                             "pass could parse"},
                 "judge_cache": {"type": "string",
                                 "description": "also count judge-"
                                                "cache entries and "
                                                "unreadable ones"},
             },
+        },
+    },
+    {
+        "name": "spool_once",
+        "description": "One ingest pass over a spool directory: "
+                       "import every transcript/OTLP file that is "
+                       "waiting, then report counts. Parse-able "
+                       "files move to done/ (or are deleted); "
+                       "unparseable files stay for a human.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "dir": {"type": "string",
+                        "description": "spool directory to ingest"},
+                "delete": {"type": "boolean",
+                           "description": "delete processed files "
+                                          "instead of archiving"},
+                "dry_run": {"type": "boolean",
+                            "description": "count only, touch "
+                                           "nothing"},
+            },
+            "required": ["dir"],
         },
     },
     {
@@ -819,11 +847,26 @@ def _tool_doctor(ctx: ServerContext, args: Dict[str, Any]) -> dict:
 
     digest_dir = args.get("digest_dir")
     judge_cache = args.get("judge_cache")
+    spool_dir = args.get("spool_dir")
     report = doctor(_store(ctx, args).directory,
                     Path(digest_dir) if digest_dir else None,
                     judge_cache=(Path(str(judge_cache))
-                                 if judge_cache else None))
+                                 if judge_cache else None),
+                    spool_dir=(Path(str(spool_dir))
+                               if spool_dir else None))
     return report.to_dict()
+
+
+def _tool_spool_once(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .spool import spool_pass
+
+    directory = Path(str(args["dir"]))
+    if not directory.is_dir():
+        raise KeyError(f"no such spool directory: {directory}")
+    result = spool_pass(_store(ctx, args), directory,
+                        delete=bool(args.get("delete")),
+                        dry_run=bool(args.get("dry_run")))
+    return result
 
 
 def _tool_trend(ctx: ServerContext, args: Dict[str, Any]) -> dict:
@@ -1357,6 +1400,7 @@ _HANDLERS = {
     "query": _tool_query,
     "bisect": _tool_bisect,
     "doctor": _tool_doctor,
+    "spool_once": _tool_spool_once,
     "trend": _tool_trend,
     "stats": _tool_stats,
     "explain": _tool_explain,

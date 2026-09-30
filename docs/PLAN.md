@@ -2135,3 +2135,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      contention: spin (bounded — a permissions problem that never
      clears raises after ~10s).  Two regression tests pin both
      behaviors on every platform.
+
+219. **v2.7.0 - spool ops: doctor checks it, agents can drive it** ✅
+     (delivered): `doctor --spool DIR` reports pending files and the
+     ones no pass could parse — they stay put by design, so they
+     count against health (unparsed file = human attention needed).
+     MCP grows `spool_once` (32 tools): one ingest pass on demand
+     with delete/dry_run flags, so an agent can feed the store
+     itself.  7 tests; mcp-tools.json regenerated.
