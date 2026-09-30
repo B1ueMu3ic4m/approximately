@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.8.1
+
+- fuzz round 13: spool + doctor under attack. the round-4 contract extended to the new ops surfaces — a garbage spool (60 files, unicode names, junk payloads) splits cleanly into archived/skipped/left with no crash; subdirectories are ignored; doctor's spool check tolerates a missing store directory; parallel OTLP ingest of the same file twice in flight collapses to one trace per envelope; the shipped tool inventory passes our own poisoning scan (pinned). 7 tests, fixed seed.
+
 ## v2.8.0
 
 - the resource rides along: OTel deployment context in meta. OTLP import now carries the resource's attributes (service.name, deployment.environment, labels) into trace meta under attr. prefixes — a foreign service's name is context a postmortem wants. Our own resource marker is skipped on import so export→import→export stays byte-closed (pinned). TUTORIAL 10 walks the loop.
