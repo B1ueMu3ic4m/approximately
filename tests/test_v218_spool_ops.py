@@ -9,6 +9,7 @@ can run an ingest pass itself.
 
 import argparse
 import json
+from pathlib import Path
 
 from approximately.cli import cmd_doctor
 from approximately.doctor import doctor
@@ -120,3 +121,47 @@ def test_tool_inventory_grew_to_32():
     assert len(_TOOLS) == 32
     names = {t["name"] for t in _TOOLS}
     assert "spool_once" in names
+
+
+def test_otlp_resource_attrs_reach_meta(tmp_path):
+    from approximately.importer import otlp_to_traces
+
+    document = {"resourceSpans": [{
+        "resource": {"attributes": [
+            {"key": "service.name",
+             "value": {"stringValue": "payments-bot"}},
+            {"key": "deployment.environment",
+             "value": {"stringValue": "prod"}},
+        ]},
+        "scopeSpans": [{"spans": [
+            {"traceId": "a" * 32, "spanId": "1" * 16,
+             "parentSpanId": "", "name": "run"},
+        ]}],
+    }]}
+    traces, malformed, _seen, truncated = otlp_to_traces(document)
+    assert (malformed, truncated) == (0, 0)
+    meta = traces[0].meta
+    assert meta["attr.service.name"] == "payments-bot"
+    assert meta["attr.deployment.environment"] == "prod"
+
+
+def test_own_resource_marker_does_not_reach_meta(tmp_path):
+    # byte closure: our service.name must not become run metadata
+    import tempfile
+
+    from approximately.exporter import export_store
+    from approximately.importer import import_file
+
+    source = TraceStore(tmp_path / "src")
+    rec = Recorder("closure", save=False)
+    rec.respond("done", success=True)
+    source.save(rec.trace)
+    out = Path(tempfile.mkdtemp())
+    export_store(source, out / "t.json", fmt="otel")
+    back = TraceStore(tmp_path / "back")
+    import_file(out / "t.json", back)
+    again = out / "t2.json"
+    export_store(back, again, fmt="otel")
+    assert (out / "t.json").read_bytes() == again.read_bytes()
+    trace = back.list_traces()[0]
+    assert "attr.service.name" not in trace.meta

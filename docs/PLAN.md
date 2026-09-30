@@ -2143,3 +2143,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      MCP grows `spool_once` (32 tools): one ingest pass on demand
      with delete/dry_run flags, so an agent can feed the store
      itself.  7 tests; mcp-tools.json regenerated.
+
+220. **v2.8.0 - the resource rides along: OTel deployment context in meta** ✅
+     (delivered): OTLP import now carries the resource's attributes
+     (service.name, deployment.environment, labels) into trace meta
+     under attr. prefixes — a foreign service's name is context a
+     postmortem wants.  Our own resource marker is skipped on
+     import so export→import→export stays byte-closed (pinned).
+     TUTORIAL 10 walks the loop.
