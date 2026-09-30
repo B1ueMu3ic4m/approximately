@@ -80,3 +80,45 @@ def test_empty_store_prints_no_token_line(tmp_path, capsys):
                               price_per_1k=2.0, json=False)
     assert cmd_stats(args) == 0
     assert "tokens:" not in capsys.readouterr().out
+
+
+def test_by_tool_cost_column(tmp_path, capsys):
+    store = _seed(tmp_path / "s")
+    args = argparse.Namespace(store=str(store.directory),
+                              by_agent=False, by_tool=True,
+                              min_failed=None, trend=False,
+                              trend_bucket_days=1, since=None,
+                              price_per_1k=2.0, json=True)
+    assert cmd_stats(args) == 0
+    rows = json.loads(capsys.readouterr().out)
+    by_tool = {r["tool"]: r for r in rows}
+    assert by_tool["search"]["tokens"] == 8_000
+    assert by_tool["search"]["est_cost"] == 16.0
+
+
+def test_by_tool_cost_prose(tmp_path, capsys):
+    store = _seed(tmp_path / "s")
+    args = argparse.Namespace(store=str(store.directory),
+                              by_agent=False, by_tool=True,
+                              min_failed=None, trend=False,
+                              trend_bucket_days=1, since=None,
+                              price_per_1k=2.0, json=False)
+    assert cmd_stats(args) == 0
+    out = capsys.readouterr().out
+    assert "est $" in out
+    assert "16.00" in out
+
+
+def test_by_agent_cost_column(tmp_path, capsys):
+    store = _seed(tmp_path / "s")
+    trace = store.list_traces()[0]
+    trace.steps[0].agent = "worker"
+    store.save(trace)
+    args = argparse.Namespace(store=str(store.directory),
+                              by_agent=True, by_tool=False,
+                              min_failed=None, trend=False,
+                              trend_bucket_days=1, since=None,
+                              price_per_1k=2.0, json=True)
+    assert cmd_stats(args) == 0
+    rows = json.loads(capsys.readouterr().out)
+    assert rows[0]["est_cost"] >= 0

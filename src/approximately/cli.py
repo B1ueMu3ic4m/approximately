@@ -1504,41 +1504,60 @@ def cmd_clean(args: argparse.Namespace) -> int:
     return 0
 
 
+def _price_rows(rows: list, price: Optional[float]) -> list:
+    if price is not None:
+        for r in rows:
+            r["est_cost"] = round(r["tokens"] / 1000 * price, 4)
+    return rows
+
+
+def _cost_head(price: Optional[float]) -> str:
+    return f" {'est $':>9}" if price is not None else ""
+
+
+def _cost_cell(r: dict, price: Optional[float]) -> str:
+    return f" {r['est_cost']:>9.2f}" if price is not None else ""
+
+
 def cmd_stats(args: argparse.Namespace) -> int:
     from .cluster import store_stats
 
     store = TraceStore(args.store)
     traces = store.list_traces(since_days=getattr(args, "since", None))
+    price = getattr(args, "price_per_1k", None)
     if getattr(args, "by_tool", False):
         from .cluster import tool_scorecard
 
-        rows = tool_scorecard(traces)
+        rows = _price_rows(tool_scorecard(traces), price)
         if args.json:
             print(json.dumps(rows, indent=2))
             return 0
         print(f"  {'tool':<20} {'traces':>6} {'steps':>6} "
               f"{'errors':>6} {'tokens':>7} "
-              f"{'failed':>6} {'rate':>6}")
+              f"{'failed':>6} {'rate':>6}{_cost_head(price)}")
         for r in rows:
             print(f"  {r['tool']:<20} {r['traces']:>6} {r['steps']:>6} "
                   f"{r['errors']:>6} {r['tokens']:>7} "
-                  f"{r['failed_traces']:>6} {r['failure_rate']:>5.0%}")
+                  f"{r['failed_traces']:>6} {r['failure_rate']:>5.0%}"
+                  f"{_cost_cell(r, price)}")
         return 0
     if getattr(args, "by_agent", False):
         from .cluster import agent_scorecard
 
-        rows = agent_scorecard(
-            traces, min_failed=getattr(args, "min_failed", None))
+        rows = _price_rows(agent_scorecard(
+            traces, min_failed=getattr(args, "min_failed", None)),
+            price)
         if args.json:
             print(json.dumps(rows, indent=2))
             return 0
         print(f"  {'agent':<20} {'traces':>6} {'steps':>6} "
               f"{'tools':>6} {'tokens':>7} {'errors':>6} "
-              f"{'failed':>6} {'rate':>6}")
+              f"{'failed':>6} {'rate':>6}{_cost_head(price)}")
         for r in rows:
             print(f"  {r['agent']:<20} {r['traces']:>6} {r['steps']:>6} "
                   f"{r['tool_calls']:>6} {r['tokens']:>7} {r['errors']:>6} "
-                  f"{r['failed_traces']:>6} {r['failure_rate']:>5.0%}")
+                  f"{r['failed_traces']:>6} {r['failure_rate']:>5.0%}"
+                  f"{_cost_cell(r, price)}")
         return 0
     stats = store_stats(traces)
     if args.trend:
@@ -1558,7 +1577,6 @@ def cmd_stats(args: argparse.Namespace) -> int:
         return 0
     total_tokens = sum(step.tokens for trace in traces
                        for step in trace.steps)
-    price = getattr(args, "price_per_1k", None)
     if args.json:
         payload = {
             "traces": stats.traces,

@@ -2193,3 +2193,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      masked it).  Flags added; a sweep proves no other command has
      the gap; import's prose now says "records" (an OTLP envelope
      holds many spans, so "transcripts" miscounted).  10 tour tests.
+
+226. **v2.9.3 - the money number gets a per-row breakdown** ✅
+     (delivered): `stats --by-tool` and `--by-agent` grow an
+     `est_cost` column (JSON + prose) when `--price-per-1k` is set
+     — which tool, which agent, how much.  3 tests.

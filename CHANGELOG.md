@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.9.3
+
+- the money number gets a per-row breakdown. `stats --by-tool` and `--by-agent` grow an `est_cost` column (JSON + prose) when `--price-per-1k` is set — which tool, which agent, how much. 3 tests.
+
 ## v2.9.2
 
 - the CLI tour: real argv through every wired door. per-command tests own the semantics; the tour owns the wiring — main() with actual argv lists. It caught two real bugs immediately: `approximately export` and `approximately import` read args.json unconditionally but their parsers never defined --json, so the plain commands crashed with AttributeError (per-command tests built Namespaces by hand and masked it). Flags added; a sweep proves no other command has the gap; import's prose now says "records" (an OTLP envelope holds many spans, so "transcripts" miscounted). 10 tour tests.
