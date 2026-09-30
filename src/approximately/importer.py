@@ -303,6 +303,33 @@ def _span_step(span: Dict[str, Any]) -> Step:
                 meta={"span_name": name}, latency_ms=latency)
 
 
+def _root_success(root: Dict[str, Any]) -> Optional[bool]:
+    """The OTLP status code as a success flag: 2 failed, 1 ok,
+    anything else leaves the trace open."""
+    raw_code = (root.get("status") or {}).get("code")
+    if raw_code is None:
+        return None
+    try:
+        code = int(raw_code)
+    except (TypeError, ValueError):
+        return None
+    return {2: False, 1: True}.get(code)
+
+
+def _meta_passthrough(attrs: Dict[str, Any]) -> Dict[str, Any]:
+    """The approximately.meta.* attributes back into trace meta —
+    capped, so an attribute flood cannot bloat the store."""
+    meta: Dict[str, Any] = {}
+    for key, value in attrs.items():
+        if key.startswith(_META_PREFIX) and isinstance(
+                value, (str, int, float, bool)):
+            if len(meta) >= _MAX_IMPORTED_META:
+                break
+            meta[key[len(_META_PREFIX):]] = value
+    meta["imported_from"] = "otel"
+    return meta
+
+
 def _group_trace(trace_key: str,
                  spans: List[Dict[str, Any]]) -> Tuple[Trace, int]:
     roots = [s for s in spans if not s.get("parentSpanId")]
@@ -313,22 +340,6 @@ def _group_trace(trace_key: str,
     trace_id = (_valid_id(attrs.get("approximately.trace.id"))
                 or hashlib.sha256(
                     trace_key.encode("utf-8")).hexdigest()[:12])
-    raw_code = (root.get("status") or {}).get("code")
-    code = 0
-    if raw_code is not None:
-        try:
-            code = int(raw_code)
-        except (TypeError, ValueError):
-            code = 0
-    success = False if code == 2 else True if code == 1 else None
-    meta: Dict[str, Any] = {}
-    for key, value in attrs.items():
-        if key.startswith(_META_PREFIX) and isinstance(
-                value, (str, int, float, bool)):
-            if len(meta) >= _MAX_IMPORTED_META:
-                break
-            meta[key[len(_META_PREFIX):]] = value
-    meta["imported_from"] = "otel"
     children = sorted((s for s in spans if s is not root),
                       key=lambda s: _nanos(s.get("startTimeUnixNano")))
     truncated = max(0, len(children) - _MAX_IMPORTED_STEPS)
@@ -339,10 +350,10 @@ def _group_trace(trace_key: str,
         model=_attr_text(attrs, "approximately.model", 100)
         or "unknown",
         steps=[_span_step(s) for s in children],
-        success=success,
+        success=_root_success(root),
         final_output=_attr_text(attrs, "approximately.final_output",
                                 200) or None,
-        meta=meta,
+        meta=_meta_passthrough(attrs),
     )
     return trace, truncated
 
