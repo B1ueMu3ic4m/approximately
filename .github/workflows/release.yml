@@ -51,10 +51,28 @@ jobs:
       - name: Create the GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh release create "$GITHUB_REF_NAME" dist/*
-          --title "approximately $GITHUB_REF_NAME"
-          --generate-notes
+        run: |
+          # The Releases page is where per-version detail belongs; the
+          # README stays lean. Body = this tag's CHANGELOG section.
+          python - "$GITHUB_REF_NAME" > release-notes.md <<'EOF'
+          import re, sys
+          tag = sys.argv[1]
+          try:
+              text = open("CHANGELOG.md", encoding="utf-8").read()
+          except FileNotFoundError:
+              text = ""
+          m = re.search(rf"^## {re.escape(tag)}\s*$(.*?)(?=^## v|\Z)",
+                        text, re.M | re.S)
+          print(m.group(1).strip() if m else f"Release {tag}.")
+          EOF
+          prev=$(git describe --abbrev=0 --tags "${GITHUB_REF_NAME}^" 2>/dev/null || true)
+          if [ -n "$prev" ]; then
+            printf '\n**Full Changelog:** https://github.com/%s/compare/%s...%s\n' \
+              "$GITHUB_REPOSITORY" "$prev" "$GITHUB_REF_NAME" >> release-notes.md
+          fi
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "approximately $GITHUB_REF_NAME" \
+            --notes-file release-notes.md
 
   pypi-publish:
     needs: github-release

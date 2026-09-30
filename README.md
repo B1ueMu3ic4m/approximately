@@ -11,10 +11,11 @@
 <b>Free & open source · Zero dependencies · MIT · Python 3.9+ · pip install approximately</b>
 </p>
 
-> **v1.0** — the toolkit is production-stable: 31 MCP tools (+resources), 7 framework
+> **v2.0** — the toolkit is production-stable: 31 MCP tools (+resources), 7 framework
 > adapters, MAST attribution with a gated quality floor, tamper-evident evidence,
-> fleet monitoring with quiet alerting, and 1,000+ tests across a 15-job CI matrix.
-> Semver from here: breaking changes only in 2.0.
+> fleet monitoring with quiet alerting, and 1,200+ tests across a 15-job CI matrix.
+> Semver with teeth: major for big or breaking updates, minor for features,
+> patch for fixes — the 1.x line ran 100+ minors; 2.0 resets that.
 
 ---
 
@@ -206,212 +207,19 @@ An agent's working memory (context window) is finite and expensive. Stuffing it 
 
 ## Roadmap
 
-- ✅ **v0.1** — flight recorder + MAST attribution + replay + regression guards + context runtime
-- ✅ **v0.2** — framework adapters (LangChain/LangGraph, OpenAI Agents SDK, CrewAI) · judge distillation · attribution benchmark
-- ✅ **v0.3** — cross-trace recidivist clustering · budget regression guards · cost-vs-recall curves · project scaffold · stats trends
-- ✅ **v0.3.2** — Bayesian evidence fusion (MAST priors × evidence likelihood) · budget optimizer (binary-search) · tamper-evident evidence chains + `verify` · HMAC signing · security threat model
-- ✅ **v0.4** — trajectory alignment (Needleman-Wunsch) · failure-precursor prediction (n-gram early warning) · SARIF export · MCP tool-poisoning scanner · HMAC key rotation
-- ✅ **v0.5** — conformal attribution (coverage-guaranteed prediction sets) · NLL temperature calibration · counterfactual root-cause analysis · PSI behavior-drift detection
-- ✅ **v0.6** — structural trace diff (NW traceback: failed-vs-success edit scripts) · minimal-repair search (validated prescriptions) · Prometheus export
-- ✅ **v0.7** — streaming reliability monitor (live risk with hysteresis) · concurrent-safe store (atomic writes + per-id locks) · concurrency threat model
-- ✅ **v0.8** — AutoGen adapter (event log + model-client proxy) · failure-rate trend with Theil–Sen verdict in HTML reports · full complexity audit (all C-rank blocks refactored below a strict bar) · security fuzzing of the new surfaces
-- ✅ **v0.9** — LlamaIndex adapter (callback-handler seam) · HMAC key-ID + rotation counter with the honest `wrong-key` verdict (no more false TAMPERED after key rotation)
-- ✅ **v0.10** — LlamaIndex Dispatcher seam (structured spans) · `benchmark --html` attribution leaderboard · per-serving-stack distillation recipes
-- ✅ **v0.11** — evidence ledger (rollback detection: an older *validly-signed* snapshot no longer passes) · cross-store fleet merge with evidence refusal
-- ✅ **v0.12** — fleet dashboard (multi-store aggregation) · MAD latency anomalies in reports and CI · fixed before-position `--store`
-- ✅ **v0.13** — fleet trend alerts (`--fail-on-worsening` CI gate) · MAST-Data annotation pipeline + first real-data benchmark published ([docs/LEADERBOARD.md](docs/LEADERBOARD.md))
-- ✅ **v0.14** — prose detector family for chat-shaped trajectories (5 detectors, exclusive gating) · MAST-Data v2 with HyperAgent parser + per-mode failure diagnosis · re-sign counter
-- ✅ **v0.15/v0.16/v0.17** — shingle-overlap restart + FM-2.6 detector (**first real TP**: FM-2.1 F1 0.50) · signed fleet webhooks · routing-placeholder filter (FM-1.3 FP 2 → 0)
-- ✅ **v0.18–v0.23** — `attribute --explain` (auditable fusion arithmetic) · `verify --all` store gate · `verify --all --json` + `fleet --json` machine outputs · `--since` time windows on every store command · scheduled fleet digest pattern
-- ✅ **v0.24–v0.29** — multi-label evaluation (set-based P/R/F1; FM-2.1 F1 0.96 on real annotated data) · replay `--html` A/B page · terminal sparkline · bounded webhook retries · doc-artifact pipeline
-- ✅ **v0.30** — FM-2.6 action-continuity guards (real-data precision 0.07 → 0.33, F1 0.12 → 0.40 at unchanged recall) · bounded prose analysis: megabyte-turn DoS fixed (>20 s → ~1 ms)
-- ✅ **v0.31** — outcome-level verification analysis (FM-3.2 first nonzero on real data: P 0.54 · R 0.64 · F1 0.58 — completion claim + zero outcome signals in the record = unchecked claim)
-- ✅ **v0.32** — `diff --json` with per-entry divergence scores: CI can assert "worst mutation still >0.9 similar" instead of eyeballing previews
-- ✅ **v0.33** — query DSL: `query "success == false and task contains 'fix'"` — recursive-descent expression language over the store, eval-free, `--json`
-- ✅ **v0.34** — fleet watch loop: `fleet --watch SECONDS --digest-dir DIR` writes rotating JSONL trend snapshots (`--iterations` for cron)
-- ✅ **v0.35** — 95% Wilson intervals on every benchmark P/R (FM-2.1 P 0.93 [0.69, 0.99]) — uncertainty built into the leaderboard, not a footnote
-- ✅ **v0.36** — Mermaid export: `report --mermaid` renders attributed traces as sequenceDiagrams for READMEs/PRs
-- ✅ **v0.37** — MCP server: `approximately mcp` speaks JSON-RPC 2.0 over stdio — agent failures queryable from Claude Desktop, Zed, any MCP client (zero deps)
-- ✅ **v0.38** — cycle-grade repetition: FM-1.3 recall 0.14 → 0.71 at precision 1.00 on multi-agent gold data · prose-repeat DoS fixed (36.6 s → 0.23 s, 157×)
-- ✅ **v0.39** — `bisect FAILED SUCCESS`: first *material* divergence between two runs (timestamp-noise floor, `--json` for CI)
-- ✅ **v0.40** — `fleet --trend`: per-day fleet analytics over the digest history — sparkline + Theil-Sen verdict as a CI gate
-- ✅ **v0.41** — `doctor`: store health check — corrupt records, ledger tamper, stale locks, digest gaps (exit 1 = CI gate)
-- ✅ **v0.42** — `query --stats`: aggregate any DSL selection — counts, failure rate, mode totals, means
-- ✅ **v0.43** — attribution regression gate: gold-corpus P/R/F1 floors enforced by a CI job — detector refactors can't silently degrade attribution
-- ✅ **v0.44** — adversarial-input fuzz round: seeded garbage through every parser boundary (DSL, doctor, MCP lines, prose) — documented errors, bounded time
-- ✅ **v0.45** — README walkthrough tests: advertised commands run in CI with their promised outputs
-- ✅ **v0.46** — MCP server grows to 9 tools: bisect, doctor, fleet trend, and query stats — full CLI parity over stdio
-- ✅ **v0.47** — `demo --scenario loop`: a crew stuck in an args-evolving cycle only the cycle detector can catch
-- ✅ **v0.50** — `approximately explain FM-x.y`: per-mode deep dives with a live detector bridge (MCP grows to 10 tools) · the attribution gate ships as `bench-gate` + a reusable GitHub Action · per-agent identity (`Step.agent`) with the `stats --by-agent` scoreboard · adversarial round: markdown fence-breaking fixed, NaN floors refused, agent names proven injection-safe · `verify --all --strict/--quiet` policy gates · [docs/RECIPES.md](docs/RECIPES.md) cookbook
-- ✅ **v0.51** — runner-up hypotheses render in HTML/Markdown reports · `doctor` flags legacy `meta['agent']` identity with the migration hint · releases are fully automatic (autotag on version bump → GitHub Release with notes + artifacts)
-- ✅ **v0.52** — MCP `bench_gate` tool: CLI parity over stdio (11 tools) · `fleet --top-agents N` snapshot window · fuzz round 3: two real crashes fixed (digest shape, string floors) · TUTORIAL covers explain / agents / bench-gate
-- ✅ **v0.57** — runner-up hypotheses in HTML reports gain collapsible per-mode fixes ("if it was actually…")
-- ✅ **v0.58** — the synthetic bench corpus is agent-stamped: CI fixtures exercise Step.agent paths on every run
-- ✅ **v0.59** — `attribute --min-confidence X`: tunable admission floor for noisy environments (can only raise, never lower)
-- ✅ **v0.60** — the recidivist filter: `stats --by-agent --min-failed N` / MCP `scoreboard.min_failed` surfaces repeat-offender agents in one query
-- ✅ **v0.61** — `verify <id> --json`: the six-exit-code integrity ladder as machine-readable verdicts for CI
-- ✅ **v0.62** — one verdict payload everywhere: MCP `verify` returns the full ladder object (finals, rollback, ledger) and supports keyed traces; wrong-key no longer masquerades as TAMPERED
-- ✅ **v0.63** — MCP `cluster` (13 tools): recidivist failure modes + agents over stdio, with `min_size`, `by_agent`, expression filter
-- ✅ **v0.64** — fuzz round 4 + bounded key-file reads + **Windows save correctness** (bounded-replace survives reader clashes; daemon-reader test hygiene; CI stall watch-dogs)
-- ✅ **v0.65** — supply-chain hardening: all CI actions SHA-pinned; new `security` job (bandit clean + secret scan)
-- ✅ **v0.66** — per-select query memoization: repeated heavy fields (mode) run detectors once per trace, not once per mention; third perf-gate
-- ✅ **v0.67** — MCP `similar` + `drift` (15 tools): alignment-nearest runs and PSI behaviour drift over stdio
-- ✅ **v0.68** — MCP `counterfactual` + `predict` (17 tools): leave-one-out root cause and failure-precursor probability over stdio
-- ✅ **v0.69** — MCP `context` + `curve` (19 tools): budgeted-runtime forecasts and recall-vs-budget sweeps over stdio
-- ✅ **v0.70** — docs catch-up: 19-tool inventory in ARCHITECTURE/TUTORIAL, new `similar`/`drift` recipes in RECIPES
-- ✅ **v0.71** — pydantic-ai adapter (#6): post-hoc message transcription, zero framework imports, both Usage eras
-- ✅ **v0.72** — Google ADK adapter (#7): post-hoc event transcription, control events skipped, usage_metadata tokens
-- ✅ **v0.73** — query DSL `tools contains 'deploy'` / `errors >= 1`: action-side fields in the eval-free grammar
-- ✅ **v0.74** — CLI `--json` for `similar`/`drift`/`counterfactual`/`predict`: CLI and MCP render the identical payload from shared constructors
-- ✅ **v0.75** — analyst annotations: append-only sidecar notes (chain untouched) across CLI / MCP / reports, 20 tools
-- ✅ **v0.76** — fuzz round 5: query fields, payload constructors, annotations sidecar — all contained
-- ✅ **v0.77** — bench-gate JUnit export: `--junit PATH` renders one testcase per guarded floor for CI reporters
-- ✅ **v0.78** — fleet watch posts the HMAC-signed summary every cycle (`--webhook`); delivery failure warns, never stops the loop
-- ✅ **v0.79** — annotations hygiene: `merge` carries the sidecar (rename-aware, deduped), `doctor` tallies unreadable lines
-- ✅ **v0.80** — `context --json` / `curve --json`: CLI and MCP render the identical budget-forecast payloads
-- ✅ **v0.81** — `fleet --watch --alert-worse-than RATE`: webhook pages only on signal (worsening trend or rate breach); recording never stops
-- ✅ **v0.82** — docs: 20-tool inventory + quiet-alerting watch recipe
-- ✅ **v0.83** — per-tool rollup: `stats --by-tool` / MCP `scoreboard.group_by` answers "which tools attract the errors?"
-- ✅ **v0.84** — counterfactual root-cause card in HTML/Markdown reports (affordance-gated for long traces)
-- ✅ **v0.85** — `bench-gate --json` / `merge --json`: structured output for the remaining CI-facing commands
-- ✅ **v0.86** — MCP resources surface: browse traces + annotations as resources; one dynamic version across CLI/API/MCP
-- ✅ **v0.87** — fuzz round 6: resources, group_by, alert threshold, merge sidecar — all contained
-- ✅ **v0.88** — CI covers every Python it claims: 3.10/3.11 join the matrix (audit fix)
-- ✅ **v0.89** — MCP `anomalies` + `diff` (22 tools): latency outliers and structural trace forensics over stdio
-- ✅ **v0.90** — MCP `regression_test` (23 tools): an agent mints its own self-contained pytest guard from a failure
-- ✅ **v0.91** — MCP `metrics` (24 tools): Prometheus exposition of store health, per-agent optional
-- ✅ **v0.92** — docs: count-proof tool inventories (grouped by concern, `tools/list` as authority)
-- ✅ **v0.93** — attribution 7× faster (difflib upper-bound pruning, zero verdict drift; bench-gate caught the first attempt's regression)
-- ✅ **v0.94** — toolscan self-test: every shipped tool description passes our own injection scanner; adapter map synced
-- ✅ **v0.95** — `approximately status`: one-glance ops overview (health, top modes, triage, last failure + chain verdict)
-- ✅ **v0.96** — fleet dashboard/webhook carry per-store triage counts (annotations, confirmed)
-- ✅ **v0.97** — cross-store `similar` (`--other-store` / MCP `other_store`): nearest neighbours across projects
-- ✅ **v0.98** — RECIPES smoke: the cookbook walkthrough runs in CI, line-by-line
-- ✅ **v0.99** — the --json sweep completes: optimize / calibrate / explain / taxonomy all speak machine
-- 🎉 **v1.0** — production-stable: semver from here, breaking changes only in 2.0
-- ✅ **v1.1** — `status --digest-dir`: the fleet trend verdict joins the ops overview
-- ✅ **v1.2** — TUTORIAL gains the triage step: annotate + status
-- ✅ **v1.3** — end-to-end operator journey test: the full loop through the real CLI, all seams watched
-- ✅ **v1.4** — rank_similar pruning: identical ranking, quadratic DP skipped below the top-N threshold
-- ✅ **v1.5** — fourth perf gate: similar's 2000-trace ranking pinned in budget
-- ✅ **v1.6** — postmortems show their nearest neighbours (top-3 same-store alignment ranking)
-- ✅ **v1.7** — per-tool Prometheus metrics (`metrics --by-tool` / MCP `group_by: "tool"`)
-- ✅ **v1.8** — `explain --json` full depth (fixes + detectors); `annotations --verdict` filter
-- ✅ **v1.9** — fresh-install CI job: clean-venv install, version handshake, demo + record/attribute/status loop
-- ✅ **v1.10** — MCP `explain` returns fixes + detectors; `annotate` read filters by verdict
-- ✅ **v1.11** — bench-gate `min_records`: a shrunken dataset fails loudly instead of passing by luck
-- ✅ **v1.12** — PLAN renumbered: one continuous delivered sequence
-- ✅ **v1.13** — `status` reports ledger health + top recidivist agent
-- ✅ **v1.14** — final night audit: version surfaces verified, 24 tools, PLAN 1-124 continuous
-- ✅ **v1.15** — link audit: leaderboard.html now generated; multi-label link fixed
-- ✅ **v1.16** — MCP `annotate` with no trace+note lists every store annotation
-- ✅ **v1.17** — `status --since` scopes triage tallies to the same window as the traces
-- ✅ **v1.18** — ARCHITECTURE documents the ops pair and the all-`--json` rule
-- ✅ **v1.19** — `import`: batch-load foreign transcript JSONL (native / OpenAI chat dumps / bare message arrays) into a tamper-evident store; re-import is a no-op
-- ✅ **v1.20** — MCP tool #25 `import_transcripts`: the import path is mirrored into the MCP surface per the ops-pair rule
-- ✅ **v1.21** — `export`: traces out as OpenAI chat JSONL (or lossless native), ids restored on roundtrip; MCP tool #26 `export_transcripts`
-- ✅ **v1.22** — fuzz round 7 on the interop surface: roundtrip fixpoint, hostile-line tolerance, two real edge bugs fixed
-- ✅ **v1.23** — `import` at scale: multiple files + glob patterns with per-file counts; identical transcripts dedupe across files
-- ✅ **v1.24** — MCP resource `stats.json`: store health browsable without tools; export byte-stability hardened (id order, not mtime)
-- ✅ **v1.25** — doctor flags orphan annotations: notes that reference traces no longer in the store
-- ✅ **v1.26** — `import -`: pipe transcripts straight from stdin; recipe 14 covers the log-ingest postmortem loop
-- ✅ **v1.27** — `--judge-cache`: repeat judge verdicts are free (keyed by model+preset+trace; corrupt entries are misses)
-- ✅ **v1.28** — the ops seven (`annotate` `anomalies` `metrics` `clean` `repair` `rotate` `scan-tool`) learn `--json`
-- ✅ **v1.29** — `status --watch`: the ops overview re-renders on an interval, all night
-- ✅ **v1.30** — ARCHITECTURE documents the interop pair, the judge cache and the stats resource
-- ✅ **v1.31** — `export --since` age windows; MCP tool #27 `scan_tool` (the toolscan mirrors)
-- ✅ **v1.32** — `similar --min-score` floors the neighbours; `import_transcripts` grows a glob parameter
-- ✅ **v1.33** — `--teacher-cache` on the distill loop: relabeling a dataset is free for traces asked before
-- ✅ **v1.34** — MCP tool #28 `status`: the ops pair completes its MCP mirror; 28 tools
-- ✅ **v1.35** — `anomalies --per-tool`: each tool family gets its own latency baseline; rare tools fall back to the pooled scale
-- ✅ **v1.36** — fuzz round 8: poisoned judge-cache entries are misses, MAD==0 rare tools get named, watch clamps negative intervals
-- ✅ **v1.37** — `clean --dry-run` rehearses retention; `rotate --all` rekeys the store in one pass
-- ✅ **v1.38** — `mcp --print-tools`: the tool inventory is a committed JSON artifact ([docs/mcp-tools.json](docs/mcp-tools.json)), pinned against `tools/list`
-- ✅ **v1.39** — judge-cache hit/miss tallies: `0 hits, N misses` cold, `N hits, 0 misses` on relabel
-- ✅ **v1.40** — `import --jobs N`: parallel ingest over the thread pool; one bad file no longer kills a batch
-- ✅ **v1.41** — `anomalies --all`: fleet-mode baselines — the store knows what `search` costs everywhere
-- ✅ **v1.42** — `status` carries `fleet_anomalies` (count + worst offender); one shared renderer for all status modes
-- ✅ **v1.43** — `perf-gate[fleet-anomalies]`: 10k traces in 6ms (budget 2s); crafted outliers must be found
-- ✅ **v1.44** — `fleet` survey rows carry per-store anomaly counts: which project is quietly slow
-- ✅ **v1.45** — `dedupe`: near-duplicate traces cluster in one pass (MCP tool #29 `find_duplicates`)
-- ✅ **v1.46** — `export-dataset --dedupe` / `distill --dedupe`: near-duplicates never reach training data
-- ✅ **v1.47** — RECIPES 15-16: the night-watch loop and dedupe-before-training
-- ✅ **v1.48** — `bench-gate --update-floors`: regenerate floors at measured-minus-margin after intentional improvements
-- ✅ **v1.49** — `status` gains triage coverage: annotated failures over total failures
-- ✅ **v1.50** — store handoff: `export --with-annotations` + `import --annotations` (append-only, content-keyed)
-- ✅ **v1.51** — `status --fail-on-anomalies` / `--fail-on-worsening`: the glance can fail a pipeline
-- ✅ **v1.52** — slowness trend over digest days; status tail lines restored to the shared renderer
-- ✅ **v1.53** — MCP tool #30 `import_annotations`: the handoff pair completes its mirror; 30 tools
-- ✅ **v1.54** — `approximately changelog`: the PLAN ledger renders as [CHANGELOG.md](CHANGELOG.md), pinned against the plan
-- ✅ **v1.55** — postmortems gain a Fleet-outliers card: this run's steps against every stored run of the same tool
-- ✅ **v1.56** — slowness trend parity across `fleet --trend`, MCP `trend` and `status`
-- ✅ **v1.57** — dedupe reports scan caps; `import -` streams stdin in one pass
-- ✅ **v1.58** — `APPROXIMATELY_JUDGE_CACHE` env default; MCP `attribute` opens `judge` + `judge_cache`
-- ✅ **v1.59** — the fleet sweep names slow stores in prose
-- ✅ **v1.60** — `fleet --watch --alert-anomalies N`: slow-but-successful stores can page too
-- ✅ **v1.61** — fuzz round 9: hostile ledger text, dedupe threshold extremes, fleet degenerate latencies
-- ✅ **v1.62** — `status --watch --on-change`: unchanged frames stay off the log
-- ✅ **v1.63** — `perf-gate[import]`: 500 mixed transcripts in 137ms (budget 2s), count + failure assertions
-- ✅ **v1.64** — ARCHITECTURE documents the anomaly family: per-trace vs fleet baselines, slowness trend, alerting
-- ✅ **v1.65** — CONTRIBUTING refreshed: the full gate checklist, one-version-per-PR, the mirror rule
-- ✅ **v1.66** — README feature table carries the interop and slowness stories
-- ✅ **v1.67** — `export --dedupe`: near-duplicates never reach a colleague either
-- ✅ **v1.68** — `import` takes a directory: every `*.jsonl` inside it
-- ✅ **v1.69** — `doctor --judge-cache`: entry/corruption counts (read-only); doctor --json regains the annotation fields
-- ✅ **v1.70** — the fleet dashboard shows slow stores: outlier count + worst step per store card
-- ✅ **v1.71** — the dashboard's trend section renders the slowness verdict and per-day outlier counts
-- ✅ **v1.72** — `replay --json`: A/B verdicts and step diffs as data
-- ✅ **v1.73** — `export-dataset --json` / `distill --json`: labeling stats as data
-- ✅ **v1.74** — `benchmark --json` / `convert-mast --json`: the --json sweep is complete
-- ✅ **v1.75** — MCP tool #31 `plan_repair`: the read-only planning half mirrors; 31 tools
-- ✅ **v1.76** — `max_latency` joins the query DSL: `success == false and max_latency > 5000`
-- ✅ **v1.77** — `report --all --json`: the index manifest as data
-- ✅ **v1.78** — fuzz round 10: adversarial ledgers, degenerate max_latency, dedupe bounds; tool-less dedupe blindness fixed
-- ✅ **v1.79** — TUTORIAL section 9: start the walkthrough from the logs you already have
-- ✅ **v1.79.1** — hotfix: the clean-test clock race on Windows
-- ✅ **v1.80** — `perf-gate[doctor]`: 2000 traces + judge cache in 86ms (budget 5s); seven perf gates
-- ✅ **v1.81** — the import tally splits its skip kinds: malformed vs duplicate
-- ✅ **v1.82** — `failed_tools` joins the query DSL: runs where search *errored*
-- ✅ **v1.83** — `failed_agents` completes the pair: runs where a named agent's tool call errored
-- ✅ **v1.84** — the query tool's schema teaches the derived fields
-- ✅ **v1.85** — markdown postmortems name fleet outliers too
-- ✅ **v1.86** — MCP `verify` gains `all`: the whole-store tally over MCP
-- ✅ **v1.87** — triage verdicts normalize: `Confirmed` and `confirmed` are one word
-- ✅ **v1.88** — `cluster --query`: cluster the failures you care about
+The per-version history lives where GitHub keeps it: [CHANGELOG.md](CHANGELOG.md)
+and the [Releases page](https://github.com/B1ueMu3ic4m/approximately/releases) —
+this README stays lean. The delivered capability eras, in order:
 
-- ✅ **v1.89** — `perf-gate[export]`: 500 traces in 21ms; eight perf gates
-- ✅ **v1.90** — fuzz round 11: the derived query fields survive hostile traces
-- ✅ **v1.91** — README's query row teaches the derived fields
-- ✅ **v1.92** — `test --json`: the regression scaffold as data
-- ✅ **v1.93** — docs health as a permanent test: links resolve, version claims stay fresh
-- ✅ **v1.94** — MCP `import_annotations` takes globs: every matching sidecar in one call
-- ✅ **v1.95** — `status` names the worst tool (>= 50% failure rate, >= 2 traces)
-- ✅ **v1.96** — closing sweep: artifacts regenerated, sequence audited, next-steps refreshed
-- ✅ **v1.97** — `annotate --from-anomalies`: triage drafts itself, humans name the verdicts
-- ✅ **v1.98** — MCP `annotate` mirrors `from_anomalies`
+- **See the run** — flight recorder, concurrent-safe store, tamper-evident evidence + `verify`, `doctor`
+- **Explain the failure** — MAST rule + judge detectors, Bayesian fusion, conformal attribution, `attribute --explain`
+- **Prove the fix** — replay, regression guards, `bisect`, structural diff, failure-to-test pipeline
+- **Ask anything** — query DSL + stats, reports (HTML/Mermaid/SARIF/Prometheus), fleet dashboards, trend gates
+- **Learn from real data** — MAST-Data annotations + benchmarks, prose detector family, leaderboard, distillation
+- **Meet agents where they are** — 7 framework adapters, 31-tool MCP server, OpenAI/native import-export
+- **Slowness is a signal** — per-tool & fleet latency baselines, anomaly surfacing in reports and CI
 
-- ✅ **v1.99** — the changelog is milestone-proof (v1.100 sorts after v1.99)- 🔜 **next**
-- ✅ **v1.100.1** — the one-hundredth minor release (+ a clean-test mtime hotfix)
-- ✅ **v1.100.3** — typefix: the annotations CI mypy caught (duplicate_groups return, Iterable stdin, fleet None-guard) + the version claims this test now enforces- 🔜 **next**
-
-- 🔜 **next**
-- 🔜 **next**
-- 🔜 **next**
-- 🔜 **next**
-- 🔜 **next**
-- 🔜 **next**
-- 🔜 **next**
-- 🔜 **next**- 🔜 **next**
-- 🔜 **next**
-- 🔜 **next**
-- 🔜 **next**
-- 🔜 **next**
-- 🔜 **next**
-- 🔜 **next**
-- 🔜 **next**
-- 🔜 **next** — community feedback (CONTRIBUTING has the full gate checklist), more framework adapters, judge-distillation recipes with the shared cache, and whatever the fleet's slowest tool turns out to be
-
-Ten-minute walkthrough: [docs/TUTORIAL.md](docs/TUTORIAL.md) · task cookbook: [docs/RECIPES.md](docs/RECIPES.md) · full design document: [docs/PLAN.md](docs/PLAN.md) · module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+What ships next is decided item by item in [docs/PLAN.md](docs/PLAN.md).
 
 ## Contributing
 
