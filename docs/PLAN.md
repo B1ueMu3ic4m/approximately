@@ -2126,3 +2126,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      imported_from rode the wire and broke closure — exporter skips
      it; foreign backend attrs land in meta under attr. prefixes.
      6 integration tests.
+
+218. **v2.6.2 - Windows maps a held lock to EACCES, not EEXIST** ✅
+     (delivered): the CI race that killed a saver mid-spin: on
+     Windows, `open` of a lock file someone still holds raises
+     PermissionError (errno 13), not FileExistsError — the acquire
+     loop treated it as fatal.  It now means the same thing as
+     contention: spin (bounded — a permissions problem that never
+     clears raises after ~10s).  Two regression tests pin both
+     behaviors on every platform.

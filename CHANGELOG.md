@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.6.2
+
+- Windows maps a held lock to EACCES, not EEXIST. the CI race that killed a saver mid-spin: on Windows, `open` of a lock file someone still holds raises PermissionError (errno 13), not FileExistsError — the acquire loop treated it as fatal. It now means the same thing as contention: spin (bounded — a permissions problem that never clears raises after ~10s). Two regression tests pin both behaviors on every platform.
+
 ## v2.6.1
 
 - integration round: four seams the module tests missed. walking export→import→export and spool→fleet end to end found four real bugs. (1) ns timestamps drifted in the last digit — OTLP times are now µs-quantized (time.time() precision; exact integer math below 2^53), so the loop closes byte-for-byte. (2) OTLP import dropped step tokens, tool_call results and errors — restored. (3) imported steps all carried index 0, colliding span ids on re-export — renumbered. (4) imported_from rode the wire and broke closure — exporter skips it; foreign backend attrs land in meta under attr. prefixes. 6 integration tests.
