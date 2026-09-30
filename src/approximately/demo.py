@@ -50,6 +50,12 @@ def _run_booking_agent(rec: Recorder) -> None:
         result=_flights(880, 924),
         thought="one more look to be safe",
     )
+    # the token receipt of the panic: the last re-check re-read the
+    # whole inventory into context — a burn the token-anomaly card
+    # (and `stats --price-per-1k`) makes visible
+    rec.trace.steps[1].tokens = 800
+    rec.trace.steps[2].tokens = 850
+    rec.trace.steps[3].tokens = 9_500
     # failure 2 setup: a mutating call...
     rec.tool(
         "book_flight",
