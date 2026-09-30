@@ -1556,16 +1556,31 @@ def cmd_stats(args: argparse.Namespace) -> int:
             print(f"  {b['bucket_start']}: {b['total']} runs, "
                   f"{b['failed']} failed ({b['failure_rate']:.0%})")
         return 0
+    total_tokens = sum(step.tokens for trace in traces
+                       for step in trace.steps)
+    price = getattr(args, "price_per_1k", None)
     if args.json:
-        print(json.dumps({
+        payload = {
             "traces": stats.traces,
             "failures": stats.failures,
             "failure_rate": round(stats.failure_rate, 3),
             "avg_steps": round(stats.avg_steps, 1),
+            "total_tokens": total_tokens,
             "modes": stats.mode_counts,
-        }, indent=2))
+        }
+        if price is not None:
+            payload["price_per_1k"] = price
+            payload["estimated_cost"] = round(
+                total_tokens / 1000 * price, 4)
+        print(json.dumps(payload, indent=2))
         return 0
     print(stats.summary())
+    if total_tokens:
+        line = f"  tokens: {total_tokens:,}"
+        if price is not None:
+            line += (f"  | est. spend ${total_tokens / 1000 * price:,.2f}"
+                     f" (blended ${price}/1k, no in/out split)")
+        print(line)
     return 0
 
 
@@ -2471,6 +2486,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--by-tool", action="store_true",
                    help="per-tool rollup (steps, errors, touched-trace "
                         "failure rate) instead of totals")
+    p.add_argument("--price-per-1k", type=float, metavar="RATE",
+                   help="estimate spend from recorded tokens at this "
+                        "blended $/1k rate (totals only; the recorder "
+                        "keeps no in/out split)")
     p.add_argument("--trend", action="store_true",
                    help="failure-rate history over time instead of totals")
     p.add_argument("--trend-bucket-days", type=int, default=7,

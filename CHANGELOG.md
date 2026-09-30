@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.9.0
+
+- the money number: stats --price-per-1k. "too big wastes money" gets a dollar figure — `stats --price-per-1k RATE` sums the recorded tokens and estimates spend at a blended rate, JSON and prose, honestly labelled (the recorder keeps one token count per step, no in/out split). 4 tests.
+
 ## v2.8.2
 
 - the counts age; the pins keep them honest. the README still said 31 tools and 1,200+ tests — 32 and 1,300+ now (the era bullets, the capabilities table, the v2.0 callout). ANNOUNCEMENT gains the 2.x era: the OTel loop, token-burn detection, the spool watcher. Historical ledger entries stay as written — they were true then.
