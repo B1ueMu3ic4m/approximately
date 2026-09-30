@@ -275,7 +275,7 @@ def _store_card(s: StoreSummary) -> str:
     anomalies = getattr(s, "fleet_anomalies", 0) or 0
     worst = getattr(s, "worst_anomaly", None)
     anomaly_html = ""
-    if anomalies:
+    if anomalies and worst:
         slow_cls = "bad" if anomalies >= 3 else "ok"
         anomaly_html = (
             f'<div class="row"><span class="rate {slow_cls}">'
@@ -342,7 +342,7 @@ def _trend_section(summary: dict) -> str:
             "<table><tr><th>day</th><th>traces</th>"
             "<th>slow outliers</th><th>failure rate</th></tr>"
             + "".join(rows) + "</table></div>")
-    rows = "".join(
+    rows_html = "".join(
         f"<tr><td>{esc(r['day'])}</td>"
         f"<td>{r['traces']}</td>"
         f"<td>{r['failure_rate']:.0%}</td></tr>"
@@ -356,7 +356,7 @@ def _trend_section(summary: dict) -> str:
         f'{len(summary["days"])} day(s)</span></div>'
         f"{spark}"
         f"<table><tr><th>day</th><th>traces</th>"
-        "<th>failure rate</th></tr>" + rows + "</table></div>")
+        "<th>failure rate</th></tr>" + rows_html + "</table></div>")
 
 
 def render_fleet_html(summaries: List[StoreSummary],
