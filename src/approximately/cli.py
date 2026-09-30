@@ -2504,9 +2504,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="JSONL file(s), one transcript per line; glob "
                         "patterns welcome; '-' reads stdin")
     p.add_argument("--format", choices=["auto", "native", "openai-jsonl",
-                                        "messages-list"],
+                                        "messages-list", "otel"],
                    default="auto",
-                   help="transcript shape (default: sniff first line)")
+                   help="transcript shape (default: sniff first line; "
+                        "otel = OTLP envelope, pretty or one per line)")
     p.add_argument("--dry-run", action="store_true",
                    help="count what would be imported, write nothing")
     p.add_argument("--jobs", type=int, default=1, metavar="N",

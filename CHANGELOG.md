@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.2.0
+
+- OTLP import: the OpenTelemetry loop closes. `import --format otel` takes OTLP trace documents in — compact envelopes one per line (the shape v2.1.0 writes) or a pretty-printed document (what backends export). Our own exports roundtrip idempotently via the approximately.trace.id attribute; foreign spans keep their name as message steps instead of being dropped; status codes map to success flags. Sniffing recognizes the shape; a parsed line that is not an envelope under an explicit --format otel is a loud error. 14 tests; mcp-tools.json regenerated.
+
 ## v2.1.0
 
 - OTLP export: agent runs as OpenTelemetry spans. `export --format otel` emits an OTLP JSON ExportTraceServiceRequest — a root span per run, one span per step, deterministic sha256 ids, the per-step timeline rebuilt from latency_ms and honestly marked with an approximately.time.derived attribute. Jaeger, Tempo and Honeycomb ingest agent failures next to the rest of the stack's telemetry. CLI flag, MCP export_transcripts format, 11 tests including byte-stability, mcp-tools.json artifact regenerated.

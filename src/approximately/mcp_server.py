@@ -544,7 +544,8 @@ _TOOLS: List[Dict[str, Any]] = [
                 "format": {"type": "string",
                            "description": "auto (default) / native / "
                                           "openai-jsonl / "
-                                          "messages-list"},
+                                          "messages-list / otel "
+                                          "(OTLP envelope)"},
                 "glob": {"type": "string",
                          "description": "import every file matching "
                                         "this pattern instead of a "

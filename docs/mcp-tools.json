@@ -568,7 +568,7 @@
           },
           "format": {
             "type": "string",
-            "description": "auto (default) / native / openai-jsonl / messages-list"
+            "description": "auto (default) / native / openai-jsonl / messages-list / otel (OTLP envelope)"
           },
           "glob": {
             "type": "string",

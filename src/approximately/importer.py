@@ -11,12 +11,19 @@ transcript per line, three shapes:
     shape of the OpenAI chat API, tool messages may carry ``is_error``.
 ``messages-list``
     A bare JSON array of ``{"role", "content"}`` messages per line.
+``otel``
+    An OTLP ``ExportTraceServiceRequest`` document — the shape
+    :func:`approximately.exporter.export_otlp` writes (one compact
+    envelope per line) and what tracing backends export.  A
+    pretty-printed document is recognized too; anything else in that
+    shape is a loud error, not a silent skip.
 
 Foreign transcripts get deterministic ids (sha256 of the raw line), so
 re-importing the same file is a no-op instead of a duplicate — the
 second pass skips every trace the first one already stored.  Lines that
-carry our own export metadata (``metadata.task`` / ``metadata.trace_id``)
-roundtrip losslessly: the original task and id are restored.
+carry our own export metadata (``metadata.task`` / ``metadata.trace_id``,
+or the OTLP ``approximately.trace.id`` attribute) roundtrip losslessly:
+the original task and id are restored.
 """
 
 from __future__ import annotations
@@ -28,12 +35,14 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from .store import TraceStore
-from .trace import ERROR, MESSAGE, OBSERVATION, RESPONSE, TOOL_CALL, Step, Trace
+from .trace import ERROR, MESSAGE, OBSERVATION, PLAN, RESPONSE, TOOL_CALL, Step, Trace
 
 NATIVE = "native"
 OPENAI_JSONL = "openai-jsonl"
 MESSAGES_LIST = "messages-list"
-_FORMATS = (NATIVE, OPENAI_JSONL, MESSAGES_LIST)
+OTEL = "otel"
+_FORMATS = (NATIVE, OPENAI_JSONL, MESSAGES_LIST, OTEL)
+_META_PREFIX = "approximately.meta."
 
 
 def _text(value: Any, limit: int = 4000) -> str:
@@ -48,15 +57,21 @@ def _text(value: Any, limit: int = 4000) -> str:
 def sniff_format(path: Path) -> str:
     """Guess the on-disk shape from the first non-blank line."""
     with path.open("r", encoding="utf-8", errors="replace") as fh:
+        first = None
         for line in fh:
-            if not line.strip():
-                continue
-            try:
-                obj = json.loads(line)
-            except json.JSONDecodeError as exc:
-                raise ValueError(f"first line is not JSON: {exc}") from exc
-            return _sniff_object(obj)
-    raise ValueError("file has no transcript lines")
+            if line.strip():
+                first = line
+                break
+    if first is None:
+        raise ValueError("file has no transcript lines")
+    try:
+        obj = json.loads(first)
+    except json.JSONDecodeError:
+        if first.strip() == "{":
+            return OTEL      # one pretty-printed document
+        raise ValueError(
+            f"first line is not JSON: {first[:40]!r}") from None
+    return _sniff_object(obj)
 
 
 def _sniff_object(obj: Any) -> str:
@@ -64,6 +79,8 @@ def _sniff_object(obj: Any) -> str:
         return MESSAGES_LIST
     if not isinstance(obj, dict):
         raise ValueError("first line is neither object nor array")
+    if "resourceSpans" in obj:
+        return OTEL
     if "steps" in obj or ("task" in obj and "id" in obj):
         return NATIVE
     if "messages" in obj:
@@ -181,6 +198,224 @@ def _parse_line(obj: Any, raw: str, line_no: int,
     if fmt == MESSAGES_LIST:
         return _foreign_trace({"messages": obj}, raw, line_no, fmt)
     return _foreign_trace(obj, raw, line_no, fmt)
+
+
+# ---------------------------------------------------------------- OTLP
+
+
+def _otlp_value(container: Dict[str, Any]) -> Any:
+    for key in ("stringValue", "boolValue", "intValue", "doubleValue"):
+        if key in container:
+            return container[key]
+    return None
+
+
+def _span_attrs(span: Dict[str, Any]) -> Dict[str, Any]:
+    out: Dict[str, Any] = {}
+    for attr in span.get("attributes") or []:
+        if isinstance(attr, dict) and "key" in attr:
+            out[str(attr["key"])] = _otlp_value(attr.get("value") or {})
+    return out
+
+
+def _nanos(value: Any) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _attr_text(attrs: Dict[str, Any], key: str,
+               limit: int = 4000) -> str:
+    """An attribute as text; absent means empty (never ``"null"`` —
+    ``_text`` stringifies None, which would invent content)."""
+    value = attrs.get(key)
+    return _text(value, limit) if value is not None else ""
+
+
+def _valid_id(candidate: Any) -> Optional[str]:
+    if (isinstance(candidate, str) and len(candidate) == 12
+            and all(c in "0123456789abcdef" for c in candidate)):
+        return candidate
+    return None
+
+
+def _span_step(span: Dict[str, Any]) -> Step:
+    """One span back onto a recorder step; spans that carry none of
+    our attributes (a foreign backend's spans) land as message steps
+    that keep the span name."""
+    attrs = _span_attrs(span)
+    kind = attrs.get("approximately.kind")
+    tool = attrs.get("approximately.tool")
+    start = _nanos(span.get("startTimeUnixNano"))
+    end = _nanos(span.get("endTimeUnixNano"))
+    latency = max(0, (end - start) // 1_000_000)
+    name = _attr_text({"name": span.get("name")}, "name", 200)
+    if kind == "tool_call":
+        raw_args = attrs.get("approximately.args")
+        try:
+            args = json.loads(raw_args) if raw_args else {}
+        except json.JSONDecodeError:
+            args = {"raw": raw_args}
+        if not isinstance(args, dict):
+            args = {"raw": str(args)}
+        return Step(kind=TOOL_CALL, tool=_text(tool, 200) or name,
+                    args=args, latency_ms=latency)
+    if kind == "observation":
+        return Step(kind=OBSERVATION, tool=_text(tool, 200) or name,
+                    result=_attr_text(attrs, "approximately.result"),
+                    error=_attr_text(attrs, "approximately.error")
+                    or None,
+                    latency_ms=latency)
+    if kind == "response":
+        return Step(kind=RESPONSE, latency_ms=latency,
+                    result=_attr_text(attrs, "approximately.result"))
+    if kind == "plan":
+        return Step(kind=PLAN, latency_ms=latency,
+                    thought=_attr_text(attrs, "approximately.thought"))
+    if kind == "error":
+        return Step(kind=ERROR, latency_ms=latency,
+                    error=_attr_text(attrs, "approximately.error")
+                    or "error")
+    if kind == "message":
+        role = attrs.get(_META_PREFIX + "role")
+        return Step(kind=MESSAGE,
+                    result=_attr_text(attrs, "approximately.result"),
+                    latency_ms=latency,
+                    meta={"role": str(role or "user")})
+    return Step(kind=MESSAGE, result=name or "span",
+                meta={"span_name": name}, latency_ms=latency)
+
+
+def _group_trace(trace_key: str, spans: List[Dict[str, Any]]) -> Trace:
+    roots = [s for s in spans if not s.get("parentSpanId")]
+    root = roots[0] if roots else spans[0]
+    attrs = _span_attrs(root)
+    task = (_attr_text(attrs, "approximately.task", 200)
+            or _text(root.get("name"), 200) or "imported trace")
+    trace_id = (_valid_id(attrs.get("approximately.trace.id"))
+                or hashlib.sha256(
+                    trace_key.encode("utf-8")).hexdigest()[:12])
+    raw_code = (root.get("status") or {}).get("code")
+    code = 0
+    if raw_code is not None:
+        try:
+            code = int(raw_code)
+        except (TypeError, ValueError):
+            code = 0
+    success = False if code == 2 else True if code == 1 else None
+    meta: Dict[str, Any] = {}
+    for key, value in attrs.items():
+        if key.startswith(_META_PREFIX) and isinstance(
+                value, (str, int, float, bool)):
+            meta[key[len(_META_PREFIX):]] = value
+    meta["imported_from"] = "otel"
+    children = sorted((s for s in spans if s is not root),
+                      key=lambda s: _nanos(s.get("startTimeUnixNano")))
+    return Trace(
+        task=task, id=trace_id,
+        created_at=_nanos(root.get("startTimeUnixNano")) / 1e9,
+        model=_attr_text(attrs, "approximately.model", 100)
+        or "unknown",
+        steps=[_span_step(s) for s in children],
+        success=success,
+        final_output=_attr_text(attrs, "approximately.final_output",
+                                200) or None,
+        meta=meta,
+    )
+
+
+def otlp_to_traces(document: Any) -> Tuple[List[Trace], int, int]:
+    """One OTLP document onto traces; returns (traces, malformed span
+    count, spans seen)."""
+    if not isinstance(document, dict):
+        raise ValueError("OTLP document must be a JSON object")
+    if not isinstance(document.get("resourceSpans"), list):
+        raise ValueError("not an OTLP trace document: "
+                         "missing resourceSpans")
+    groups: Dict[str, List[Dict[str, Any]]] = {}
+    seen = 0
+    for resource in document["resourceSpans"]:
+        if not isinstance(resource, dict):
+            raise ValueError("malformed resourceSpans entry")
+        for scope in resource.get("scopeSpans") or []:
+            if not isinstance(scope, dict):
+                continue
+            for span in scope.get("spans") or []:
+                seen += 1
+                if isinstance(span, dict) and span.get("traceId"):
+                    groups.setdefault(str(span["traceId"]),
+                                      []).append(span)
+    traces = [_group_trace(key, spans)
+              for key, spans in groups.items()]
+    traces.sort(key=lambda t: t.id)
+    return traces, seen - sum(len(v) for v in groups.values()), seen
+
+
+def _save_otlp(document: Any, store: TraceStore, dry_run: bool = False,
+               existing: Optional[set] = None) -> Tuple[Dict[str, int],
+                                                        List[str]]:
+    traces, malformed, spans = otlp_to_traces(document)
+    if existing is None:
+        existing = {t.id for t in store.list_traces()}
+    imported: List[str] = []
+    duplicates = 0
+    for trace in traces:
+        if trace.id in existing:
+            duplicates += 1
+            continue
+        if not dry_run:
+            store.save(trace)
+        existing.add(trace.id)
+        imported.append(trace.id)
+    counts = {"lines": spans, "imported": len(imported),
+              "skipped": duplicates + malformed,
+              "malformed": malformed, "duplicates": duplicates}
+    return counts, imported
+
+
+def _import_otlp_lines(raw_lines: Iterable[str], store: TraceStore,
+                       dry_run: bool = False) -> Dict[str, Any]:
+    """OTLP in: one pretty-printed document, or compact envelopes one
+    per line (the shape our exporter writes)."""
+    lines = list(raw_lines)
+    if lines and lines[0].strip() == "{":
+        try:
+            doc = json.loads("".join(lines))
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"OTLP document is not valid JSON: {exc}") from exc
+        whole_counts, whole_ids = _save_otlp(doc, store,
+                                             dry_run=dry_run)
+        return {"format": OTEL, **whole_counts,
+                "trace_ids": whole_ids}
+    existing = {t.id for t in store.list_traces()}
+    imported: List[str] = []
+    malformed = duplicates = 0
+    spans = 0
+    for raw in lines:
+        if not raw.strip():
+            continue
+        try:
+            doc = json.loads(raw)
+        except json.JSONDecodeError:
+            malformed += 1
+            continue
+        if not (isinstance(doc, dict) and "resourceSpans" in doc):
+            # an explicit --format otel asserts the shape: a parsed
+            # line that is not an envelope is a loud error, not a
+            # silent skip
+            raise ValueError(
+                "not an OTLP envelope: missing resourceSpans")
+        counts, ids = _save_otlp(doc, store, dry_run=dry_run,
+                                 existing=existing)
+        imported.extend(ids)
+        duplicates += counts["duplicates"]
+        malformed += counts["malformed"]
+        spans += counts["lines"]
+    return {"format": OTEL, "lines": spans, "imported": len(imported),
+            "skipped": duplicates + malformed, "malformed": malformed,
+            "duplicates": duplicates, "trace_ids": imported}
 
 def _merge(per_file: List[Dict[str, Any]], result: Dict[str, Any],
            name: str, totals: Dict[str, int],
@@ -302,15 +537,27 @@ def import_lines(raw_lines: Iterable[str], store: TraceStore,
         if first is None:
             raise ValueError("no transcript lines to sniff")
         try:
-            fmt = _sniff_object(json.loads(first))
+            obj = json.loads(first)
         except json.JSONDecodeError as exc:
+            # a pretty-printed OTLP document starts with a bare "{"
+            if first.strip() == "{":
+                if not isinstance(raw_lines, (list, tuple)):
+                    raw_lines = chain([first], raw_lines)
+                return _import_otlp_lines(raw_lines, store,
+                                          dry_run=dry_run)
             raise ValueError(
                 f"first line is not JSON: {exc}") from exc
+        fmt = _sniff_object(obj)
         # raw_lines may be a one-pass stream (stdin): put the sniffed
         # line back at the head instead of materializing everything;
         # lists are re-iterable and must not be wrapped
         if not isinstance(raw_lines, (list, tuple)):
             raw_lines = chain([first], raw_lines)
+        if fmt == OTEL:
+            return _import_otlp_lines(raw_lines, store,
+                                      dry_run=dry_run)
+    if fmt == OTEL:
+        return _import_otlp_lines(raw_lines, store, dry_run=dry_run)
     existing = {t.id for t in store.list_traces()}
     imported: List[str] = []
     malformed = duplicates = 0
