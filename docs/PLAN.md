@@ -2033,3 +2033,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      without its README row / PLAN item / version bump — this adds
      them. Proof the docs-health tests work: they failed the moment
      claims drifted.
+209. **v2.0.0 - version discipline: 2.0, and a lean README** ✅
+     (delivered): the 1.x line ran 100+ minors — anything that big is
+     a major. pyproject moves to 2.0.0 and semver discipline is
+     explicit: major for big or breaking updates, minor for features,
+     patch for fixes. The README drops its 100+-row per-version
+     roadmap (400+ lines with drifted "next" placeholders); release
+     notes belong on the Releases page, which now renders this tag's
+     CHANGELOG section as its body. The docs-health pin inverts to
+     keep the README version-lean, and the repo description is one
+     line instead of a feature dump.

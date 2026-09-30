@@ -2,8 +2,10 @@
 
 Every relative Markdown link in README/docs must resolve to a real
 file (the v1.15 link audit, automated), and the version claims that
-matter must stay fresh: CHANGELOG's newest section and the README
-roadmap's newest row both track `pyproject.toml`.
+matter must stay fresh: CHANGELOG's newest section and PLAN's newest
+item both track `pyproject.toml`. Since v2.0 the README is a
+description, not a release log — per-version entries live in
+CHANGELOG.md and on the Releases page, and a pin keeps it that way.
 """
 
 import re
@@ -51,15 +53,13 @@ def test_changelog_newest_tracks_pyproject():
     assert _version_key(first.group(1)) == key
 
 
-def test_readme_roadmap_newest_tracks_pyproject():
-    expected = re.search(r'^version = "(.+?)"',
-                         (ROOT / "pyproject.toml").read_text(
-                             encoding="utf-8"),
-                         re.M).group(1)
+def test_readme_stays_version_lean():
+    # v2.0 policy: the README describes the project; per-version
+    # entries live in CHANGELOG.md and on the Releases page. The old
+    # 100+-row roadmap crept to 400+ lines — this pin keeps it out.
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     rows = re.findall(r"- ✅ \*\*(v[\d.]+)\*\*", readme)
-    assert rows, "roadmap rows vanished"
-    assert _version_key(rows[-1]) == _version_key(f"v{expected}")
+    assert rows == [], f"per-version rows crept back into README: {rows[-3:]}"
 
 
 def test_plan_newest_item_tracks_pyproject():
