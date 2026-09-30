@@ -2086,3 +2086,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      pooled fallback), CLI prose+JSON, and an MCP `tokens` flag on
      the anomalies tool.  Latency output shapes pinned unchanged;
      13 tests; mcp-tools.json regenerated; RECIPES 17.
+
+214. **v2.4.0 - token burn reaches the surfaces people read** ✅
+     (delivered): the per-trace HTML report grows a Token anomalies
+     card next to the latency one (a burn step is the receipt a
+     retry loop leaves behind), and the fleet survey carries
+     token_anomalies + worst_token_anomaly per store — shown on the
+     store card as a token-burn badge and the hardest-working step,
+     and in `fleet --json`. 5 tests; latency cards untouched.
