@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.7.0
+
+- spool ops: doctor checks it, agents can drive it. `doctor --spool DIR` reports pending files and the ones no pass could parse — they stay put by design, so they count against health (unparsed file = human attention needed). MCP grows `spool_once` (32 tools): one ingest pass on demand with delete/dry_run flags, so an agent can feed the store itself. 7 tests; mcp-tools.json regenerated.
+
 ## v2.6.2
 
 - Windows maps a held lock to EACCES, not EEXIST. the CI race that killed a saver mid-spin: on Windows, `open` of a lock file someone still holds raises PermissionError (errno 13), not FileExistsError — the acquire loop treated it as fatal. It now means the same thing as contention: spin (bounded — a permissions problem that never clears raises after ~10s). Two regression tests pin both behaviors on every platform.

@@ -46,12 +46,16 @@ class DoctorReport:
     judge_cache_dir: str = ""
     judge_cache_entries: int = 0
     judge_cache_corrupt: int = 0
+    spool_dir: str = ""
+    spool_pending: int = 0
+    spool_unparsed: List[str] = field(default_factory=list)
 
     @property
     def healthy(self) -> bool:
         return not (self.corrupt or self.id_mismatch
                     or self.stale_locks or self.temp_files
                     or self.digest_gaps
+                    or self.spool_unparsed
                     or self.ledger_intact is False)
 
     def to_dict(self) -> dict:
@@ -77,6 +81,9 @@ class DoctorReport:
             "judge_cache_dir": self.judge_cache_dir,
             "judge_cache_entries": self.judge_cache_entries,
             "judge_cache_corrupt": self.judge_cache_corrupt,
+            "spool_dir": self.spool_dir,
+            "spool_pending": self.spool_pending,
+            "spool_unparsed": self.spool_unparsed,
         }
 
     def render(self) -> str:
@@ -117,6 +124,15 @@ class DoctorReport:
         lines.extend(f"    leftover temp: {name}"
                      for name in self.temp_files[:5])
         lines.extend(self._render_digests())
+        if self.spool_dir:
+            note = (f"  spool {self.spool_dir}: "
+                    f"{self.spool_pending} pending file(s)")
+            if self.spool_unparsed:
+                note += (f", {len(self.spool_unparsed)} no pass "
+                         "could parse:")
+            lines.append(note)
+        lines.extend(f"    unparsed: {name}"
+                     for name in self.spool_unparsed[:5])
         return "\n".join(lines)
 
     def _render_ledger(self) -> str:
@@ -256,8 +272,30 @@ def _check_judge_cache(report: DoctorReport, cache: Path) -> None:
     report.judge_cache_corrupt = corrupt
 
 
+def _check_spool(spool: Path, report: DoctorReport) -> None:
+    """Spool hygiene: how many files are waiting, and which ones a
+    pass could not parse (they stay put by design — a human needs
+    to look at them, so they count against health)."""
+    from .importer import import_file
+    from .spool import _spool_files
+
+    report.spool_dir = str(spool)
+    files = _spool_files(spool) if spool.is_dir() else []
+    report.spool_pending = len(files)
+    store = TraceStore(Path(report.store)) \
+        if Path(report.store).is_dir() else None
+    for path in files:
+        if store is None:
+            break
+        try:
+            import_file(path, store, dry_run=True)
+        except ValueError:
+            report.spool_unparsed.append(path.name)
+
+
 def doctor(store: Path, digest_dir: Optional[Path] = None,
-           judge_cache: Optional[Path] = None) -> DoctorReport:
+           judge_cache: Optional[Path] = None,
+           spool_dir: Optional[Path] = None) -> DoctorReport:
     """Run every check and return the structured report."""
     report = DoctorReport(store=str(store))
     _check_records(store, report)
@@ -276,6 +314,8 @@ def doctor(store: Path, digest_dir: Optional[Path] = None,
     })
     if judge_cache is not None:
         _check_judge_cache(report, judge_cache)
+    if spool_dir is not None:
+        _check_spool(spool_dir, report)
     return report
 
 
