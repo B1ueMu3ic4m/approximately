@@ -298,6 +298,21 @@ def _span_step(span: Dict[str, Any]) -> Step:
     def build(**over):
         return Step(tokens=tokens, latency_ms=latency, **over)
 
+    step = _known_kind_step(kind, attrs, tool, name, build)
+    if step is not None:
+        return step
+    if tokens > 0:
+        # a foreign span that metered usage is a model call — the
+        # tool-call vocabulary is what token baselines measure
+        return build(kind=TOOL_CALL, tool=_text(tool, 200) or name,
+                     result=name or "call")
+    return build(kind=MESSAGE, result=name or "span",
+                 meta={"span_name": name})
+
+
+def _known_kind_step(kind, attrs, tool, name, build):
+    """Map a span carrying our approximately.kind attribute onto its
+    recorder step; None when the kind is foreign."""
     if kind == "tool_call":
         raw_args = attrs.get("approximately.args")
         try:
@@ -331,13 +346,7 @@ def _span_step(span: Dict[str, Any]) -> Step:
         return build(kind=MESSAGE,
                      result=_attr_text(attrs, "approximately.result"),
                      meta={"role": str(role or "user")})
-    if tokens > 0:
-        # a foreign span that metered usage is a model call — the
-        # tool-call vocabulary is what token baselines measure
-        return build(kind=TOOL_CALL, tool=_text(tool, 200) or name,
-                     result=name or "call")
-    return build(kind=MESSAGE, result=name or "span",
-                 meta={"span_name": name})
+    return None
 
 
 def _root_success(root: Dict[str, Any]) -> Optional[bool]:
