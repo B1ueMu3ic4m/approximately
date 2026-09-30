@@ -2076,3 +2076,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      capped at 10k steps per trace with an honest truncated count.
      Envelopes shaped right but broken inside count as skips;
      7 fuzz tests with a fixed seed.
+
+213. **v2.3.0 - token anomalies: the burn a retry loop leaves behind** ✅
+     (delivered): the robust MAD ruler now meters tokens alongside
+     latency — `anomalies --tokens` flags the step that worked too
+     hard (a retry loop's receipt) per trace or across the fleet,
+     with burn/frugal directions, per-tool family baselines, the
+     same honest degenerate cases (min-samples, MAD==0, rare-tool
+     pooled fallback), CLI prose+JSON, and an MCP `tokens` flag on
+     the anomalies tool.  Latency output shapes pinned unchanged;
+     13 tests; mcp-tools.json regenerated; RECIPES 17.

@@ -1322,48 +1322,81 @@ def cmd_fleet(args: argparse.Namespace) -> int:
 
 
 def cmd_anomalies(args: argparse.Namespace) -> int:
-    from .anomaly import detect_fleet_anomalies, detect_latency_anomalies, summarize_anomalies
+    from .anomaly import (
+        detect_fleet_anomalies,
+        detect_fleet_token_anomalies,
+        detect_latency_anomalies,
+        detect_token_anomalies,
+        summarize_anomalies,
+        summarize_token_anomalies,
+    )
 
-    store = TraceStore(args.store)
+    meter = (detect_fleet_token_anomalies, detect_token_anomalies,
+             summarize_token_anomalies) \
+        if getattr(args, "tokens", False) else \
+        (detect_fleet_anomalies, detect_latency_anomalies,
+         summarize_anomalies)
+    return _anomalies_report(args, TraceStore(args.store), *meter)
+
+
+def _anomalies_report(args: argparse.Namespace, store,
+                      fleet_fn, trace_fn, summarize) -> int:
+    store_traces = store.list_traces(
+        since_days=getattr(args, "since", None))
     if getattr(args, "all", False):
-        fleet = detect_fleet_anomalies(
-            store.list_traces(since_days=getattr(args, "since", None)),
-            threshold=args.threshold)
+        fleet = fleet_fn(store_traces, threshold=args.threshold)
         if getattr(args, "json", False):
-            print(json.dumps([{"trace_id": a.trace_id,
-                               "step_index": a.step_index,
-                               "tool": a.tool,
-                               "latency_ms": a.latency_ms,
-                               "median_ms": a.median_ms,
-                               "robust_z": round(a.robust_z, 3),
-                               "direction": a.direction}
-                              for a in fleet], indent=2))
+            rows = [_anomaly_row(a, tokens=hasattr(a, "tokens"))
+                    for a in fleet]
+            print(json.dumps(rows, indent=2))
         else:
             if not fleet:
-                print("no fleet latency anomalies")
+                print("no fleet anomalies")
             else:
                 for a in fleet[:20]:
-                    print(f"  {a.trace_id} step {a.step_index} "
-                          f"{a.tool} {a.latency_ms}ms "
-                          f"(family median {a.median_ms:.0f}ms, "
-                          f"z={a.robust_z:+.1f})")
+                    print(_anomaly_line(a))
                 if len(fleet) > 20:
                     print(f"  ... and {len(fleet) - 20} more")
         return 0 if not fleet else 1
     trace = _load_trace(args.trace, store)
-    anomalies = detect_latency_anomalies(
-        trace, threshold=args.threshold,
-        per_tool=bool(getattr(args, "per_tool", False)))
+    anomalies = trace_fn(trace, threshold=args.threshold,
+                         per_tool=bool(getattr(args, "per_tool",
+                                               False)))
     if getattr(args, "json", False):
-        print(json.dumps([{"step_index": a.step_index, "tool": a.tool,
-                           "latency_ms": a.latency_ms,
-                           "median_ms": a.median_ms,
-                           "robust_z": round(a.robust_z, 3),
-                           "direction": a.direction}
-                          for a in anomalies], indent=2))
+        rows = [_anomaly_row(a, tokens=hasattr(a, "tokens"), trace=False)
+                for a in anomalies]
+        print(json.dumps(rows, indent=2))
     else:
-        print(summarize_anomalies(anomalies))
+        print(summarize(anomalies))
     return 0 if not anomalies else 1
+
+
+def _anomaly_row(a, tokens: bool, trace: bool = True) -> dict:
+    row = {"step_index": a.step_index, "tool": a.tool}
+    if trace:
+        row["trace_id"] = a.trace_id
+    if tokens:
+        row.update({"tokens": a.tokens,
+                    "median_tokens": a.median_tokens})
+    else:
+        row.update({"latency_ms": a.latency_ms,
+                    "median_ms": a.median_ms})
+    row.update({"robust_z": round(a.robust_z, 3),
+                "direction": a.direction})
+    return row
+
+
+def _anomaly_line(a) -> str:
+    trace_id = f"{a.trace_id} " if hasattr(a, "trace_id") else ""
+    if hasattr(a, "tokens"):
+        return (f"  {trace_id}step {a.step_index} {a.tool} "
+                f"{a.tokens} tokens "
+                f"(family median {a.median_tokens:.0f}, "
+                f"z={a.robust_z:+.1f})")
+    return (f"  {trace_id}step {a.step_index} {a.tool} "
+            f"{a.latency_ms}ms "
+            f"(family median {a.median_ms:.0f}ms, "
+            f"z={a.robust_z:+.1f})")
 
 
 def _audit_row(store, trace, key, counts: dict) -> dict:
@@ -2368,6 +2401,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="baseline each tool family separately (a "
                         "2s search and a 30s deploy stop masking "
                         "each other)")
+    p.add_argument("--tokens", action="store_true",
+                   help="meter on tokens instead of milliseconds — "
+                        "token burn is the receipt a retry loop "
+                        "leaves behind")
     p.add_argument("--all", action="store_true",
                    help="fleet mode: baseline each tool family "
                         "across the whole store instead of one "
