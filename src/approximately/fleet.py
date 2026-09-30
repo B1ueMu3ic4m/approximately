@@ -77,6 +77,8 @@ class StoreSummary:
     annotations: int = 0
     fleet_anomalies: int = 0
     worst_anomaly: Optional[dict] = None
+    token_anomalies: int = 0
+    worst_token_anomaly: Optional[dict] = None
     annotations_confirmed: int = 0
 
     @property
@@ -134,6 +136,9 @@ def webhook_payload(summaries: List[StoreSummary]) -> dict:
                     getattr(s, "annotations_confirmed", 0),
                 "fleet_anomalies": getattr(s, "fleet_anomalies", 0),
                 "worst_anomaly": getattr(s, "worst_anomaly", None),
+                "token_anomalies": getattr(s, "token_anomalies", 0),
+                "worst_token_anomaly":
+                    getattr(s, "worst_token_anomaly", None),
                 "top_modes": [
                     {"mode": mode, "count": count}
                     for mode, count in s.top_modes
@@ -219,9 +224,10 @@ def survey(stores: List[Path], top_agents: int = 3) -> List[StoreSummary]:
         verdict, slope = _verdict(rows)
         health = store.annotations_health()
         notes = store.annotations()
-        from .anomaly import detect_fleet_anomalies
+        from .anomaly import detect_fleet_anomalies, detect_fleet_token_anomalies
 
         anomalies = detect_fleet_anomalies(traces)
+        token_flags = detect_fleet_token_anomalies(traces)
         summaries.append(StoreSummary(
             name=Path(path).name or str(path),
             path=str(path),
@@ -244,6 +250,14 @@ def survey(stores: List[Path], top_agents: int = 3) -> List[StoreSummary]:
                 "latency_ms": anomalies[0].latency_ms,
                 "median_ms": anomalies[0].median_ms,
                 "robust_z": anomalies[0].robust_z,
+            },
+            token_anomalies=len(token_flags),
+            worst_token_anomaly=None if not token_flags else {
+                "trace_id": token_flags[0].trace_id,
+                "tool": token_flags[0].tool,
+                "tokens": token_flags[0].tokens,
+                "median_tokens": token_flags[0].median_tokens,
+                "robust_z": token_flags[0].robust_z,
             },
         ))
     return summaries
@@ -286,6 +300,19 @@ def _store_card(s: StoreSummary) -> str:
             f"<td>{worst['latency_ms']}ms</td>"
             f"<td>family median {worst['median_ms']:.0f}ms · "
             f"z={worst['robust_z']}</td></tr></table>")
+    token_flags = getattr(s, "token_anomalies", 0) or 0
+    worst_tok = getattr(s, "worst_token_anomaly", None)
+    if token_flags and worst_tok:
+        tok_cls = "bad" if token_flags >= 3 else "ok"
+        anomaly_html += (
+            f'<div class="row"><span class="rate {tok_cls}">'
+            f'{token_flags}</span><span class="badge {tok_cls}">'
+            "token burn(s)</span></div>"
+            "<h3>Hardest-working step</h3><table>"
+            f"<tr><td class='mono'>{esc(worst_tok['tool'])}</td>"
+            f"<td>{worst_tok['tokens']} tok</td>"
+            f"<td>family median {worst_tok['median_tokens']:.0f} · "
+            f"z={worst_tok['robust_z']}</td></tr></table>")
     return (
         f'<div class="store"><h2>{esc(s.name)}</h2>'
         f'<div class="sub">{esc(s.path)} · '

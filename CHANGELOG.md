@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.4.0
+
+- token burn reaches the surfaces people read. the per-trace HTML report grows a Token anomalies card next to the latency one (a burn step is the receipt a retry loop leaves behind), and the fleet survey carries token_anomalies + worst_token_anomaly per store — shown on the store card as a token-burn badge and the hardest-working step, and in `fleet --json`. 5 tests; latency cards untouched.
+
 ## v2.3.0
 
 - token anomalies: the burn a retry loop leaves behind. the robust MAD ruler now meters tokens alongside latency — `anomalies --tokens` flags the step that worked too hard (a retry loop's receipt) per trace or across the fleet, with burn/frugal directions, per-tool family baselines, the same honest degenerate cases (min-samples, MAD==0, rare-tool pooled fallback), CLI prose+JSON, and an MCP `tokens` flag on the anomalies tool. Latency output shapes pinned unchanged; 13 tests; mcp-tools.json regenerated; RECIPES 17.
