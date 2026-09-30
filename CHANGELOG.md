@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.2.1
+
+- fuzz round 12: the OTLP surface under attack. the importer eats untrusted envelopes now, so the round-4 contract extends to it — documented errors or clean skips, never a crash. Found and fixed: a recursion bomb (100k-deep JSON) escaped as RecursionError, now a ValueError; a 300k-attribute flood could bloat trace meta, now capped at 128 keys; a 200k-span flood became a 200k-step trace, now capped at 10k steps per trace with an honest truncated count. Envelopes shaped right but broken inside count as skips; 7 fuzz tests with a fixed seed.
+
 ## v2.2.0
 
 - OTLP import: the OpenTelemetry loop closes. `import --format otel` takes OTLP trace documents in — compact envelopes one per line (the shape v2.1.0 writes) or a pretty-printed document (what backends export). Our own exports roundtrip idempotently via the approximately.trace.id attribute; foreign spans keep their name as message steps instead of being dropped; status codes map to success flags. Sniffing recognizes the shape; a parsed line that is not an envelope under an explicit --format otel is a loud error. 14 tests; mcp-tools.json regenerated.

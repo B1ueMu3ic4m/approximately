@@ -43,6 +43,22 @@ MESSAGES_LIST = "messages-list"
 OTEL = "otel"
 _FORMATS = (NATIVE, OPENAI_JSONL, MESSAGES_LIST, OTEL)
 _META_PREFIX = "approximately.meta."
+# ingest is untrusted input: without these caps a crafted envelope
+# turns the store into the DoS (300k attribute keys, a 200k-step
+# trace punishing every downstream command)
+_MAX_IMPORTED_META = 128
+_MAX_IMPORTED_STEPS = 10_000
+
+
+def _loads(text: str):
+    """``json.loads`` with the recursion bomb defused: Python's parser
+    raises RecursionError past ~1000 nesting levels, and import
+    callers contractually expect ValueError for malformed input —
+    never a crash."""
+    try:
+        return json.loads(text)
+    except RecursionError as exc:
+        raise ValueError("JSON nested too deeply") from exc
 
 
 def _text(value: Any, limit: int = 4000) -> str:
@@ -65,8 +81,8 @@ def sniff_format(path: Path) -> str:
     if first is None:
         raise ValueError("file has no transcript lines")
     try:
-        obj = json.loads(first)
-    except json.JSONDecodeError:
+        obj = _loads(first)
+    except ValueError:
         if first.strip() == "{":
             return OTEL      # one pretty-printed document
         raise ValueError(
@@ -308,11 +324,15 @@ def _group_trace(trace_key: str, spans: List[Dict[str, Any]]) -> Trace:
     for key, value in attrs.items():
         if key.startswith(_META_PREFIX) and isinstance(
                 value, (str, int, float, bool)):
+            if len(meta) >= _MAX_IMPORTED_META:
+                break
             meta[key[len(_META_PREFIX):]] = value
     meta["imported_from"] = "otel"
     children = sorted((s for s in spans if s is not root),
                       key=lambda s: _nanos(s.get("startTimeUnixNano")))
-    return Trace(
+    truncated = max(0, len(children) - _MAX_IMPORTED_STEPS)
+    children = children[:_MAX_IMPORTED_STEPS]
+    trace = Trace(
         task=task, id=trace_id,
         created_at=_nanos(root.get("startTimeUnixNano")) / 1e9,
         model=_attr_text(attrs, "approximately.model", 100)
@@ -323,11 +343,12 @@ def _group_trace(trace_key: str, spans: List[Dict[str, Any]]) -> Trace:
                                 200) or None,
         meta=meta,
     )
+    return trace, truncated
 
 
-def otlp_to_traces(document: Any) -> Tuple[List[Trace], int, int]:
+def otlp_to_traces(document: Any) -> Tuple[List[Trace], int, int, int]:
     """One OTLP document onto traces; returns (traces, malformed span
-    count, spans seen)."""
+    count, spans seen, steps dropped to the per-trace cap)."""
     if not isinstance(document, dict):
         raise ValueError("OTLP document must be a JSON object")
     if not isinstance(document.get("resourceSpans"), list):
@@ -337,7 +358,8 @@ def otlp_to_traces(document: Any) -> Tuple[List[Trace], int, int]:
     seen = 0
     for resource in document["resourceSpans"]:
         if not isinstance(resource, dict):
-            raise ValueError("malformed resourceSpans entry")
+            seen += 1          # counted, not fatal: an envelope that
+            continue           # is shaped right stays importable
         for scope in resource.get("scopeSpans") or []:
             if not isinstance(scope, dict):
                 continue
@@ -346,16 +368,18 @@ def otlp_to_traces(document: Any) -> Tuple[List[Trace], int, int]:
                 if isinstance(span, dict) and span.get("traceId"):
                     groups.setdefault(str(span["traceId"]),
                                       []).append(span)
-    traces = [_group_trace(key, spans)
-              for key, spans in groups.items()]
+    pairs = [_group_trace(key, spans) for key, spans in groups.items()]
+    traces = [t for t, _ in pairs]
     traces.sort(key=lambda t: t.id)
-    return traces, seen - sum(len(v) for v in groups.values()), seen
+    truncated = sum(n for _, n in pairs)
+    grouped = sum(len(v) for v in groups.values())
+    return traces, seen - grouped, seen, truncated
 
 
 def _save_otlp(document: Any, store: TraceStore, dry_run: bool = False,
                existing: Optional[set] = None) -> Tuple[Dict[str, int],
                                                         List[str]]:
-    traces, malformed, spans = otlp_to_traces(document)
+    traces, malformed, spans, truncated = otlp_to_traces(document)
     if existing is None:
         existing = {t.id for t in store.list_traces()}
     imported: List[str] = []
@@ -369,8 +393,9 @@ def _save_otlp(document: Any, store: TraceStore, dry_run: bool = False,
         existing.add(trace.id)
         imported.append(trace.id)
     counts = {"lines": spans, "imported": len(imported),
-              "skipped": duplicates + malformed,
-              "malformed": malformed, "duplicates": duplicates}
+              "skipped": duplicates + malformed + truncated,
+              "malformed": malformed, "duplicates": duplicates,
+              "truncated": truncated}
     return counts, imported
 
 
@@ -381,8 +406,8 @@ def _import_otlp_lines(raw_lines: Iterable[str], store: TraceStore,
     lines = list(raw_lines)
     if lines and lines[0].strip() == "{":
         try:
-            doc = json.loads("".join(lines))
-        except json.JSONDecodeError as exc:
+            doc = _loads("".join(lines))
+        except ValueError as exc:
             raise ValueError(
                 f"OTLP document is not valid JSON: {exc}") from exc
         whole_counts, whole_ids = _save_otlp(doc, store,
@@ -392,13 +417,13 @@ def _import_otlp_lines(raw_lines: Iterable[str], store: TraceStore,
     existing = {t.id for t in store.list_traces()}
     imported: List[str] = []
     malformed = duplicates = 0
-    spans = 0
+    spans = truncated = 0
     for raw in lines:
         if not raw.strip():
             continue
         try:
-            doc = json.loads(raw)
-        except json.JSONDecodeError:
+            doc = _loads(raw)
+        except ValueError:
             malformed += 1
             continue
         if not (isinstance(doc, dict) and "resourceSpans" in doc):
@@ -407,15 +432,23 @@ def _import_otlp_lines(raw_lines: Iterable[str], store: TraceStore,
             # silent skip
             raise ValueError(
                 "not an OTLP envelope: missing resourceSpans")
-        counts, ids = _save_otlp(doc, store, dry_run=dry_run,
-                                 existing=existing)
+        try:
+            counts, ids = _save_otlp(doc, store, dry_run=dry_run,
+                                     existing=existing)
+        except ValueError:
+            # envelope-shaped but broken inside: a counted skip,
+            # never a crash
+            malformed += 1
+            continue
         imported.extend(ids)
         duplicates += counts["duplicates"]
         malformed += counts["malformed"]
+        truncated += counts["truncated"]
         spans += counts["lines"]
     return {"format": OTEL, "lines": spans, "imported": len(imported),
-            "skipped": duplicates + malformed, "malformed": malformed,
-            "duplicates": duplicates, "trace_ids": imported}
+            "skipped": duplicates + malformed + truncated,
+            "malformed": malformed, "duplicates": duplicates,
+            "truncated": truncated, "trace_ids": imported}
 
 def _merge(per_file: List[Dict[str, Any]], result: Dict[str, Any],
            name: str, totals: Dict[str, int],
@@ -537,8 +570,8 @@ def import_lines(raw_lines: Iterable[str], store: TraceStore,
         if first is None:
             raise ValueError("no transcript lines to sniff")
         try:
-            obj = json.loads(first)
-        except json.JSONDecodeError as exc:
+            obj = _loads(first)
+        except ValueError as exc:
             # a pretty-printed OTLP document starts with a bare "{"
             if first.strip() == "{":
                 if not isinstance(raw_lines, (list, tuple)):
@@ -567,7 +600,7 @@ def import_lines(raw_lines: Iterable[str], store: TraceStore,
             continue
         lines += 1
         try:
-            trace = _parse_line(json.loads(raw), raw, line_no, fmt)
+            trace = _parse_line(_loads(raw), raw, line_no, fmt)
         except (AttributeError, KeyError, TypeError, ValueError,
                 json.JSONDecodeError):
             malformed += 1

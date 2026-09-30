@@ -108,8 +108,8 @@ def test_foreign_spans_become_steps(tmp_path):
          "startTimeUnixNano": "1100000000",
          "endTimeUnixNano": "1500000000"},
     ]}]}]}
-    traces, malformed, seen = otlp_to_traces(document)
-    assert (malformed, seen) == (0, 2)
+    traces, malformed, seen, truncated = otlp_to_traces(document)
+    assert (malformed, seen, truncated) == (0, 2, 0)
     trace = traces[0]
     assert trace.success is False
     assert trace.task == "agent run"
@@ -117,7 +117,7 @@ def test_foreign_spans_become_steps(tmp_path):
     assert [s.meta.get("span_name") for s in trace.steps] == \
         ["db.query"]
     # deterministic id: re-parsing yields the same trace id
-    again, _, _ = otlp_to_traces(document)
+    again, _, _, _ = otlp_to_traces(document)
     assert again[0].id == trace.id
 
 
@@ -138,9 +138,9 @@ def test_malformed_spans_are_counted(tmp_path):
          "parentSpanId": "", "name": "run"},
         {"name": "no trace id"},
     ]}]}]}
-    traces, malformed, seen = otlp_to_traces(document)
+    traces, malformed, seen, truncated = otlp_to_traces(document)
     assert len(traces) == 1
-    assert (malformed, seen) == (1, 2)
+    assert (malformed, seen, truncated) == (1, 2, 0)
 
 
 def test_not_an_envelope_is_rejected(tmp_path):
@@ -163,9 +163,9 @@ def test_status_mapping(tmp_path):
              "status": {"code": code}}]}]}]}
 
     for code, expected in ((2, False), (1, True), (0, None)):
-        (traces, _, _) = otlp_to_traces(doc(code))
+        (traces, _, _, _) = otlp_to_traces(doc(code))
         assert traces[0].success is expected
-    traces, _, _ = otlp_to_traces(doc("not-a-number"))
+    traces, _, _, _ = otlp_to_traces(doc("not-a-number"))
     assert traces[0].success is None
 
 
