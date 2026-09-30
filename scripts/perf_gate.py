@@ -78,11 +78,15 @@ def fleet_anomaly_gate(budget_s: float = 2.0) -> int:
     return 0
 
 
-def import_gate(budget_s: float = 2.0) -> int:
+def import_gate(budget_s: float = 5.0) -> int:
     """Ingest 500 mixed-shape transcripts (tool calls, tool errors,
     multi-turn) into a fresh store. Parallel-safe and deterministic —
     this gate pins the ingest path so it stays linear as the batch
-    grows."""
+    grows.  The budget is roomy on purpose (local runs land near
+    150ms): shared CI runners — Windows especially — swing by
+    seconds on I/O, and the gate must catch real scaling
+    regressions, not runner noise.  A quadratic blowup still trips
+    it by minutes."""
     import json as _json
     import tempfile
     from pathlib import Path as _Path
