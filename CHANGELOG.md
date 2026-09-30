@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.8.2
+
+- the counts age; the pins keep them honest. the README still said 31 tools and 1,200+ tests — 32 and 1,300+ now (the era bullets, the capabilities table, the v2.0 callout). ANNOUNCEMENT gains the 2.x era: the OTel loop, token-burn detection, the spool watcher. Historical ledger entries stay as written — they were true then.
+
 ## v2.8.1
 
 - fuzz round 13: spool + doctor under attack. the round-4 contract extended to the new ops surfaces — a garbage spool (60 files, unicode names, junk payloads) splits cleanly into archived/skipped/left with no crash; subdirectories are ignored; doctor's spool check tolerates a missing store directory; parallel OTLP ingest of the same file twice in flight collapses to one trace per envelope; the shipped tool inventory passes our own poisoning scan (pinned). 7 tests, fixed seed.
