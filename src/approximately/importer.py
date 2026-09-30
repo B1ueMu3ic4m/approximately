@@ -303,7 +303,8 @@ def _span_step(span: Dict[str, Any]) -> Step:
                 meta={"span_name": name}, latency_ms=latency)
 
 
-def _group_trace(trace_key: str, spans: List[Dict[str, Any]]) -> Trace:
+def _group_trace(trace_key: str,
+                 spans: List[Dict[str, Any]]) -> Tuple[Trace, int]:
     roots = [s for s in spans if not s.get("parentSpanId")]
     root = roots[0] if roots else spans[0]
     attrs = _span_attrs(root)

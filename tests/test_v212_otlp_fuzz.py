@@ -14,6 +14,7 @@ import time
 from approximately.importer import (
     _MAX_IMPORTED_META,
     _MAX_IMPORTED_STEPS,
+    _loads,
     import_file,
     import_lines,
     otlp_to_traces,
@@ -36,24 +37,50 @@ def _span(trace_id="a" * 32, **over):
     return span
 
 
-def test_recursion_bomb_is_a_valueerror(tmp_path):
-    # Python's JSON parser raises RecursionError past ~1000 levels;
-    # import callers contractually get ValueError instead
+def test_recursion_bomb_never_crashes(tmp_path):
+    # Whether the parser hits its recursion ceiling is interpreter
+    # dependent (3.14 parses 100k levels on CI but not everywhere);
+    # the contract is interpreter-independent: ValueError at most —
+    # never RecursionError or anything else.
     bomb = "[" * 100_000 + "]" * 100_000
     path = tmp_path / "bomb.jsonl"
     path.write_text(bomb, encoding="utf-8")
     try:
         import_file(path, TraceStore(tmp_path / "s1"))
-    except ValueError as exc:
-        assert "nested too deeply" in str(exc) or "not JSON" in str(exc)
-    else:
-        raise AssertionError("recursion bomb parsed")
-    # the OTLP line path defuses it too (counted malformed, no crash)
+    except RecursionError as exc:
+        raise AssertionError(
+            "RecursionError escaped import_file") from exc
+    except ValueError:
+        pass                    # documented outcome
+    # the OTLP line path: the bomb line is a counted skip (defused)
+    # or a loud ValueError — and a good envelope still lands after it
     good = json.dumps(_envelope([_span()]))
-    result = import_lines([bomb, good, ""],
-                          TraceStore(tmp_path / "s2"), fmt="otel")
-    assert result["malformed"] == 1
-    assert result["imported"] == 1
+    try:
+        result = import_lines([bomb, good, ""],
+                              TraceStore(tmp_path / "s2"), fmt="otel")
+    except ValueError as exc:
+        assert "not an OTLP envelope" in str(exc)
+    else:
+        assert result["imported"] == 1
+        assert result["malformed"] <= 1
+
+
+def test_loads_defuses_recursion():
+    # wherever the ceiling actually is, _loads converts it to the
+    # documented error type
+    for depth in (1_000, 10_000, 100_000, 1_000_000):
+        text = "[" * depth + "]" * depth
+        try:
+            json.loads(text)
+        except RecursionError:
+            try:
+                _loads(text)
+            except ValueError as exc:
+                assert "nested" in str(exc)
+            else:
+                raise AssertionError("RecursionError not defused")
+            return
+    # this interpreter parses every probed depth without recursion
 
 
 def test_deep_nesting_starting_with_brace(tmp_path):
@@ -64,8 +91,6 @@ def test_deep_nesting_starting_with_brace(tmp_path):
         import_file(path, TraceStore(tmp_path / "s"))
     except ValueError:
         pass            # loud either way — just never a crash
-    else:
-        raise AssertionError("brace bomb parsed")
 
 
 def test_attribute_flood_is_bounded(tmp_path):
