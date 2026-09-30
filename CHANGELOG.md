@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.9.2
+
+- the CLI tour: real argv through every wired door. per-command tests own the semantics; the tour owns the wiring — main() with actual argv lists. It caught two real bugs immediately: `approximately export` and `approximately import` read args.json unconditionally but their parsers never defined --json, so the plain commands crashed with AttributeError (per-command tests built Namespaces by hand and masked it). Flags added; a sweep proves no other command has the gap; import's prose now says "records" (an OTLP envelope holds many spans, so "transcripts" miscounted). 10 tour tests.
+
 ## v2.9.1
 
 - the spool pass says WHAT landed. ingest-time attribution — the pass report counts primary failure modes of newly ingested failed traces (rule detectors, deterministic, no network), in the JSON result and on the watch line (`failures: FM-1.3 x2`). Best-effort: an attribution trouble yields no label, never a crash. 2 tests.
