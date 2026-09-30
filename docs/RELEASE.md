@@ -2,10 +2,14 @@
 
 **Releases are fully automatic.** When a merge to main changes
 `pyproject.toml`'s version, `autotag.yml` tags it and dispatches
-`release.yml`, which creates the GitHub Release (auto-generated notes
-from merged PRs, sdist + wheel attached) and attempts the PyPI
-publish. The rule this repo works by holds: **main is always
-releasable** — a release is a tag, and tags happen by themselves.
+`release.yml`, which creates the GitHub Release — **body = this
+tag's CHANGELOG.md section** (the Releases page is where per-version
+detail lives; the README stays lean — since v2.0) — with sdist +
+wheel attached, and attempts the PyPI publish. The rule this repo
+works by holds: **main is always releasable** — a release is a tag,
+and tags happen by themselves. (If the push webhook ever misses —
+seen once, 2026-09-30 — `gh workflow run autotag.yml --ref main`
+replays it safely; it no-ops when the tag exists.)
 
 ## 0. PyPI (the only piece that needs credentials, once)
 
