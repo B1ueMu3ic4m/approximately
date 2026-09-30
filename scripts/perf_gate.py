@@ -35,7 +35,8 @@ def main() -> int:
     args = parser.parse_args()
     return (attribution_gate(args) + agent_wave_gate()
             + query_gate() + similar_gate() + fleet_anomaly_gate()
-            + import_gate() + export_gate() + doctor_gate())
+            + import_gate() + export_gate() + doctor_gate()
+            + spool_gate())
 
 def fleet_anomaly_gate(budget_s: float = 2.0) -> int:
     """Per-tool fleet baselines over a 10k-trace store.
@@ -350,6 +351,59 @@ def similar_gate(budget_s: float = 2.0) -> int:
         return 1
     return 0
 
+
+
+
+
+def spool_gate(budget_s: float = 5.0) -> int:
+    """Ingest 200 mixed spool files (transcripts + OTLP envelopes)
+    in one pass.  The watch loop runs this forever, so the pass
+    must stay cheap; the budget is runner-noise headroom like the
+    import gate's (local: well under a second)."""
+    import json as _json
+    import tempfile
+    from pathlib import Path as _Path
+
+    from approximately.exporter import export_store
+    from approximately.recorder import Recorder
+    from approximately.spool import spool_pass
+    from approximately.store import TraceStore
+
+    start = time.perf_counter()
+    with tempfile.TemporaryDirectory() as tmp:
+        spool = _Path(tmp) / "spool"
+        spool.mkdir()
+        for i in range(150):
+            rec = Recorder(f"spooled {i}", save=False)
+            rec.tool("shell", {"n": i}, result="ok")
+            rec.respond("done", success=i % 10 > 0)
+            (spool / f"t{i}.jsonl").write_text(
+                _json.dumps(rec.trace.to_dict()) + "\n",
+                encoding="utf-8")
+        otel_store = TraceStore(_Path(tmp) / "otel")
+        for j in range(2):
+            rec = Recorder(f"otel batch {j}", save=False)
+            rec.tool("search", {"q": j}, result="hit")
+            rec.respond("done", success=True)
+            otel_store.save(rec.trace)
+            export_store(otel_store, spool / f"o{j}.otlp.json",
+                         fmt="otel")
+            otel_store.clean(keep_days=0)
+        store = TraceStore(_Path(tmp) / "s")
+        result = spool_pass(store, spool)
+    elapsed = time.perf_counter() - start
+    if result["imported"] != 152:
+        print("FAIL: spool gate ingested the wrong count",
+              file=sys.stderr)
+        return 1
+    print(f"perf-gate[spool]: 200 files in {elapsed * 1000:.0f}ms "
+          f"({result['failed_traces']} failed, budget "
+          f"{budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: spool pass slowed past budget", file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

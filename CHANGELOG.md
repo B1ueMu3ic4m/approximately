@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.9.4
+
+- the perf gate watches the spool too. perf-gate[spool] — 200 mixed files (150 transcripts + 2 OTLP envelopes) through one spool_pass within budget, so the forever-running watch loop's pass stays cheap as the format surface grows. Gate count: 9.
+
 ## v2.9.3
 
 - the money number gets a per-row breakdown. `stats --by-tool` and `--by-agent` grow an `est_cost` column (JSON + prose) when `--price-per-1k` is set — which tool, which agent, how much. 3 tests.
