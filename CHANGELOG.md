@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.9.7
+
+- the front doors mention the new rooms. README's step-by-step gains step 5 — circulate (OTel/OTLP export-import, the spool that feeds itself); CONTRIBUTING's good-first-issues grows the GenAI semantic-conventions mapping (map gen_ai.* attrs onto steps at OTLP import so token baselines work on traces that never touched our recorder).
+
 ## v2.9.6
 
 - the interop matrix, pinned in one place. every export format (openai-jsonl, native, otel) under one parametrized contract — roundtrip imports load, attribute and render; each format's second-generation export is byte-stable against itself; native stays lossless (dict-for-dict); and all three dialects agree on the story (same tasks, same success flags) no matter the fidelity. 5 tests.

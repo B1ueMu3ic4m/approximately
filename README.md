@@ -61,6 +61,7 @@ The failure taxonomy inside approximately comes straight from 2025–2026 resear
 2. **Attribute** — on failure, a built-in rule engine plus an optional LLM judge deliver the verdict: mode, step, evidence chain, suggested fixes
 3. **Replay** — re-execute the recorded steps and diff every outcome to prove the fix works
 4. **Prevent** — one command turns the failure into a pytest regression guard that lives in CI
+5. **Circulate** — export runs as OpenAI transcripts, lossless native, or OTLP spans for Jaeger/Tempo/Honeycomb; import any of them back; or point `approximately spool` at a directory and let the store feed itself
 
 <details>
 <summary><b>🔧 Developer quickstart (2 commands + 5 lines)</b></summary>
