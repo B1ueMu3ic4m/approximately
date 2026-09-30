@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v1.100.3
+
+- version claims for the typefix round. the drift-pins caught the typefix round shipping without its README row / PLAN item / version bump — this adds them. Proof the docs-health tests work: they failed the moment claims drifted.
+
 ## v1.100.1
 
 - hotfix: the clean-test mtime race, properly. the v1.79.1 hotfix backdated created_at, but `clean` gates on file mtime — so the race resurfaced on Windows. The test now backdates the trace file's mtime directly with os.utime, which is what the store actually reads.

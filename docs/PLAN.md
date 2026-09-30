@@ -2027,3 +2027,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      Windows. The test now backdates the trace file's mtime
      directly with os.utime, which is what the store actually
      reads.
+
+206. **v1.100.3 - version claims for the typefix round** ✅
+     (delivered): the drift-pins caught the typefix round shipping
+     without its README row / PLAN item / version bump — this adds
+     them. Proof the docs-health tests work: they failed the moment
+     claims drifted.
