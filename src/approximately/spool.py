@@ -128,7 +128,7 @@ def watch_spool(store: TraceStore, directory: Path,
                 f"{outcome['imported']} imported, "
                 f"{outcome['skipped']} skipped, "
                 f"{outcome['failures']} unparsed")
-        modes = outcome.get("failure_modes") or {}
+        modes: Dict[str, int] = outcome.get("failure_modes") or {}
         if modes:
             detail = ", ".join(f"{m} x{c}"
                                for m, c in sorted(modes.items()))
