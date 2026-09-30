@@ -2104,3 +2104,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      mode with a gateable exit code (1 = a failed trace came in),
      --interval loops as a daemon.  10 tests; ARCHITECTURE +
      RECIPES 18.
+
+216. **v2.6.0 - the night watch notices token burn on its own** ✅
+     (delivered): `fleet --watch --alert-tokens N` pages when a
+     store carries N token-burn outliers under the same
+     quiet-by-default contract as the latency gate (a rate
+     threshold quietens, anomaly gates add fire conditions); the
+     trend digest carries a token_anomalies series per day with its
+     own Theil-Sen verdict (token-burn trend line in prose and the
+     fleet HTML), and webhook/fleet JSON fields flow through.  7
+     tests; RECIPES 15/18 updated.

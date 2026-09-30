@@ -515,6 +515,7 @@ def _trend_row(entry: dict) -> dict:
             modes[m.get("mode", "?")] = (
                 modes.get(m.get("mode", "?"), 0) + m.get("count", 0))
     anomalies = sum(s.get("fleet_anomalies", 0) for s in stores)
+    token_flags = sum(s.get("token_anomalies", 0) for s in stores)
     return {
         "day": entry["day"],
         "snapshots": entry["snapshots"],
@@ -524,6 +525,7 @@ def _trend_row(entry: dict) -> dict:
         "worsening": snap.get("worsening") or [],
         "top_modes": sorted(modes.items(), key=lambda kv: -kv[1])[:3],
         "fleet_anomalies": anomalies,
+        "token_anomalies": token_flags,
     }
 
 
@@ -543,9 +545,17 @@ def summarize_trend(days: List[dict]) -> dict:
         anomaly_verdict = {"verdict": a_verdict,
                            "slope": round(a_slope, 4),
                            "latest": anomaly_series[-1]}
+    token_series = [r["token_anomalies"] for r in rows]
+    token_verdict = None
+    if len(token_series) >= 2 and any(token_series):
+        t_verdict, t_slope = trend_verdict(token_series)
+        token_verdict = {"verdict": t_verdict,
+                         "slope": round(t_slope, 4),
+                         "latest": token_series[-1]}
     return {"days": rows, "verdict": verdict, "slope": round(slope, 4),
             "snapshots": sum(r["snapshots"] for r in rows),
-            "anomaly_trend": anomaly_verdict}
+            "anomaly_trend": anomaly_verdict,
+            "token_trend": token_verdict}
 
 
 AGENT_TREND_KEYS = ("steps", "tool_calls", "errors",
@@ -623,25 +633,36 @@ def render_trend(summary: dict) -> str:
             f"  slowness trend: {anomaly_trend['verdict']} "
             f"(slope {anomaly_trend['slope']:+.4f}/day, latest "
             f"{anomaly_trend['latest']} flagged step(s))")
+    token_trend = summary.get("token_trend")
+    if token_trend:
+        lines.append(
+            f"  token-burn trend: {token_trend['verdict']} "
+            f"(slope {token_trend['slope']:+.4f}/day, latest "
+            f"{token_trend['latest']} flagged step(s))")
     return "\n".join(lines)
 
 
 def _should_alert(summaries, threshold: Optional[float],
-                  alert_anomalies: Optional[int] = None) -> bool:
+                  alert_anomalies: Optional[int] = None,
+                  alert_tokens: Optional[int] = None) -> bool:
     """Quiet-by-default alerting: post only on signal, not on schedule.
 
     No thresholds: every cycle posts (the schedule is the signal).
     With ``alert_worse_than``: only when a store's trend is worsening
     or its failure rate is at/above the threshold. With
-    ``alert_anomalies``: also when a store carries at least that many
-    fleet latency outliers. A healthy fleet must not page anyone.
+    ``alert_anomalies``/``alert_tokens``: also when a store carries
+    at least that many fleet latency / token-burn outliers. A healthy
+    fleet must not page anyone.
     """
-    if threshold is None and alert_anomalies is None:
+    if threshold is None and alert_anomalies is None \
+            and alert_tokens is None:
         return True
     return any(
         s.worsening or s.failure_rate >= (threshold or 0.0)
         or (alert_anomalies is not None
             and getattr(s, "fleet_anomalies", 0) >= alert_anomalies)
+        or (alert_tokens is not None
+            and getattr(s, "token_anomalies", 0) >= alert_tokens)
         for s in summaries)
 
 
@@ -650,7 +671,8 @@ def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
                 top_agents: int = 3, sleep=time.sleep,
                 webhook_url: Optional[str] = None,
                 notify=None, alert_worse_than: Optional[float] = None,
-                alert_anomalies: Optional[int] = None) -> int:
+                alert_anomalies: Optional[int] = None,
+                alert_tokens: Optional[int] = None) -> int:
     """Poll the fleet forever (or ``iterations`` times), appending
     snapshots. Returns the number of snapshots written. ``sleep`` is
     injectable so tests run instantly.
@@ -668,7 +690,8 @@ def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
         append_digest(digest_dir, digest_snapshot(summaries))
         written += 1
         if webhook_url and _should_alert(summaries, alert_worse_than,
-                                         alert_anomalies):
+                                         alert_anomalies,
+                                         alert_tokens):
             poster = notify or notify_webhook
             try:
                 poster(summaries, webhook_url)

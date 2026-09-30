@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.6.0
+
+- the night watch notices token burn on its own. `fleet --watch --alert-tokens N` pages when a store carries N token-burn outliers under the same quiet-by-default contract as the latency gate (a rate threshold quietens, anomaly gates add fire conditions); the trend digest carries a token_anomalies series per day with its own Theil-Sen verdict (token-burn trend line in prose and the fleet HTML), and webhook/fleet JSON fields flow through. 7 tests; RECIPES 15/18 updated.
+
 ## v2.5.0
 
 - spool: the directory that feeds the store. `approximately spool --dir D` watches a spool directory and ingests every transcript/OTLP file that lands — shared sniffer (native/openai/messages-list/otel), files move to done/ once parsed, unparseable files stay for a human, deterministic ids make re-delivery a no-op, --once is the cron mode with a gateable exit code (1 = a failed trace came in), --interval loops as a daemon. 10 tests; ARCHITECTURE + RECIPES 18.
