@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.6.1
+
+- integration round: four seams the module tests missed. walking export→import→export and spool→fleet end to end found four real bugs. (1) ns timestamps drifted in the last digit — OTLP times are now µs-quantized (time.time() precision; exact integer math below 2^53), so the loop closes byte-for-byte. (2) OTLP import dropped step tokens, tool_call results and errors — restored. (3) imported steps all carried index 0, colliding span ids on re-export — renumbered. (4) imported_from rode the wire and broke closure — exporter skips it; foreign backend attrs land in meta under attr. prefixes. 6 integration tests.
+
 ## v2.6.0
 
 - the night watch notices token burn on its own. `fleet --watch --alert-tokens N` pages when a store carries N token-burn outliers under the same quiet-by-default contract as the latency gate (a rate threshold quietens, anomaly gates add fire conditions); the trend digest carries a token_anomalies series per day with its own Theil-Sen verdict (token-burn trend line in prose and the fleet HTML), and webhook/fleet JSON fields flow through. 7 tests; RECIPES 15/18 updated.

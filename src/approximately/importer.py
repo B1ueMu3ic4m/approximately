@@ -267,6 +267,14 @@ def _span_step(span: Dict[str, Any]) -> Step:
     end = _nanos(span.get("endTimeUnixNano"))
     latency = max(0, (end - start) // 1_000_000)
     name = _attr_text({"name": span.get("name")}, "name", 200)
+    try:
+        tokens = int(attrs.get("approximately.tokens") or 0)
+    except (TypeError, ValueError):
+        tokens = 0
+
+    def build(**over):
+        return Step(tokens=tokens, latency_ms=latency, **over)
+
     if kind == "tool_call":
         raw_args = attrs.get("approximately.args")
         try:
@@ -275,32 +283,33 @@ def _span_step(span: Dict[str, Any]) -> Step:
             args = {"raw": raw_args}
         if not isinstance(args, dict):
             args = {"raw": str(args)}
-        return Step(kind=TOOL_CALL, tool=_text(tool, 200) or name,
-                    args=args, latency_ms=latency)
+        return build(kind=TOOL_CALL, tool=_text(tool, 200) or name,
+                     args=args,
+                     result=_attr_text(attrs, "approximately.result"),
+                     error=_attr_text(attrs, "approximately.error")
+                     or None)
     if kind == "observation":
-        return Step(kind=OBSERVATION, tool=_text(tool, 200) or name,
-                    result=_attr_text(attrs, "approximately.result"),
-                    error=_attr_text(attrs, "approximately.error")
-                    or None,
-                    latency_ms=latency)
+        return build(kind=OBSERVATION, tool=_text(tool, 200) or name,
+                     result=_attr_text(attrs, "approximately.result"),
+                     error=_attr_text(attrs, "approximately.error")
+                     or None)
     if kind == "response":
-        return Step(kind=RESPONSE, latency_ms=latency,
-                    result=_attr_text(attrs, "approximately.result"))
+        return build(kind=RESPONSE,
+                     result=_attr_text(attrs, "approximately.result"))
     if kind == "plan":
-        return Step(kind=PLAN, latency_ms=latency,
-                    thought=_attr_text(attrs, "approximately.thought"))
+        return build(kind=PLAN,
+                     thought=_attr_text(attrs, "approximately.thought"))
     if kind == "error":
-        return Step(kind=ERROR, latency_ms=latency,
-                    error=_attr_text(attrs, "approximately.error")
-                    or "error")
+        return build(kind=ERROR,
+                     error=_attr_text(attrs, "approximately.error")
+                     or "error")
     if kind == "message":
         role = attrs.get(_META_PREFIX + "role")
-        return Step(kind=MESSAGE,
-                    result=_attr_text(attrs, "approximately.result"),
-                    latency_ms=latency,
-                    meta={"role": str(role or "user")})
-    return Step(kind=MESSAGE, result=name or "span",
-                meta={"span_name": name}, latency_ms=latency)
+        return build(kind=MESSAGE,
+                     result=_attr_text(attrs, "approximately.result"),
+                     meta={"role": str(role or "user")})
+    return build(kind=MESSAGE, result=name or "span",
+                 meta={"span_name": name})
 
 
 def _root_success(root: Dict[str, Any]) -> Optional[bool]:
@@ -317,8 +326,10 @@ def _root_success(root: Dict[str, Any]) -> Optional[bool]:
 
 
 def _meta_passthrough(attrs: Dict[str, Any]) -> Dict[str, Any]:
-    """The approximately.meta.* attributes back into trace meta —
-    capped, so an attribute flood cannot bloat the store."""
+    """The approximately.meta.* attributes back into trace meta, plus
+    a foreign backend's own scalar span attributes under an ``attr.``
+    prefix (gen_ai.*, deployment labels — context a postmortem wants),
+    all capped so an attribute flood cannot bloat the store."""
     meta: Dict[str, Any] = {}
     for key, value in attrs.items():
         if key.startswith(_META_PREFIX) and isinstance(
@@ -326,6 +337,15 @@ def _meta_passthrough(attrs: Dict[str, Any]) -> Dict[str, Any]:
             if len(meta) >= _MAX_IMPORTED_META:
                 break
             meta[key[len(_META_PREFIX):]] = value
+    for key, value in attrs.items():
+        if key.startswith("approximately.") or key.startswith(
+                _META_PREFIX):
+            continue
+        if not isinstance(value, (str, int, float, bool)):
+            continue
+        if len(meta) >= _MAX_IMPORTED_META:
+            break
+        meta[f"attr.{key}"] = value
     meta["imported_from"] = "otel"
     return meta
 
@@ -344,12 +364,15 @@ def _group_trace(trace_key: str,
                       key=lambda s: _nanos(s.get("startTimeUnixNano")))
     truncated = max(0, len(children) - _MAX_IMPORTED_STEPS)
     children = children[:_MAX_IMPORTED_STEPS]
+    # renumber: span order is step order, and the step index feeds
+    # the deterministic span ids on re-export
+    steps = _renumber([_span_step(s) for s in children])
     trace = Trace(
         task=task, id=trace_id,
         created_at=_nanos(root.get("startTimeUnixNano")) / 1e9,
         model=_attr_text(attrs, "approximately.model", 100)
         or "unknown",
-        steps=[_span_step(s) for s in children],
+        steps=steps,
         success=_root_success(root),
         final_output=_attr_text(attrs, "approximately.final_output",
                                 200) or None,
