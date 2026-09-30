@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.5.0
+
+- spool: the directory that feeds the store. `approximately spool --dir D` watches a spool directory and ingests every transcript/OTLP file that lands — shared sniffer (native/openai/messages-list/otel), files move to done/ once parsed, unparseable files stay for a human, deterministic ids make re-delivery a no-op, --once is the cron mode with a gateable exit code (1 = a failed trace came in), --interval loops as a daemon. 10 tests; ARCHITECTURE + RECIPES 18.
+
 ## v2.4.0
 
 - token burn reaches the surfaces people read. the per-trace HTML report grows a Token anomalies card next to the latency one (a burn step is the receipt a retry loop leaves behind), and the fleet survey carries token_anomalies + worst_token_anomaly per store — shown on the store card as a token-burn badge and the hardest-working step, and in `fleet --json`. 5 tests; latency cards untouched.

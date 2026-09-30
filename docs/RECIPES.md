@@ -330,3 +330,24 @@ approximately anomalies --store ~/agents/store --tokens --all
 
 `burn` is the direction to page on; `frugal` (unusually few tokens)
 usually means a truncated response — worth a look, rarely a page.
+
+
+## 18. The spool that feeds itself
+
+A cron job exports yesterday's traces (or a webhook receiver drops
+them); the store should update itself, not wait for someone to run
+`import`:
+
+```bash
+# cron mode: one pass, gateable exit code (1 = a failed run came in)
+approximately spool --store ~/agents/store --dir ~/spool --once
+
+# daemon mode: a pass every 5 minutes until interrupted
+approximately spool --store ~/agents/store --dir ~/spool --interval 300
+```
+
+Files move to `spool/done/` once parsed; unparseable files stay put
+for a human.  Deterministic ids make at-least-once delivery a no-op —
+the same export landing twice is one trace.  Pair with
+`fleet --watch` (recipe 15) and the anomaly gates for a night watch
+that notices failures, slowdowns and token burns on its own.
