@@ -2492,3 +2492,15 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      (rate > 0 on an idle store = something ran; sudden jumps =
      a burn to investigate), covering both the text and --json
      doors.  1 test.
+
+264. **v2.22.0 - the stdio flush: the MCP server answers over real pipes** ✅
+     (delivered): a subprocess smoke of the flagship entry point
+     found the biggest bug of the night — the serve loop wrote each
+     response with stdout.write and never flushed, and piped stdout
+     block-buffers, so `approximately mcp` hung against every real
+     client (Claude Desktop, Zed, anything that pipes).  Every
+     prior test drove handle_request in-process; the transport was
+     never exercised.  cmd_mcp now flushes per response, and a
+     real-pipe subprocess smoke (tools/list, doctor, initialize)
+     pins the transport forever.  1 test that could only exist as a
+     subprocess.

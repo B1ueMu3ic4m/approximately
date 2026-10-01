@@ -1617,7 +1617,14 @@ def cmd_mcp(args) -> int:
     ctx = ServerContext(args.store)
     stdin = getattr(args, "_stdin", sys.stdin)
     stdout = getattr(args, "_stdout", sys.stdout)
-    served = serve(stdin.readline, stdout.write, ctx,
+
+    def _write_and_flush(line: str) -> None:
+        # a piped stdout block-buffers: without the flush per response,
+        # real clients (every one of them pipes) see a hung server
+        stdout.write(line)
+        stdout.flush()
+
+    served = serve(stdin.readline, _write_and_flush, ctx,
                    max_requests=getattr(args, "_max_requests", None))
     stdout.flush()
     if getattr(args, "_report", False):
