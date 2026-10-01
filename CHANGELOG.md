@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.15.0
+
+- docker: the MCP server in a container. a python:3.12-slim image — zero dependencies means the image is just Python — ENTRYPOINT approximately, CMD mcp (stdio), APPROXIMATELY_HOME defaulting to a volume-friendly /agents/store. CI grows a docker job that builds the image and asserts the container's --version matches pyproject. README quickstart shows the two commands. Found en route: the image build caught pyproject's LICENSE reference needing the file copied.
+
 ## v2.14.4
 
 - the empty-store tour: surveyed, not invented. a new user's first command runs against an empty store — every door's actual behavior is now pinned from a survey, not assumptions: aggregate doors report zeros (doctor/stats/fleet --json), query returns an empty selection, dedupe/export/report do honest zero-work, and the needs-a-target doors (anomalies on 'latest') refuse with exit 2 "store is empty" — the typo protection, documented. 4 tests.

@@ -212,3 +212,12 @@ jobs:
         run: |
           pip install xenon
           xenon --max-absolute C --max-modules B --max-average A src
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Build the image
+        run: docker build -t approximately .
+      - name: The image knows its version
+        run: docker run --rm approximately --version | grep -q "$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml | head -1)"

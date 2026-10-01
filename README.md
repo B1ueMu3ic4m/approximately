@@ -72,6 +72,10 @@ approximately demo        # 30-second tour: a scripted agent that fails in class
 approximately demo --scenario loop             # multi-agent cycle: only the cycle detector catches it
 approximately demo --scenario verification    # unchecked claim: FM-3.2 end to end
 approximately demo --scenario multi-agent   # researcher/writer crew: information withholding
+
+# or run the MCP server from a container (zero deps, stdio)
+docker build -t approximately .
+docker run -i --rm -v "$PWD/agents:/agents" approximately mcp --store /agents/store
 ```
 
 ```python
