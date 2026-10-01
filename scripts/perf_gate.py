@@ -413,7 +413,9 @@ def survey_spend_gate(budget_s: float = 8.0) -> int:
     The money rollup (v2.13) walks every step of every trace per
     store and must stay linear like the rest of the survey; the
     budget is runner-noise headroom (local: a fraction of a
-    second)."""
+    second).  2k traces: enough to catch a superlinear rollup
+    without making the gate measure 10k small-file I/O, which is
+    what Windows runners are slow at."""
     import tempfile
     from pathlib import Path as _Path
 
@@ -424,7 +426,7 @@ def survey_spend_gate(budget_s: float = 8.0) -> int:
     with tempfile.TemporaryDirectory() as tmp:
         store = TraceStore(_Path(tmp) / "s")
         models = ("gpt-x", "cheap", "mystery")
-        for i in range(10_000):
+        for i in range(2_000):
             rec = Recorder(f"run {i}", save=False)
             rec.tool("shell", {"n": i}, result="ok")
             rec.respond("done", success=True)
@@ -441,7 +443,7 @@ def survey_spend_gate(budget_s: float = 8.0) -> int:
         print("FAIL: survey spend gate produced no numbers",
               file=sys.stderr)
         return 1
-    print(f"perf-gate[survey-spend]: 10k traces priced in "
+    print(f"perf-gate[survey-spend]: 2k traces priced in "
           f"{elapsed:.1f}s (est ${s.est_spend:,.0f}, budget "
           f"{budget_s:g}s) - "
           + ("PASS" if elapsed <= budget_s else "FAIL"))
