@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.14.4
+
+- the empty-store tour: surveyed, not invented. a new user's first command runs against an empty store — every door's actual behavior is now pinned from a survey, not assumptions: aggregate doors report zeros (doctor/stats/fleet --json), query returns an empty selection, dedupe/export/report do honest zero-work, and the needs-a-target doors (anomalies on 'latest') refuse with exit 2 "store is empty" — the typo protection, documented. 4 tests.
+
 ## v2.14.3
 
 - agents can ask what the fleet spent. MCP `survey` gains an optional `prices` argument (JSON object model -> blended $/1k, validated) — the fleet summary an agent already reads now carries per-store `total_tokens` / `est_spend` / `spend_unpriced_tokens`. 1 test; mcp-tools.json regenerated.
