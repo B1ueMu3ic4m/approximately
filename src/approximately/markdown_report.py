@@ -100,22 +100,22 @@ def _anomaly_lines(trace: "Trace") -> list:
 
     try:
         latency = detect_latency_anomalies(trace)
-        if latency:
-            emit("Latency anomalies",
-                 [f"- `#{a.step_index}` {a.tool} {a.latency_ms}ms — "
-                  f"median {a.median_ms:.0f}ms, z={a.robust_z} "
-                  f"({a.direction})" for a in latency[:5]])
     except Exception:
-        pass
+        latency = []
+    if latency:
+        emit("Latency anomalies",
+             [f"- `#{a.step_index}` {a.tool} {a.latency_ms}ms — "
+              f"median {a.median_ms:.0f}ms, z={a.robust_z} "
+              f"({a.direction})" for a in latency[:5]])
     try:
         burn = detect_token_anomalies(trace)
-        if burn:
-            emit("Token burn",
-                 [f"- `#{a.step_index}` {a.tool} {a.tokens}tok — "
-                  f"median {a.median_tokens:.0f}, z={a.robust_z} "
-                  f"({a.direction})" for a in burn[:5]])
     except Exception:
-        pass
+        burn = []
+    if burn:
+        emit("Token burn",
+             [f"- `#{a.step_index}` {a.tool} {a.tokens}tok — "
+              f"median {a.median_tokens:.0f}, z={a.robust_z} "
+              f"({a.direction})" for a in burn[:5]])
     return lines
 
 
