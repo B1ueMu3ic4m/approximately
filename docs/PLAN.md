@@ -2462,3 +2462,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      idempotently.  Found and hardened en route: store.annotate
      crashed on non-string args (a direct API call with an int
      verdict) — arguments are coerced.  5 tests, fixed seed.
+
+260. **v2.21.2 - the capabilities table tells the whole story** ✅
+     (delivered): the README table had drifted — Log interop and
+     Slowness rows were duplicated (an edit accident) and neither
+     mentioned the new dialects; the duplicates are gone, interop
+     reads OTLP/native, Slowness became "Slowness & token burn",
+     and a Spend row joins the table — the money chain is on the
+     front page.
