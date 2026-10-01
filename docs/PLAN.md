@@ -2477,3 +2477,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      the last health surface that could not answer "how expensive
      is this store, and is anything burning".  Prose gains the
      tokens line; 1 test.
+
+262. **v2.21.3 - status speaks tokens: totals and burns in the snapshot** ✅
+     (delivered): the store health snapshot (status --json, MCP
+     status, watch frames) carries total_tokens and the token-burn
+     count — the last health surface that could not answer "how
+     expensive is this store, and is anything burning".  Prose
+     gains the tokens line; 1 test; status renderers refactored
+     back under the C bar.
