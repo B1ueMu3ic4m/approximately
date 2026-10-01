@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.21.4
+
+- Prometheus sees the tokens. `metrics --prometheus` gains `approximately_tokens_total` — the store-wide usage counter Grafana can graph and alert on (rate > 0 on an idle store = something ran; sudden jumps = a burn to investigate), covering both the text and --json doors. 1 test.
+
 ## v2.21.3
 
 - status speaks tokens: totals and burns in the snapshot. the store health snapshot (status, --json, MCP status) carries total_tokens and the token-burn count — the last health surface that could not answer "how expensive is this store, and is anything burning". Prose gains the tokens line; 1 test.

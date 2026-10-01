@@ -185,3 +185,18 @@ def test_status_reports_tokens_and_burns(tmp_path):
     payload = _status_payload(store, [store.load(trace.id)], None)
     assert payload["total_tokens"] == 9_500
     assert payload["token_burns"] == 1
+
+
+def test_metrics_tokens_gauge(tmp_path, capsys):
+    import argparse
+
+    from approximately.cli import cmd_metrics
+
+    store = _seed(tmp_path / "s")     # 10,000 tokens on gpt-x
+    args = argparse.Namespace(store=str(store.directory),
+                              prometheus=True, by_tool=False,
+                              by_agent=False, json=False,
+                              label=None)
+    assert cmd_metrics(args) == 0
+    out = capsys.readouterr().out
+    assert "approximately_tokens_total 10000" in out

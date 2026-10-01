@@ -762,14 +762,19 @@ def cmd_metrics(args: argparse.Namespace) -> int:
                                       extra_labels=_parse_labels(args.label)))
         return 0
     if args.prometheus:
+        total_tokens = sum(step.tokens for trace in traces
+                           for step in trace.steps)
         if getattr(args, "json", False):
             print(json.dumps({"format": "prometheus",
                               "text": render_prometheus(
                                   stats,
-                                  extra_labels=_parse_labels(args.label))},
+                                  extra_labels=_parse_labels(args.label),
+                                  total_tokens=total_tokens)},
                              indent=2))
             return 0
-        print(render_prometheus(stats, extra_labels=_parse_labels(args.label)))
+        print(render_prometheus(stats,
+                                extra_labels=_parse_labels(args.label),
+                                total_tokens=total_tokens))
         return 0
     if getattr(args, "json", False):
         from dataclasses import asdict
