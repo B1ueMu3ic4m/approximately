@@ -228,7 +228,7 @@ def test_agents_sdk_generation_agent_handoff_spans():
         "error": None})()
     processor.on_span_end(gen)
     (llm,) = [s for s in processor.recorder.trace.steps if s.tool == "llm"]
-    assert llm.meta["tokens"] == 42
+    assert llm.tokens == 42  # first-class since v2.10.1
 
     processor.on_span_end(type("S", (), {"span_data": AgentSpanData(
         name="booker"), "error": None})())
