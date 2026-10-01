@@ -2278,3 +2278,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      root span when our own attribute is absent — so
      `stats --prices` prices a third-party agent's traces by their
      real model instead of lumping them into "unknown".  1 test.
+
+236. **v2.12.2 - fuzz round 14: the money entrances** ✅
+     (delivered): the round-4 contract plus arithmetic sanity for
+     everything that drives an alarm.  Negative or absurd token
+     counts clamp to [0, 10M] at import (a negative count poisoned
+     every total); `_genai_tokens` reads `gen_ai.usage.total_tokens`
+     (it only summed the splits); a negative rate in a prices table
+     is exit-2 config error; 40 random price files and 200 random
+     envelopes keep totals in range without crashes.  Found and
+     fixed en route: a missing tool fell back to the string "null"
+     (_text(None)) instead of the span name.  6 tests, fixed seed.

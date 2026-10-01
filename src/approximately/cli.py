@@ -1514,10 +1514,10 @@ def _load_prices(path: Optional[str]) -> Optional[dict]:
         print(f"error: prices file: {exc}", file=sys.stderr)
         raise SystemExit(2) from None
     if not isinstance(table, dict) or not all(
-            isinstance(v, (int, float))
+            isinstance(v, (int, float)) and v >= 0
             for v in table.values()):
-        print("error: prices file must map model -> number",
-              file=sys.stderr)
+        print("error: prices file must map model -> non-negative "
+              "number", file=sys.stderr)
         raise SystemExit(2)
     return table
 
