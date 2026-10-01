@@ -165,11 +165,14 @@ def webhook_payload(summaries: List[StoreSummary]) -> dict:
 
 def notify_webhook(summaries: List[StoreSummary], url: str,
                    signing_key: Optional[bytes] = None,
-                   timeout: float = 10.0) -> str:
+                   timeout: float = 10.0,
+                   payload: Optional[dict] = None) -> str:
     """POST the fleet summary as JSON; returns the response status.
 
-    When a signing key is configured (APPROXIMATELY_SIGNING_KEY), the
-    body is HMAC-signed and the hex digest travels in the
+    ``payload`` replaces the derived body (the spool watch posts its
+    own pass result through the same signed channel).  When a
+    signing key is configured (APPROXIMATELY_SIGNING_KEY), the body
+    is HMAC-signed and the hex digest travels in the
     ``X-Approximately-Signature`` header, so a receiver can authenticate
     the alert the same way the evidence chain authenticates traces.
     Transport errors raise - the caller decides whether notification
@@ -185,7 +188,8 @@ def notify_webhook(summaries: List[StoreSummary], url: str,
         # through configuration
         raise RuntimeError(f"webhook URL must be http(s), got {scheme!r}")
 
-    body = _json.dumps(webhook_payload(summaries),
+    body = _json.dumps(payload if payload is not None
+                       else webhook_payload(summaries),
                        sort_keys=True).encode("utf-8")
     headers = {"Content-Type": "application/json"}
     if signing_key:

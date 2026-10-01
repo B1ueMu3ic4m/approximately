@@ -1963,7 +1963,8 @@ def cmd_spool(args: argparse.Namespace) -> int:
             once=bool(args.once), delete=bool(args.delete),
             dry_run=bool(args.dry_run),
             max_passes=int(getattr(args, "max_passes", 0) or 0)
-            or None, as_json=bool(getattr(args, "json", False)))
+            or None, as_json=bool(getattr(args, "json", False)),
+            webhook_url=getattr(args, "webhook", None))
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -2776,6 +2777,9 @@ def build_parser() -> argparse.ArgumentParser:
                         "restart loops)")
     p.add_argument("--json", action="store_true",
                    help="emit each pass as one JSON line")
+    p.add_argument("--webhook", metavar="URL",
+                   help="POST the pass result when a failed run "
+                        "landed (HMAC-signed like the fleet webhook)")
     p.set_defaults(func=cmd_spool)
 
     p = sub.add_parser("import", parents=[common],

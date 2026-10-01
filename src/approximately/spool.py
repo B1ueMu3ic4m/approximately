@@ -22,6 +22,7 @@ already in the store (re-delivery), and leaving them would spin.
 from __future__ import annotations
 
 import shutil
+import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -69,6 +70,29 @@ def _primary_mode(trace) -> Optional[str]:
     return None
 
 
+def _notify_spool(store: TraceStore, outcome: Dict[str, Any],
+                  url: str) -> None:
+    """POST the pass result with the ingested failures called out;
+    HMAC-signed like the fleet webhook when a key is configured."""
+    from .fleet import notify_webhook
+
+    failures = []
+    for trace_id in outcome.get("trace_ids") or []:
+        trace = store.load(str(trace_id))
+        if trace is not None and trace.success is False:
+            failures.append({"trace_id": trace.id, "task": trace.task,
+                             "model": trace.model})
+    body = dict(outcome, kind="spool", failures=failures[:20])
+    notify_webhook([], url, payload=body, signing_key=_spool_key())
+
+
+def _spool_key():
+    import os
+
+    key = os.environ.get("APPROXIMATELY_SIGNING_KEY")
+    return key.encode() if key else None
+
+
 def spool_pass(store: TraceStore, directory: Path,
                delete: bool = False,
                dry_run: bool = False) -> Dict[str, object]:
@@ -113,7 +137,11 @@ def watch_spool(store: TraceStore, directory: Path,
                 interval: float = 60.0, once: bool = False,
                 delete: bool = False, dry_run: bool = False,
                 max_passes: Optional[int] = None,
-                as_json: bool = False) -> int:
+                as_json: bool = False,
+                webhook_url: Optional[str] = None,
+                notify=None) -> int:
+    """``notify(summaries, url)`` is injectable for tests, matching
+    the fleet watch's seam."""
     """Run passes until interrupted; exit 1 if any pass ingested a
     failed trace (the cron/CI gate), 0 otherwise.  KeyboardInterrupt
     is a clean stop."""
@@ -125,6 +153,15 @@ def watch_spool(store: TraceStore, directory: Path,
                              dry_run=dry_run)
         if outcome["failed_traces"]:
             exit_code = 1
+        if webhook_url and outcome["failed_traces"]:
+            # pages only when a failed run actually landed — the
+            # quiet-by-default contract, same as the fleet watch
+            poster = notify or _notify_spool
+            try:
+                poster(store, outcome, webhook_url)
+            except Exception as exc:
+                print(f"spool: webhook delivery failed: {exc}",
+                      file=sys.stderr)
         if as_json:
             import json
 
