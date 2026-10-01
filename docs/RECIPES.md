@@ -356,3 +356,32 @@ that notices failures, slowdowns and token burns on its own:
 approximately fleet --watch 300 --digest-dir ~/digest --webhook https://hook \
   --alert-worse-than 0.5 --alert-anomalies 3 --alert-tokens 3
 ```
+
+## 19. The money chapter: from token receipts to a budget alarm
+
+Token data flows in from three doors: the framework adapters read
+usage out of LangChain / LlamaIndex / AutoGen / OpenAI / pydantic-ai /
+ADK responses; OTLP import maps `gen_ai.usage.*` (and now
+`gen_ai.request.model`) off a third-party backend's spans; the
+recorder itself accepts `tokens=` on every tool call.
+
+Then it becomes money:
+
+```bash
+# per-model spend from a prices table (model -> blended $/1k)
+approximately stats --store ~/agents/store --prices prices.json
+
+# one blended rate, totals only
+approximately stats --store ~/agents/store --price-per-1k 3
+
+# the alarm: cron gets exit 1 when the estimate crosses $50
+approximately stats --store ~/agents/store --prices prices.json \
+  --fail-over 50
+```
+
+Honesty rules the output: models without a rate stay `unpriced`
+(counted, never silently free), the recorder keeps one blended token
+count per step (no in/out split), and a missing rate or a malformed
+table is a loud error — a budget you can't trust is worse than no
+budget. Pair with the token-burn anomalies (recipe 17) to see WHAT
+burned, not just how much.

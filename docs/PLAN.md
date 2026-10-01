@@ -2289,3 +2289,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      envelopes keep totals in range without crashes.  Found and
      fixed en route: a missing tool fell back to the string "null"
      (_text(None)) instead of the span name.  6 tests, fixed seed.
+
+237. **v2.12.3 - RECIPES 19: the money chapter** ✅ (delivered):
+     the three doors token data flows in through (adapters, OTLP
+     GenAI conventions, the recorder), the two pricing modes, the
+     budget alarm, and the honesty rules — in one recipe.
