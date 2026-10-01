@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.16.0
+
+- markdown report parity: the anomaly cards land there too. the HTML report had latency/token cards; the markdown postmortem (the one that pastes into tickets) grew the same two sections — Latency anomalies and Token burn bullets with step, tool, amount, median, z and direction — best-effort like everything else in that renderer. 1 test pins html/markdown agreement on the same burn.
+
 ## v2.15.0
 
 - docker: the MCP server in a container. a python:3.12-slim image — zero dependencies means the image is just Python — ENTRYPOINT approximately, CMD mcp (stdio), APPROXIMATELY_HOME defaulting to a volume-friendly /agents/store. CI grows a docker job that builds the image and asserts the container's --version matches pyproject. README quickstart shows the two commands. Found en route: the image build caught pyproject's LICENSE reference needing the file copied.

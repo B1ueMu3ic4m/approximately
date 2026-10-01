@@ -114,3 +114,28 @@ def test_mcp_survey_prices(tmp_path):
     summary = result["stores"][0]
     assert summary["total_tokens"] == 10_000
     assert summary["est_spend"] == 30.0
+
+
+def test_markdown_parity_token_burn(tmp_path):
+    from approximately.attributor import attribute
+    from approximately.markdown_report import render_markdown
+
+    store = TraceStore(tmp_path / "s")
+    trace = Trace(task="burny", id="bbb000000000", success=False)
+    for tokens in (95, 105, 90, 110, 100):
+        trace.add(Step(kind="tool_call", tool="search",
+                       tokens=tokens, latency_ms=40))
+    trace.add(Step(kind="tool_call", tool="search", tokens=9_000,
+                   latency_ms=40))
+    trace.add(Step(kind="response", result="gave up"))
+    store.save(trace)
+    trace = store.load(trace.id)
+    md = render_markdown(trace, attribute(trace), store=store)
+    assert "### Token burn" in md
+    assert "9000tok" in md
+    assert "z=" in md
+    # and the html card agrees
+    from approximately.report import render_html
+
+    html = render_html(trace, attribute(trace), store=store)
+    assert "Token anomalies" in html
