@@ -369,7 +369,6 @@ def spool_gate(budget_s: float = 5.0) -> int:
     from approximately.spool import spool_pass
     from approximately.store import TraceStore
 
-    start = time.perf_counter()
     with tempfile.TemporaryDirectory() as tmp:
         spool = _Path(tmp) / "spool"
         spool.mkdir()
@@ -390,6 +389,8 @@ def spool_gate(budget_s: float = 5.0) -> int:
                          fmt="otel")
             otel_store.clean(keep_days=0)
         store = TraceStore(_Path(tmp) / "s")
+        # seeding is setup, not subject: time the pass itself
+        start = time.perf_counter()
         result = spool_pass(store, spool)
     elapsed = time.perf_counter() - start
     if result["imported"] != 152:
