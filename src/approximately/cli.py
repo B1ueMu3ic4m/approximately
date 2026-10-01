@@ -632,7 +632,9 @@ def cmd_diff(args: argparse.Namespace) -> int:
 
     store = TraceStore(args.store)
     trace_a = _load_trace(args.trace, store)
-    trace_b = _load_trace(args.other, store)
+    other_store = (TraceStore(args.other_store)
+                   if getattr(args, "other_store", None) else store)
+    trace_b = _load_trace(args.other, other_store)
     result = trace_diff(trace_a, trace_b)
     if getattr(args, "json", None):
         counts = result.counts
@@ -662,7 +664,9 @@ def cmd_bisect(args: argparse.Namespace) -> int:
 
     store = TraceStore(args.store)
     trace_a = _load_trace(args.trace, store)
-    trace_b = _load_trace(args.other, store)
+    other_store = (TraceStore(args.other_store)
+                   if getattr(args, "other_store", None) else store)
+    trace_b = _load_trace(args.other, other_store)
     td = trace_diff(trace_a, trace_b)
     fault = first_fault(td, floor=args.floor)
     ranked = td.divergences(limit=5)
@@ -2424,6 +2428,10 @@ def build_parser() -> argparse.ArgumentParser:
                             "success is the classic use)")
     p.add_argument("trace")
     p.add_argument("other", help="the trace to compare against")
+    p.add_argument("--other-store", metavar="DIR",
+                   help="load OTHER from a different store (compare "
+                        "an imported trace against a baseline that "
+                        "lives elsewhere)")
     p.add_argument("--json", action="store_true",
                    help="emit counts plus every differing entry (with "
                         "per-entry similarity) as JSON")
@@ -2434,6 +2442,8 @@ def build_parser() -> argparse.ArgumentParser:
                             "(failed vs last success is the classic use)")
     p.add_argument("trace")
     p.add_argument("other", help="the trace to compare against")
+    p.add_argument("--other-store", metavar="DIR",
+                   help="load OTHER from a different store")
     p.add_argument("--floor", type=float, default=0.8,
                    help="mutations with similarity >= FLOOR count as "
                         "noise, not faults (default 0.8)")

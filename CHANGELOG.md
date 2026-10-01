@@ -7,6 +7,10 @@ source of truth. Newest first.
 
 - fleet --alert-spend: the budget pages too. `fleet --watch --alert-spend USD` alerts when a store's estimated spend crosses the budget — same quiet-by-default contract as the anomaly gates (a rate threshold quietens; gates add fire conditions), and unpriced stores never trip it. Symmetric with --alert-anomalies / --alert-tokens. 3 tests.
 
+## v2.19.1
+
+- diff/bisect cross stores: imported vs baseline. `similar` had --other-store; diff and bisect get it — compare an imported OTLP trace against a healthy reference that lives in a different store, without merging first. The OTLP flow's postmortem question ("what diverged from the baseline?") now answers across stores. 3 tests.
+
 ## v2.19.0
 
 - the spend trend: rising cost is a verdict. digest rows sum each store's est_spend into a per-day series, and `fleet --trend` judges it with the same Theil-Sen machinery — a "spend trend" badge in the fleet HTML, a prose line with the $/day slope, present only when prices were in play (zeros never invent a verdict). 2 tests.
