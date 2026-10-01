@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.20.4
+
+- tokens in the tables people actually read. the report timeline gains a tokens column (unmetered steps show an honest dash) and the fleet card's busiest-agents table gains one too — the counts the token family runs on are visible where the traces are. 1 test.
+
 ## v2.20.3
 
 - the spool pass counts token burns too. ingest-time signals are now symmetric — the pass report counts failure modes AND token burns among the newly imported traces (JSON field + prose "token burns: N"), so a watch line flags the expensive run without waiting for the fleet pass. 1 test.
