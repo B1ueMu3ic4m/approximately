@@ -48,6 +48,7 @@ _META_PREFIX = "approximately.meta."
 # trace punishing every downstream command)
 _MAX_IMPORTED_META = 128
 _MAX_IMPORTED_STEPS = 10_000
+_MAX_STEP_TOKENS = 10_000_000
 
 
 def _loads(text: str):
@@ -257,21 +258,24 @@ def _valid_id(candidate: Any) -> Optional[str]:
 
 
 def _genai_tokens(attrs: Dict[str, Any]) -> int:
-    """Sum the GenAI usage attributes, whichever naming a backend
-    picked (completion/output + prompt/input)."""
-    total = 0
-    for key in ("gen_ai.usage.completion_tokens",
-                "gen_ai.usage.output_tokens",
-                "gen_ai.usage.prompt_tokens",
-                "gen_ai.usage.input_tokens"):
+    """The GenAI usage attributes, whichever naming a backend picked:
+    a total when present, else prompt + completion summed."""
+    def _int(key: str) -> int:
         value = attrs.get(key)
         if value is None:
-            continue
+            return 0
         try:
-            total += int(value)
+            return int(value)
         except (TypeError, ValueError):
-            continue
-    return total
+            return 0
+
+    total = _int("gen_ai.usage.total_tokens")
+    if total:
+        return total
+    return (_int("gen_ai.usage.completion_tokens")
+            + _int("gen_ai.usage.output_tokens")
+            + _int("gen_ai.usage.prompt_tokens")
+            + _int("gen_ai.usage.input_tokens"))
 
 
 def _span_step(span: Dict[str, Any]) -> Step:
@@ -294,23 +298,29 @@ def _span_step(span: Dict[str, Any]) -> Step:
         # carry usage under gen_ai.* — mapped so token baselines
         # work on traces that never touched our recorder
         tokens = _genai_tokens(attrs)
+    # untrusted input: a negative count poisons every total, and no
+    # real model call reads ten million tokens in one step
+    tokens = max(0, min(tokens, _MAX_STEP_TOKENS))
+    # _attr_text, not _text: _text(None) is "null", and a missing
+    # tool must fall back to the span name, not invent content
+    tool_name = _attr_text({"tool": tool}, "tool", 200) or name
 
     def build(**over):
         return Step(tokens=tokens, latency_ms=latency, **over)
 
-    step = _known_kind_step(kind, attrs, tool, name, build)
+    step = _known_kind_step(kind, attrs, tool_name, name, build)
     if step is not None:
         return step
     if tokens > 0:
         # a foreign span that metered usage is a model call — the
         # tool-call vocabulary is what token baselines measure
-        return build(kind=TOOL_CALL, tool=_text(tool, 200) or name,
+        return build(kind=TOOL_CALL, tool=tool_name,
                      result=name or "call")
     return build(kind=MESSAGE, result=name or "span",
                  meta={"span_name": name})
 
 
-def _known_kind_step(kind, attrs, tool, name, build):
+def _known_kind_step(kind, attrs, tool_name, name, build):
     """Map a span carrying our approximately.kind attribute onto its
     recorder step; None when the kind is foreign."""
     if kind == "tool_call":
@@ -321,13 +331,13 @@ def _known_kind_step(kind, attrs, tool, name, build):
             args = {"raw": raw_args}
         if not isinstance(args, dict):
             args = {"raw": str(args)}
-        return build(kind=TOOL_CALL, tool=_text(tool, 200) or name,
+        return build(kind=TOOL_CALL, tool=tool_name,
                      args=args,
                      result=_attr_text(attrs, "approximately.result"),
                      error=_attr_text(attrs, "approximately.error")
                      or None)
     if kind == "observation":
-        return build(kind=OBSERVATION, tool=_text(tool, 200) or name,
+        return build(kind=OBSERVATION, tool=tool_name,
                      result=_attr_text(attrs, "approximately.result"),
                      error=_attr_text(attrs, "approximately.error")
                      or None)
