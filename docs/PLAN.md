@@ -2375,3 +2375,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      bullets with step, tool, amount, median, z and direction —
      best-effort like everything else in that renderer.  1 test
      pins html/markdown agreement on the same burn.
+
+248. **v2.17.0 - triage travels: annotations ride OTLP export** ✅
+     (delivered): analyst annotations leave the store as OTLP
+     events on the root span (`annotation.<verdict>` with author
+     and note attributes, capped at 10) — the verdict a human
+     reached is visible in Jaeger/Tempo next to the failure.
+     Annotation-less traces keep their exact bytes (byte-stability
+     pinned); the reimport path is unaffected.  2 tests; the
+     root-span builder extracted to keep the C bar.
