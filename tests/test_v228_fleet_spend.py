@@ -14,6 +14,7 @@ import pytest
 
 from approximately.cli import cmd_fleet
 from approximately.fleet import survey
+from approximately.mcp_server import ServerContext, handle_request
 from approximately.store import TraceStore
 from approximately.trace import Step, Trace
 
@@ -98,3 +99,18 @@ def test_bad_prices_file_exits_loud(tmp_path):
     with pytest.raises(SystemExit) as exc:
         cmd_fleet(args)
     assert exc.value.code == 2
+
+
+def test_mcp_survey_prices(tmp_path):
+    store = _seed(tmp_path / "s")
+    payload = handle_request({
+        "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+        "params": {"name": "survey",
+                   "arguments": {"stores": [str(store.directory)],
+                                 "prices": json.dumps(
+                                     {"gpt-x": 3.0})}},
+    }, ServerContext(str(store.directory)))
+    result = json.loads(payload["result"]["content"][0]["text"])
+    summary = result["stores"][0]
+    assert summary["total_tokens"] == 10_000
+    assert summary["est_spend"] == 30.0

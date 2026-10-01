@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.14.3
+
+- agents can ask what the fleet spent. MCP `survey` gains an optional `prices` argument (JSON object model -> blended $/1k, validated) — the fleet summary an agent already reads now carries per-store `total_tokens` / `est_spend` / `spend_unpriced_tokens`. 1 test; mcp-tools.json regenerated.
+
 ## v2.14.2
 
 - audit: verify says unsigned, and the money path stays fast. (1) semantic pin — a foreign OTLP trace has no evidence chain, and `verify` says "unsigned", never "TAMPERED" (the honest verdict an operator scanning `verify --all --json` needs). (2) perf-gate[survey-spend]: the money rollup over a 10k-trace store stays inside budget — seeding is setup, the survey itself is what's timed. Gate count: 10.

@@ -2341,3 +2341,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      the money rollup over a 10k-trace store stays inside budget —
      seeding is setup, the survey itself is what's timed.  Gate
      count: 10.
+
+244. **v2.14.3 - agents can ask what the fleet spent** ✅
+     (delivered): MCP `survey` gains an optional `prices` argument
+     (JSON object model -> blended $/1k, validated) — the fleet
+     summary an agent already reads now carries per-store
+     `total_tokens` / `est_spend` / `spend_unpriced_tokens`.  1
+     test; mcp-tools.json regenerated.

@@ -98,12 +98,16 @@ _TOOLS: List[Dict[str, Any]] = [
         "name": "survey",
         "description": "Fleet summary over one or more store "
                        "directories: trace counts, failure rates, "
-                       "trend verdicts.",
+                       "trend verdicts, token totals.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "stores": {"type": "array",
                            "items": {"type": "string"}},
+                "prices": {"type": "string",
+                           "description": "JSON object model -> "
+                                          "blended $/1k; adds a "
+                                          "per-store est_spend"},
             },
             "required": ["stores"],
         },
@@ -803,7 +807,20 @@ def _tool_survey(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .fleet import survey, webhook_payload
 
     paths = [Path(p) for p in args["stores"]]
-    return webhook_payload(survey(paths))
+    prices = args.get("prices")
+    table = None
+    if prices is not None:
+        try:
+            table = json.loads(str(prices))
+        except ValueError as exc:
+            raise KeyError(
+                f"prices must be a JSON object: {exc}") from exc
+        if not isinstance(table, dict) or not all(
+                isinstance(v, (int, float)) and v >= 0
+                for v in table.values()):
+            raise KeyError("prices must map model -> non-negative "
+                           "number")
+    return webhook_payload(survey(paths, prices=table))
 
 
 def _tool_query(ctx: ServerContext, args: Dict[str, Any]) -> dict:
