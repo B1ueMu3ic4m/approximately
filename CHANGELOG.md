@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.21.3
+
+- status speaks tokens: totals and burns in the snapshot. the store health snapshot (status, --json, MCP status) carries total_tokens and the token-burn count — the last health surface that could not answer "how expensive is this store, and is anything burning". Prose gains the tokens line; 1 test.
+
 ## v2.21.2
 
 - the capabilities table tells the whole story. the README table had drifted — Log interop and Slowness rows were duplicated (an edit accident) and neither mentioned the new dialects; the duplicates are gone, interop reads OTLP/native, Slowness became "Slowness & token burn", and a Spend row joins the table — the money chain is on the front page.

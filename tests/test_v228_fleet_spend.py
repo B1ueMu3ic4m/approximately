@@ -167,3 +167,21 @@ def test_report_timeline_and_agent_table_show_tokens(tmp_path):
 
     fleet_html = render_fleet_html(survey([store.directory]))
     assert "<th>tokens</th>" in fleet_html
+
+
+def test_status_reports_tokens_and_burns(tmp_path):
+    store = TraceStore(tmp_path / "s")
+    trace = Trace(task="burny", id="bbb000000000", success=False)
+    for tokens in (95, 105, 90, 110, 100):
+        trace.add(Step(kind="tool_call", tool="search",
+                       tokens=tokens, latency_ms=40))
+    trace.add(Step(kind="tool_call", tool="search", tokens=9_000,
+                   latency_ms=40))
+    trace.add(Step(kind="response", result="gave up"))
+    store.save(trace)
+
+    from approximately.cli import _status_payload
+
+    payload = _status_payload(store, [store.load(trace.id)], None)
+    assert payload["total_tokens"] == 9_500
+    assert payload["token_burns"] == 1

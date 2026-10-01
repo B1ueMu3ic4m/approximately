@@ -868,6 +868,21 @@ def _fleet_and_coverage(traces, annotations, stats):
     return fleet_anoms, coverage
 
 
+def _token_summary(traces) -> tuple:
+    """(total tokens, token-burn traces) for a health snapshot;
+    best-effort — detection trouble counts zero."""
+    total = sum(step.tokens for trace in traces
+                for step in trace.steps)
+    try:
+        from .anomaly import detect_token_anomalies
+
+        burns = sum(1 for trace in traces
+                    if detect_token_anomalies(trace))
+    except Exception:
+        burns = 0
+    return total, burns
+
+
 def _status_payload(store, traces, digest_dir, since=None):
     """Build the status overview data (shared by text and JSON)."""
     import time as _time
@@ -876,6 +891,7 @@ def _status_payload(store, traces, digest_dir, since=None):
     from .ledger import verify_ledger
 
     stats = store_stats(traces)
+    total_tokens, token_burns = _token_summary(traces)
     annotations = store.annotations()
     if since:
         # the window scopes triage tallies too: counts must describe
@@ -921,6 +937,8 @@ def _status_payload(store, traces, digest_dir, since=None):
         "traces": stats.traces,
         "failures": stats.failures,
         "failure_rate": round(stats.failure_rate, 4),
+        "total_tokens": total_tokens,
+        "token_burns": token_burns,
         "top_modes": dict(list(stats.mode_counts.items())[:3]),
         "annotations": len(annotations),
         "annotations_confirmed": len(confirmed),
@@ -948,6 +966,14 @@ def _status_payload(store, traces, digest_dir, since=None):
     }
 
 
+def _write_token_line(buf, payload: dict) -> None:
+    """The tokens/burns line, only when the store metered any."""
+    if payload.get("total_tokens"):
+        burns = payload.get("token_burns") or 0
+        buf.write(f"  tokens: {payload['total_tokens']:,} "
+                  f"(token burns: {burns})\n")
+
+
 def _render_status(args: argparse.Namespace) -> str:
     """One status frame — shared by the one-shot and watch modes."""
     import io as _io
@@ -961,6 +987,7 @@ def _render_status(args: argparse.Namespace) -> str:
         return json.dumps(payload, indent=2)
     buf = _io.StringIO()
     rate = f"{payload['failure_rate']:.0%}" if payload["traces"] else "-"
+    _write_token_line(buf, payload)
     buf.write(f"{payload['store']}: {payload['traces']} traces, "
               f"{payload['failures']} failed ({rate})\n")
     if payload["top_modes"]:
