@@ -1522,9 +1522,11 @@ def _load_prices(path: Optional[str]) -> Optional[dict]:
     return table
 
 
-def _spend_by_model(args: argparse.Namespace, traces, prices: dict) -> int:
+def _spend_by_model(args: argparse.Namespace, traces,
+                    prices: dict) -> tuple:
     """Per-model spend: tokens grouped by trace.model, priced at the
-    table's blended $/1k; models without a rate stay unpriced."""
+    table's blended $/1k; models without a rate stay unpriced.
+    Returns (exit code, priced total)."""
     by_model: dict = {}
     for trace in traces:
         model = str(trace.model or "unknown")
@@ -1551,7 +1553,7 @@ def _spend_by_model(args: argparse.Namespace, traces, prices: dict) -> int:
                           "estimated_cost": total,
                           "unpriced_tokens": unpriced_tokens},
                          indent=2))
-        return 0
+        return 0, total
     print(f"  {'model':<24} {'traces':>6} {'tokens':>9} "
           f"{'$/1k':>7} {'est $':>10}")
     for r in rows:
@@ -1565,7 +1567,7 @@ def _spend_by_model(args: argparse.Namespace, traces, prices: dict) -> int:
         total_line += (f"  ({unpriced_tokens:,} tokens had no rate "
                        "in the table)")
     print(total_line)
-    return 0
+    return 0, total
 
 
 def _price_rows(rows: list, price: Optional[float]) -> list:
@@ -1643,7 +1645,18 @@ def cmd_stats(args: argparse.Namespace) -> int:
                        for step in trace.steps)
     prices = _load_prices(getattr(args, "prices", None))
     if prices:
-        return _spend_by_model(args, traces, prices)
+        code, spent = _spend_by_model(args, traces, prices)
+        return _budget_gate(args, total_tokens, code, priced_total=spent)
+    return _stats_totals(args, stats, traces, price, total_tokens)
+
+
+def _stats_totals(args: argparse.Namespace, stats, traces,
+                  price: Optional[float],
+                  total_tokens: int) -> int:
+    """The plain-totals door: health numbers, the token/cost line,
+    and the budget gate."""
+    spent = (total_tokens / 1000 * price
+             if price is not None else None)
     if args.json:
         payload = {
             "traces": stats.traces,
@@ -1653,20 +1666,42 @@ def cmd_stats(args: argparse.Namespace) -> int:
             "total_tokens": total_tokens,
             "modes": stats.mode_counts,
         }
-        if price is not None:
+        if spent is not None:
             payload["price_per_1k"] = price
-            payload["estimated_cost"] = round(
-                total_tokens / 1000 * price, 4)
+            payload["estimated_cost"] = round(spent, 4)
         print(json.dumps(payload, indent=2))
-        return 0
-    print(stats.summary())
-    if total_tokens:
-        line = f"  tokens: {total_tokens:,}"
-        if price is not None:
-            line += (f"  | est. spend ${total_tokens / 1000 * price:,.2f}"
-                     f" (blended ${price}/1k, no in/out split)")
-        print(line)
-    return 0
+    else:
+        print(stats.summary())
+        if total_tokens:
+            line = f"  tokens: {total_tokens:,}"
+            if spent is not None:
+                line += (f"  | est. spend ${spent:,.2f}"
+                         f" (blended ${price}/1k, no in/out split)")
+            print(line)
+    return _budget_gate(args, total_tokens, 0, priced_total=spent)
+
+
+def _budget_gate(args: argparse.Namespace, total_tokens: int,
+                 code: int, priced_total: Optional[float] = None) -> int:
+    """--fail-over USD: the spend estimate becomes an alarm.  Without
+    a price in play the flag is a loud configuration error."""
+    budget = getattr(args, "fail_over", None)
+    if budget is None:
+        return code
+    spent = priced_total
+    if spent is None:
+        price = getattr(args, "price_per_1k", None)
+        spent = (total_tokens / 1000 * price) if price is not None \
+            else None
+    if spent is None:
+        print("error: --fail-over needs a price in play "
+              "(--price-per-1k or --prices)", file=sys.stderr)
+        return 2
+    if spent > budget:
+        print(f"budget exceeded: est. spend ${spent:,.2f} > "
+              f"${budget:,.2f}", file=sys.stderr)
+        return 1
+    return code
 
 
 def cmd_attribute(args: argparse.Namespace) -> int:
@@ -2581,6 +2616,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="JSON map of model -> blended $/1k; adds a "
                         "spend-by-model breakdown (models without a "
                         "rate are counted as unpriced)")
+    p.add_argument("--fail-over", type=float, metavar="USD",
+                   help="with a price in play: exit 1 when the "
+                        "estimated spend exceeds this budget (cron/"
+                        "CI alarm)")
     p.add_argument("--trend", action="store_true",
                    help="failure-rate history over time instead of totals")
     p.add_argument("--trend-bucket-days", type=int, default=7,

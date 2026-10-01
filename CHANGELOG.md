@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.12.0
+
+- the budget becomes an alarm: stats --fail-over USD. with a price in play (--prices or --price-per-1k), `stats --fail-over 50` exits 1 when the estimated spend crosses $50 — cron/CI gets a spend alarm without a webhook. Without a price the flag is exit 2 with a stderr explanation, never a silent pass. An empty store prices to $0 and stays calm. 5 tests.
+
 ## v2.11.0
 
 - models price differently: stats --prices FILE. a blended rate treats a $0.50 mini and a $15 reasoning model as the same line item. `stats --prices table.json` (model -> blended $/1k) groups tokens by the trace's recorded model and prices each bucket; models without a rate stay honestly `unpriced` — counted in unpriced_tokens, never silently free. Bad files exit 2 loudly. 5 tests.

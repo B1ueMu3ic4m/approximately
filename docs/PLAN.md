@@ -2264,3 +2264,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      a rate stay honestly `unpriced` — counted in
      unpriced_tokens, never silently free.  Bad files exit 2
      loudly.  5 tests.
+
+234. **v2.12.0 - the budget becomes an alarm: stats --fail-over USD** ✅
+     (delivered): with a price in play (--prices or --price-per-1k),
+     `stats --fail-over 50` exits 1 when the estimated spend crosses
+     $50 — cron/CI gets a spend alarm without a webhook.  Without a
+     price the flag is exit 2 with a stderr explanation, never a
+     silent pass.  An empty store prices to $0 and stays calm.  5
+     tests.
