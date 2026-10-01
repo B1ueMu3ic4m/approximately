@@ -2294,3 +2294,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      the three doors token data flows in through (adapters, OTLP
      GenAI conventions, the recorder), the two pricing modes, the
      budget alarm, and the honesty rules — in one recipe.
+
+238. **v2.12.4 - spool --json: the watch loop goes machine-readable** ✅
+     (delivered): every pass prints one JSON line (pass number,
+     counts, failure modes, errors) — the last prose-only command
+     joins the --json family, so a cron spool can feed a dashboard
+     without screen-scraping.  1 test.
