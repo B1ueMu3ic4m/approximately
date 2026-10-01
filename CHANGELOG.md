@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.21.1
+
+- fuzz round 15: annotations on the OTLP wire. analyst-controlled strings (author, note, verdict) now cross to a tracing backend — the round-4 contract applies. Event names sanitize to [a-z0-9_.-] (a hostile verdict cannot smuggle a name), missing wall-clocks fall back to the root span's start (never epoch 0), giant notes stay capped, random annotation fuzz roundtrips idempotently. Found and hardened en route: store.annotate crashed on non-string args (a direct API call with an int verdict) — arguments are coerced. 5 tests, fixed seed.
+
 ## v2.21.0
 
 - context audit: a nonsense budget is a loud error. the context-runtime audit (the subsystem the night had not touched) — `ContextRuntime(budget<=0)` used to be silently honored as "evict everything"; it is now a ValueError, the degenerate-behavior pin upgraded to the real contract, and the oversized-single-pin semantics (over budget and kept, because an empty context is worse) documented by the neighboring test. The rest of the audit came back clean.
