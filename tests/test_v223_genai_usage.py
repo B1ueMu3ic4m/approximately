@@ -65,3 +65,12 @@ def test_foreign_burn_is_baselined():
     assert len(anomalies) == 1
     assert anomalies[0].direction == "burn"
     assert anomalies[0].tokens == 43_000
+
+
+def test_genai_request_model_names_the_trace():
+    spans = [_span({"gen_ai.request.model": "gpt-4o-mini"},
+                   span_id="0" * 16)]
+    traces, malformed, _seen, truncated = otlp_to_traces(
+        {"resourceSpans": [{"scopeSpans": [{"spans": spans}]}]})
+    assert (malformed, truncated) == (0, 0)
+    assert traces[0].model == "gpt-4o-mini"

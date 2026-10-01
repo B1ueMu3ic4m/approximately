@@ -2272,3 +2272,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      price the flag is exit 2 with a stderr explanation, never a
      silent pass.  An empty store prices to $0 and stays calm.  5
      tests.
+
+235. **v2.12.1 - foreign traces know their model** ✅
+     (delivered): OTLP import reads `gen_ai.request.model` off the
+     root span when our own attribute is absent — so
+     `stats --prices` prices a third-party agent's traces by their
+     real model instead of lumping them into "unknown".  1 test.

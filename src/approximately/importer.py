@@ -406,11 +406,15 @@ def _group_trace(trace_key: str, spans: List[Dict[str, Any]],
     # renumber: span order is step order, and the step index feeds
     # the deterministic span ids on re-export
     steps = _renumber([_span_step(s) for s in children])
+    # our own attr, or the GenAI semantic convention a foreign
+    # backend carries — so --prices prices foreign traces right
+    model = (_attr_text(attrs, "approximately.model", 100)
+             or _attr_text(attrs, "gen_ai.request.model", 100)
+             or "unknown")
     trace = Trace(
         task=task, id=trace_id,
         created_at=_nanos(root.get("startTimeUnixNano")) / 1e9,
-        model=_attr_text(attrs, "approximately.model", 100)
-        or "unknown",
+        model=model,
         steps=steps,
         success=_root_success(root),
         final_output=_attr_text(attrs, "approximately.final_output",
