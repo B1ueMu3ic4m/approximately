@@ -104,6 +104,7 @@ def spool_pass(store: TraceStore, directory: Path,
         "files": len(files), "imported": 0, "skipped": 0,
         "failures": 0, "failed_traces": 0, "archived": 0,
         "deleted": 0, "left": 0, "errors": [], "failure_modes": {},
+        "token_burns": 0,  # nosec B105: a count, not a credential
     }
     for path in files:
         try:
@@ -116,17 +117,24 @@ def spool_pass(store: TraceStore, directory: Path,
             continue
         result["imported"] += outcome["imported"]
         result["skipped"] += outcome["skipped"]
-        failed_here = 0
+        failed_here = burns_here = 0
         if not dry_run:
+            from .anomaly import detect_token_anomalies
+
             for trace_id in outcome["trace_ids"]:
                 trace = store.load(trace_id)
-                if trace is not None and trace.success is False:
+                if trace is None:
+                    continue
+                if trace.success is False:
                     failed_here += 1
                     mode = _primary_mode(trace)
                     if mode:
                         result["failure_modes"][mode] = (
                             result["failure_modes"].get(mode, 0) + 1)
+                if detect_token_anomalies(trace):
+                    burns_here += 1
         result["failed_traces"] += failed_here
+        result["token_burns"] = burns_here
         if not dry_run:
             what = _archive(path, directory / "done", delete=delete)
             result["archived" if what == "archived" else "deleted"] += 1
@@ -180,6 +188,9 @@ def watch_spool(store: TraceStore, directory: Path,
                 detail = ", ".join(f"{m} x{c}"
                                    for m, c in sorted(modes.items()))
                 line += f" | failures: {detail}"
+            burns = outcome.get("token_burns") or 0
+            if burns:
+                line += f" | token burns: {burns}"
             print(line)
         if once or (max_passes is not None
                     and passes >= max_passes):
