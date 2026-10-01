@@ -36,7 +36,7 @@ def main() -> int:
     return (attribution_gate(args) + agent_wave_gate()
             + query_gate() + similar_gate() + fleet_anomaly_gate()
             + import_gate() + export_gate() + doctor_gate()
-            + spool_gate())
+            + spool_gate() + survey_spend_gate())
 
 def fleet_anomaly_gate(budget_s: float = 2.0) -> int:
     """Per-tool fleet baselines over a 10k-trace store.
@@ -404,6 +404,51 @@ def spool_gate(budget_s: float = 5.0) -> int:
         print("FAIL: spool pass slowed past budget", file=sys.stderr)
         return 1
     return 0
+
+
+def survey_spend_gate(budget_s: float = 3.0) -> int:
+    """Fleet survey with prices over a 10k-trace store.
+
+    The money rollup (v2.13) walks every step of every trace per
+    store and must stay linear like the rest of the survey; the
+    budget is runner-noise headroom (local: a fraction of a
+    second)."""
+    import tempfile
+    from pathlib import Path as _Path
+
+    from approximately.fleet import survey
+    from approximately.recorder import Recorder
+    from approximately.store import TraceStore
+
+    with tempfile.TemporaryDirectory() as tmp:
+        store = TraceStore(_Path(tmp) / "s")
+        models = ("gpt-x", "cheap", "mystery")
+        for i in range(10_000):
+            rec = Recorder(f"run {i}", save=False)
+            rec.tool("shell", {"n": i}, result="ok")
+            rec.respond("done", success=True)
+            rec.trace.steps[-1].tokens = 100 + (i % 50)
+            rec.trace.model = models[i % 3]
+            store.save(rec.trace)
+        # seeding is setup, not subject: time the survey itself
+        start = time.perf_counter()
+        summaries = survey([store.directory],
+                           prices={"gpt-x": 3.0, "cheap": 0.5})
+    elapsed = time.perf_counter() - start
+    s = summaries[0]
+    if s.total_tokens <= 0 or s.est_spend is None:
+        print("FAIL: survey spend gate produced no numbers",
+              file=sys.stderr)
+        return 1
+    print(f"perf-gate[survey-spend]: 10k traces priced in "
+          f"{elapsed:.1f}s (est ${s.est_spend:,.0f}, budget "
+          f"{budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: survey slowed past budget", file=sys.stderr)
+        return 1
+    return 0
+
 
 
 if __name__ == "__main__":
