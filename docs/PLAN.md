@@ -2255,3 +2255,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      LlamaIndex payloads get the same usage extraction (usage dict
      naming eras + additional_kwargs.token_usage).  10 tests, all
      duck-typed, no framework installed.
+
+233. **v2.11.0 - models price differently: stats --prices FILE** ✅
+     (delivered): a blended rate treats a $0.50 mini and a $15
+     reasoning model as the same line item.  `stats --prices
+     table.json` (model -> blended $/1k) groups tokens by the
+     trace's recorded model and prices each bucket; models without
+     a rate stay honestly `unpriced` — counted in
+     unpriced_tokens, never silently free.  Bad files exit 2
+     loudly.  5 tests.
