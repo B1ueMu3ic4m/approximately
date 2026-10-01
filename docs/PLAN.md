@@ -2429,3 +2429,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      benchmark, calibrate and convert-mast join the JSON-door sweep
      via the shipped benchmark corpus — every --json door in the
      CLI is now swept with real argv, parseable output asserted.
+
+256. **v2.20.3 - the spool pass counts token burns too** ✅
+     (delivered): ingest-time signals are now symmetric — the pass
+     report counts failure modes AND token burns among the newly
+     imported traces (JSON field + prose "token burns: N"), so a
+     watch line flags the expensive run without waiting for the
+     fleet pass.  1 test.

@@ -16,6 +16,7 @@ from approximately.exporter import export_store
 from approximately.recorder import Recorder
 from approximately.spool import spool_pass, watch_spool
 from approximately.store import TraceStore
+from approximately.trace import Step, Trace
 
 
 def _transcript_file(path, task="spooled run", success=True):
@@ -237,3 +238,20 @@ def test_webhook_stays_quiet_on_clean_run(tmp_path):
                        posts.append(dict(outcome)))
     assert code == 0
     assert posts == []
+
+
+def test_pass_reports_token_burns(tmp_path):
+    store = TraceStore(tmp_path / "s")
+    spool = tmp_path / "spool"
+    spool.mkdir()
+    t = Trace(task="burny", id="burn12345678", success=True)
+    for tok in (95, 105, 90, 110, 100):
+        t.add(Step(kind="tool_call", tool="search", tokens=tok,
+                   latency_ms=40))
+    t.add(Step(kind="tool_call", tool="search", tokens=40_000,
+               latency_ms=40))
+    t.add(Step(kind="response", result="done"))
+    (spool / "b.jsonl").write_text(json.dumps(t.to_dict()) + "\n",
+                                   encoding="utf-8")
+    result = spool_pass(store, spool)
+    assert result["token_burns"] == 1

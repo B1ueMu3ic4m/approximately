@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.20.3
+
+- the spool pass counts token burns too. ingest-time signals are now symmetric — the pass report counts failure modes AND token burns among the newly imported traces (JSON field + prose "token burns: N"), so a watch line flags the expensive run without waiting for the fleet pass. 1 test.
+
 ## v2.20.2
 
 - the sweep reaches the fixture doors. benchmark, calibrate and convert-mast join the JSON-door sweep via the shipped benchmark corpus — every --json door in the CLI is now swept with real argv, parseable output asserted.
