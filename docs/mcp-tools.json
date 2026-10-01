@@ -75,7 +75,7 @@
     },
     {
       "name": "survey",
-      "description": "Fleet summary over one or more store directories: trace counts, failure rates, trend verdicts.",
+      "description": "Fleet summary over one or more store directories: trace counts, failure rates, trend verdicts, token totals.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -84,6 +84,10 @@
             "items": {
               "type": "string"
             }
+          },
+          "prices": {
+            "type": "string",
+            "description": "JSON object model -> blended $/1k; adds a per-store est_spend"
           }
         },
         "required": [
