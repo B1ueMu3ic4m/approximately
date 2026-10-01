@@ -406,7 +406,7 @@ def spool_gate(budget_s: float = 5.0) -> int:
     return 0
 
 
-def survey_spend_gate(budget_s: float = 3.0) -> int:
+def survey_spend_gate(budget_s: float = 8.0) -> int:
     """Fleet survey with prices over a 10k-trace store.
 
     The money rollup (v2.13) walks every step of every trace per
