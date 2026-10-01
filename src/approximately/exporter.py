@@ -209,7 +209,8 @@ def _root_span(trace: Trace,
                    {"code": 0}),
     }
     if annotations:
-        root["events"] = [_annotation_events(a)
+        at = root["startTimeUnixNano"]
+        root["events"] = [_annotation_events(a, at)
                           for a in annotations[:10]]
     return root
 
@@ -274,17 +275,21 @@ def task_of(trace: Trace) -> str:
     return " ".join(str(trace.task).split())
 
 
-def _annotation_events(note: dict) -> Dict[str, Any]:
-    """One annotation as an OTLP event on the root span."""
+def _annotation_events(note: dict, at_ns: str) -> Dict[str, Any]:
+    """One annotation as an OTLP event on the root span.  The event
+    name is sanitized to [a-z0-9_.-] — verdicts are store-normalized
+    but a hostile import could carry anything."""
     note_text = _cap(note.get("note") or "")
-    verdict = note.get("verdict") or "note"
-    name = f"annotation.{verdict}"[:_TASK_SPAN_CAP]
-    return {"timeUnixNano": _nanos(float(note.get("at") or 0) or 0),
-            "name": name,
+    verdict = str(note.get("verdict") or "note")
+    cleaned = "".join(
+        c if (c.isascii() and c.isalnum()) or c in "_-." else "_"
+        for c in verdict.lower()) or "note"
+    return {"timeUnixNano": at_ns,
+            "name": f"annotation.{cleaned}"[:_TASK_SPAN_CAP],
             "attributes": _attrs([
                 ("annotation.author", note.get("author")),
                 ("annotation.note", note_text or None),
-                ("annotation.verdict", str(verdict)),
+                ("annotation.verdict", verdict),
             ])}
 
 

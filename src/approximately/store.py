@@ -133,11 +133,14 @@ class TraceStore:
         ``verdict`` is free-form but normalized (stripped,
         lower-cased) so ``Confirmed`` and ``confirmed`` read as the
         same triage word; ``confirmed`` and ``false-positive`` are
-        the idioms.
+        the idioms.  Non-string arguments are coerced: the CLI and
+        MCP layers already stringify, but a direct API call should
+        not crash on an int verdict.
         """
-        entry = {"ts": time.time(), "trace_id": trace_id,
-                 "author": author, "verdict": verdict.strip().lower(),
-                 "note": note}
+        entry = {"ts": time.time(), "trace_id": str(trace_id),
+                 "author": str(author or ""),
+                 "verdict": str(verdict or "").strip().lower(),
+                 "note": str(note or "")}
         path = self.directory / "annotations.jsonl"
         with path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
