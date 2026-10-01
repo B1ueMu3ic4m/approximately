@@ -1504,6 +1504,70 @@ def cmd_clean(args: argparse.Namespace) -> int:
     return 0
 
 
+def _load_prices(path: Optional[str]) -> Optional[dict]:
+    if not path:
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            table = json.load(fh)
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"error: prices file: {exc}", file=sys.stderr)
+        raise SystemExit(2) from None
+    if not isinstance(table, dict) or not all(
+            isinstance(v, (int, float))
+            for v in table.values()):
+        print("error: prices file must map model -> number",
+              file=sys.stderr)
+        raise SystemExit(2)
+    return table
+
+
+def _spend_by_model(args: argparse.Namespace, traces, prices: dict) -> int:
+    """Per-model spend: tokens grouped by trace.model, priced at the
+    table's blended $/1k; models without a rate stay unpriced."""
+    by_model: dict = {}
+    for trace in traces:
+        model = str(trace.model or "unknown")
+        row = by_model.setdefault(
+            model, {"model": model, "traces": 0, "tokens": 0})
+        row["traces"] += 1
+        row["tokens"] += sum(step.tokens for step in trace.steps)
+    rows = []
+    unpriced_tokens = 0
+    for model in sorted(by_model):
+        row = by_model[model]
+        rate = prices.get(model)
+        if rate is None:
+            row["rate"] = None
+            row["est_cost"] = None
+            unpriced_tokens += row["tokens"]
+        else:
+            row["rate"] = rate
+            row["est_cost"] = round(row["tokens"] / 1000 * rate, 4)
+        rows.append(row)
+    total = round(sum(r["est_cost"] or 0 for r in rows), 4)
+    if getattr(args, "json", False):
+        print(json.dumps({"spend_by_model": rows,
+                          "estimated_cost": total,
+                          "unpriced_tokens": unpriced_tokens},
+                         indent=2))
+        return 0
+    print(f"  {'model':<24} {'traces':>6} {'tokens':>9} "
+          f"{'$/1k':>7} {'est $':>10}")
+    for r in rows:
+        rate = f"{r['rate']:g}" if r["rate"] is not None else "-"
+        cost = f"{r['est_cost']:.2f}" if r["est_cost"] is not None \
+            else "unpriced"
+        print(f"  {r['model']:<24} {r['traces']:>6} {r['tokens']:>9,} "
+              f"{rate:>7} {cost:>10}")
+    total_line = f"  total est spend: ${total:,.2f}"
+    if unpriced_tokens:
+        total_line += (f"  ({unpriced_tokens:,} tokens had no rate "
+                       "in the table)")
+    print(total_line)
+    return 0
+
+
 def _price_rows(rows: list, price: Optional[float]) -> list:
     if price is not None:
         for r in rows:
@@ -1577,6 +1641,9 @@ def cmd_stats(args: argparse.Namespace) -> int:
         return 0
     total_tokens = sum(step.tokens for trace in traces
                        for step in trace.steps)
+    prices = _load_prices(getattr(args, "prices", None))
+    if prices:
+        return _spend_by_model(args, traces, prices)
     if args.json:
         payload = {
             "traces": stats.traces,
@@ -2510,6 +2577,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="estimate spend from recorded tokens at this "
                         "blended $/1k rate (totals only; the recorder "
                         "keeps no in/out split)")
+    p.add_argument("--prices", metavar="FILE",
+                   help="JSON map of model -> blended $/1k; adds a "
+                        "spend-by-model breakdown (models without a "
+                        "rate are counted as unpriced)")
     p.add_argument("--trend", action="store_true",
                    help="failure-rate history over time instead of totals")
     p.add_argument("--trend-bucket-days", type=int, default=7,
