@@ -114,6 +114,9 @@ class ContextRuntime:
     """A budgeted, policy-managed context window."""
 
     def __init__(self, budget: int, task: str = ""):
+        if budget <= 0:
+            raise ValueError(
+                f"budget must be positive, got {budget}")
         self.budget = budget
         self.items: List[ContextItem] = []
         self.evictions: List[EvictionEvent] = []

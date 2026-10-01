@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.21.0
+
+- context audit: a nonsense budget is a loud error. the context-runtime audit (the subsystem the night had not touched) — `ContextRuntime(budget<=0)` used to be silently honored as "evict everything"; it is now a ValueError, the degenerate-behavior pin upgraded to the real contract, and the oversized-single-pin semantics (over budget and kept, because an empty context is worse) documented by the neighboring test. The rest of the audit came back clean.
+
 ## v2.20.4
 
 - tokens in the tables people actually read. the report timeline gains a tokens column (unmetered steps show an honest dash) and the fleet card's busiest-agents table gains one too — the counts the token family runs on are visible where the traces are. 1 test.
