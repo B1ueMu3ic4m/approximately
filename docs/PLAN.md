@@ -2323,3 +2323,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      (`search [gpt-4o-mini]`).  `anomalies --per-model` (with
      --tokens --all) and MCP `per_model` flag; default stays
      pooled for compatibility.  1 rewritten test tells the story.
+
+242. **v2.14.1 - the JSON-door sweep: every --json parses** ✅
+     (delivered): the v221 tour generalized — every command with a
+     --json flag driven with real argv against a seeded store; the
+     contract is exit 0/1 plus parseable JSON.  Found and fixed:
+     `optimize --json` on a probe-less trace printed prose with the
+     flag set — now honest JSON (`optimized: false`).  `report
+     --json` documented as --all's index manifest and swept as
+     such.  8 doors.

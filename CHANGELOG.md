@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.14.1
+
+- the JSON-door sweep: every --json parses. the v221 tour generalized — every command with a --json flag driven with real argv against a seeded store; the contract is exit 0/1 plus parseable JSON. Found and fixed: `optimize --json` on a probe-less trace printed prose with the flag set — now honest JSON (`optimized: false`). `report --json` documented as --all's index manifest and swept as such. 8 doors.
+
 ## v2.14.0
 
 - per-model token baselines: a gpt-4o and a mini are different rulers. `detect_fleet_token_anomalies(per_model=True)` splits each tool family by the trace's recorded model — pooled, a big model's honest usage cries wolf and a mini's real burn hides in the noise; split, the mini burn is the only flag and its tool name carries the model (`search [gpt-4o-mini]`). `anomalies --per-model` (with --tokens --all) and MCP `per_model` flag; default stays pooled for compatibility. 1 rewritten test tells the story.
