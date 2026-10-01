@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.20.2
+
+- the sweep reaches the fixture doors. benchmark, calibrate and convert-mast join the JSON-door sweep via the shipped benchmark corpus — every --json door in the CLI is now swept with real argv, parseable output asserted.
+
 ## v2.20.1
 
 - diff/bisect cross stores: imported vs baseline. `similar` had --other-store; diff and bisect get it — compare an imported OTLP trace against a healthy reference that lives in a different store, without merging first. The OTLP flow's postmortem question ("what diverged from the baseline?") now answers across stores. 3 tests.

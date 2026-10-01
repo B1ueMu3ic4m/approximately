@@ -156,3 +156,20 @@ def test_verify_on_imported_trace_is_unsigned_not_tampered(tmp_path):
     for trace in back.list_traces():
         result = verify(trace)
         assert result.verdict == "unsigned"
+
+
+def test_fixture_doors(tmp_path, capsys):
+    # the shipped benchmark corpus drives the last three doors:
+    # benchmark, calibrate, convert-mast
+    store = _seed(tmp_path)
+    sid = str(store.directory)
+    _ = sid
+    out = tmp_path / "converted.json"
+    for door, argv in (("benchmark", ("docs/mast-bench.jsonl",)),
+                       ("calibrate", ("docs/mast-bench.jsonl",)),
+                       ("convert-mast", ("docs/mast-bench.jsonl",
+                                         str(out)))):
+        code, out_text = _run(capsys, door, *argv, "--json")
+        assert code in GATE_CODES, (door, out_text[:200])
+        payload = json.loads(out_text)
+        assert payload is not None, door

@@ -2424,3 +2424,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      correctly said "nothing to release".  The lesson is now
      mechanical: bumps use an any-version regex and are verified
      with grep in the same breath.  Item 253 rides this release.
+
+255. **v2.20.2 - the sweep reaches the fixture doors** ✅ (delivered):
+     benchmark, calibrate and convert-mast join the JSON-door sweep
+     via the shipped benchmark corpus — every --json door in the
+     CLI is now swept with real argv, parseable output asserted.
