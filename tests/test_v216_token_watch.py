@@ -196,3 +196,36 @@ def test_spend_trend_absent_without_prices(tmp_path):
         append_digest(digest_dir, snap)
     summary = summarize_trend(trend_days(digest_dir))
     assert summary["spend_trend"] is None      # zeros: no verdict
+
+
+def test_alert_spend_pages_on_expensive_store(tmp_path):
+    burn_dir = tmp_path / "burn"
+    _store_with_burn(burn_dir)
+    summaries = survey([burn_dir], prices={"unknown": 3.0})
+    assert summaries[0].est_spend > 25
+    # the spend gate adds a fire condition (v162 contract)
+    assert _should_alert(summaries, 0.99, alert_spend=25.0) is True
+    assert _should_alert(summaries, 0.99, alert_spend=500.0) is False
+
+
+def test_alert_spend_unpriced_never_trips(tmp_path):
+    calm_dir = tmp_path / "calm"
+    store = TraceStore(calm_dir)
+    rec = Recorder("calm", save=False)
+    rec.respond("done", success=True)
+    store.save(rec.trace)
+    summaries = survey([calm_dir])             # no prices: unpriced
+    assert _should_alert(summaries, 0.99, alert_spend=0.01) is False
+
+
+def test_watch_alert_spend_end_to_end(tmp_path):
+    burn_dir = tmp_path / "burn"
+    _store_with_burn(burn_dir)
+    digest_dir = tmp_path / "digest"
+    posts = []
+    watch_fleet([burn_dir], digest_dir, interval=0.0, iterations=2,
+                webhook_url="http://example.test/hook",
+                notify=lambda summaries, url: posts.append(summaries),
+                alert_worse_than=0.99, alert_spend=25.0,
+                prices={"unknown": 3.0})
+    assert len(posts) == 2

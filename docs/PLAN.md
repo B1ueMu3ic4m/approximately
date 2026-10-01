@@ -2401,3 +2401,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      Theil-Sen machinery — a "spend trend" badge in the fleet HTML,
      a prose line with the $/day slope, present only when prices
      were in play (zeros never invent a verdict).  2 tests.
+
+252. **v2.20.0 - fleet --alert-spend: the budget pages too** ✅
+     (delivered): `fleet --watch --alert-spend USD` alerts when a
+     store's estimated spend crosses the budget — same
+     quiet-by-default contract as the anomaly gates (a rate
+     threshold quietens; gates add fire conditions), and unpriced
+     stores never trip it.  Symmetric with --alert-anomalies /
+     --alert-tokens.  3 tests.

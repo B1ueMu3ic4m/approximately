@@ -1201,6 +1201,9 @@ def _fleet_watch(args: argparse.Namespace, stores) -> int:
             alert_tokens=(int(args.alert_tokens) if
                           getattr(args, "alert_tokens", None)
                           else None),
+            alert_spend=(float(args.alert_spend) if
+                         getattr(args, "alert_spend", None)
+                         else None),
             prices=_fleet_prices(args))
     except KeyboardInterrupt:
         print("watch stopped")
@@ -2534,6 +2537,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--alert-tokens", type=int, metavar="N",
                    help="also alert when a store carries >= N token "
                         "burn outliers")
+    p.add_argument("--alert-spend", type=float, metavar="USD",
+                   help="also alert when a store's estimated spend "
+                        "crosses this budget (needs --prices)")
     p.add_argument("--prices", metavar="FILE",
                    help="JSON map of model -> blended $/1k; fleet "
                         "cards and --json gain a per-store spend "
