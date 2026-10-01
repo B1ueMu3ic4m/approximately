@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.13.0
+
+- the fleet sees the money. survey carries each store's total tokens, and `fleet --prices FILE` adds a per-store spend estimate (blended $/1k per trace model, unpriced tokens counted) — reaching the store card, `fleet --json`, the digest snapshots and webhooks (additive fields), and the watch loop. Bad price files exit 2. 6 tests.
+
 ## v2.12.4
 
 - spool --json: the watch loop goes machine-readable. every pass prints one JSON line (pass number, counts, failure modes, errors) — the last prose-only command joins the --json family, so a cron spool can feed a dashboard without screen-scraping. 1 test.

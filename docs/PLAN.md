@@ -2300,3 +2300,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      counts, failure modes, errors) — the last prose-only command
      joins the --json family, so a cron spool can feed a dashboard
      without screen-scraping.  1 test.
+
+239. **v2.13.0 - the fleet sees the money** ✅ (delivered): survey
+     carries each store's total tokens, and `fleet --prices FILE`
+     adds a per-store spend estimate (blended $/1k per trace model,
+     unpriced tokens counted) — reaching the store card, `fleet
+     --json`, the digest snapshots and webhooks (additive fields),
+     and the watch loop.  Bad price files exit 2.  6 tests.
