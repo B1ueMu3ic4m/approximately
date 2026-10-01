@@ -2485,3 +2485,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      expensive is this store, and is anything burning".  Prose
      gains the tokens line; 1 test; status renderers refactored
      back under the C bar.
+
+263. **v2.21.4 - Prometheus sees the tokens** ✅ (delivered):
+     `metrics --prometheus` gains `approximately_tokens_total` —
+     the store-wide usage counter Grafana can graph and alert on
+     (rate > 0 on an idle store = something ran; sudden jumps =
+     a burn to investigate), covering both the text and --json
+     doors.  1 test.

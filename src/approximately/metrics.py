@@ -23,7 +23,8 @@ def escape_label(value: str) -> str:
                  .replace("\n", "\\n"))
 
 
-def render_prometheus(stats, extra_labels: dict | None = None) -> str:
+def render_prometheus(stats, extra_labels: dict | None = None,
+                      total_tokens: int | None = None) -> str:
     """Render store statistics as Prometheus text exposition format."""
     labels = ""
     if extra_labels:
@@ -47,6 +48,13 @@ def render_prometheus(stats, extra_labels: dict | None = None) -> str:
         (f"approximately_steps_average{labels} "
          f"{stats.avg_steps:.4f}"),
     ]
+    if total_tokens is not None:
+        lines.extend([
+            ("# HELP approximately_tokens_total Recorded token usage "
+             "across all steps"),
+            "# TYPE approximately_tokens_total counter",
+            f"approximately_tokens_total{labels} {total_tokens}",
+        ])
     for mode_id, count in sorted(stats.mode_counts.items()):
         safe = escape_label(mode_id)
         extra = "," + labels if labels else ""
