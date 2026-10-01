@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.12.1
+
+- foreign traces know their model. OTLP import reads `gen_ai.request.model` off the root span when our own attribute is absent — so `stats --prices` prices a third-party agent's traces by their real model instead of lumping them into "unknown". 1 test.
+
 ## v2.12.0
 
 - the budget becomes an alarm: stats --fail-over USD. with a price in play (--prices or --price-per-1k), `stats --fail-over 50` exits 1 when the estimated spend crosses $50 — cron/CI gets a spend alarm without a webhook. Without a price the flag is exit 2 with a stderr explanation, never a silent pass. An empty store prices to $0 and stays calm. 5 tests.
