@@ -147,7 +147,7 @@ def test_cli_spool_once(tmp_path, capsys):
     _transcript_file(spool / "a.jsonl", success=False)
     args = argparse.Namespace(store=str(store_dir), dir=str(spool),
                               interval=1.0, once=True, delete=False,
-                              dry_run=False, max_passes=1)
+                              dry_run=False, max_passes=1, json=False)
     assert cmd_spool(args) == 1
     out = capsys.readouterr().out
     assert "spool pass 1" in out
@@ -186,3 +186,22 @@ def test_watch_line_mentions_modes(tmp_path, capsys):
     assert code == 1
     out = capsys.readouterr().out
     assert "failures:" in out
+
+
+def test_json_pass_lines(tmp_path, capsys):
+    store_dir = tmp_path / "s"
+    spool = tmp_path / "spool"
+    spool.mkdir()
+    _transcript_file(spool / "a.jsonl", success=False)
+    args = argparse.Namespace(store=str(store_dir), dir=str(spool),
+                              interval=1.0, once=True, delete=False,
+                              dry_run=False, max_passes=1, json=True)
+    assert cmd_spool(args) == 1
+    import json as _json
+
+    rows = [_json.loads(line) for line in
+            capsys.readouterr().out.strip().splitlines()]
+    assert len(rows) == 1
+    assert rows[0]["pass"] == 1
+    assert rows[0]["imported"] == 1
+    assert rows[0]["failed_traces"] == 1

@@ -1931,7 +1931,7 @@ def cmd_spool(args: argparse.Namespace) -> int:
             once=bool(args.once), delete=bool(args.delete),
             dry_run=bool(args.dry_run),
             max_passes=int(getattr(args, "max_passes", 0) or 0)
-            or None)
+            or None, as_json=bool(getattr(args, "json", False)))
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -2734,6 +2734,8 @@ def build_parser() -> argparse.ArgumentParser:
                    metavar="N",
                    help="stop after N passes (tests and systemd "
                         "restart loops)")
+    p.add_argument("--json", action="store_true",
+                   help="emit each pass as one JSON line")
     p.set_defaults(func=cmd_spool)
 
     p = sub.add_parser("import", parents=[common],

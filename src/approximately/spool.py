@@ -112,7 +112,8 @@ def spool_pass(store: TraceStore, directory: Path,
 def watch_spool(store: TraceStore, directory: Path,
                 interval: float = 60.0, once: bool = False,
                 delete: bool = False, dry_run: bool = False,
-                max_passes: Optional[int] = None) -> int:
+                max_passes: Optional[int] = None,
+                as_json: bool = False) -> int:
     """Run passes until interrupted; exit 1 if any pass ingested a
     failed trace (the cron/CI gate), 0 otherwise.  KeyboardInterrupt
     is a clean stop."""
@@ -124,17 +125,25 @@ def watch_spool(store: TraceStore, directory: Path,
                              dry_run=dry_run)
         if outcome["failed_traces"]:
             exit_code = 1
-        line = (f"spool pass {passes}: {outcome['files']} file(s), "
-                f"{outcome['imported']} imported, "
-                f"{outcome['skipped']} skipped, "
-                f"{outcome['failures']} unparsed")
-        raw_modes: Any = outcome.get("failure_modes") or {}
-        modes = dict(raw_modes) if isinstance(raw_modes, dict) else {}
-        if modes:
-            detail = ", ".join(f"{m} x{c}"
-                               for m, c in sorted(modes.items()))
-            line += f" | failures: {detail}"
-        print(line)
+        if as_json:
+            import json
+
+            row = dict(outcome)
+            row["pass"] = passes
+            print(json.dumps(row, default=str))
+        else:
+            line = (f"spool pass {passes}: {outcome['files']} file(s), "
+                    f"{outcome['imported']} imported, "
+                    f"{outcome['skipped']} skipped, "
+                    f"{outcome['failures']} unparsed")
+            raw_modes: Any = outcome.get("failure_modes") or {}
+            modes = dict(raw_modes) if isinstance(raw_modes, dict) \
+                else {}
+            if modes:
+                detail = ", ".join(f"{m} x{c}"
+                                   for m, c in sorted(modes.items()))
+                line += f" | failures: {detail}"
+            print(line)
         if once or (max_passes is not None
                     and passes >= max_passes):
             return exit_code
