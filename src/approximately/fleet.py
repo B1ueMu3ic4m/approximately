@@ -319,7 +319,8 @@ def _store_card(s: StoreSummary) -> str:
     ) or "<tr><td>no attributed failures</td></tr>"
     agents_html = "".join(
         "<tr><td class='mono'>" + esc(r["agent"]) + "</td>"
-        f"<td>{r['steps']}</td><td>{r['errors']}</td>"
+        f"<td>{r['steps']}</td><td>{r['tokens']:,}</td>"
+        f"<td>{r['errors']}</td>"
         f"<td>{r['failure_rate']:.0%}</td></tr>"
         for r in s.top_agents
     ) or "<tr><td>no named agents recorded</td></tr>"
@@ -370,7 +371,7 @@ def _store_card(s: StoreSummary) -> str:
         f"<table>{modes_html}</table>"
         "<h3>Busiest agents</h3>"
         "<table>"
-        "<tr><th>agent</th><th>steps</th><th>errors</th>"
+        "<tr><th>agent</th><th>steps</th><th>tokens</th><th>errors</th>"
         "<th>fail-rate</th></tr>"
         + agents_html + "</table></div>"
     )

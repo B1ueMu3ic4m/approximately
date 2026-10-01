@@ -141,3 +141,29 @@ def test_markdown_parity_token_burn(tmp_path):
 
     html = render_html(trace, attribute(trace), store=store)
     assert "Token anomalies" in html
+
+
+def test_report_timeline_and_agent_table_show_tokens(tmp_path):
+    store = TraceStore(tmp_path / "s")
+    trace = Trace(task="priced run", id="aaa000000000",
+                  model="gpt-x", success=False)
+    for tokens in (100, 200, 400):
+        trace.add(Step(kind="tool_call", tool="search",
+                       tokens=tokens, latency_ms=40))
+    trace.add(Step(kind="response", result="gave up"))
+    trace.steps[0].agent = "worker"
+    store.save(trace)
+
+    from approximately.attributor import attribute
+    from approximately.report import render_html
+
+    html = render_html(store.load(trace.id), attribute(trace),
+                       store=store)
+    assert "<th>tokens</th>" in html
+    assert "100" in html            # the metered step's count
+    assert "<td>—</td>" in html     # unmetered steps stay honest
+
+    from approximately.fleet import render_fleet_html
+
+    fleet_html = render_fleet_html(survey([store.directory]))
+    assert "<th>tokens</th>" in fleet_html

@@ -2436,3 +2436,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      imported traces (JSON field + prose "token burns: N"), so a
      watch line flags the expensive run without waiting for the
      fleet pass.  1 test.
+
+257. **v2.20.4 - tokens in the tables people actually read** ✅
+     (delivered): the report timeline gains a tokens column
+     (unmetered steps show an honest dash) and the fleet card's
+     busiest-agents table gains one too — the counts the token
+     family runs on are visible where the traces are.  1 test.
