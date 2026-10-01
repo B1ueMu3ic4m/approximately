@@ -104,7 +104,7 @@ def spool_pass(store: TraceStore, directory: Path,
         "files": len(files), "imported": 0, "skipped": 0,
         "failures": 0, "failed_traces": 0, "archived": 0,
         "deleted": 0, "left": 0, "errors": [], "failure_modes": {},
-        "token_burns": 0,
+        "token_burns": 0,  # nosec B105: a count, not a credential
     }
     for path in files:
         try:
