@@ -1372,7 +1372,12 @@ def _anomalies_report(args: argparse.Namespace, store,
     store_traces = store.list_traces(
         since_days=getattr(args, "since", None))
     if getattr(args, "all", False):
-        fleet = fleet_fn(store_traces, threshold=args.threshold)
+        try:
+            fleet = fleet_fn(store_traces, threshold=args.threshold,
+                             per_model=bool(getattr(
+                                 args, "per_model", False)))
+        except TypeError:
+            fleet = fleet_fn(store_traces, threshold=args.threshold)
         if getattr(args, "json", False):
             rows = [_anomaly_row(a, tokens=hasattr(a, "tokens"))
                     for a in fleet]
@@ -2598,6 +2603,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="meter on tokens instead of milliseconds — "
                         "token burn is the receipt a retry loop "
                         "leaves behind")
+    p.add_argument("--per-model", action="store_true",
+                   help="with --tokens --all: split each tool family "
+                        "by the trace's model (a gpt-4o and a mini "
+                        "are different rulers)")
     p.add_argument("--all", action="store_true",
                    help="fleet mode: baseline each tool family "
                         "across the whole store instead of one "

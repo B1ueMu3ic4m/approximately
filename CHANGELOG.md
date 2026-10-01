@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.14.0
+
+- per-model token baselines: a gpt-4o and a mini are different rulers. `detect_fleet_token_anomalies(per_model=True)` splits each tool family by the trace's recorded model — pooled, a big model's honest usage cries wolf and a mini's real burn hides in the noise; split, the mini burn is the only flag and its tool name carries the model (`search [gpt-4o-mini]`). `anomalies --per-model` (with --tokens --all) and MCP `per_model` flag; default stays pooled for compatibility. 1 rewritten test tells the story.
+
 ## v2.13.1
 
 - the trend page grows a token-burn badge. the fleet HTML trend section renders the token-burn series (badge + slope line + a table column) beside the slowness one — either series alone also renders; ANNOUNCE- MENT's 2.x era covers the money chain (v2.10-v2.13).

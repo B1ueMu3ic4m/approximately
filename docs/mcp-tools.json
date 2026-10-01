@@ -509,6 +509,10 @@
             "type": "boolean",
             "description": "meter on tokens instead of milliseconds \u2014 burn flags the receipt a retry loop leaves"
           },
+          "per_model": {
+            "type": "boolean",
+            "description": "with tokens+fleet: split each tool family by the trace's model"
+          },
           "threshold": {
             "type": "number",
             "description": "z-score threshold (default 3.5)"
