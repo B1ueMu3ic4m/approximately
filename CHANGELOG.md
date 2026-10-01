@@ -3,13 +3,14 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.20.1
+
+- diff/bisect cross stores: imported vs baseline. `similar` had --other-store; diff and bisect get it — compare an imported OTLP trace against a healthy reference that lives in a different store, without merging first. The OTLP flow's postmortem question ("what diverged from the baseline?") now answers across stores. 3 tests.
+- the version bump that silently no-oped. the cross-store round's sed looked for `version = "2.19.0"` while main already carried 2.20.0 — the bump matched nothing, the merge shipped at 2.20.0, and autotag correctly said "nothing to release". The lesson is now mechanical: bumps use an any-version regex and are verified with grep in the same breath. Item 253 rides this release.
+
 ## v2.20.0
 
 - fleet --alert-spend: the budget pages too. `fleet --watch --alert-spend USD` alerts when a store's estimated spend crosses the budget — same quiet-by-default contract as the anomaly gates (a rate threshold quietens; gates add fire conditions), and unpriced stores never trip it. Symmetric with --alert-anomalies / --alert-tokens. 3 tests.
-
-## v2.19.1
-
-- diff/bisect cross stores: imported vs baseline. `similar` had --other-store; diff and bisect get it — compare an imported OTLP trace against a healthy reference that lives in a different store, without merging first. The OTLP flow's postmortem question ("what diverged from the baseline?") now answers across stores. 3 tests.
 
 ## v2.19.0
 
