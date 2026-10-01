@@ -80,6 +80,9 @@ class StoreSummary:
     token_anomalies: int = 0
     worst_token_anomaly: Optional[dict] = None
     annotations_confirmed: int = 0
+    total_tokens: int = 0
+    est_spend: Optional[float] = None
+    spend_unpriced_tokens: int = 0
 
     @property
     def worsening(self) -> bool:
@@ -139,6 +142,10 @@ def webhook_payload(summaries: List[StoreSummary]) -> dict:
                 "token_anomalies": getattr(s, "token_anomalies", 0),
                 "worst_token_anomaly":
                     getattr(s, "worst_token_anomaly", None),
+                "total_tokens": getattr(s, "total_tokens", 0),
+                "est_spend": getattr(s, "est_spend", None),
+                "spend_unpriced_tokens":
+                    getattr(s, "spend_unpriced_tokens", 0),
                 "top_modes": [
                     {"mode": mode, "count": count}
                     for mode, count in s.top_modes
@@ -206,7 +213,8 @@ def notify_webhook(summaries: List[StoreSummary], url: str,
         f"{last_error}") from last_error
 
 
-def survey(stores: List[Path], top_agents: int = 3) -> List[StoreSummary]:
+def survey(stores: List[Path], top_agents: int = 3,
+           prices: Optional[dict] = None) -> List[StoreSummary]:
     """Compute fleet health numbers for each store directory.
 
     Attribution runs on the rule detectors only — a fleet sweep must
@@ -220,6 +228,8 @@ def survey(stores: List[Path], top_agents: int = 3) -> List[StoreSummary]:
         store = TraceStore(Path(path))
         traces = store.list_traces()
         failed = sum(1 for t in traces if t.success is False)
+        total_tokens = sum(step.tokens for t in traces
+                           for step in t.steps)
         rows = trend(traces)
         verdict, slope = _verdict(rows)
         health = store.annotations_health()
@@ -259,8 +269,31 @@ def survey(stores: List[Path], top_agents: int = 3) -> List[StoreSummary]:
                 "median_tokens": token_flags[0].median_tokens,
                 "robust_z": token_flags[0].robust_z,
             },
+            total_tokens=total_tokens,
+            **_spend(traces, total_tokens, prices),
         ))
     return summaries
+
+
+def _spend(traces, total_tokens: int,
+           prices: Optional[dict]) -> dict:
+    """Per-store spend when a prices table is in play (blended $/1k
+    per trace model); unpriced tokens are counted, never silently
+    free.  Without a table: the token count alone."""
+    if not prices:
+        return {"est_spend": None, "spend_unpriced_tokens": 0}
+    spend = 0.0
+    unpriced = 0
+    for trace in traces:
+        rate = prices.get(str(trace.model or "unknown"))
+        tokens = sum(step.tokens for step in trace.steps)
+        if rate is None:
+            unpriced += tokens
+        else:
+            spend += tokens / 1000 * rate
+    return {"est_spend": round(spend, 4),
+            "spend_unpriced_tokens": unpriced if unpriced
+            or total_tokens else 0}
 
 
 def _store_card(s: StoreSummary) -> str:
@@ -313,12 +346,16 @@ def _store_card(s: StoreSummary) -> str:
             f"<td>{worst_tok['tokens']} tok</td>"
             f"<td>family median {worst_tok['median_tokens']:.0f} · "
             f"z={worst_tok['robust_z']}</td></tr></table>")
+    sub = (f'{esc(s.path)} · {s.traces} traces · ledger: '
+           f'{ledger_note} · notes: {getattr(s, "annotations", 0)} '
+           f'({getattr(s, "annotations_confirmed", 0)} confirmed)')
+    if getattr(s, "total_tokens", 0):
+        sub += f' · {s.total_tokens:,} tokens'
+        if getattr(s, "est_spend", None) is not None:
+            sub += f' · est ${s.est_spend:,.2f}'
     return (
         f'<div class="store"><h2>{esc(s.name)}</h2>'
-        f'<div class="sub">{esc(s.path)} · '
-        f'{s.traces} traces · ledger: {ledger_note} · '
-        f'notes: {getattr(s, "annotations", 0)} '
-        f'({getattr(s, "annotations_confirmed", 0)} confirmed)</div>'
+        f'<div class="sub">{sub}</div>'
         '<div class="row">'
         f'<span class="rate {rate_cls}">{s.failure_rate:.0%}</span>'
         f"{spark}"
@@ -672,7 +709,8 @@ def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
                 webhook_url: Optional[str] = None,
                 notify=None, alert_worse_than: Optional[float] = None,
                 alert_anomalies: Optional[int] = None,
-                alert_tokens: Optional[int] = None) -> int:
+                alert_tokens: Optional[int] = None,
+                prices: Optional[dict] = None) -> int:
     """Poll the fleet forever (or ``iterations`` times), appending
     snapshots. Returns the number of snapshots written. ``sleep`` is
     injectable so tests run instantly.
@@ -686,7 +724,7 @@ def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
     rotate_digests(digest_dir, keep_days)
     for _ in (range(iterations) if iterations is not None
               else iter(int, 1)):
-        summaries = survey(stores, top_agents)
+        summaries = survey(stores, top_agents, prices=prices)
         append_digest(digest_dir, digest_snapshot(summaries))
         written += 1
         if webhook_url and _should_alert(summaries, alert_worse_than,

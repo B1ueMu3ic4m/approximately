@@ -1196,7 +1196,8 @@ def _fleet_watch(args: argparse.Namespace, stores) -> int:
                              else None),
             alert_tokens=(int(args.alert_tokens) if
                           getattr(args, "alert_tokens", None)
-                          else None))
+                          else None),
+            prices=_fleet_prices(args))
     except KeyboardInterrupt:
         print("watch stopped")
         return 0
@@ -1257,11 +1258,33 @@ def _fleet_trend(args: argparse.Namespace) -> int:
     return 0
 
 
+def _fleet_prices(args: argparse.Namespace):
+    path = getattr(args, "prices", None)
+    if not path:
+        return None
+    import json as _json
+
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            table = _json.load(fh)
+    except (OSError, ValueError) as exc:
+        print(f"error: prices file: {exc}", file=sys.stderr)
+        raise SystemExit(2) from None
+    if not isinstance(table, dict) or not all(
+            isinstance(v, (int, float)) and v >= 0
+            for v in table.values()):
+        print("error: prices file must map model -> non-negative "
+              "number", file=sys.stderr)
+        raise SystemExit(2)
+    return table
+
+
 def _fleet_survey(args: argparse.Namespace) -> int:
     from .fleet import render_fleet_html, survey
 
     summaries = survey([Path(d) for d in args.stores],
-                       top_agents=getattr(args, "top_agents", 3))
+                       top_agents=getattr(args, "top_agents", 3),
+                       prices=_fleet_prices(args))
     trend_summary = None
     digest_dir = getattr(args, "digest_dir", None)
     if args.fleet_html and digest_dir and Path(digest_dir).is_dir():
@@ -2501,6 +2524,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--alert-tokens", type=int, metavar="N",
                    help="also alert when a store carries >= N token "
                         "burn outliers")
+    p.add_argument("--prices", metavar="FILE",
+                   help="JSON map of model -> blended $/1k; fleet "
+                        "cards and --json gain a per-store spend "
+                        "estimate")
     p.add_argument("--alert-worse-than", type=float, metavar="RATE",
                    help="with --watch --webhook: POST only when a "
                         "store is worsening or its failure rate is at "

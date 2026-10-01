@@ -1,0 +1,100 @@
+"""v228: the fleet sees the money — tokens and spend per store.
+
+`fleet --prices FILE` prices every store's tokens by its traces'
+recorded models, and the number reaches the store card, `fleet
+--json`, and the digest snapshots (additive fields).  Without a
+table the token count still shows; unpriced tokens are counted,
+never silently free.
+"""
+
+import argparse
+import json
+
+import pytest
+
+from approximately.cli import cmd_fleet
+from approximately.fleet import survey
+from approximately.store import TraceStore
+from approximately.trace import Step, Trace
+
+
+def _seed(path, model="gpt-x", tokens=10_000):
+    store = TraceStore(path)
+    trace = Trace(task="priced run", id="aaa000000000", model=model,
+                  success=True)
+    trace.add(Step(kind="tool_call", tool="t", tokens=tokens))
+    store.save(trace)
+    return store
+
+
+def _prices(tmp_path):
+    table = tmp_path / "prices.json"
+    table.write_text(json.dumps({"gpt-x": 3.0}), encoding="utf-8")
+    return table
+
+
+def test_survey_carries_tokens_and_spend(tmp_path):
+    store = _seed(tmp_path / "s")
+    summaries = survey([store.directory], prices={"gpt-x": 3.0})
+    s = summaries[0]
+    assert s.total_tokens == 10_000
+    assert s.est_spend == 30.0
+    assert s.spend_unpriced_tokens == 0
+
+
+def test_survey_without_prices_has_tokens_only(tmp_path):
+    store = _seed(tmp_path / "s")
+    s = survey([store.directory])[0]
+    assert s.total_tokens == 10_000
+    assert s.est_spend is None
+
+
+def test_unpriced_models_are_counted(tmp_path):
+    store = _seed(tmp_path / "s", model="mystery")
+    s = survey([store.directory], prices={"gpt-x": 3.0})[0]
+    assert s.est_spend == 0.0
+    assert s.spend_unpriced_tokens == 10_000
+
+
+def test_fleet_json_carries_spend(tmp_path, capsys):
+    store = _seed(tmp_path / "s")
+    table = _prices(tmp_path)
+    args = argparse.Namespace(
+        stores=[str(store.directory)], json=True, fleet_html=None,
+        digest_dir=None, trend=False, agent=None, top_agents=3,
+        watch=None, iterations=None, webhook=None,
+        alert_anomalies=None, alert_tokens=None,
+        alert_worse_than=None, fail_on_worsening=False,
+        keep_days=30, prices=str(table))
+    assert cmd_fleet(args) == 0
+    payload = json.loads(capsys.readouterr().out)
+    entry = (payload.get("stores") or [payload])[0]
+    summary = entry.get("summary", entry)
+    assert summary["total_tokens"] == 10_000
+    assert summary["est_spend"] == 30.0
+
+
+def test_fleet_card_shows_tokens_and_spend(tmp_path):
+    from approximately.fleet import render_fleet_html
+
+    store = _seed(tmp_path / "s")
+    summaries = survey([store.directory], prices={"gpt-x": 3.0})
+    html = render_fleet_html(summaries)
+    assert "10,000 tokens" in html
+    assert "est $30.00" in html
+
+
+def test_bad_prices_file_exits_loud(tmp_path):
+    store = _seed(tmp_path / "s")
+    bad = tmp_path / "bad.json"
+    bad.write_text("{ nope", encoding="utf-8")
+    args = argparse.Namespace(
+        stores=[str(store.directory)], json=False, fleet_html=None,
+        digest_dir=None, trend=False, agent=None, top_agents=3,
+        watch=None, iterations=None, webhook=None,
+        alert_anomalies=None, alert_tokens=None,
+        alert_worse_than=None, fail_on_worsening=False,
+        keep_days=30, prices=str(bad))
+    with pytest.raises(SystemExit) as exc:
+        cmd_fleet(args)
+    assert exc.value.code == 2
