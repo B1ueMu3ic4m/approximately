@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.14.2
+
+- audit: verify says unsigned, and the money path stays fast. (1) semantic pin — a foreign OTLP trace has no evidence chain, and `verify` says "unsigned", never "TAMPERED" (the honest verdict an operator scanning `verify --all --json` needs). (2) perf-gate[survey-spend]: the money rollup over a 10k-trace store stays inside budget — seeding is setup, the survey itself is what's timed. Gate count: 10.
+
 ## v2.14.1
 
 - the JSON-door sweep: every --json parses. the v221 tour generalized — every command with a --json flag driven with real argv against a seeded store; the contract is exit 0/1 plus parseable JSON. Found and fixed: `optimize --json` on a probe-less trace printed prose with the flag set — now honest JSON (`optimized: false`). `report --json` documented as --all's index manifest and swept as such. 8 doors.

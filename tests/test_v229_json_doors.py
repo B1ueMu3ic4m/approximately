@@ -10,6 +10,8 @@ handler/argparse mismatch fails here instead of in someone's cron.
 import json
 
 from approximately.cli import main
+from approximately.exporter import export_store
+from approximately.importer import import_file
 from approximately.recorder import Recorder
 from approximately.store import TraceStore
 
@@ -138,3 +140,19 @@ def test_rotate_door(tmp_path, capsys):
                          "--new-key-file", str(new_key_file),
                          "--all", "--json")
     assert payload is not None
+
+
+def test_verify_on_imported_trace_is_unsigned_not_tampered(tmp_path):
+    # the semantic pin: a foreign OTLP trace has no evidence chain —
+    # that is "unsigned", never "TAMPERED"
+    store = _seed(tmp_path)
+    outbox = tmp_path / "out"
+    outbox.mkdir()
+    export_store(store, outbox / "t.otlp.json", fmt="otel")
+    back = TraceStore(tmp_path / "back")
+    import_file(outbox / "t.otlp.json", back)
+    from approximately.integrity import verify
+
+    for trace in back.list_traces():
+        result = verify(trace)
+        assert result.verdict == "unsigned"

@@ -2332,3 +2332,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      flag set — now honest JSON (`optimized: false`).  `report
      --json` documented as --all's index manifest and swept as
      such.  8 doors.
+
+243. **v2.14.2 - audit: verify says unsigned, and the money path stays fast** ✅
+     (delivered): (1) semantic pin — a foreign OTLP trace has no
+     evidence chain, and `verify` says "unsigned", never
+     "TAMPERED" (the honest verdict an operator scanning
+     `verify --all --json` needs).  (2) perf-gate[survey-spend]:
+     the money rollup over a 10k-trace store stays inside budget —
+     seeding is setup, the survey itself is what's timed.  Gate
+     count: 10.
