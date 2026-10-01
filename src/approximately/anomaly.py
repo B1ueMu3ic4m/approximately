@@ -335,18 +335,28 @@ def _flagged_tokens(metered, values, med: float, mad: float,
 
 def detect_fleet_token_anomalies(traces, threshold: float
                                  = MODIFIED_Z_THRESHOLD,
-                                 min_samples: int = 5
+                                 min_samples: int = 5,
+                                 per_model: bool = False
                                  ) -> List[TraceTokenAnomaly]:
     """Per-tool token baselines across a whole store — the fleet
     knows what `search` should cost in tokens everywhere, every
-    day; families under ``min_samples`` are honest no-ops."""
-    by_tool: dict = {}
+    day; families under ``min_samples`` are honest no-ops.
+
+    ``per_model`` splits each tool family by the trace's model: a
+    gpt-4o and a mini doing the "same" search are different scale
+    rulers, and pooling them hides both ends."""
+    def family_key(trace, step):
+        if per_model:
+            return (step.tool or "?", str(trace.model or "unknown"))
+        return (step.tool or "?",)
+
+    by_family: dict = {}
     for trace in traces:
         for step in _metered_steps(trace):
-            by_tool.setdefault(step.tool or "?", []).append(
+            by_family.setdefault(family_key(trace, step), []).append(
                 (trace, step))
     anomalies: List[TraceTokenAnomaly] = []
-    for tool, pairs in sorted(by_tool.items()):
+    for key, pairs in sorted(by_family.items(), key=repr):
         if len(pairs) < min_samples:
             continue
         values = [float(s.tokens) for _, s in pairs]
@@ -354,13 +364,15 @@ def detect_fleet_token_anomalies(traces, threshold: float
         mad = _mad(values, med)
         if mad == 0:
             continue
+        tool = key[0]
+        model = key[1] if per_model else None
         for trace, step in pairs:
             z = _CONSISTENCY * (float(step.tokens) - med) / mad
             if abs(z) > threshold:
                 anomalies.append(TraceTokenAnomaly(
                     trace_id=trace.id,
                     step_index=step.index,
-                    tool=tool,
+                    tool=(f"{tool} [{model}]" if model else tool),
                     tokens=step.tokens,
                     median_tokens=med,
                     robust_z=round(z, 2),

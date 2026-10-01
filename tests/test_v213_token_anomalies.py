@@ -197,3 +197,36 @@ def test_mcp_tokens_fleet(tmp_path):
     assert result["fleet"] is True
     assert result["tokens"] is True
     assert result["count"] >= 1
+
+
+def test_fleet_per_model_splits_families(tmp_path):
+    # gpt-4o and mini doing the "same" search: pooled, the big
+    # model's honest usage looks like burn; split, each model gets
+    # its own ruler and the real mini burn is the only flag
+    store = TraceStore(tmp_path / "s")
+    big = _run([800, 850, 900, 750, 820, 880, 790, 860, 810, 840, 830,
+                870], ident="big")
+    store.save(big)
+    for j in range(4):
+        small = _run([50 + j, 45 + j, 55 + j, 48 + j, 52 + j, 60 + j,
+                      47 + j, 58 + j, 44 + j, 53 + j, 49 + j, 61 + j],
+                     ident=f"mini{j}")
+        small.model = "gpt-4o-mini"
+        store.save(small)
+    burn = _run([50, 48, 52, 47, 51, 55, 49, 53, 46, 54, 50, 6_000],
+                ident="mini-burn")
+    burn.model = "gpt-4o-mini"
+    store.save(burn)
+    from approximately.anomaly import detect_fleet_token_anomalies
+
+    traces = store.list_traces()
+    pooled = detect_fleet_token_anomalies(traces)
+    assert any(a.trace_id == "big" for a in pooled), (
+        "pooled scale cries wolf on the big model")
+
+    split = detect_fleet_token_anomalies(traces, per_model=True)
+    assert not any(a.trace_id == "big" for a in split), (
+        "split: the big family is internally calm")
+    mini_flags = [a for a in split if a.trace_id == "mini-burn"]
+    assert mini_flags and mini_flags[0].tokens == 6_000
+    assert "[gpt-4o-mini]" in mini_flags[0].tool

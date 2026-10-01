@@ -497,6 +497,10 @@ _TOOLS: List[Dict[str, Any]] = [
                                           "of milliseconds — burn "
                                           "flags the receipt a "
                                           "retry loop leaves"},
+                "per_model": {"type": "boolean",
+                              "description": "with tokens+fleet: "
+                                             "split each tool family "
+                                             "by the trace's model"},
                 "threshold": {"type": "number",
                               "description": "z-score threshold "
                                              "(default 3.5)"},
@@ -1143,8 +1147,9 @@ def _token_anomalies(store, args: Dict[str, Any],
 
     if args.get("fleet"):
         store_traces = store.list_traces()
-        fleet = detect_fleet_token_anomalies(store_traces,
-                                             threshold=threshold)
+        fleet = detect_fleet_token_anomalies(
+            store_traces, threshold=threshold,
+            per_model=bool(args.get("per_model")))
         return {"fleet": True,
                 "tokens": True,
                 "traces": len(store_traces),
@@ -1165,6 +1170,7 @@ def _token_anomalies(store, args: Dict[str, Any],
         per_tool=bool(args.get("per_tool")))
     return {"trace": trace.id,
             "tokens": True,
+            "per_model": bool(args.get("per_model")),
             "per_tool": bool(args.get("per_tool")),
             "count": len(anomalies),
             "summary": summarize_token_anomalies(anomalies),
