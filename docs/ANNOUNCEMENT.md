@@ -47,13 +47,15 @@ https://github.com/B1ueMu3ic4m/approximately
 
 #OpenSource #AIAgents #LLM #DevTools
 
-**The 2.x era (v2.0-v2.8):** agent runs now speak **OpenTelemetry** —
-export to Jaeger/Tempo/Honeycomb, import back, byte-closed loop.
-**Token burn detection** joins latency anomalies: the receipt a retry
-loop leaves, with per-tool baselines, fleet trend and quiet
-webhook alerting. A **spool watcher** ingests any directory agents
-drop exports into, and `doctor --spool` flags what needs a human.
-Still zero dependencies.
+**The 2.x era (v2.0-v2.13):** agent runs now speak **OpenTelemetry** —
+export to Jaeger/Tempo/Honeycomb, import back, byte-closed loop, and
+third-party agents join via the GenAI conventions. **Token burn
+detection** with per-tool baselines, fleet trend and quiet webhook
+alerting — plus the money chapter: adapters record real usage,
+`stats --prices` prices spend per model, `--fail-over` turns it into
+an alarm, and `fleet --prices` rolls it up per store. A **spool
+watcher** ingests any directory agents drop exports into. Still zero
+dependencies.
 
 ## X main post (Chinese — 中文版)
 
