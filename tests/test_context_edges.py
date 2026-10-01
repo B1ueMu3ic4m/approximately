@@ -12,11 +12,13 @@ from approximately.context import (
 )
 
 
-def test_zero_and_negative_budgets_evict_everything_unpinned():
+def test_zero_and_negative_budgets_are_loud_config_errors():
+    # v2.21.0: a nonsense budget is rejected, not silently honored
+    import pytest
+
     for budget in (0, -5):
-        rt = ContextRuntime(budget=budget, task="t")
-        rt.add_tool_result("r1", "some content")
-        assert all(i.pinned for i in rt.render()), budget
+        with pytest.raises(ValueError, match="budget must be positive"):
+            ContextRuntime(budget=budget, task="t")
 
 
 def test_all_pinned_over_budget_is_honest_state():
