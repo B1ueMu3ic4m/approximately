@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.13.1
+
+- the trend page grows a token-burn badge. the fleet HTML trend section renders the token-burn series (badge + slope line + a table column) beside the slowness one — either series alone also renders; ANNOUNCE- MENT's 2.x era covers the money chain (v2.10-v2.13).
+
 ## v2.13.0
 
 - the fleet sees the money. survey carries each store's total tokens, and `fleet --prices FILE` adds a per-store spend estimate (blended $/1k per trace model, unpriced tokens counted) — reaching the store card, `fleet --json`, the digest snapshots and webhooks (additive fields), and the watch loop. Bad price files exit 2. 6 tests.

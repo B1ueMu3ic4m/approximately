@@ -383,28 +383,44 @@ def _trend_section(summary: dict) -> str:
         else "<p>(no snapshots with traces yet)</p>"
     badge_cls, trend_label = TREND_LABELS[summary["verdict"]]
     anomaly_trend = summary.get("anomaly_trend")
-    if anomaly_trend:
+    token_trend = summary.get("token_trend")
+    if anomaly_trend or token_trend:
         rows = (f"<tr><td>{esc(r['day'])}</td>"
                 f"<td>{r['traces']}</td>"
                 f"<td>{r['fleet_anomalies']}</td>"
+                f"<td>{r['token_anomalies']}</td>"
                 f"<td>{r['failure_rate']:.0%}</td></tr>"
                 for r in summary["days"])
-        a_cls, a_label = TREND_LABELS[anomaly_trend["verdict"]]
+        trend_bits = [('<div class="row">'
+                       f'<span class="badge {badge_cls}">'
+                       f'{esc(trend_label)}</span>'
+                       '<span class="sub">slope '
+                       f'{summary["slope"]:+.4f}/day · '
+                       f'{summary["snapshots"]} snapshot(s) over '
+                       f'{len(summary["days"])} day(s)</span></div>'),
+                      spark]
+        if anomaly_trend:
+            a_cls, a_label = TREND_LABELS[anomaly_trend["verdict"]]
+            trend_bits.append(
+                '<div class="row"><span class="badge ' + a_cls + '">'
+                f'{esc(a_label)}</span>'
+                '<span class="sub">slowness: latest '
+                f'{anomaly_trend["latest"]} flagged step(s), slope '
+                f'{anomaly_trend["slope"]:+.4f}/day</span></div>')
+        if token_trend:
+            t_cls, t_label = TREND_LABELS[token_trend["verdict"]]
+            trend_bits.append(
+                '<div class="row"><span class="badge ' + t_cls + '">'
+                f'{esc(t_label)}</span>'
+                '<span class="sub">token burn: latest '
+                f'{token_trend["latest"]} flagged step(s), slope '
+                f'{token_trend["slope"]:+.4f}/day</span></div>')
         return (
             '<div class="store"><h2>Fleet trend (digest history)</h2>'
-            f'<div class="row"><span class="badge {badge_cls}">'
-            f'{esc(trend_label)}</span>'
-            f'<span class="sub">slope {summary["slope"]:+.4f}/day · '
-            f'{summary["snapshots"]} snapshot(s) over '
-            f'{len(summary["days"])} day(s)</span></div>'
-            f"{spark}"
-            '<div class="row"><span class="badge ' + a_cls + '">'
-            f'{esc(a_label)}</span>'
-            '<span class="sub">slowness: latest '
-            f'{anomaly_trend["latest"]} flagged step(s), slope '
-            f'{anomaly_trend["slope"]:+.4f}/day</span></div>'
+            + "".join(trend_bits) +
             "<table><tr><th>day</th><th>traces</th>"
-            "<th>slow outliers</th><th>failure rate</th></tr>"
+            "<th>slow outliers</th><th>token burn</th>"
+            "<th>failure rate</th></tr>"
             + "".join(rows) + "</table></div>")
     rows_html = "".join(
         f"<tr><td>{esc(r['day'])}</td>"
