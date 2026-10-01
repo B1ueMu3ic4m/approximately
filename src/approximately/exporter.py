@@ -179,12 +179,51 @@ _STATUS_OK = 1
 _STATUS_ERROR = 2
 
 
-def trace_to_spans(trace: Trace) -> List[Dict[str, Any]]:
+def _root_span(trace: Trace,
+               annotations: Optional[List[dict]]) -> Dict[str, Any]:
+    """The run-level span: outcome status, run attributes, and the
+    analyst annotations as OTLP events."""
+    root: Dict[str, Any] = {
+        "traceId": _trace_id(trace.id),
+        "spanId": _span(trace.id, -1),
+        "parentSpanId": "",
+        "name": _cap(task_of(trace))[:_TASK_SPAN_CAP] or "agent run",
+        "kind": 1,
+        "startTimeUnixNano": _nanos(_base_of(trace)),
+        "endTimeUnixNano": _nanos(_end_of(trace)),
+        "attributes": _attrs([
+            ("approximately.trace.id", trace.id),
+            ("approximately.task", trace.task),
+            ("approximately.model", trace.model),
+            ("approximately.final_output", trace.final_output),
+            ("approximately.step.count", len(trace.steps)),
+            ("approximately.time.derived", True),
+            *((f"approximately.meta.{k}", v)
+              for k, v in sorted((trace.meta or {}).items())
+              if k != "imported_from"
+              and isinstance(v, (str, int, float, bool))),
+        ]),
+        "status": ({"code": _STATUS_ERROR}
+                   if trace.success is False
+                   else {"code": _STATUS_OK} if trace.success else
+                   {"code": 0}),
+    }
+    if annotations:
+        root["events"] = [_annotation_events(a)
+                          for a in annotations[:10]]
+    return root
+
+
+def trace_to_spans(trace: Trace,
+                   annotations: Optional[List[dict]] = None
+                   ) -> List[Dict[str, Any]]:
     """One trace as OTLP spans: a root span for the run, one child per
     recorded step.  Deterministic — the same trace always yields the
-    same span ids, timestamps and attribute bytes."""
+    same span ids, timestamps and attribute bytes.  Analyst
+    annotations ride the root span as OTLP events, so triage verdicts
+    travel with the trace into the backend."""
     root_id = _trace_id(trace.id)
-    base = trace.created_at if trace.created_at > 0 else 0.0
+    base = _base_of(trace)
     cursor = base
     spans: List[Dict[str, Any]] = []
     for step in trace.steps:
@@ -217,47 +256,52 @@ def trace_to_spans(trace: Trace) -> List[Dict[str, Any]]:
             **({"status": {"code": _STATUS_ERROR}}
                if step.error else {}),
         })
-    task = " ".join(str(trace.task).split())
-    root: Dict[str, Any] = {
-        "traceId": root_id,
-        "spanId": _span(trace.id, -1),
-        "parentSpanId": "",
-        "name": _cap(task)[:_TASK_SPAN_CAP] or "agent run",
-        "kind": 1,
-        "startTimeUnixNano": _nanos(base),
-        "endTimeUnixNano": _nanos(max(base, cursor)),
-        "attributes": _attrs([
-            ("approximately.trace.id", trace.id),
-            ("approximately.task", trace.task),
-            ("approximately.model", trace.model),
-            ("approximately.final_output", trace.final_output),
-            ("approximately.step.count", len(trace.steps)),
-            ("approximately.time.derived", True),
-            # imported_from is this store's provenance, not run
-            # evidence — skipping it keeps export→import→export
-            # closed byte-for-byte
-            *((f"approximately.meta.{k}", v)
-              for k, v in sorted((trace.meta or {}).items())
-              if k != "imported_from"
-              and isinstance(v, (str, int, float, bool))),
-        ]),
-        "status": ({"code": _STATUS_ERROR}
-                   if trace.success is False
-                   else {"code": _STATUS_OK} if trace.success else
-                   {"code": 0}),
-    }
-    return [root, *spans]
+    return [_root_span(trace, annotations), *spans]
 
 
-def export_otlp(traces: List[Trace]) -> Dict[str, Any]:
-    """All traces as one OTLP ``ExportTraceServiceRequest`` document."""
+def _base_of(trace: Trace) -> float:
+    return trace.created_at if trace.created_at > 0 else 0.0
+
+
+def _end_of(trace: Trace) -> float:
+    cursor = _base_of(trace)
+    for step in trace.steps:
+        cursor += (step.latency_ms if step.latency_ms > 0 else 0) / 1000.0
+    return max(_base_of(trace), cursor)
+
+
+def task_of(trace: Trace) -> str:
+    return " ".join(str(trace.task).split())
+
+
+def _annotation_events(note: dict) -> Dict[str, Any]:
+    """One annotation as an OTLP event on the root span."""
+    note_text = _cap(note.get("note") or "")
+    verdict = note.get("verdict") or "note"
+    name = f"annotation.{verdict}"[:_TASK_SPAN_CAP]
+    return {"timeUnixNano": _nanos(float(note.get("at") or 0) or 0),
+            "name": name,
+            "attributes": _attrs([
+                ("annotation.author", note.get("author")),
+                ("annotation.note", note_text or None),
+                ("annotation.verdict", str(verdict)),
+            ])}
+
+
+def export_otlp(traces: List[Trace],
+                annotations: Optional[Dict[str, List[dict]]] = None
+                ) -> Dict[str, Any]:
+    """All traces as one OTLP ``ExportTraceServiceRequest`` document.
+    ``annotations`` (trace_id -> analyst notes) ride the root spans
+    as events when provided."""
     resource = {"attributes": _attrs([
         ("service.name", "approximately"),
         ("approximately.version", _dist_version()),
     ])}
     spans: List[Dict[str, Any]] = []
     for trace in sorted(traces, key=lambda t: t.id):
-        spans.extend(trace_to_spans(trace))
+        spans.extend(trace_to_spans(
+            trace, (annotations or {}).get(trace.id)))
     return {"resourceSpans": [{
         "resource": resource,
         "scopeSpans": [{
@@ -315,8 +359,13 @@ def export_store(store: TraceStore, output: Path,
     traces = sorted(traces, key=lambda t: t.id)
     written = 0
     if fmt == OTEL:
+        grouped: Dict[str, List[dict]] = {}
+        for note in store.annotations():
+            grouped.setdefault(str(note.get("trace_id")), []).append(
+                note)
         with output.open("w", encoding="utf-8") as fh:
-            json.dump(export_otlp(traces), fh, ensure_ascii=False)
+            json.dump(export_otlp(traces, grouped), fh,
+                      ensure_ascii=False)
             fh.write("\n")
         return {"format": fmt, "traces": len(traces),
                 "written": len(traces), "dedupe_dropped": dropped,

@@ -189,3 +189,28 @@ def test_mcp_export_otel(tmp_path):
     assert result["written"] == 1
     assert result["format"] == "otel"
     assert _spans_of(_load(out))[0]["parentSpanId"] == ""
+
+
+def test_annotations_ride_root_span_events(tmp_path):
+    store = _seed(tmp_path / "s")
+    trace = store.list_traces()[0]
+    store.annotate(trace.id, "infra timeout confirmed",
+                   author="oncall", verdict="confirmed")
+    out = tmp_path / "ann.json"
+    export_store(store, out, fmt=OTEL)
+    env = _load(out)
+    root = _spans_of(env)[0]
+    events = root["events"]
+    assert len(events) == 1
+    assert events[0]["name"] == "annotation.confirmed"
+    keys = {a["key"]: a["value"] for a in events[0]["attributes"]}
+    assert keys["annotation.author"]["stringValue"] == "oncall"
+    assert "infra timeout" in keys["annotation.note"]["stringValue"]
+
+
+def test_no_annotations_no_events_key(tmp_path):
+    store = _seed(tmp_path / "s")
+    out = tmp_path / "clean.json"
+    export_store(store, out, fmt=OTEL)
+    root = _spans_of(_load(out))[0]
+    assert "events" not in root          # byte-stability preserved

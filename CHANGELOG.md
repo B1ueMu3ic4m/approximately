@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.17.0
+
+- triage travels: annotations ride OTLP export. analyst annotations leave the store as OTLP events on the root span (`annotation.<verdict>` with author and note attributes, capped at 10) — the verdict a human reached is visible in Jaeger/Tempo next to the failure. Annotation-less traces keep their exact bytes (byte-stability pinned); the reimport path is unaffected. 2 tests; the root-span builder extracted to keep the C bar.
+
 ## v2.16.0
 
 - markdown report parity: the anomaly cards land there too. the HTML report had latency/token cards; the markdown postmortem (the one that pastes into tickets) grew the same two sections — Latency anomalies and Token burn bullets with step, tool, amount, median, z and direction — best-effort like everything else in that renderer. 1 test pins html/markdown agreement on the same burn.
