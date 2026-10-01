@@ -2409,3 +2409,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      threshold quietens; gates add fire conditions), and unpriced
      stores never trip it.  Symmetric with --alert-anomalies /
      --alert-tokens.  3 tests.
+
+253. **v2.19.1 - diff/bisect cross stores: imported vs baseline** ✅
+     (delivered): `similar` had --other-store; diff and bisect get
+     it — compare an imported OTLP trace against a healthy
+     reference that lives in a different store, without merging
+     first.  The OTLP flow's postmortem question ("what diverged
+     from the baseline?") now answers across stores.  3 tests.
