@@ -369,7 +369,11 @@ def cmd_optimize(args: argparse.Namespace) -> int:
     trace = _load_trace(args.trace, store)
     result = optimize_budget(trace, min_recall=args.min_recall)
     if result is None:
-        print("no probe facts in this trace — nothing to optimize")
+        if getattr(args, "json", False):
+            print(json.dumps({"trace": trace.id, "probe_facts": 0,
+                              "optimized": False}, indent=2))
+        else:
+            print("no probe facts in this trace — nothing to optimize")
         return 1
     if getattr(args, "json", False):
         print(json.dumps({

@@ -52,7 +52,10 @@ def test_optimize_json_on_empty_trace(tmp_path, capsys):
     args = _run("optimize", str(rec.trace.id),
                 "--store", str(store.directory), "--json")
     assert args.func(args) == 1
-    assert "nothing to optimize" in capsys.readouterr().out
+    # v2.14.1: --json means JSON even on the empty path
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["optimized"] is False
+    assert payload["probe_facts"] == 0
 
 
 def test_explain_json_includes_fixes_and_detectors(capsys):
