@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.19.0
+
+- the spend trend: rising cost is a verdict. digest rows sum each store's est_spend into a per-day series, and `fleet --trend` judges it with the same Theil-Sen machinery — a "spend trend" badge in the fleet HTML, a prose line with the $/day slope, present only when prices were in play (zeros never invent a verdict). 2 tests.
+
 ## v2.18.0
 
 - the spool can page: spool --webhook. when a failed run actually lands in a pass, the spool watch POSTs the pass result (with the ingested failures called out) through the same HMAC-signed channel as the fleet webhook — quiet-by-default (clean passes never post), delivery failure is a stderr warning that never stops the loop, and `notify(...)` is injectable for tests. notify_webhook grows an optional payload parameter; RECIPES 18 already told this story. 2 tests.

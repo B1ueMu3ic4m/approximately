@@ -419,6 +419,15 @@ def _trend_section(summary: dict) -> str:
                 '<span class="sub">token burn: latest '
                 f'{token_trend["latest"]} flagged step(s), slope '
                 f'{token_trend["slope"]:+.4f}/day</span></div>')
+        spend_trend = summary.get("spend_trend")
+        if spend_trend:
+            s_cls, s_label = TREND_LABELS[spend_trend["verdict"]]
+            trend_bits.append(
+                '<div class="row"><span class="badge ' + s_cls + '">'
+                f'{esc(s_label)}</span>'
+                '<span class="sub">spend: latest '
+                f'${spend_trend["latest"]:,.2f}, slope '
+                f'${spend_trend["slope"]:+.2f}/day</span></div>')
         return (
             '<div class="store"><h2>Fleet trend (digest history)</h2>'
             + "".join(trend_bits) +
@@ -573,6 +582,7 @@ def _trend_row(entry: dict) -> dict:
                 modes.get(m.get("mode", "?"), 0) + m.get("count", 0))
     anomalies = sum(s.get("fleet_anomalies", 0) for s in stores)
     token_flags = sum(s.get("token_anomalies", 0) for s in stores)
+    spend = sum(s.get("est_spend") or 0 for s in stores)
     return {
         "day": entry["day"],
         "snapshots": entry["snapshots"],
@@ -583,6 +593,7 @@ def _trend_row(entry: dict) -> dict:
         "top_modes": sorted(modes.items(), key=lambda kv: -kv[1])[:3],
         "fleet_anomalies": anomalies,
         "token_anomalies": token_flags,
+        "est_spend": round(spend, 2),
     }
 
 
@@ -609,10 +620,18 @@ def summarize_trend(days: List[dict]) -> dict:
         token_verdict = {"verdict": t_verdict,
                          "slope": round(t_slope, 4),
                          "latest": token_series[-1]}
+    spend_series = [r["est_spend"] for r in rows]
+    spend_verdict = None
+    if len(spend_series) >= 2 and any(spend_series):
+        s_verdict, s_slope = trend_verdict(spend_series)
+        spend_verdict = {"verdict": s_verdict,
+                         "slope": round(s_slope, 4),
+                         "latest": spend_series[-1]}
     return {"days": rows, "verdict": verdict, "slope": round(slope, 4),
             "snapshots": sum(r["snapshots"] for r in rows),
             "anomaly_trend": anomaly_verdict,
-            "token_trend": token_verdict}
+            "token_trend": token_verdict,
+            "spend_trend": spend_verdict}
 
 
 AGENT_TREND_KEYS = ("steps", "tool_calls", "errors",
@@ -696,6 +715,12 @@ def render_trend(summary: dict) -> str:
             f"  token-burn trend: {token_trend['verdict']} "
             f"(slope {token_trend['slope']:+.4f}/day, latest "
             f"{token_trend['latest']} flagged step(s))")
+    spend_trend = summary.get("spend_trend")
+    if spend_trend:
+        lines.append(
+            f"  spend trend: {spend_trend['verdict']} "
+            f"(slope {spend_trend['slope']:+.2f}/day, latest "
+            f"${spend_trend['latest']:,.2f})")
     return "\n".join(lines)
 
 

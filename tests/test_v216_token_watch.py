@@ -143,3 +143,56 @@ def test_cli_fleet_json_token_fields(tmp_path, capsys):
     entry = (payload.get("stores") or [payload])[0]
     summary = entry.get("summary", entry)
     assert summary["token_anomalies"] >= 1
+
+
+def test_spend_trend_verdict(tmp_path):
+    import time
+
+    from approximately.fleet import (
+        append_digest,
+        digest_snapshot,
+        summarize_trend,
+        survey,
+        trend_days,
+    )
+
+    burn_dir = tmp_path / "burn"
+    _store_with_burn(burn_dir)
+    summaries = survey([burn_dir],
+                       prices={"gpt-x": 3.0, "unknown": 3.0})
+    assert summaries[0].est_spend == 30.06     # 10,020 tok @ $3/1k
+    digest_dir = tmp_path / "digest"
+    for offset in (2, 1):
+        snap = digest_snapshot(summaries)
+        snap["ts"] = time.time() - offset * 86400
+        append_digest(digest_dir, snap)
+    summary = summarize_trend(trend_days(digest_dir))
+    assert summary["spend_trend"] is not None
+    assert summary["spend_trend"]["latest"] == 30.06
+    assert summary["spend_trend"]["verdict"] in ("stable", "worsening",
+                                                 "improving")
+    for row in summary["days"]:
+        assert row["est_spend"] == 30.06
+
+
+def test_spend_trend_absent_without_prices(tmp_path):
+    import time
+
+    from approximately.fleet import (
+        append_digest,
+        digest_snapshot,
+        summarize_trend,
+        survey,
+        trend_days,
+    )
+
+    burn_dir = tmp_path / "burn"
+    _store_with_burn(burn_dir)
+    summaries = survey([burn_dir])             # no prices in play
+    digest_dir = tmp_path / "digest"
+    for offset in (2, 1):
+        snap = digest_snapshot(summaries)
+        snap["ts"] = time.time() - offset * 86400
+        append_digest(digest_dir, snap)
+    summary = summarize_trend(trend_days(digest_dir))
+    assert summary["spend_trend"] is None      # zeros: no verdict

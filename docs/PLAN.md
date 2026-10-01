@@ -2394,3 +2394,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      `notify(...)` is injectable for tests.  notify_webhook grows
      an optional payload parameter; RECIPES 18 already told this
      story.  2 tests.
+
+250. **v2.19.0 - the spend trend: rising cost is a verdict** ✅
+     (delivered): digest rows sum each store's est_spend into a
+     per-day series, and `fleet --trend` judges it with the same
+     Theil-Sen machinery — a "spend trend" badge in the fleet HTML,
+     a prose line with the $/day slope, present only when prices
+     were in play (zeros never invent a verdict).  2 tests.
