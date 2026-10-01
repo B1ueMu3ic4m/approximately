@@ -2358,3 +2358,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      needs-a-target doors (anomalies on 'latest') refuse with
      exit 2 "store is empty" — the typo protection, documented.
      4 tests.
+
+246. **v2.15.0 - docker: the MCP server in a container** ✅ (delivered):
+     a python:3.12-slim image — zero dependencies means the image
+     is just Python — ENTRYPOINT approximately, CMD mcp (stdio),
+     APPROXIMATELY_HOME defaulting to a volume-friendly /agents/store.
+     CI grows a docker job that builds the image and asserts the
+     container's --version matches pyproject.  README quickstart
+     shows the two commands.  Found en route: the image build
+     caught pyproject's LICENSE reference needing the file copied.
