@@ -2367,3 +2367,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      container's --version matches pyproject.  README quickstart
      shows the two commands.  Found en route: the image build
      caught pyproject's LICENSE reference needing the file copied.
+
+247. **v2.16.0 - markdown report parity: the anomaly cards land there too** ✅
+     (delivered): the HTML report had latency/token cards; the
+     markdown postmortem (the one that pastes into tickets) grew
+     the same two sections — Latency anomalies and Token burn
+     bullets with step, tool, amount, median, z and direction —
+     best-effort like everything else in that renderer.  1 test
+     pins html/markdown agreement on the same burn.

@@ -84,6 +84,41 @@ def _counterfactual_lines(trace) -> list:
     return lines
 
 
+def _anomaly_lines(trace: "Trace") -> list:
+    """Per-trace anomaly bullets (latency + tokens), best-effort."""
+    try:
+        from .anomaly import detect_latency_anomalies, detect_token_anomalies
+    except Exception:
+        return []
+    lines: list = []
+
+    def emit(label: str, bullets: list) -> None:
+        lines.extend(["", f"### {label}", "",
+                      ("*Modified z-score over tool-call steps "
+                       "(median/MAD, threshold 3.5):*"), ""])
+        lines.extend(bullets)
+
+    try:
+        latency = detect_latency_anomalies(trace)
+    except Exception:
+        latency = []
+    if latency:
+        emit("Latency anomalies",
+             [f"- `#{a.step_index}` {a.tool} {a.latency_ms}ms — "
+              f"median {a.median_ms:.0f}ms, z={a.robust_z} "
+              f"({a.direction})" for a in latency[:5]])
+    try:
+        burn = detect_token_anomalies(trace)
+    except Exception:
+        burn = []
+    if burn:
+        emit("Token burn",
+             [f"- `#{a.step_index}` {a.tool} {a.tokens}tok — "
+              f"median {a.median_tokens:.0f}, z={a.robust_z} "
+              f"({a.direction})" for a in burn[:5]])
+    return lines
+
+
 def _fleet_lines(trace: "Trace", store) -> list:
     """Fleet-outlier bullets (best-effort: no store, no section)."""
     if store is None:
@@ -139,6 +174,7 @@ def render_markdown(trace: "Trace", report: "FailureReport",
                      for i, fix in enumerate(report.suggested_fixes, 1))
     lines.append("")
     lines.extend(_counterfactual_lines(trace))
+    lines.extend(_anomaly_lines(trace))
     lines.extend(_fleet_lines(trace, store))
     if store is not None:
         try:
