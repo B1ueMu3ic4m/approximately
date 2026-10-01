@@ -2384,3 +2384,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      Annotation-less traces keep their exact bytes (byte-stability
      pinned); the reimport path is unaffected.  2 tests; the
      root-span builder extracted to keep the C bar.
+
+249. **v2.18.0 - the spool can page: spool --webhook** ✅ (delivered):
+     when a failed run actually lands in a pass, the spool watch
+     POSTs the pass result (with the ingested failures called out)
+     through the same HMAC-signed channel as the fleet webhook —
+     quiet-by-default (clean passes never post), delivery failure
+     is a stderr warning that never stops the loop, and
+     `notify(...)` is injectable for tests.  notify_webhook grows
+     an optional payload parameter; RECIPES 18 already told this
+     story.  2 tests.

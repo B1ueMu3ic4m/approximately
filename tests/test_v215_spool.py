@@ -205,3 +205,35 @@ def test_json_pass_lines(tmp_path, capsys):
     assert rows[0]["pass"] == 1
     assert rows[0]["imported"] == 1
     assert rows[0]["failed_traces"] == 1
+
+
+def test_webhook_pages_on_failed_run_only(tmp_path):
+    store_dir = tmp_path / "s"
+    spool = tmp_path / "spool"
+    spool.mkdir()
+    _transcript_file(spool / "bad.jsonl", success=False)
+    posts = []
+    code = watch_spool(TraceStore(store_dir), spool, once=True,
+                       max_passes=1,
+                       webhook_url="http://example.test/hook",
+                       notify=lambda store, outcome, url:
+                       posts.append(dict(outcome)))
+    assert code == 1
+    assert len(posts) == 1
+    assert posts[0]["failed_traces"] == 1
+    assert posts[0]["imported"] == 1
+
+
+def test_webhook_stays_quiet_on_clean_run(tmp_path):
+    store_dir = tmp_path / "s"
+    spool = tmp_path / "spool"
+    spool.mkdir()
+    _transcript_file(spool / "ok.jsonl", success=True)
+    posts = []
+    code = watch_spool(TraceStore(store_dir), spool, once=True,
+                       max_passes=1,
+                       webhook_url="http://example.test/hook",
+                       notify=lambda store, outcome, url:
+                       posts.append(dict(outcome)))
+    assert code == 0
+    assert posts == []
