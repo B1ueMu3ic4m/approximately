@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.21.2
+
+- the capabilities table tells the whole story. the README table had drifted — Log interop and Slowness rows were duplicated (an edit accident) and neither mentioned the new dialects; the duplicates are gone, interop reads OTLP/native, Slowness became "Slowness & token burn", and a Spend row joins the table — the money chain is on the front page.
+
 ## v2.21.1
 
 - fuzz round 15: annotations on the OTLP wire. analyst-controlled strings (author, note, verdict) now cross to a tracing backend — the round-4 contract applies. Event names sanitize to [a-z0-9_.-] (a hostile verdict cannot smuggle a name), missing wall-clocks fall back to the root span's start (never epoch 0), giant notes stay capped, random annotation fuzz roundtrips idempotently. Found and hardened en route: store.annotate crashed on non-string args (a direct API call with an int verdict) — arguments are coerced. 5 tests, fixed seed.
