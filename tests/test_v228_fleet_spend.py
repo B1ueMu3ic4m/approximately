@@ -65,6 +65,7 @@ def test_fleet_json_carries_spend(tmp_path, capsys):
         digest_dir=None, trend=False, agent=None, top_agents=3,
         watch=None, iterations=None, webhook=None,
         alert_anomalies=None, alert_tokens=None,
+        alert_spend=None,
         alert_worse_than=None, fail_on_worsening=False,
         keep_days=30, prices=str(table))
     assert cmd_fleet(args) == 0
@@ -94,6 +95,7 @@ def test_bad_prices_file_exits_loud(tmp_path):
         digest_dir=None, trend=False, agent=None, top_agents=3,
         watch=None, iterations=None, webhook=None,
         alert_anomalies=None, alert_tokens=None,
+        alert_spend=None,
         alert_worse_than=None, fail_on_worsening=False,
         keep_days=30, prices=str(bad))
     with pytest.raises(SystemExit) as exc:

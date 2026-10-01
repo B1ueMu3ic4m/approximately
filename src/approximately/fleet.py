@@ -726,18 +726,21 @@ def render_trend(summary: dict) -> str:
 
 def _should_alert(summaries, threshold: Optional[float],
                   alert_anomalies: Optional[int] = None,
-                  alert_tokens: Optional[int] = None) -> bool:
+                  alert_tokens: Optional[int] = None,
+                  alert_spend: Optional[float] = None) -> bool:
     """Quiet-by-default alerting: post only on signal, not on schedule.
 
     No thresholds: every cycle posts (the schedule is the signal).
     With ``alert_worse_than``: only when a store's trend is worsening
     or its failure rate is at/above the threshold. With
-    ``alert_anomalies``/``alert_tokens``: also when a store carries
-    at least that many fleet latency / token-burn outliers. A healthy
-    fleet must not page anyone.
+    ``alert_anomalies``/``alert_tokens``/``alert_spend``: also when a
+    store carries at least that many fleet latency / token-burn
+    outliers, or its estimated spend crosses the budget (needs
+    prices in play — unpriced stores never trip the spend gate).  A
+    healthy fleet must not page anyone.
     """
     if threshold is None and alert_anomalies is None \
-            and alert_tokens is None:
+            and alert_tokens is None and alert_spend is None:
         return True
     return any(
         s.worsening or s.failure_rate >= (threshold or 0.0)
@@ -745,6 +748,8 @@ def _should_alert(summaries, threshold: Optional[float],
             and getattr(s, "fleet_anomalies", 0) >= alert_anomalies)
         or (alert_tokens is not None
             and getattr(s, "token_anomalies", 0) >= alert_tokens)
+        or (alert_spend is not None
+            and (getattr(s, "est_spend", None) or 0) >= alert_spend)
         for s in summaries)
 
 
@@ -755,6 +760,7 @@ def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
                 notify=None, alert_worse_than: Optional[float] = None,
                 alert_anomalies: Optional[int] = None,
                 alert_tokens: Optional[int] = None,
+                alert_spend: Optional[float] = None,
                 prices: Optional[dict] = None) -> int:
     """Poll the fleet forever (or ``iterations`` times), appending
     snapshots. Returns the number of snapshots written. ``sleep`` is
@@ -774,7 +780,7 @@ def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
         written += 1
         if webhook_url and _should_alert(summaries, alert_worse_than,
                                          alert_anomalies,
-                                         alert_tokens):
+                                         alert_tokens, alert_spend):
             poster = notify or notify_webhook
             try:
                 poster(summaries, webhook_url)
