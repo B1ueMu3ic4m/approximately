@@ -46,6 +46,43 @@ def _preview(value: Any, limit: int = 200) -> str:
     return " ".join(text.split())[:limit]
 
 
+def _usage_value(usage: Any, key: str) -> Any:
+    if usage is None:
+        return None
+    if isinstance(usage, dict):
+        return usage.get(key)
+    return getattr(usage, key, None)
+
+
+def _usage_tokens(payload: dict, response: Any) -> int:
+    """Total tokens from a LlamaIndex LLM-end payload, any shape:
+    a usage entry in the payload, the response's additional_kwargs
+    token_usage, or response.usage metadata."""
+    usage = payload.get("usage")
+    if usage is not None:
+        for key in ("total_tokens", "total_token_count"):
+            value = _usage_value(usage, key)
+            if isinstance(value, (int, float)):
+                return int(value)
+        prompt = _usage_value(usage, "prompt_tokens")
+        completion = _usage_value(usage, "completion_tokens")
+        if isinstance(prompt, (int, float)) or \
+                isinstance(completion, (int, float)):
+            return int(prompt or 0) + int(completion or 0)
+        prompt = _usage_value(usage, "prompt_token_count")
+        completion = _usage_value(usage, "candidate_token_count")
+        if isinstance(prompt, (int, float)) or \
+                isinstance(completion, (int, float)):
+            return int(prompt or 0) + int(completion or 0)
+    kwargs = getattr(response, "additional_kwargs", None) or {}
+    token_usage = (kwargs.get("token_usage")
+                   if isinstance(kwargs, dict) else None)
+    total = _usage_value(token_usage, "total_tokens")
+    if isinstance(total, (int, float)):
+        return int(total)
+    return 0
+
+
 def _event_name(event_type: Any) -> str:
     """CBEventType enum across versions, or a plain string."""
     if isinstance(event_type, str):
@@ -98,11 +135,13 @@ class ApproximatelyHandler:
             handler(self, payload)
 
     def _llm(self, payload: dict) -> None:
-        result = _preview(payload.get(_RESPONSE) or payload.get(_COMPLETION))
+        response = payload.get(_RESPONSE) or payload.get(_COMPLETION)
+        result = _preview(response)
         prompt = _preview(payload.get(_PROMPT), limit=120)
         self.recorder.tool(
             "llm", {"prompt": prompt} if prompt else {},
             result=result,
+            tokens=_usage_tokens(payload, response),
         )
 
     def _function_call(self, payload: dict) -> None:

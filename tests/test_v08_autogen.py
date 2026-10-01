@@ -71,7 +71,7 @@ class TestEventHandler:
         step = rec.trace.steps[-1]
         assert step.tool == "llm"
         assert step.result == "hello"
-        assert step.meta.get("tokens") == 17
+        assert step.tokens == 17  # first-class since v2.10.1
 
     def test_function_call_and_execution(self):
         rec = Recorder("t", save=False)

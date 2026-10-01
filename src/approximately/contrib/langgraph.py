@@ -27,6 +27,57 @@ except ImportError:  # core stays dependency-free; adapter needs it at import
         pass
 
 
+def _dig(obj: Any, *path: str) -> Any:
+    """Walk dicts/objects along a path; None the moment a link is
+    missing (framework response shapes drift)."""
+    for key in path:
+        if obj is None:
+            return None
+        obj = (obj.get(key) if isinstance(obj, dict)
+               else getattr(obj, key, None))
+    return obj
+
+
+def _usage_tokens(response: Any) -> int:
+    """Total tokens from a LangChain LLM result, any naming era:
+    llm_output.token_usage, per-generation response_metadata /
+    usage_metadata, or a top-level usage_metadata."""
+    top_paths: tuple[tuple[str, ...], ...] = (
+        ("llm_output", "token_usage", "total_tokens"),
+        ("usage_metadata", "total_tokens"))
+    for path in top_paths:
+        value = _dig(response, *path)
+        if isinstance(value, (int, float)):
+            return int(value)
+    generations = getattr(response, "generations", None) or []
+    paths: tuple[tuple[str, ...], ...] = (
+        ("message", "response_metadata",
+         "token_usage", "total_tokens"),
+        ("message", "usage_metadata", "total_tokens"),
+        ("usage_metadata", "total_tokens"),
+        ("generation_info", "token_usage", "total_tokens"))
+    for batch in generations:
+        for gen in batch:
+            for path in paths:
+                value = _dig(gen, *path)
+                if isinstance(value, (int, float)):
+                    return int(value)
+    return 0
+
+
+def _response_text(response: Any) -> str:
+    generations = getattr(response, "generations", None) or []
+    for batch in generations:
+        for gen in batch:
+            text = getattr(gen, "text", None)
+            if text:
+                return _preview(text)
+            content = _dig(gen, "message", "content")
+            if content:
+                return _preview(content)
+    return ""
+
+
 def _preview(value: Any, limit: int = 200) -> str:
     if value is None:
         return ""
@@ -99,6 +150,18 @@ class ApproximatelyCallbackHandler(_LCBaseHandler):
     def on_llm_error(self, error: BaseException, *, run_id: Any = None,
                      **kwargs: Any) -> None:
         self.recorder.tool("llm", {}, error=f"{type(error).__name__}: {error}")
+
+    def on_llm_end(self, response: Any, *, run_id: Any = None,
+                   **kwargs: Any) -> None:
+        # the completion and its usage land here — without this the
+        # model's answer (and the token receipt) never reaches the
+        # trace, and the token-baseline family starves
+        self.recorder.tool("llm", {}, result=_response_text(response),
+                           tokens=_usage_tokens(response))
+
+    def on_chat_model_end(self, response: Any, *, run_id: Any = None,
+                          **kwargs: Any) -> None:
+        self.on_llm_end(response, run_id=run_id, **kwargs)
 
     # -- convenience -----------------------------------------------------------
     def respond(self, text: str, success: bool = True) -> None:

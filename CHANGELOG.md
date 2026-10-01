@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.10.1
+
+- adapters feed the token family for real. two disconnects, one fix. (1) The LangChain/ LangGraph handler never recorded the model's completion — on_llm_start wrote a plan step and the answer (with its usage) vanished; on_llm_end/on_chat_model_end now capture text and tokens from every response shape LangChain has shipped (llm_output.token_usage, per-generation response_metadata, usage_metadata, generation_info). (2) Every adapter passed tokens= into **meta — Step.tokens stayed 0 and the token-baseline family starved on exactly the data it was built for; tokens is now a first-class recorder parameter. LlamaIndex payloads get the same usage extraction (usage dict naming eras + additional_kwargs.token_usage). 10 tests, all duck-typed, no framework installed.
+
 ## v2.10.0
 
 - foreign agents join the token baselines. OTLP import maps the GenAI semantic conventions — `gen_ai.usage.{completion,output,prompt,input}_tokens`, any naming a backend picks — onto step tokens, and a span that metered usage becomes a tool_call step (the vocabulary token baselines measure). A third-party agent's burn is now baselined, flagged and priced straight from the OTLP it already exports. 3 tests; the CONTRIBUTING good-first-issue closes itself.

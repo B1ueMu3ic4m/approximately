@@ -94,7 +94,7 @@ class Recorder:
     def tool(self, name: str, args: Optional[Dict[str, Any]] = None,
              result: str = "", thought: Optional[str] = None,
              error: Optional[str] = None, agent: Optional[str] = None,
-             **meta: Any) -> Step:
+             tokens: int = 0, **meta: Any) -> Step:
         return self.trace.add(
             Step(
                 kind=TOOL_CALL,
@@ -104,6 +104,7 @@ class Recorder:
                 thought=thought,
                 error=error,
                 latency_ms=self._elapsed_ms(),
+                tokens=tokens,
                 agent=agent or self.agent,
                 meta=meta,
             )
