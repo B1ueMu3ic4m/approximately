@@ -15,8 +15,15 @@ from approximately.store import TraceStore
 
 
 def _run(capsys, *argv):
-    code = main(list(argv))
-    return code, capsys.readouterr().out, capsys.readouterr().err
+    code, refused = 0, ""
+    try:
+        code = main(list(argv))
+    except SystemExit as exc:   # argparse + guard errors are exits
+        code = exc.code if isinstance(exc.code, int) else 2
+        if exc.code and not isinstance(exc.code, int):
+            refused = str(exc.code)
+    return code, capsys.readouterr().out, \
+        capsys.readouterr().err + refused
 
 
 def _empty(tmp_path):
@@ -49,20 +56,23 @@ def test_query_on_empty_store_is_an_empty_answer(tmp_path, capsys):
     sid = str(_empty(tmp_path))
     _code, out, _err = _run(capsys, "query", "--store", sid,
                             "success == false", "--json")
-    payload = json.loads(out)
-    assert payload["ids"] == []
+    assert json.loads(out) == []          # a list, empty
 
 
 def test_aggregate_doors_report_zeros(tmp_path, capsys):
     sid = str(_empty(tmp_path))
     for door, argv in (("doctor", ()),
-                       ("stats", ()),
-                       ("fleet", ())):
+                       ("stats", ())):
         code, out, _err = _run(capsys, door, "--store", sid, *argv,
                                "--json")
         assert code == 0, door
         payload = json.loads(out)
-        assert isinstance(payload, (dict, list)), door
+        assert isinstance(payload, dict), door
+    # fleet takes stores as positionals
+    code, out, _err = _run(capsys, "fleet", sid, "--json")
+    assert code == 0, out[:200]
+    payload = json.loads(out)
+    assert isinstance(payload, dict) and "stores" in payload
 
 
 def test_stats_empty_json_sums_to_zero(tmp_path, capsys):
