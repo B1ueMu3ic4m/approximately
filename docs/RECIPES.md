@@ -95,7 +95,7 @@ now fails the build.
 ```console
 $ approximately verify --all --store traces --strict --quiet \
   || curl -H content-type:application/json -d '{"text":"integrity gate FAILED"}' $SLACK
-$ approximately doctor traces --fix
+$ approximately doctor --store traces --fix
 ```
 
 Default `verify --all` passes unsigned records with a note; `--strict`

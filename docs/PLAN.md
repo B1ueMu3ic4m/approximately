@@ -3067,3 +3067,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        chapter now reads buy-side and sell-side).
      - `_finite`'s junk-input behavior pinned: None and non-numeric
        strings are None, NaN is None (not a silent 0.0).
+
+312. **v2.63.0 - `python -m approximately`, and a recipe that lied** ✅ (delivered):
+     - The smoke test of every RECIPES command family caught a
+       real gap: the package had no `__main__.py`, so the common
+       habit `python -m approximately` failed while the console
+       script worked.  Added — the module form and the script are
+       now the same door.
+     - And a recipe that lied: `doctor traces --fix` (positional
+       store) — doctor only takes `--store`.  The recipe reads
+       `--store` now.  24 command families smoke-tested end to
+       end through the module form.
