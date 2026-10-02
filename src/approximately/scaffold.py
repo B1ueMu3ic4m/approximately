@@ -1,13 +1,19 @@
-"""`approximately new <name>` — scaffold a runnable, instrumented agent project.
+"""Project scaffolding.
 
-Generates a small package with the recorder wired, one deliberate failure,
-and a regression test — so the 30-second demo becomes *your* 30 seconds.
+`approximately new <name>` scaffolds a runnable, instrumented agent
+project — the recorder wired, one deliberate failure, a regression
+test.  `approximately init` wires the CI quality gate into an
+existing repo instead: a workflow that fails the build when
+recorded runs breach a ceiling, a starter price table, and a
+.gitignore line so the store never lands in git.
 """
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
+from typing import Any, Dict
 
 AGENT_TEMPLATE = '''"""A tiny booking agent instrumented with approximately.
 
@@ -126,3 +132,79 @@ def scaffold(name: str, base: Path = Path(".")) -> Path:
     (target / "README.md").write_text(
         README_TEMPLATE.format(name=name), encoding="utf-8")
     return target
+
+# --- approximately init: gate an existing repo -----------------------
+
+_STORE_DIR = ".agents-store"
+
+_WORKFLOW = """\
+name: agent-gate
+on: [push, workflow_dispatch]
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install approximately
+      - name: quality-gate the recorded agent runs
+        run: |
+          approximately ci --store {store} \\
+            --max-failure-rate 0.3 \\
+            --max-p95-latency-ms 15000 \\
+            --max-tokens 2000000 \\
+            --min-traces 1
+          # tune ceilings, then add a spend gate:
+          #   approximately ci --store {store} --max-spend 5 --prices prices.json
+""".format(store=_STORE_DIR)
+
+_PRICES: Dict[str, Any] = {
+    "gpt-4o": 2.5,
+    "gpt-4o-mini": 0.15,
+    "claude-sonnet-4": 1.8,
+}
+
+_GITIGNORE_LINE = f"{_STORE_DIR}/"
+
+
+def init_scaffold(directory: Path, force: bool = False) -> Dict[str, Any]:
+    """Wire the CI gate into *directory*; per-file status.
+
+    ``written`` (created), ``appended`` (.gitignore line added to an
+    existing file), or ``skipped`` (already there — nothing is ever
+    overwritten without ``force``).  Re-running is idempotent.
+    """
+    directory.mkdir(parents=True, exist_ok=True)
+    result: Dict[str, Any] = {}
+
+    wf_path = directory / ".github" / "workflows" / "agent-gate.yml"
+    result[str(wf_path)] = _write_once(wf_path, _WORKFLOW, force)
+
+    prices_path = directory / "prices.json"
+    result[str(prices_path)] = _write_once(
+        prices_path, json.dumps(_PRICES, indent=2) + "\n", force)
+
+    gi_path = directory / ".gitignore"
+    existing = gi_path.read_text(encoding="utf-8") if gi_path.is_file() \
+        else ""
+    if _GITIGNORE_LINE in existing.splitlines():
+        result[str(gi_path)] = "skipped"
+    elif existing:
+        pad = "" if existing.endswith("\n") else "\n"
+        gi_path.write_text(existing + pad + _GITIGNORE_LINE + "\n",
+                           encoding="utf-8")
+        result[str(gi_path)] = "appended"
+    else:
+        gi_path.write_text(_GITIGNORE_LINE + "\n", encoding="utf-8")
+        result[str(gi_path)] = "written"
+    return result
+
+
+def _write_once(path: Path, content: str, force: bool) -> str:
+    if path.exists() and not force:
+        return "skipped"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+    return "written"

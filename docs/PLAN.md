@@ -2628,3 +2628,17 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        and spool watch both inherit the tougher delivery.  The two
        v16 pins enshrining one-try-and-done are rewritten.  7 new
        tests.
+
+272. **v2.28.0 - `approximately init`: gate the repo you already have** ✅ (delivered):
+     - `new` scaffolds a green-field project; `init` wires the CI
+       quality gate into an existing repo: a GitHub Actions
+       workflow running `approximately ci` with sane starter
+       ceilings, a starter price table the spend gate can load
+       (numbers only — the prices door rejects prose), and a
+       .gitignore line so `.agents-store/` never lands in git.
+     - Idempotent by construction: re-running reports what exists
+       and skips; nothing is overwritten without --force; and
+       .gitignore is only ever appended to — even --force leaves
+       it alone (a hand-tuned ignore file is not ours to reset).
+     - The workflow body carries a comment naming the exact next
+       step (add --max-spend --prices once tuned).  6 tests.

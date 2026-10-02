@@ -153,6 +153,7 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 🔎 Recidivist clustering | Cross-run statistics of your systematic failure modes | `approximately cluster` |
 | 📈 Failure-rate trends | "Is the agent getting better or worse?" — sparkline + robust Theil–Sen verdict in every batch report | `approximately report --all` / `stats --trend` |
 | 🚀 Project scaffold | An instrumented agent project with guards, runnable in seconds | `approximately new myagent` |
+| 🚦 Repo gate wiring | `approximately init` wires the CI quality gate into the repo you already have — workflow, price table, .gitignore; idempotent, nothing overwritten without --force | `approximately init` |
 | 🔮 Failure precursor | Early warning mined from your own history: "runs like this fail Z% of the time" | `approximately predict` |
 | 🧬 Trajectory alignment | Needleman-Wunsch over action sequences — find runs with the same *shape* | `approximately similar` |
 | 📮 SARIF export | Attribution results as GitHub code-scanning alerts | `approximately attribute --sarif` |

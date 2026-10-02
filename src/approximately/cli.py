@@ -1917,6 +1917,24 @@ def cmd_ci(args: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
+def cmd_init(args: argparse.Namespace) -> int:
+    """Wire the CI quality gate into the current repo."""
+    from .scaffold import init_scaffold
+
+    statuses = init_scaffold(Path(args.directory),
+                             force=bool(getattr(args, "force", False)))
+    if getattr(args, "json", False):
+        print(json.dumps({"directory": str(Path(args.directory)),
+                          "files": statuses}, indent=2))
+        return 0
+    print(f"  scaffolded the agent gate in {args.directory}:")
+    for path, status in sorted(statuses.items()):
+        print(f"  {status:<9} {path}")
+    print("  next: record runs into .agents-store, tune the ceilings,")
+    print("  then add --max-spend 5 --prices prices.json to the gate")
+    return 0
+
+
 def cmd_attribute(args: argparse.Namespace) -> int:
     from .sarif import to_sarif
 
@@ -2864,6 +2882,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true",
                    help="emit machine-readable JSON instead of prose")
     p.set_defaults(func=cmd_ci)
+
+    p = sub.add_parser("init", parents=[common],
+                       help="wire the CI quality gate into this repo "
+                            "(workflow, price table, .gitignore)")
+    p.add_argument("directory", nargs="?", default=".",
+                   help="repo root (default: the current directory)")
+    p.add_argument("--force", action="store_true",
+                   help="overwrite workflow and price table even if "
+                        "they already exist (.gitignore is only ever "
+                        "appended to)")
+    p.add_argument("--json", action="store_true",
+                   help="emit per-file statuses as JSON")
+    p.set_defaults(func=cmd_init)
 
     p = sub.add_parser("stats", parents=[common],
                        help="one-glance store health numbers")
