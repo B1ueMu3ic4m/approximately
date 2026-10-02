@@ -25,9 +25,16 @@ def test_module_form_prints_the_version():
 
 
 def test_module_form_runs_a_real_door():
-    r = subprocess.run(
-        [sys.executable, "-X", "utf8", "-m", "approximately",
-         "doctor", "--store", "/nonexistent-ghost-store"],
-        capture_output=True, text=True, timeout=60)
-    # a missing store is refused loudly, through the module form
-    assert r.returncode != 0
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        missing = pathlib.Path(tmp) / "no-traces-here"
+        missing.mkdir()
+        r = subprocess.run(
+            [sys.executable, "-X", "utf8", "-m", "approximately",
+             "ci", "--store", str(missing),
+             "--max-tokens", "10"],
+            capture_output=True, text=True, timeout=60)
+    # an empty store is refused loudly (exit 2) through the module
+    # form — platform-stable by contract
+    assert r.returncode == 2
