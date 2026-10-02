@@ -2722,3 +2722,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        contracts spelled out.
      - ARCHITECTURE: doctor --deep, scaffold.py (new/init), and
        the ci door documented as first-class modules.
+
+279. **v2.32.0 - the demo tells the whole story** ✅ (delivered):
+     - The demo agent now carries measured tokens AND latencies on
+       every step — and gained a fare-rules lookup, because the
+       detectors honestly require 5+ samples before they speak
+       (min_samples is the contract, and the demo now meets it).
+       The committed artifacts (report/index/fleet/leaderboard)
+       regenerated: the report page now shows the token-burn bar
+       strip and the latency card with the 42s stall, instead of a
+       silence that looked like a bug.
+     - One step-count pin updated (6 → 7 steps).

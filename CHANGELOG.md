@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.32.0
+
+- the demo tells the whole story: measured tokens and latencies on every step, plus a fare-rules lookup so the detectors have their honest 5+ samples — the report artifacts now show the token-burn bar strip and the latency stall instead of a silence that looked like a bug.
+
 ## v2.31.2
 
 - the docs catch up to the night: README banner at current facts, RECIPES 20 (the gate chapter: init → record → tune → enforce → hygiene), ARCHITECTURE entries for doctor --deep, scaffold.py and the ci door.

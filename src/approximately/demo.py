@@ -32,10 +32,18 @@ def _run_booking_agent(rec: Recorder) -> None:
         "Find the cheapest SFO→NRT flight in June (budget $900) and book seat 12A."
     )
     rec.tool(
+        "lookup_fare_rules",
+        {"program": "SKY"},
+        result="2 checked bags included; basic economy non-refundable",
+        thought="check the fare rules before committing",
+        tokens=150, latency_ms=480,
+    )
+    rec.tool(
         "search_flights",
         {"origin": "SFO", "destination": "NRT", "month": "June"},
         result=_flights(870, 912),
         thought="search inventory, then pick the cheapest within budget",
+        tokens=800, latency_ms=620,
     )
     # failure 1: repeats the same search twice more (prices keep drifting)
     rec.tool(
@@ -43,26 +51,27 @@ def _run_booking_agent(rec: Recorder) -> None:
         {"origin": "SFO", "destination": "NRT", "month": "June"},
         result=_flights(875, 918),
         thought="double-check the prices haven't changed",
+        tokens=850, latency_ms=640,
     )
     rec.tool(
         "search_flights",
         {"origin": "SFO", "destination": "NRT", "month": "June"},
         result=_flights(880, 924),
         thought="one more look to be safe",
+        tokens=9_500, latency_ms=42_000,
     )
-    # the token receipt of the panic: the last re-check re-read the
-    # whole inventory into context — a burn the token-anomaly card
-    # (and `stats --price-per-1k`) makes visible
-    rec.trace.steps[1].tokens = 800
-    rec.trace.steps[2].tokens = 850
-    rec.trace.steps[3].tokens = 9_500
-    # failure 2 setup: a mutating call...
+    # failure 2 setup: a mutating call — with the panic priced in
+    # (the re-checks re-read the whole inventory into context and
+    # took longer each time: a burn the token-anomaly card and
+    # `stats --price-per-1k` make visible, a stall the latency card
+    # can point at)
     rec.tool(
         "book_flight",
         {"flight": "JT-044", "seat": "12A", "price_cap": 900},
         result="BOOKED confirmation #B-2231 (unverified)",
         thought="JT-044 at $870 is under budget",
         mutating=True,
+        tokens=300, latency_ms=520,
     )
     # ...with no verification step afterwards, and
     # failure 3: declares victory while the harness grades the run failed
