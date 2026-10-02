@@ -418,3 +418,25 @@ you cannot compute does not hold), and latency meters on step
 latency — the same ruler as the anomaly detectors. The MCP server
 exposes the same verdict as `ci_gate`, so an agent loop can gate
 itself without shelling out.
+
+## 21. The deploy chapter: compare, then gate the build
+
+A new deployment is a hypothesis: the agent did not get worse.
+`compare` tests it against the last known good store — and the
+regression signal that matters is not a rate (rates wobble with
+sample size) but a failure MODE the baseline never showed.
+
+```bash
+# after deploy-b ships, against deploy-a's recorded runs:
+approximately compare --baseline stores/a --candidate stores/b
+
+# in CI: the build fails when deploy-b fails in a NEW way
+approximately compare --baseline stores/a --candidate stores/b \
+  --fail-on-new-modes
+```
+
+Pair with the gate ceilings (`ci --max-failure-rate ...`) for the
+quantitative side and `evidence <trace> case.zip` for the
+hand-off when the build does fail: mode, magnitude, proof.
+Resolved modes are named too — when a fix lands, the compare
+output says so in the same breath.

@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.41.0
+
+- the MCP server runs the comparison: `compare` as a tool with the gate's exit surfaced as ok:false and prices bridged from a JSON object. 36 tools. RECIPES 21: the deploy chapter. 6 tests.
+
 ## v2.40.0
 
 - `approximately compare`: baseline vs candidate store — runs, failures, rate, tokens, priced spend, and the regression signal that matters: a failure mode the baseline never showed. `--fail-on-new-modes` gates CI on it. 7 tests.

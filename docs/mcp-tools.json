@@ -1,5 +1,5 @@
 {
-  "count": 35,
+  "count": 36,
   "tools": [
     {
       "name": "list_traces",
@@ -205,6 +205,38 @@
         },
         "required": [
           "trace"
+        ]
+      }
+    },
+    {
+      "name": "compare",
+      "description": "Baseline vs candidate store: runs, failures, rate and token deltas, priced spend, and the regression signal \u2014 failure modes the baseline never showed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "baseline": {
+            "type": "string",
+            "description": "reference store (last known good)"
+          },
+          "candidate": {
+            "type": "string",
+            "description": "store under test"
+          },
+          "prices": {
+            "type": "object",
+            "description": "model -> blended $/1k"
+          },
+          "since": {
+            "type": "integer"
+          },
+          "fail_on_new_modes": {
+            "type": "boolean",
+            "description": "ok=false when the candidate shows a new mode"
+          }
+        },
+        "required": [
+          "baseline",
+          "candidate"
         ]
       }
     },
