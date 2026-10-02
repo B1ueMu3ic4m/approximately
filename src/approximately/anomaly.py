@@ -15,8 +15,12 @@ standard deviation around the mean, use median absolute deviation"):
     M_i = 0.6745 * (x_i - median) / MAD
 
 computed over the steps of one trace. Degenerate cases are honest:
-fewer than `min_samples` calls, or MAD == 0 (all samples identical —
-no scale information), yield no anomalies rather than made-up ones.
+fewer than `min_samples` calls, or a truly uniform sample (every
+value identical — no scale information), yield no anomalies rather
+than made-up ones.  A merely *flat-majority* baseline (ms-rounded
+latencies make MAD == 0 common) falls back to the mean absolute
+deviation: a flat baseline is exactly where an outlier is most
+obvious, so that is the last place to go blind.
 
 The same ruler measures a second meter: **tokens**.  Latency catches
 the call that ran long; token burn catches the call that worked too
@@ -61,6 +65,21 @@ def _mad(values: List[float], med: float) -> float:
     return _median([abs(v - med) for v in values])
 
 
+def _scale(values: List[float], med: float) -> float:
+    """Robust scale for the modified z-score: MAD when it has
+    scale, else the mean absolute deviation.
+
+    MAD == 0 whenever the majority of samples is identical — ms-
+    rounded latencies make that common, and a perfectly flat
+    baseline is where an outlier is most obvious.  Only true
+    uniformity (every sample equal) returns 0 and stays a no-op.
+    """
+    mad = _median([abs(v - med) for v in values])
+    if mad > 0:
+        return mad
+    return sum(abs(v - med) for v in values) / len(values)
+
+
 @dataclass
 class TraceLatencyAnomaly:
     """A fleet-mode finding: the anomaly carries its trace."""
@@ -101,7 +120,7 @@ def detect_fleet_anomalies(traces, threshold: float
             continue
         values = [float(s.latency_ms) for _, s in pairs]
         med = _median(values)
-        mad = _mad(values, med)
+        mad = _scale(values, med)
         if mad == 0:
             continue  # identical latencies: no scale, no anomalies
         for trace, step in pairs:
@@ -142,7 +161,7 @@ def detect_latency_anomalies(trace: Trace, threshold: float
     if not per_tool:
         values = [float(s.latency_ms) for s in timed]
         med = _median(values)
-        mad = _mad(values, med)
+        mad = _scale(values, med)
         if mad == 0:
             return []  # identical latencies: no scale, no anomalies
         return _flagged(timed, values, med, mad, threshold)
@@ -154,7 +173,7 @@ def detect_latency_anomalies(trace: Trace, threshold: float
         if len(steps) >= min_samples:
             values = [float(s.latency_ms) for s in steps]
             med = _median(values)
-            mad = _mad(values, med)
+            mad = _scale(values, med)
             if mad == 0:
                 continue  # identical latencies: no scale
             anomalies.extend(_flagged(steps, values, med, mad,
@@ -163,7 +182,7 @@ def detect_latency_anomalies(trace: Trace, threshold: float
         # rare tool: judge its own latencies against the pooled scale
         values = [float(s.latency_ms) for s in timed]
         med = _median(values)
-        mad = _mad(values, med)
+        mad = _scale(values, med)
         if mad == 0:
             anomalies.extend(_flag_zero_scale(steps, med))
             continue
@@ -274,7 +293,7 @@ def detect_token_anomalies(trace: Trace, threshold: float
     if not per_tool:
         values = [float(s.tokens) for s in metered]
         med = _median(values)
-        mad = _mad(values, med)
+        mad = _scale(values, med)
         if mad == 0:
             return []  # identical token counts: no scale
         return _flagged_tokens(metered, values, med, mad, threshold)
@@ -286,7 +305,7 @@ def detect_token_anomalies(trace: Trace, threshold: float
         if len(steps) >= min_samples:
             values = [float(s.tokens) for s in steps]
             med = _median(values)
-            mad = _mad(values, med)
+            mad = _scale(values, med)
             if mad == 0:
                 continue
             anomalies.extend(_flagged_tokens(steps, values, med, mad,
@@ -295,7 +314,7 @@ def detect_token_anomalies(trace: Trace, threshold: float
         # rare tool: judge against the run's pooled token scale
         values = [float(s.tokens) for s in metered]
         med = _median(values)
-        mad = _mad(values, med)
+        mad = _scale(values, med)
         if mad == 0:
             anomalies.extend(_flagged_zero_scale_tokens(steps, med))
             continue
@@ -361,7 +380,7 @@ def detect_fleet_token_anomalies(traces, threshold: float
             continue
         values = [float(s.tokens) for _, s in pairs]
         med = _median(values)
-        mad = _mad(values, med)
+        mad = _scale(values, med)
         if mad == 0:
             continue
         tool = key[0]

@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.26.1
+
+- no blind spots on a flat baseline. ms-rounded tool latencies make MAD == 0 common, and the modified z-score went quiet exactly where an outlier is most obvious. the scale falls back to the mean absolute deviation when MAD collapses; only a truly uniform sample stays an honest no-op. swept across all four meters (per-trace/fleet × latency/tokens). 6 tests.
+
 ## v2.26.0
 
 - the trends you can see. fixed: the fleet trend section's failure-rate curve never rendered (it read the wrong key from the day rows). the trend section gains inline-SVG curves for slowness, token-burn and spend; a trace's token-anomaly card opens with a bar strip of every tool call's tokens — a retry loop is a skyline spike, not a footnote. 7 tests.
