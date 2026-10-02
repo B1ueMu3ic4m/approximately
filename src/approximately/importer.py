@@ -51,7 +51,7 @@ _MAX_IMPORTED_STEPS = 10_000
 _MAX_STEP_TOKENS = 10_000_000
 
 
-def _loads(text: str):
+def _loads(text: str) -> Any:
     """``json.loads`` with the recursion bomb defused: Python's parser
     raises RecursionError past ~1000 nesting levels, and import
     callers contractually expect ValueError for malformed input —
@@ -305,7 +305,7 @@ def _span_step(span: Dict[str, Any]) -> Step:
     # tool must fall back to the span name, not invent content
     tool_name = _attr_text({"tool": tool}, "tool", 200) or name
 
-    def build(**over):
+    def build(**over: Any) -> Step:
         return Step(tokens=tokens, latency_ms=latency, **over)
 
     step = _known_kind_step(kind, attrs, tool_name, name, build)
@@ -320,7 +320,8 @@ def _span_step(span: Dict[str, Any]) -> Step:
                  meta={"span_name": name})
 
 
-def _known_kind_step(kind, attrs, tool_name, name, build):
+def _known_kind_step(kind: Any, attrs: Any, tool_name: Any,
+                     name: Any, build: Any) -> Any:
     """Map a span carrying our approximately.kind attribute onto its
     recorder step; None when the kind is foreign."""
     if kind == "tool_call":
@@ -598,7 +599,7 @@ def import_paths(patterns: List[str], store: TraceStore,
     tolerate = len(paths) > 1  # one bad file must not kill a batch,
     # but a single named file that cannot be parsed stays a loud error
 
-    def import_one(path):
+    def import_one(path: "Path") -> dict:
         nonlocal errors
         try:
             return import_file(path, store, fmt=fmt, dry_run=dry_run)
@@ -720,7 +721,7 @@ def import_annotations(path: Path, store: TraceStore) -> Dict[str, Any]:
     """Merge a foreign annotation sidecar: append-only, so only rows
     the store has never seen are added (exact row match on the
     whole entry). Returns the counts."""
-    def _key(row):
+    def _key(row: dict) -> tuple:
         # stable identity: timestamps differ between stores, the
         # triage content does not
         return (str(row.get("trace_id")), str(row.get("note", "")),

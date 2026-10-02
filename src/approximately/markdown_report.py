@@ -10,7 +10,7 @@ it can never inject formatting.
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Any, List
 
 if TYPE_CHECKING:
     from .attributor import FailureReport
@@ -59,7 +59,7 @@ def _timeline_lines(trace: "Trace") -> List[str]:
     return ["### Timeline", "", f"{fence}text", *rows, fence]
 
 
-def _counterfactual_lines(trace) -> list:
+def _counterfactual_lines(trace: "Trace") -> list:
     """Root-cause section, affordance-gated like the HTML card."""
     if len(trace.steps) > 200:
         return []
@@ -119,7 +119,7 @@ def _anomaly_lines(trace: "Trace") -> list:
     return lines
 
 
-def _fleet_lines(trace: "Trace", store) -> list:
+def _fleet_lines(trace: "Trace", store: Any) -> list:
     """Fleet-outlier bullets (best-effort: no store, no section)."""
     if store is None:
         return []
@@ -145,7 +145,7 @@ def _fleet_lines(trace: "Trace", store) -> list:
 
 
 def render_markdown(trace: "Trace", report: "FailureReport",
-                    store=None) -> str:
+                    store: Any = None) -> str:
     """Issue-ready Markdown postmortem for one attributed trace."""
     verdict = _esc(report.primary_mode.label)
     lines = [

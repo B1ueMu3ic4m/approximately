@@ -116,7 +116,7 @@ def merge_store(source: Path, target: TraceStore,
     # (possibly renamed) trace id; append order preserved.
     source_notes = source_store.annotations()
     if source_notes:
-        def _key(entry):
+        def _key(entry: dict) -> str:
             # semantic identity: ts is wall-clock noise, content is not
             return json.dumps(
                 {k: entry.get(k) for k in
