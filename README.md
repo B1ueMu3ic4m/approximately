@@ -159,6 +159,7 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 📈 Failure-rate trends | "Is the agent getting better or worse?" — sparkline + robust Theil–Sen verdict in every batch report | `approximately report --all` / `stats --trend` |
 | 🚀 Project scaffold | An instrumented agent project with guards, runnable in seconds | `approximately new myagent` |
 | 🚦 Repo gate wiring | `approximately init` wires the CI quality gate into the repo you already have — workflow, price table, .gitignore; idempotent, nothing overwritten without --force | `approximately init` |
+| 🧾 Evidence packs | One trace's complete case in a single tamper-evident zip — record with the integrity chain, postmortem, annotations, chain verdict, and a sha256 manifest anyone can recompute | `approximately evidence <trace> case.zip` |
 | 🔮 Failure precursor | Early warning mined from your own history: "runs like this fail Z% of the time" | `approximately predict` |
 | 🧬 Trajectory alignment | Needleman-Wunsch over action sequences — find runs with the same *shape* | `approximately similar` |
 | 📮 SARIF export | Attribution results as GitHub code-scanning alerts | `approximately attribute --sarif` |

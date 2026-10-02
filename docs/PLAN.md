@@ -2817,3 +2817,16 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        degradation when detectors explode.
      - spool.py 83% → 98%; markdown_report 85% → mid-90s.  8
        tests.
+
+286. **v2.38.0 - `approximately evidence`: the complete case, one archive** ✅ (delivered):
+     - A reviewer judging a run should not need the store, the
+       tool, or this repo's docs.  `evidence <trace> out.zip`
+       packs the native record (integrity chain embedded), the
+       HTML postmortem, the trace's annotations, an on-the-spot
+       chain verdict (keyed chains via --key-file), and a
+       manifest naming the sha256 of every member — the pack
+       itself is tamper-evident, and the manifest's hashes are
+       recomputable by anyone with unzip and sha256sum.
+     - Unknown ids are a loud error (exit 2) — a pack is never an
+       empty archive with a shrug.  Deterministic member order;
+       no store paths leak into the archive.  5 tests.
