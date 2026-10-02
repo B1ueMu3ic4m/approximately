@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.61.0
+
+- the reviewer's side: `evidence --verify PACK` recomputes every manifest hash and the chain inside the extracted record, printing TRUSTED or REFUSED (exit 1 refuses). the three forgery cases pinned: swapped member, rewritten record, non-pack. 4 tests.
+
 ## v2.60.0
 
 - the README catches up: the digest drain and the offboarding archive join the capabilities table. coverage re-run confirms the night's newest code is covered. no product change.

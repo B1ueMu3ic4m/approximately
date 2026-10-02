@@ -119,3 +119,51 @@ def build_store_packs(store: Any, out_dir: Path,
     }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return {"packs": len(index), "index": str(index_path),
             "traces": index}
+
+
+def verify_evidence_pack(pack: Path,
+                         key: Optional[bytes] = None) -> Dict[str, Any]:
+    """The reviewer's side: recompute every manifest hash, then
+    verify the chain inside the extracted record.  A missing or
+    altered member fails loudly; an unsigned record reports
+    unsigned (the pack's manifest still matching means it arrived
+    intact — the chain says whether what arrived is trustworthy).
+    """
+    with zipfile.ZipFile(pack) as zf:
+        names = set(zf.namelist())
+        if "manifest.json" not in names:
+            raise ValueError("not an evidence pack: no manifest")
+        manifest = json.loads(zf.read("manifest.json"))
+        recorded = manifest.get("members") or {}
+        mismatched = [name for name, digest in recorded.items()
+                      if name not in names
+                      or hashlib.sha256(zf.read(name)).hexdigest()
+                      != digest]
+        missing = sorted(set(recorded) - names)
+        record = None
+        if "trace.json" in names:
+            from .trace import Trace
+
+            record = Trace.from_dict(
+                json.loads(zf.read("trace.json")))
+    chain = None
+    if record is not None:
+        from .integrity import verify
+
+        result = verify(record, key=key)
+        chain = {
+            "signed": result.signed,
+            "intact": result.intact,
+            "verdict": result.verdict_override or (
+                "intact" if result.intact else "tampered"),
+            "detail": result.detail,
+        }
+    return {
+        "pack": str(pack),
+        "trace_id": manifest.get("trace_id"),
+        "members_checked": len(recorded),
+        "mismatched": mismatched,
+        "missing": missing,
+        "manifest_ok": not mismatched and not missing,
+        "chain": chain,
+    }
