@@ -2710,3 +2710,15 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        legal syntax that matches nothing — pinned as such.
      - 11 tests; contract holds: documented errors or clean skips,
        never a crash.
+
+278. **v2.31.2 - the docs catch up to the night** ✅ (delivered):
+     - README banner refreshed to current facts (34 tools, 1,500+
+       tests, the gate in the headline list) — capability prose,
+       never a per-version changelog; that lives in Releases and
+       CHANGELOG.md as always.
+     - RECIPES 20: the gate chapter — init → record with measured
+       latencies/tokens → tune ceilings → enforce (with the spend
+       line) → hygiene (clean caps, deep doctor). The five
+       contracts spelled out.
+     - ARCHITECTURE: doctor --deep, scaffold.py (new/init), and
+       the ci door documented as first-class modules.

@@ -385,3 +385,36 @@ count per step (no in/out split), and a missing rate or a malformed
 table is a loud error — a budget you can't trust is worse than no
 budget. Pair with the token-burn anomalies (recipe 17) to see WHAT
 burned, not just how much.
+
+## 20. The gate chapter: from `init` to a build that fails
+
+The loop closes: record runs locally, ship them to CI through the
+store, and let a ceiling fail the build when the agent regresses.
+
+```bash
+# one-time: wire the gate into the repo you already have
+approximately init                    # workflow + price table + .gitignore
+
+# every run, on the agent side: measured durations and tokens land
+# in the Step (latency_ms overrides the auto-timer)
+rec.tool("deploy", {...}, tokens=420, latency_ms=3800)
+
+# tune ceilings against your own history before enforcing them
+approximately ci --store .agents-store \
+  --max-failure-rate 0.3 --max-p95-latency-ms 15000 \
+  --max-tokens 2000000
+# then add the money line once prices.json is honest:
+#   --max-spend 5 --prices prices.json
+
+# hygiene that keeps the gate fast forever
+approximately clean --store .agents-store --keep-days 30 --max-traces 500
+approximately doctor --store .agents-store --deep
+```
+
+The contracts that make it trustworthy: an empty store is refused
+(a gate over zero runs proves nothing), zero ceilings is a
+configuration error, unpriced models fail the spend gate (a budget
+you cannot compute does not hold), and latency meters on step
+latency — the same ruler as the anomaly detectors. The MCP server
+exposes the same verdict as `ci_gate`, so an agent loop can gate
+itself without shelling out.

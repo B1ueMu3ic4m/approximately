@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.31.2
+
+- the docs catch up to the night: README banner at current facts, RECIPES 20 (the gate chapter: init → record → tune → enforce → hygiene), ARCHITECTURE entries for doctor --deep, scaffold.py and the ci door.
+
 ## v2.31.1
 
 - fuzz round 17: three crash classes on the night's new surfaces. `approximately init` now refuses a hostile tree (a .gitignore that is a directory, a read-only parent) instead of tracebacking, keeping the other files coming; `store.save` survives a trace whose meta is not a dict; the query grammar's `()` parses as an empty list instead of a list containing the paren token. 11 tests.
