@@ -7,7 +7,7 @@ import importlib
 import json
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from . import __version__
 from .attributor import attribute
@@ -34,7 +34,7 @@ def _load_trace(spec: str, store: TraceStore) -> Trace:
     return trace
 
 
-def _resolve_executor(expr: str):
+def _resolve_executor(expr: str) -> Any:
     module_name, _, attr = expr.partition(":")
     if not attr:
         raise SystemExit("error: executor must look like 'package.module:func'")
@@ -42,7 +42,7 @@ def _resolve_executor(expr: str):
     return getattr(module, attr)
 
 
-def _print_report(report, judge_note: str = "",
+def _print_report(report: Any, judge_note: str = "",
                   top: int = 0) -> None:
     bar = "─" * 62
     print(bar)
@@ -191,7 +191,7 @@ def _judge_kwargs(args: argparse.Namespace) -> dict:
     return {"cache_dir": Path(cache)} if cache else {}
 
 
-def _report_judge_cache(args, payload: dict) -> None:
+def _report_judge_cache(args: argparse.Namespace, payload: dict) -> None:
     """Attach + print cache hit/miss stats when a cache was in play."""
     from .judge import cache_stats
 
@@ -586,8 +586,8 @@ def cmd_drift(args: argparse.Namespace) -> int:
     return 0
 
 
-def _print_query_stats(found, stats_json: bool,
-                       prices=None) -> int:
+def _print_query_stats(found: list, stats_json: bool,
+                       prices: Any = None) -> int:
     from .query import summarize
 
     stats = summarize(found)
@@ -752,7 +752,7 @@ def cmd_repair(args: argparse.Namespace) -> int:
     return 0
 
 
-def _parse_labels(pairs):
+def _parse_labels(pairs: Any) -> Any:
     """--label k=v strings -> dict; the renderers need real labels."""
     if not pairs:
         return None
@@ -878,7 +878,7 @@ def cmd_annotations(args: argparse.Namespace) -> int:
     return 0
 
 
-def _fleet_and_coverage(traces, annotations, stats):
+def _fleet_and_coverage(traces: list, annotations: list, stats: Any) -> tuple:
     """Fleet latency outliers + triage coverage, for the glance."""
     from .anomaly import detect_fleet_anomalies
 
@@ -897,7 +897,7 @@ def _fleet_and_coverage(traces, annotations, stats):
     return fleet_anoms, coverage
 
 
-def _token_summary(traces) -> tuple:
+def _token_summary(traces: list) -> tuple:
     """(total tokens, token-burn traces) for a health snapshot;
     best-effort — detection trouble counts zero."""
     total = sum(step.tokens for trace in traces
@@ -912,7 +912,7 @@ def _token_summary(traces) -> tuple:
     return total, burns
 
 
-def _status_spend(traces, prices):
+def _status_spend(traces: list, prices: Any) -> tuple:
     """(est spend, unpriced tokens) over the window — the same
     unpriced-models-counted rule every pricing surface uses."""
     if not prices:
@@ -930,8 +930,9 @@ def _status_spend(traces, prices):
     return spend, unpriced
 
 
-def _status_payload(store, traces, digest_dir, since=None,
-                    prices=None):
+def _status_payload(store: Any, traces: list, digest_dir: Any,
+                    since: Any = None,
+                    prices: Any = None) -> dict:
     """Build the status overview data (shared by text and JSON)."""
     import time as _time
 
@@ -1017,7 +1018,7 @@ def _status_payload(store, traces, digest_dir, since=None,
     }
 
 
-def _write_token_line(buf, payload: dict) -> None:
+def _write_token_line(buf: Any, payload: dict) -> None:
     """The tokens/burns line, only when the store metered any."""
     if payload.get("total_tokens"):
         burns = payload.get("token_burns") or 0
@@ -1170,7 +1171,7 @@ _VERIFY_EXIT = {"intact": 0, "tampered": 1, "unsigned": 2,
                 "ledger-broken": 5}
 
 
-def _verify_prose(verdict: str, payload: dict, key) -> None:
+def _verify_prose(verdict: str, payload: dict, key: Any) -> None:
     """The historical human-readable rendering of a verdict."""
     detail = payload.get("detail", "")
     if verdict == "unsigned":
@@ -1197,7 +1198,7 @@ def _verify_prose(verdict: str, payload: dict, key) -> None:
             print(f"LEDGER-BROKEN: {detail}")
 
 
-def _verify_one(args: argparse.Namespace, store, key) -> int:
+def _verify_one(args: argparse.Namespace, store: Any, key: Any) -> int:
     """Single-trace verification: one payload, two renderings.
 
     ``verdict_payload()`` is the single source of truth (shared with
@@ -1231,7 +1232,7 @@ def cmd_merge(args: argparse.Namespace) -> int:
     return 0
 
 
-def _print_fleet(summaries) -> None:
+def _print_fleet(summaries: list) -> None:
     for s in summaries:
         flag = "" if s.ledger_intact is not False else "  [LEDGER BROKEN]"
         anomalies = getattr(s, "fleet_anomalies", 0) or 0
@@ -1240,7 +1241,7 @@ def _print_fleet(summaries) -> None:
               f"failure rate {s.failure_rate:.0%}{slow}{flag}")
 
 
-def _fleet_notify(summaries, url: str) -> None:
+def _fleet_notify(summaries: list, url: str) -> None:
     from .fleet import notify_webhook
     from .integrity import load_key
 
@@ -1270,12 +1271,12 @@ def cmd_mcp(args: argparse.Namespace) -> int:
     return _serve_mcp(args)
 
 
-def _fleet_watch(args: argparse.Namespace, stores) -> int:
+def _fleet_watch(args: argparse.Namespace, stores: list) -> int:
     import signal
 
     from .fleet import watch_fleet
 
-    def _stop(signum, frame):
+    def _stop(signum: int, frame: Any) -> None:
         raise KeyboardInterrupt
 
     signal.signal(signal.SIGTERM, _stop)
@@ -1385,7 +1386,7 @@ def _fleet_trend(args: argparse.Namespace) -> int:
     return 0
 
 
-def _fleet_prices(args: argparse.Namespace):
+def _fleet_prices(args: argparse.Namespace) -> Any:
     path = getattr(args, "prices", None)
     if not path:
         return None
@@ -1501,8 +1502,9 @@ def cmd_anomalies(args: argparse.Namespace) -> int:
     return _anomalies_report(args, TraceStore(args.store), *meter)
 
 
-def _anomalies_report(args: argparse.Namespace, store,
-                      fleet_fn, trace_fn, summarize) -> int:
+def _anomalies_report(args: argparse.Namespace, store: Any,
+                      fleet_fn: Any, trace_fn: Any,
+                      summarize: Any) -> int:
     store_traces = store.list_traces(
         since_days=getattr(args, "since", None))
     if getattr(args, "all", False):
@@ -1538,7 +1540,7 @@ def _anomalies_report(args: argparse.Namespace, store,
     return 0 if not anomalies else 1
 
 
-def _anomaly_row(a, tokens: bool, trace: bool = True) -> dict:
+def _anomaly_row(a: Any, tokens: bool, trace: bool = True) -> dict:
     row = {"step_index": a.step_index, "tool": a.tool}
     if trace:
         row["trace_id"] = a.trace_id
@@ -1553,7 +1555,7 @@ def _anomaly_row(a, tokens: bool, trace: bool = True) -> dict:
     return row
 
 
-def _anomaly_line(a) -> str:
+def _anomaly_line(a: Any) -> str:
     trace_id = f"{a.trace_id} " if hasattr(a, "trace_id") else ""
     if hasattr(a, "tokens"):
         return (f"  {trace_id}step {a.step_index} {a.tool} "
@@ -1566,7 +1568,7 @@ def _anomaly_line(a) -> str:
             f"z={a.robust_z:+.1f})")
 
 
-def _audit_row(store, trace, key, counts: dict) -> dict:
+def _audit_row(store: Any, trace: Any, key: Any, counts: dict) -> dict:
     """Verify one trace and tally its verdict into counts."""
     from .integrity import verify
     from .ledger import audit_rollback
@@ -1580,7 +1582,7 @@ def _audit_row(store, trace, key, counts: dict) -> dict:
             "detail": result.detail}
 
 
-def _verify_all(store, key, as_json: bool = False,
+def _verify_all(store: Any, key: Any, as_json: bool = False,
                 since_days: Optional[int] = None,
                 strict: bool = False, quiet: bool = False) -> int:
     """Batch integrity audit; exit 1 when any trace fails.
@@ -1696,7 +1698,7 @@ def _load_prices(path: Optional[str]) -> Optional[dict]:
     return table
 
 
-def _spend_by_model(args: argparse.Namespace, traces,
+def _spend_by_model(args: argparse.Namespace, traces: list,
                     prices: dict) -> tuple:
     """Per-model spend: tokens grouped by trace.model, priced at the
     table's blended $/1k; models without a rate stay unpriced.
@@ -1834,7 +1836,7 @@ def cmd_stats(args: argparse.Namespace) -> int:
     return _stats_totals(args, stats, traces, price, total_tokens)
 
 
-def _stats_totals(args: argparse.Namespace, stats, traces,
+def _stats_totals(args: argparse.Namespace, stats: Any, traces: list,
                   price: Optional[float],
                   total_tokens: int) -> int:
     """The plain-totals door: health numbers, the token/cost line,
@@ -1888,7 +1890,7 @@ def _budget_gate(args: argparse.Namespace, total_tokens: int,
     return code
 
 
-def _step_latencies(traces) -> list:
+def _step_latencies(traces: list) -> list:
     """Every step's recorded latency_ms across the store — the same
     ruler the anomaly detector meters on (runs carry no wall-clock
     end time, so steps are the honest sample)."""
@@ -1905,7 +1907,7 @@ def _p95(values: list) -> Optional[float]:
     return ordered[idx]
 
 
-def _ci_spend(traces, prices: dict) -> tuple:
+def _ci_spend(traces: list, prices: dict) -> tuple:
     """(priced total, unpriced tokens) — models without a rate in
     the table leave their tokens unpriced, and unpriced tokens make
     the spend gate unprovable."""
@@ -1922,7 +1924,7 @@ def _ci_spend(traces, prices: dict) -> tuple:
     return total, unpriced
 
 
-def _ci_gate_rows(traces, stats, prices: Optional[dict],
+def _ci_gate_rows(traces: list, stats: Any, prices: Optional[dict],
                   args: argparse.Namespace) -> list:
     """One row per enabled ceiling; each row carries its measured
     value, the ceiling, and the pass/fail verdict."""
@@ -2064,14 +2066,14 @@ def cmd_evidence(args: argparse.Namespace) -> int:
     return 0
 
 
-def _compare_rows(traces):
+def _compare_rows(traces: list) -> dict:
     """Per-tool rollup for the compare door (tool -> row)."""
     from .cluster import tool_scorecard
 
     return {r["tool"]: r for r in tool_scorecard(traces)}
 
 
-def _compare_stats(store_path, since=None):
+def _compare_stats(store_path: Any, since: Any = None) -> dict:
     from .cluster import store_stats
 
     store = TraceStore(store_path)
@@ -2085,7 +2087,7 @@ def _compare_stats(store_path, since=None):
             "modes": modes, "rows": _compare_rows(traces)}
 
 
-def _compare_spend(a, prices):
+def _compare_spend(a: dict, prices: Any) -> Any:
     if not prices:
         return None
     by_model: dict = {}
@@ -2493,7 +2495,7 @@ def cmd_export_dataset(args: argparse.Namespace) -> int:
     return 0
 
 
-def _benchmark_multi(labeled, args: argparse.Namespace) -> int:
+def _benchmark_multi(labeled: list, args: argparse.Namespace) -> int:
     from .distill import evaluate_multi, render_leaderboard_html
 
     pairs = []

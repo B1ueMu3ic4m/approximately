@@ -25,7 +25,7 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from .trace import Trace
 
@@ -177,7 +177,7 @@ def rotate(trace: Trace, old_key: Optional[bytes],
 _LOCKED = object()  # sentinel: keyed trace, but no key available
 
 
-def _effective_key(block: dict, key: Optional[bytes]):
+def _effective_key(block: dict, key: Optional[bytes]) -> Any:
     """Resolve the verification key for a stamped trace.
 
     Returns ``None`` for unkeyed traces, the key for keyed traces, and the
@@ -263,7 +263,7 @@ def _tamper_result(block: dict, actual: List[str],
     )
 
 
-def verdict_payload(trace: Trace, directory, key: Optional[bytes] = None) -> dict:
+def verdict_payload(trace: Trace, directory: Any, key: Optional[bytes] = None) -> dict:
     """The verification ladder as one machine-readable object.
 
     Shared by the CLI (``verify <id> --json``) and the MCP ``verify``

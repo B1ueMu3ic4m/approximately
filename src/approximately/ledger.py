@@ -32,6 +32,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
 
+from .trace import Trace
+
 LEDGER_FILE = "ledger.jsonl"
 GENESIS = "0" * 64
 
@@ -156,7 +158,7 @@ def verify_ledger(directory: Path) -> LedgerCheck:
     return check
 
 
-def audit_rollback(trace, directory: Path) -> Optional[str]:
+def audit_rollback(trace: Trace, directory: Path) -> Optional[str]:
     """Detect a trace rolled back to an older (still-valid) signature.
 
     Returns ``"rolled-back"`` when the trace's current chain-final hash

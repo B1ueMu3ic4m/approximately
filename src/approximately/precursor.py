@@ -146,7 +146,7 @@ def mine(traces: Iterable[Trace]) -> PrecursorModel:
     return model
 
 
-def score_payload(trace, score: "PrecursorScore") -> dict:
+def score_payload(trace: "Trace", score: "PrecursorScore") -> dict:
     """A PrecursorScore as data (CLI --json and MCP)."""
     return {"trace": trace.id,
             "probability": round(score.probability, 4),

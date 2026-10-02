@@ -62,7 +62,7 @@ class Recorder:
         _local.recorder = self
         return self
 
-    def __exit__(self, exc_type, exc, tb) -> None:
+    def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
         _local.recorder = self._previous
         if exc_type is not None:
             self.trace.add(
