@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.60.0
+
+- the README catches up: the digest drain and the offboarding archive join the capabilities table. coverage re-run confirms the night's newest code is covered. no product change.
+
 ## v2.59.0
 
 - midnight drains itself too: the watch detects the day-file change on append and collapses the finished day to its final line right there — a watch that runs for days never needs a restart to stay drained. 1 test.
