@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.52.0
+
+- strict-mypy batch seven: all seven contrib adapters join the typed set — `report()` returns the FailureReport object, now stated in its type. 30 modules strict. no behavior change.
+
 ## v2.51.0
 
 - strict-mypy batch six: report, markdown_report, importer and merge join the typed set — 23 modules strict-clean. no behavior change.

@@ -60,7 +60,8 @@ def _event_usage(event: Any) -> Any:
     return getattr(event, "usage_metadata", None)
 
 
-def _transcribe_part(rec, part: Any, state: dict, agent_side: bool) -> None:
+def _transcribe_part(rec: Any, part: Any, state: dict,
+                     agent_side: bool) -> None:
     call = getattr(part, "function_call", None)
     response = getattr(part, "function_response", None)
     text = getattr(part, "text", None)

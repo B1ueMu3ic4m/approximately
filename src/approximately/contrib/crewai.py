@@ -27,7 +27,7 @@ def _preview(value: Any, limit: int = 200) -> str:
     return " ".join(text.split())[:limit]
 
 
-def _events_module():
+def _events_module() -> Any:
     """Locate the event definitions across known crewai layouts."""
     try:
         import crewai_events as events  # standalone package layout
@@ -70,7 +70,7 @@ class CrewAIRecorder:
         if register is None:
             return
 
-        def handler(event_name: str):
+        def handler(event_name: str) -> Any:
             def _inner(source: Any, payload: Any = None) -> None:
                 self._on(event_name, source, payload)
             return _inner

@@ -23,6 +23,11 @@ extraction failure is swallowed rather than breaking your query.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..attributor import FailureReport
+
 import json
 from typing import Any, ClassVar, Optional
 
@@ -99,7 +104,7 @@ class ApproximatelyHandler:
     it — LlamaIndex calls the methods, it does not type-check them.
     """
 
-    def __init__(self, task: str, recorder=None):
+    def __init__(self, task: str, recorder: Any = None):
         from ..recorder import Recorder
 
         self.recorder = recorder or Recorder(task, model="llamaindex",
@@ -191,7 +196,7 @@ class ApproximatelyHandler:
     }
 
     # -- wiring & convenience ---------------------------------------------------
-    def wire(self, manager_or_settings: Any):
+    def wire(self, manager_or_settings: Any) -> None:
         """Attach to a CallbackManager, or set one up on Settings-like."""
         add = getattr(manager_or_settings, "add_handler", None)
         if add is not None:  # a CallbackManager (or Dispatcher)
@@ -211,7 +216,7 @@ class ApproximatelyHandler:
                 success: bool = True) -> None:
         self.recorder.respond(text or "query finished", success=success)
 
-    def report(self):
+    def report(self) -> "FailureReport":
         from ..attributor import attribute
 
         return attribute(self.recorder.trace)
@@ -238,7 +243,7 @@ class ApproximatelySpanHandler:
         report = attribute(spans.recorder.trace)
     """
 
-    def __init__(self, task: str, recorder=None):
+    def __init__(self, task: str, recorder: Any = None):
         from ..recorder import Recorder
 
         self.recorder = recorder or Recorder(task, model="llamaindex",
@@ -320,7 +325,7 @@ class ApproximatelySpanHandler:
     }
 
     # -- wiring & convenience ---------------------------------------------------
-    def wire_dispatcher(self, dispatcher: Any):
+    def wire_dispatcher(self, dispatcher: Any) -> None:
         """Attach to a Dispatcher (method or handler-list shape)."""
         add = getattr(dispatcher, "add_span_handler", None)
         if add is not None:
@@ -338,7 +343,7 @@ class ApproximatelySpanHandler:
                 success: bool = True) -> None:
         self.recorder.respond(text or "query finished", success=success)
 
-    def report(self):
+    def report(self) -> "FailureReport":
         from ..attributor import attribute
 
         return attribute(self.recorder.trace)

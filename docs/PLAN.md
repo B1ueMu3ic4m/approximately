@@ -2987,3 +2987,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - report, markdown_report, importer, merge join the typed set
        (16 more signatures) — 23 modules strict.  Remaining:
        cli.py and the contrib adapters.
+
+303. **v2.52.0 - strict-mypy batch seven: the adapter family** ✅ (delivered):
+     - All seven contrib adapters join the typed set (pydantic_ai,
+       llamaindex, google_adk, crewai, autogen, agents_sdk,
+       langgraph — `report()` returns the FailureReport object,
+       now stated in its type).  30 modules strict; cli.py is the
+       last bulk.
