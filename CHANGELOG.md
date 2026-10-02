@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.63.0
+
+- `python -m approximately` works: the package gained a `__main__.py`, so the module form and the console script are the same door. a RECIPES command that lied (`doctor traces --fix` — doctor only takes --store) reads --store now. 24 command families smoke-tested end to end through the module form.
+
 ## v2.62.0
 
 - the pack verifier joins the README; distill's finite edge pinned (NaN is None, not a silent 0.0). docs+tests only.
