@@ -487,7 +487,7 @@ def _save_otlp(document: Any, store: TraceStore, dry_run: bool = False,
             duplicates += 1
             continue
         if not dry_run:
-            store.save(trace)
+            store.save(trace, stamp=False)
         existing.add(trace.id)
         imported.append(trace.id)
     counts = {"lines": spans, "imported": len(imported),
@@ -707,7 +707,7 @@ def import_lines(raw_lines: Iterable[str], store: TraceStore,
             duplicates += 1
             continue
         if not dry_run:
-            store.save(trace)
+            store.save(trace, stamp=False)
         existing.add(trace.id)
         imported.append(trace.id)
     return {"format": fmt, "lines": lines, "imported": len(imported),

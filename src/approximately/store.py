@@ -44,7 +44,7 @@ class TraceStore:
         self.directory = Path(directory) if directory else default_store_dir()
         self.directory.mkdir(parents=True, exist_ok=True)
 
-    def save(self, trace: Trace) -> Path:
+    def save(self, trace: Trace, stamp: bool = True) -> Path:
         """Atomically persist a trace; concurrent same-id saves serialize.
 
         Atomicity: write to a unique temp file in the same directory, then
@@ -53,7 +53,18 @@ class TraceStore:
         Serialization: an OS lock file per trace id is held (via O_EXCL
         create with bounded retry) while the replace happens, so two
         agents finishing the same id do not interleave.
+
+        With ``stamp`` (the default), a trace that carries no
+        integrity block is signed on the way in — code saving through
+        the store directly (adapters, scripts) gets the same evidence
+        chain the recorder stamps on exit.  Ingest paths pass
+        ``stamp=False``: foreign evidence must not acquire OUR chain,
+        or doctor --deep would vouch for data we never measured.
         """
+        if stamp and not (trace.meta or {}).get("integrity"):
+            from .integrity import load_key, sign
+
+            sign(trace, key=load_key())
         path = self.directory / f"{trace.id}.json"
         lock = self.directory / f".{trace.id}.lock"
         payload = trace.to_json()

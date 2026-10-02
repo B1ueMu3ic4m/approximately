@@ -26,7 +26,7 @@ def test_verify_all_tallies_verdicts(tmp_path):
     store = TraceStore(tmp_path / "s")
     rec = Recorder("plain run", save=False)
     rec.respond("done", success=True)
-    store.save(rec.trace)
+    store.save(rec.trace, stamp=False)
     payload = _call({"all": True, "store": str(store.directory)})
     result = json.loads(payload["result"]["content"][0]["text"])
     assert result["all"] is True

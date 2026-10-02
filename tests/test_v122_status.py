@@ -19,12 +19,12 @@ def _store(tmp_path):
     rec = Recorder("ok run", save=False)
     rec.trace.id = "ok-1"
     rec.respond("done", success=True)
-    store.save(rec.trace)
+    store.save(rec.trace, stamp=False)
     bad = Recorder("book the flight", save=False)
     bad.trace.id = "bad-1"
     bad.tool("book", {"seat": "12A"}, result=None, error="timeout")
     bad.respond("gave up", success=False)
-    store.save(bad.trace)
+    store.save(bad.trace, stamp=False)
     store.annotate("bad-1", "infra timeout", author="oncall",
                    verdict="confirmed")
     return store
