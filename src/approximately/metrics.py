@@ -103,6 +103,10 @@ def _render_entity_prometheus(rows, entity: str,
          f"Failed traces the {entity} touched", "counter"),
         ("failure_rate", f"approximately_{entity}_failure_rate",
          "Share of touched traces that failed", "gauge"),
+        ("p95_ms", f"approximately_{entity}_p95_latency_ms",
+         f"p95 step latency per {entity}", "gauge"),
+        ("p95_tokens", f"approximately_{entity}_p95_tokens",
+         f"p95 step tokens per {entity}", "gauge"),
     ]
     for key, metric, help_text, mtype in gauges:
         lines.extend([

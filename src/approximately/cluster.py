@@ -165,18 +165,25 @@ def agent_scorecard(traces: Iterable[Trace],
             row = per.setdefault(name, {
                 "trace_ids": set(), "steps": 0, "tool_calls": 0,
                 "tokens": 0, "errors": 0, "failed_ids": set(),
+                "latencies": [], "token_samples": [],
             })
             row["trace_ids"].add(trace.id)
             row["steps"] += 1
             row["tool_calls"] += int(step.kind == TOOL_CALL)
             row["tokens"] += step.tokens or 0
             row["errors"] += int(bool(step.error))
+            if step.latency_ms:
+                row["latencies"].append(float(step.latency_ms))
+            if step.tokens:
+                row["token_samples"].append(float(step.tokens))
             if failed:
                 row["failed_ids"].add(trace.id)
     rows = []
     for name, row in per.items():
         touched = len(row["trace_ids"])
         failed_n = len(row["failed_ids"])
+        p95_ms = _p95(row["latencies"])
+        p95_tok = _p95(row["token_samples"])
         rows.append({
             "agent": name,
             "traces": touched,
@@ -187,10 +194,23 @@ def agent_scorecard(traces: Iterable[Trace],
             "failed_traces": failed_n,
             "failure_rate": round(failed_n / touched, 3) if touched
                             else 0.0,
+            "p95_ms": round(p95_ms, 1) if p95_ms is not None else None,
+            "p95_tokens": (round(p95_tok) if p95_tok is not None
+                           else None),
         })
     if min_failed is not None:
         rows = [r for r in rows if r["failed_traces"] >= min_failed]
     return sorted(rows, key=lambda r: (-r["steps"], r["agent"]))
+
+
+def _p95(values: List[float]):
+    """Nearest-rank 95th percentile; None when nothing timed."""
+    if not values:
+        return None
+    ordered = sorted(values)
+    idx = max(0, min(len(ordered) - 1,
+                     round(0.95 * (len(ordered) - 1))))
+    return ordered[idx]
 
 
 def tool_scorecard(traces: Iterable[Trace]) -> List[dict]:
@@ -211,17 +231,24 @@ def tool_scorecard(traces: Iterable[Trace]) -> List[dict]:
             row = per.setdefault(step.tool, {
                 "trace_ids": set(), "steps": 0, "errors": 0,
                 "tokens": 0, "failed_ids": set(),
+                "latencies": [], "token_samples": [],
             })
             row["trace_ids"].add(trace.id)
             row["steps"] += 1
             row["errors"] += int(bool(step.error))
             row["tokens"] += step.tokens or 0
+            if step.latency_ms:
+                row["latencies"].append(float(step.latency_ms))
+            if step.tokens:
+                row["token_samples"].append(float(step.tokens))
             if failed:
                 row["failed_ids"].add(trace.id)
     rows = []
     for name, row in per.items():
         touched = len(row["trace_ids"])
         failed_n = len(row["failed_ids"])
+        p95_ms = _p95(row["latencies"])
+        p95_tok = _p95(row["token_samples"])
         rows.append({
             "tool": name,
             "traces": touched,
@@ -231,6 +258,9 @@ def tool_scorecard(traces: Iterable[Trace]) -> List[dict]:
             "failed_traces": failed_n,
             "failure_rate": round(failed_n / touched, 3) if touched
                             else 0.0,
+            "p95_ms": round(p95_ms, 1) if p95_ms is not None else None,
+            "p95_tokens": (round(p95_tok) if p95_tok is not None
+                           else None),
         })
     return sorted(rows, key=lambda r: (-r["steps"], r["tool"]))
 

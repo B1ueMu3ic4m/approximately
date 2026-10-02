@@ -586,16 +586,38 @@ def cmd_drift(args: argparse.Namespace) -> int:
     return 0
 
 
-def _print_query_stats(found, stats_json: bool) -> int:
+def _print_query_stats(found, stats_json: bool,
+                       prices=None) -> int:
     from .query import summarize
 
     stats = summarize(found)
+    spend = None
+    unpriced = 0
+    if prices:
+        by_model: dict = {}
+        for t in found:
+            model = str(t.model or "unknown")
+            by_model[model] = by_model.get(model, 0) + sum(
+                s.tokens for s in t.steps)
+        unpriced = sum(n for m, n in by_model.items()
+                       if m not in prices)
+        spend = round(sum(n / 1000 * prices[m]
+                          for m, n in by_model.items()
+                          if m in prices), 4)
     if stats_json:
+        if spend is not None:
+            stats["est_spend"] = spend
+            stats["unpriced_tokens"] = unpriced
         print(json.dumps(stats, indent=2))
         return 0
+    tail = ""
+    if spend is not None:
+        tail = f"  est spend ${spend:,.2f}"
+        if unpriced:
+            tail += f" ({unpriced:,} tokens unpriced)"
     print(f"count {stats['count']}  "
           f"ok {stats['success']}  failed {stats['failed']}  "
-          f"failure rate {stats['failure_rate'] * 100:.1f}%")
+          f"failure rate {stats['failure_rate'] * 100:.1f}%{tail}")
     if stats["modes"]:
         modes = ", ".join(f"{m} x{c}" for m, c in stats["modes"].items())
         print(f"modes: {modes}")
@@ -613,7 +635,9 @@ def cmd_query(args: argparse.Namespace) -> int:
     except QueryError as exc:
         raise SystemExit(f"error: {exc}") from exc
     if getattr(args, "stats", False):
-        return _print_query_stats(found, stats_json=bool(args.json))
+        prices = _load_prices(getattr(args, "prices", None))
+        return _print_query_stats(found, stats_json=bool(args.json),
+                                  prices=prices)
     if getattr(args, "json", None):
         print(json.dumps([t.to_dict() for t in found],
                          indent=2, default=str))
@@ -1684,11 +1708,17 @@ def cmd_stats(args: argparse.Namespace) -> int:
             return 0
         print(f"  {'tool':<20} {'traces':>6} {'steps':>6} "
               f"{'errors':>6} {'tokens':>7} "
-              f"{'failed':>6} {'rate':>6}{_cost_head(price)}")
+              f"{'failed':>6} {'rate':>6} {'p95ms':>8} {'p95tok':>8}"
+              f"{_cost_head(price)}")
         for r in rows:
+            p95ms = f"{r['p95_ms']:.0f}" if r.get("p95_ms") is not None \
+                else "-"
+            p95tok = f"{r['p95_tokens']:,}" \
+                if r.get("p95_tokens") is not None else "-"
             print(f"  {r['tool']:<20} {r['traces']:>6} {r['steps']:>6} "
                   f"{r['errors']:>6} {r['tokens']:>7} "
-                  f"{r['failed_traces']:>6} {r['failure_rate']:>5.0%}"
+                  f"{r['failed_traces']:>6} {r['failure_rate']:>5.0%} "
+                  f"{p95ms:>8} {p95tok:>8}"
                   f"{_cost_cell(r, price)}")
         return 0
     if getattr(args, "by_agent", False):
@@ -1702,11 +1732,15 @@ def cmd_stats(args: argparse.Namespace) -> int:
             return 0
         print(f"  {'agent':<20} {'traces':>6} {'steps':>6} "
               f"{'tools':>6} {'tokens':>7} {'errors':>6} "
-              f"{'failed':>6} {'rate':>6}{_cost_head(price)}")
+              f"{'failed':>6} {'rate':>6} {'p95ms':>8}"
+              f"{_cost_head(price)}")
         for r in rows:
+            p95ms = f"{r['p95_ms']:.0f}" if r.get("p95_ms") is not None \
+                else "-"
             print(f"  {r['agent']:<20} {r['traces']:>6} {r['steps']:>6} "
                   f"{r['tool_calls']:>6} {r['tokens']:>7} {r['errors']:>6} "
-                  f"{r['failed_traces']:>6} {r['failure_rate']:>5.0%}"
+                  f"{r['failed_traces']:>6} {r['failure_rate']:>5.0%} "
+                  f"{p95ms:>8}"
                   f"{_cost_cell(r, price)}")
         return 0
     stats = store_stats(traces)
@@ -2653,6 +2687,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--stats", action="store_true",
                    help="aggregate the selection instead of listing it: "
                         "counts, failure rate, mode totals, means")
+    p.add_argument("--prices", metavar="FILE",
+                   help="with --stats: model -> blended $/1k JSON "
+                        "table; adds est_spend over the selection "
+                        "(unpriced models stay unpriced and are "
+                        "counted)")
     p.set_defaults(func=cmd_query)
 
     p = sub.add_parser("repair", parents=[common],

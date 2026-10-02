@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.30.0
+
+- the scorecards speak percentiles; the selection prices itself. tool/agent scorecards gain nearest-rank p95 columns (latency and tokens) with matching Prometheus gauges; `query --stats --prices` prices the selection, unpriced models counted. 7 tests.
+
 ## v2.29.0
 
 - the MCP server speaks the gate: `ci_gate` (same rows and semantics as `approximately ci`, unpriced-models-fail included) and `init_gate` (the idempotent three-file scaffold). 34 tools.
