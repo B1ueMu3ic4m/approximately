@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.40.0
+
+- `approximately compare`: baseline vs candidate store — runs, failures, rate, tokens, priced spend, and the regression signal that matters: a failure mode the baseline never showed. `--fail-on-new-modes` gates CI on it. 7 tests.
+
 ## v2.39.0
 
 - the MCP server hands over the evidence: `evidence_pack` mirrors the CLI door (same manifest, loud unknown-id error, `--key-file`). 35 tools. TUTORIAL 11 closes the loop: attribute → deep-verify → pack → gate. 5 tests.
