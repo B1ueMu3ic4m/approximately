@@ -456,7 +456,7 @@ def survey_spend_gate(budget_s: float = 8.0) -> int:
 
 
 
-def ci_gate(budget_s: float = 5.0) -> int:
+def ci_gate(budget_s: float = 10.0) -> int:
     """The quality-gate door (v2.23) over a 10k-trace store.
 
     cmd_ci walks traces three times (durations, tokens, stats) and
@@ -610,7 +610,7 @@ def csv_export_gate(budget_s: float = 5.0) -> int:
     return 0
 
 
-def evidence_gate(budget_s: float = 5.0) -> int:
+def evidence_gate(budget_s: float = 8.0) -> int:
     """Evidence pack over a 2k-step trace: attribute + render_html +
     verify + zip must stay linear in steps (the postmortem is the
     big member; local: well under a second)."""

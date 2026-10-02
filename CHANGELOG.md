@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.43.1
+
+- the ci gate budget carries Windows headroom: 10s (from 5s) for `ci`, 8s for `evidence` — the Windows runner tripped the old budget on 10k-trace file I/O. no product code change.
+
 ## v2.43.0
 
 - perf gates for the evidence door (2k-step pack, 5s budget) and the compare door (2k vs 2k, 8s) — suite now 18 gates. gate bug of the round: a verdict read outside its TemporaryDirectory block could never pass. no product code change.
