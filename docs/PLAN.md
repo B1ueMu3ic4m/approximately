@@ -2654,3 +2654,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        timeout, not by verdict; now it fails the perf gate first.
      - perf-gate suite: 14 gates.  Also in: the Retry-After
        None-check mypy fixup from v2.28.0.
+
+274. **v2.29.0 - the MCP server speaks the gate** ✅ (delivered):
+     - Two new tools mirror the night's CLI doors so an agent
+       harness can gate itself without shelling out: `ci_gate`
+       (same rows, same semantics as `approximately ci` — including
+       the unpriced-models-fail contract and the loud empty-store /
+       zero-ceilings errors) and `init_gate` (the same idempotent
+       three-file scaffold).  34 tools; the committed
+       docs/mcp-tools.json mirror regenerated.

@@ -113,6 +113,50 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "ci_gate",
+        "description": "Quality-gate verdict over the store: compose "
+                       "ceilings (failure rate, p95/avg step latency, "
+                       "tokens, estimated spend) into one pass/fail "
+                       "an agent loop or pipeline can gate on. Mirrors "
+                       "the `approximately ci` command.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "max_failure_rate": {"type": "number"},
+                "max_avg_latency_ms": {"type": "number"},
+                "max_p95_latency_ms": {"type": "number"},
+                "max_tokens": {"type": "integer"},
+                "max_spend": {"type": "number",
+                              "description": "USD; needs prices"},
+                "prices": {"type": "object",
+                           "description": "model -> blended $/1k"},
+                "min_traces": {"type": "integer"},
+                "since": {"type": "integer",
+                          "description": "gate only runs from the "
+                                         "last N days"},
+            },
+        },
+    },
+    {
+        "name": "init_gate",
+        "description": "Wire the CI quality gate into a repo "
+                       "directory: GitHub Actions workflow, starter "
+                       "price table, .gitignore line. Idempotent — "
+                       "nothing is overwritten without force.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "directory": {"type": "string",
+                              "description": "repo root (default: "
+                                             "the bound directory)"},
+                "force": {"type": "boolean",
+                          "description": "overwrite the workflow and "
+                                         "price table if present"},
+            },
+        },
+    },
+    {
         "name": "bisect",
         "description": "First material divergence between two traces "
                        "(failed vs last success is the classic use): "
@@ -809,6 +853,58 @@ def _tool_verify(ctx: ServerContext, args: Dict[str, Any]) -> dict:
             **verdict_payload(trace, store.directory, key=key)}
 
 
+def _tool_ci_gate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    """The quality-gate verdict as a tool call — an agent harness or
+    pipeline controller can gate its own loop on the same ceilings
+    the CI workflow uses.  Mirrors `approximately ci`."""
+    from .cli import _ci_gate_rows
+    from .cluster import store_stats
+
+    store = _store(ctx, args)
+    traces = store.list_traces(since_days=args.get("since"))
+    ceilings = [args.get(k) for k in ("max_failure_rate",
+                                      "max_avg_latency_ms",
+                                      "max_p95_latency_ms",
+                                      "max_tokens", "max_spend")]
+    if not traces:
+        raise KeyError("store is empty: no runs to gate")
+    prices = None
+    if args.get("max_spend") is not None:
+        prices = args.get("prices")
+        if not isinstance(prices, dict) or not all(
+                isinstance(v, (int, float)) and v >= 0
+                for v in prices.values()):
+            raise KeyError("max_spend needs prices: a JSON object "
+                           "model -> non-negative $/1k")
+    if all(c is None for c in ceilings):
+        raise KeyError("no ceilings configured — pass at least one "
+                       "of max_failure_rate, max_avg_latency_ms, "
+                       "max_p95_latency_ms, max_tokens, max_spend")
+
+    class _Args:
+        pass
+
+    ns = _Args()
+    for key in ("max_failure_rate", "max_avg_latency_ms",
+                "max_p95_latency_ms", "max_tokens", "max_spend",
+                "min_traces"):
+        setattr(ns, key, args.get(key))
+    rows = _ci_gate_rows(traces, store_stats(traces), prices, ns)
+    failed = [r for r in rows if not r["ok"]]
+    return {"store": str(store.directory), "traces": len(traces),
+            "ok": not failed, "gates": rows}
+
+
+def _tool_init_gate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    """Scaffold the CI quality gate into a repo directory — the
+    same idempotent three files `approximately init` writes."""
+    from .scaffold import init_scaffold
+
+    target = Path(args.get("directory") or ".")
+    statuses = init_scaffold(target, force=bool(args.get("force")))
+    return {"directory": str(target), "files": statuses}
+
+
 def _tool_survey(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .fleet import survey, webhook_payload
 
@@ -1427,6 +1523,8 @@ _HANDLERS = {
     "attribute": _tool_attribute,
     "verify": _tool_verify,
     "survey": _tool_survey,
+    "ci_gate": _tool_ci_gate,
+    "init_gate": _tool_init_gate,
     "query": _tool_query,
     "bisect": _tool_bisect,
     "doctor": _tool_doctor,
