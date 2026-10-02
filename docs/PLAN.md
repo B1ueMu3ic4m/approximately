@@ -3035,3 +3035,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        caught it (newest entry must track pyproject), and the
        entry is healed.  Semver allows skipping; the docs gate
        still demands the record.
+
+308. **v2.59.0 - midnight drains itself too** ✅ (delivered):
+     - The start-time compaction covered restarts; a watch that
+       runs for days never restarted.  Now the loop detects the
+       day-file change on append — midnight crossed — and
+       collapses the finished day to its final line right there,
+       without waiting for anyone.  1 test (a midnight crossing
+       simulated by an alternating append).
