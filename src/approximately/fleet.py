@@ -902,11 +902,18 @@ def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
     compact_digests(digest_dir)
     last_reasons: Optional[frozenset] = None
     last_alert_at: Optional[float] = None
+    last_day_file: Optional[Path] = None
     for _ in (range(iterations) if iterations is not None
               else iter(int, 1)):
         summaries = survey(stores, top_agents, prices=prices)
-        append_digest(digest_dir, digest_snapshot(summaries))
+        day_file = append_digest(digest_dir,
+                                 digest_snapshot(summaries))
         written += 1
+        if last_day_file is not None and day_file != last_day_file:
+            # midnight crossed: the finished day collapses to its
+            # final line right here, without waiting for a restart
+            compact_digests(digest_dir)
+        last_day_file = day_file
         if webhook_url and _should_alert(summaries, alert_worse_than,
                                          alert_anomalies,
                                          alert_tokens, alert_spend):

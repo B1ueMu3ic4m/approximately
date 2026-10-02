@@ -140,3 +140,37 @@ def test_watch_compacts_on_start(tmp_path):
     # and the history still reads as complete days
     summary = summarize_trend(trend_days(digest))
     assert len(summary["days"]) == 2
+
+
+def test_watch_compacts_again_at_midnight(tmp_path):
+    from approximately.fleet import watch_fleet
+
+    digest, store_dir = _digest_dir(tmp_path, days=1, per_day=3)
+    real_append = append_digest
+    calls = {"n": 0}
+
+    def alternating_append(d, snap):
+        # simulate a midnight crossing: the second cycle writes
+        # into a NEW day file
+        calls["n"] += 1
+        import datetime
+        if calls["n"] >= 2:
+            stamp = datetime.datetime.fromtimestamp(
+                time.time() + 86400).strftime("%Y%m%d")
+            path = d / f"digest-{stamp}.jsonl"
+            with path.open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps(snap, sort_keys=True) + "\n")
+            return path
+        return real_append(d, snap)
+
+    import approximately.fleet as fleet_mod
+    fleet_mod.append_digest = alternating_append
+    try:
+        watch_fleet([store_dir], digest, 0.0, iterations=3,
+                    alert_cooldown=3600.0, clock=lambda: 0.0)
+    finally:
+        fleet_mod.append_digest = real_append
+    for path in digest.glob("digest-*.jsonl"):
+        lines = [line for line in path.read_text(
+            encoding="utf-8").splitlines() if line.strip()]
+        assert len(lines) <= 2, (path.name, len(lines))

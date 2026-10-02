@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.59.0
+
+- midnight drains itself too: the watch detects the day-file change on append and collapses the finished day to its final line right there — a watch that runs for days never needs a restart to stay drained. 1 test.
+
 ## v2.58.0
 
 - the watch drains itself: `fleet --watch` compacts the digest history on every start — one line per prior day, the next append continuing from the compacted form. a long-lived watch never needs a manual --compact-digests again. 1 test; plus a healed CHANGELOG entry the docs-health gate caught.
