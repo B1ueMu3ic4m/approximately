@@ -99,3 +99,35 @@ def test_cli_human_output_names_the_chain(tmp_path, capsys):
     text = capsys.readouterr().out
     assert "chain: intact" in text
     assert "trace.json:" in text
+
+
+def test_store_archive_packs_every_trace(tmp_path):
+    from approximately.evidence import build_store_packs
+
+    store = _seed(tmp_path / "s")
+    rec2 = Recorder("second run", store=store, save=False)
+    rec2.respond("done", success=True)
+    store.save(rec2.trace)
+    out = tmp_path / "archive"
+    report = build_store_packs(store, out)
+    assert report["packs"] == 2
+    zips = sorted(out.glob("*.evidence.zip"))
+    assert len(zips) == 2
+    index = json.loads((out / "index.json").read_text(
+        encoding="utf-8"))
+    assert index["packs"] == 2
+    for row in index["traces"]:
+        pack = out / row["pack"]
+        assert hashlib.sha256(pack.read_bytes()).hexdigest() == \
+            row["sha256"]
+
+
+def test_store_archive_refuses_an_empty_store(tmp_path):
+    from approximately.evidence import build_store_packs
+
+    TraceStore(tmp_path / "s")
+    with pytest.raises(ValueError):
+        build_store_packs(TraceStore(tmp_path / "s"), tmp_path / "a")
+    code = main(["evidence", "--store", str(tmp_path / "s"),
+                 "--all", str(tmp_path / "a")])
+    assert code == 2

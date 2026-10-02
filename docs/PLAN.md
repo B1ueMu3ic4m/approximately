@@ -3015,3 +3015,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        failing test does.  (The four optional-dependency
        import-not-found notes stay tolerated via
        --ignore-missing-imports.)
+
+306. **v2.57.0 - `evidence --all`: the offboarding archive** ✅ (delivered):
+     - The archive scenario: a store leaving the machine becomes
+       one directory of per-trace packs plus an `index.json`
+       naming each pack, its chain verdict, and its sha256 —
+       recompute any pack's hash with sha256sum.  Empty stores are
+       a loud error; `fleet`'s store list precedent repeated (the
+       positional becomes optional under --all).  2 tests.

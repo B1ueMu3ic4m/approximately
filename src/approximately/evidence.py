@@ -81,3 +81,41 @@ def build_evidence_pack(store: Any, trace_id: str, output: Path,
         zf.writestr("manifest.json", json.dumps(
             manifest, indent=2, sort_keys=True) + "\n")
     return manifest
+
+
+def build_store_packs(store: Any, out_dir: Path,
+                      key: Optional[bytes] = None) -> Dict[str, Any]:
+    """Pack every trace in the store; write an index over them.
+
+    The archive scenario: a store leaving the machine (offboarding,
+    a compliance pull) becomes one directory of per-trace packs
+    plus an ``index.json`` naming each pack and its chain verdict.
+    Empty stores raise — an archive of nothing is a mistake.
+    """
+    traces = store.list_traces()
+    if not traces:
+        raise ValueError("store is empty: no runs to pack")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    index = []
+    for trace in traces:
+        pack_path = out_dir / f"{trace.id}.evidence.zip"
+        manifest = build_evidence_pack(store, trace.id, pack_path,
+                                       key=key)
+        index.append({
+            "trace_id": trace.id,
+            "task": trace.task,
+            "verdict": manifest["verdict"],
+            "chain": manifest["chain"]["verdict"],
+            "pack": pack_path.name,
+            "sha256": hashlib.sha256(pack_path.read_bytes())
+                      .hexdigest(),
+        })
+    index_path = out_dir / "index.json"
+    index_path.write_text(json.dumps({
+        "packs": len(index),
+        "packed_at": datetime.datetime.now(
+            datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "traces": index,
+    }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return {"packs": len(index), "index": str(index_path),
+            "traces": index}
