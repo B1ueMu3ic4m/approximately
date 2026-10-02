@@ -15,6 +15,10 @@ import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import ClassVar
 
+from approximately.anomaly import (
+    detect_latency_anomalies,
+    detect_token_anomalies,
+)
 from approximately.recorder import Recorder
 from approximately.spool import _notify_spool, _primary_mode, watch_spool
 from approximately.store import TraceStore
@@ -193,3 +197,17 @@ def test_markdown_silent_when_detectors_explode(tmp_path, monkeypatch):
                         raising=False)
     text = render_markdown(rec.trace, attribute(rec.trace))
     assert "Latency anomalies" not in text
+
+
+def test_per_trace_latency_uniform_sample_is_a_noop():
+    # the per-trace detector's flat-line branch: every step
+    # identical leaves no scale, and no anomalies are invented
+    from approximately.trace import Step, Trace
+
+    trace = Trace(task="uniform", id="uni-1", created_at=1.0)
+    for _ in range(8):
+        trace.add(Step(kind="tool_call", tool="search",
+                       tokens=100, latency_ms=40))
+    trace.add(Step(kind="response", result="done"))
+    assert detect_latency_anomalies(trace) == []
+    assert detect_token_anomalies(trace) == []

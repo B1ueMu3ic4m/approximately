@@ -21,6 +21,12 @@ model: what it protects, what it explicitly does not, and how to report.
 | Query DSL / MCP line protocol | Injection or parser confusion from untrusted expressions/lines | Recursive-descent parser with depth (50) and length (4k) caps, eval-free closures; JSON-RPC envelope validated per field; garbage input answers `-32700`/`-32600`/`-32602` or is silenced, never crashes the loop (fuzz-covered). |
 | Digest files / doctor input | Corrupt or hostile JSONL on disk | Torn tail lines skipped, corrupt timestamps fall back to the file-name day stamp; doctor classifies unparseable/bytes files as corrupt without crashing (fuzz-covered). |
 | Attribution quality | **Silent regression** from a detector refactor | Gold-corpus CI gate (`scripts/bench_gate.py` + `docs/bench-floors.json`): per-mode P/R/F1 floors must hold or CI fails. |
+| CSV export | **Formula injection**: a tool result starting `= + - @ <tab>` executing as a spreadsheet formula when the file opens in Excel/Sheets | Standard CSV-injection defense: those cells get a leading quote at write time (tool/agent columns too — foreign ids ride in through OTLP import). Leading-minus text is quoted as well: untrusted beats pretty. The JSONL exports stay lossless and are the archival path. |
+| Evidence packs | Post-hoc swap of archive members | Every member's sha256 is recorded in `manifest.json`; a reviewer recomputes the list with `unzip`/`sha256sum`. Honest limit: the manifest is not a signature — an attacker with write access can re-pack and re-hash. The pack's tamper-evidence rests on the **chain inside `trace.json`** (verify it with `approximately verify` on the extracted record); the manifest defends against truncation and accidental corruption, not forgery. |
+| Evidence packs | Zip bombs / path traversal in member names | Members are written, never read from untrusted archives: four fixed names, created by the tool. The evidence door never extracts a foreign zip. |
+| Webhooks | Replay, redirect, hostile pacing | http(s) scheme checked before urllib (file:// and custom schemes refused); HMAC-SHA256 over the exact body bytes (a fresh Request per retry attempt, so retries re-send the signed body, not garbage); retries capped at 3 with backoff capped at 4s and a `Retry-After` honored only up to 5s — a hostile header cannot stall a watch. |
+| Query DSL `matches` | **ReDoS via crafted regex** (the pattern arrives on a command line) | Compiled at parse time; source capped at 256 chars; subjects truncated to 4k per evaluation; a bad regex is a loud parse error, never a silent no-match. Note: catastrophic backtracking inside the cap is not shielded — the pattern author is the local operator. |
+| `approximately init` / `new` | Overwriting user files, hostile trees | `init` never overwrites without `--force` (and `.gitignore` is append-only even then); files that cannot be written (a directory in the way, a read-only parent) report status `refused` and the rest of the scaffold proceeds. |
 
 ## Honest limits of the unkeyed chain
 
@@ -77,8 +83,12 @@ fuzz corpus pins it.
 
 ## Fuzz rounds
 
-The untrusted-input boundaries are fuzzed per wave (tests `test_fuzz`,
-`test_v45_fuzz`, `test_v88_fuzz_round3`, `test_v98_fuzz_round4`):
-round 4 covers the recidivist filter, the shared verdict ladder and
-the cluster tool. Contract: documented errors or clean skips, never a
-crash that escapes as a protocol fault.
+The untrusted-input boundaries are fuzzed per wave (rounds 1-19
+across `test_fuzz`, `test_v45_fuzz`, `test_v88_fuzz_round3`,
+`test_v98_fuzz_round4`, `test_v132_fuzz_round7`,
+`test_v212_otlp_fuzz`, `test_v237_fuzz_round16`,
+`test_v245_fuzz_round17`, `test_v249_fuzz_round18`,
+`test_v255_fuzz_round19`, and friends). Recent rounds cover the
+CSV surface, the deep-doctor chain reads, the evidence pack, and
+the compare door. Contract: documented errors or clean skips,
+never a crash that escapes as a protocol fault.

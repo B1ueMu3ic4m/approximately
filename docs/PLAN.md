@@ -2896,3 +2896,19 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        import/spool gates: 10s for `ci`, 8s for `evidence` —
        generous enough that runner noise cannot trip it, tight
        enough that a superlinear regression still does.
+
+293. **v2.44.0 - the threat model catches up to the night** ✅ (delivered):
+     - SECURITY.md grows six rows for the night's new surfaces:
+       CSV formula injection (the quote defense, and its honest
+       limit), evidence-pack member hashing (and the honest limit:
+       the manifest is not a signature — tamper-evidence rests on
+       the chain inside trace.json), zip bombs (members are
+       written, never read from foreign archives), webhook
+       replay/redirect/pacing (scheme check, HMAC over exact body
+       bytes, capped retries and Retry-After), the `matches` regex
+       bounds (and the honest note that catastrophic backtracking
+       inside the cap is not shielded — the pattern author is the
+       local operator), and init's never-overwrite discipline.
+     - Fuzz-rounds section lists rounds 1-19 and their surfaces.
+     - One more no-op pin: the per-trace latency and token
+       detectors on a truly uniform sample.  1 test.
