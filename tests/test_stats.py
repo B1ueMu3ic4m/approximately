@@ -41,7 +41,7 @@ def test_cli_attribute_all_json(demo_store, capsys):
     assert code == 0
     assert len(results) == 1
     assert results[0]["primary_mode"] == "FM-1.3"
-    assert results[0]["trace"]["steps"] == 6
+    assert results[0]["trace"]["steps"] == 7
 
 
 def test_cli_cluster_last_n(tmp_path, monkeypatch, capsys):
