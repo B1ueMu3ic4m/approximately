@@ -2982,3 +2982,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        helpers with honest Tuple returns).  19 modules strict;
        the remaining bulk is cli.py (31) and the contrib
        adapters.
+
+302. **v2.51.0 - strict-mypy batch six: the report and ingest layer** ✅ (delivered):
+     - report, markdown_report, importer, merge join the typed set
+       (16 more signatures) — 23 modules strict.  Remaining:
+       cli.py and the contrib adapters.

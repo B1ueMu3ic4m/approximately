@@ -5,11 +5,11 @@ from __future__ import annotations
 import datetime
 import html
 import math
-from typing import List, Optional, Sequence
+from typing import Any, List, Optional, Sequence
 
 from .attributor import FailureReport
 from .taxonomy import CATEGORY_SHARE
-from .trace import Trace
+from .trace import Step, Trace
 
 _CSS = """
 :root { color-scheme: light; }
@@ -186,7 +186,7 @@ def _esc(text: str) -> str:
     return html.escape(str(text))
 
 
-def _step_row(step, hot: set) -> str:
+def _step_row(step: Step, hot: set) -> str:
     detail = step.error or step.result or step.thought or ""
     detail = _esc(" ".join(detail.split())[:160])
     who = f"{_esc(step.agent)} · " if step.agent else ""
@@ -250,7 +250,7 @@ def _context_card(trace: Trace) -> str:
         return ""
 
 
-def _trend_card(trend_rows) -> str:
+def _trend_card(trend_rows: list) -> str:
     """Sparkline + verdict for the failure-rate history (cluster.trend rows)."""
     try:
         rates = [float(r["failed"]) / r["total"]
@@ -341,7 +341,7 @@ def _token_card(trace: Trace) -> str:
         return ""
 
 
-def _fleet_card(trace: Trace, store) -> str:
+def _fleet_card(trace: Trace, store: Any) -> str:
     """Fleet-baseline card: steps that are outliers against every
     stored run of the same tool, not just this trace. Best-effort."""
     try:
@@ -371,7 +371,8 @@ def _fleet_card(trace: Trace, store) -> str:
         return ""
 
 
-def render_index_html(items, trend_rows: Optional[list] = None) -> str:
+def render_index_html(items: list,
+                      trend_rows: Optional[list] = None) -> str:
     """Batch postmortem index: one row per (trace, report) pair.
 
     Pass ``trend_rows`` (from :func:`approximately.cluster.trend`) to add
@@ -457,7 +458,7 @@ CF_MAX_STEPS = 200
 NEIGHBOUR_TOP = 3
 
 
-def _neighbours_card(store, trace: Trace) -> str:
+def _neighbours_card(store: Any, trace: Trace) -> str:
     """Alignment-nearest runs from the same store; hidden when the
     store is empty or has only this trace."""
     if store is None:
@@ -522,7 +523,7 @@ def _counterfactual_card(trace: Trace) -> str:
             + distributed + "</div>")
 
 
-def _annotations_card(store, trace_id: str) -> str:
+def _annotations_card(store: Any, trace_id: str) -> str:
     """Analyst notes from the sidecar; hidden when there are none."""
     try:
         rows = store.annotations(trace_id)
@@ -585,7 +586,7 @@ def _fixes_card(report: FailureReport) -> str:
 
 
 def render_html(trace: Trace, report: FailureReport,
-                store=None) -> str:
+                store: Any = None) -> str:
     hot = {d.step_index for d in report.detections}
 
     status = (
