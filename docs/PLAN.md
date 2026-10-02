@@ -2924,3 +2924,16 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        file compacts too and the next append continues from the
        compacted form.  `fleet`'s store list is now optional (the
        compaction door needs none).  8 tests.
+
+295. **v2.45.1 - the coverage tail: renders and error doors** ✅ (delivered):
+     - The dead zero-scale heuristics removed: the v241
+       mean-abs-deviation fallback made `_flag_zero_scale` and
+       `_flagged_zero_scale_tokens` unreachable (the scale returns
+       0 only when EVERY sample is identical, and then no step
+       differs from the median at all).  The per-tool branches
+       now match the fleet's honest `continue`.
+     - The doctor's last render branches covered for real: a
+       forged broken ledger renders TAMPERED, locked chains note
+       themselves, the digests section prints its gaps, a keyed
+       record counts locked-not-broken, a two-hour-old lock is
+       flagged and then removed by --fix.  5 tests.

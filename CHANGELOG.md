@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.45.1
+
+- the coverage tail: the dead zero-scale heuristics removed (the mean-abs-deviation fallback made them unreachable) and the doctor's last render branches covered — forged ledgers render TAMPERED, locked chains note themselves, stale locks flag and fix. 5 tests.
+
 ## v2.45.0
 
 - the digest drain: `fleet --compact-digests` collapses each day's snapshot history to its last line (the final state plus the snapshot count) — a 10s watch writes 8,640 lines a day and the trend reader only ever reads the day's final state. dry-run honest; the next append continues from the compacted form. fleet's store list is now optional. 8 tests.
