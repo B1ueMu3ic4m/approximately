@@ -115,10 +115,10 @@ def test_mcp_spool_once_missing_dir_is_tool_error(tmp_path):
     assert payload["result"]["isError"] is True
 
 
-def test_tool_inventory_grew_to_32():
+def test_tool_inventory_grew_to_34():
     from approximately.mcp_server import _TOOLS
 
-    assert len(_TOOLS) == 32
+    assert len(_TOOLS) == 34
     names = {t["name"] for t in _TOOLS}
     assert "spool_once" in names
 

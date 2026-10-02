@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.29.0
+
+- the MCP server speaks the gate: `ci_gate` (same rows and semantics as `approximately ci`, unpriced-models-fail included) and `init_gate` (the idempotent three-file scaffold). 34 tools.
+
 ## v2.28.1
 
 - every new door gets a tripwire: four perf gates for ci (10k traces), doctor --deep (2k chains), clean --max-traces, and csv export, budgets from local 10k measurements with runner headroom. perf-gate suite now 14 gates.

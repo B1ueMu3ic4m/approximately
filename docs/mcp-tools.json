@@ -1,5 +1,5 @@
 {
-  "count": 32,
+  "count": 34,
   "tools": [
     {
       "name": "list_traces",
@@ -93,6 +93,62 @@
         "required": [
           "stores"
         ]
+      }
+    },
+    {
+      "name": "ci_gate",
+      "description": "Quality-gate verdict over the store: compose ceilings (failure rate, p95/avg step latency, tokens, estimated spend) into one pass/fail an agent loop or pipeline can gate on. Mirrors the `approximately ci` command.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "max_failure_rate": {
+            "type": "number"
+          },
+          "max_avg_latency_ms": {
+            "type": "number"
+          },
+          "max_p95_latency_ms": {
+            "type": "number"
+          },
+          "max_tokens": {
+            "type": "integer"
+          },
+          "max_spend": {
+            "type": "number",
+            "description": "USD; needs prices"
+          },
+          "prices": {
+            "type": "object",
+            "description": "model -> blended $/1k"
+          },
+          "min_traces": {
+            "type": "integer"
+          },
+          "since": {
+            "type": "integer",
+            "description": "gate only runs from the last N days"
+          }
+        }
+      }
+    },
+    {
+      "name": "init_gate",
+      "description": "Wire the CI quality gate into a repo directory: GitHub Actions workflow, starter price table, .gitignore line. Idempotent \u2014 nothing is overwritten without force.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "directory": {
+            "type": "string",
+            "description": "repo root (default: the bound directory)"
+          },
+          "force": {
+            "type": "boolean",
+            "description": "overwrite the workflow and price table if present"
+          }
+        }
       }
     },
     {
