@@ -180,7 +180,16 @@ TraceStore ──► exporter.py ──► foreign JSONL
 - **`query.py`** — recursive-descent DSL over stores (eval-free,
   depth/length capped) with `--stats` aggregates.
 - **`doctor.py`** — store health: corrupt records, ledger tamper, stale
-  locks, digest gaps; `--fix` cleans hygiene artifacts.
+  locks, digest gaps; `--deep` recomputes every record's integrity
+  chain (keyed-without-key counts as locked, not broken); `--fix`
+  cleans hygiene artifacts.
+- **`scaffold.py`** — `new` scaffolds an instrumented agent project;
+  `init` wires the CI quality gate into an existing repo
+  (workflow, price table, .gitignore) — idempotent, nothing
+  overwritten without --force, hostile trees reported as refused.
+- **`ci` (cli.py)** — the quality-gate door: ceilings (failure
+  rate, p95/avg step latency, tokens, priced spend) composed into
+  one pipeline-native verdict; mirrored as the MCP `ci_gate` tool.
 - **`mcp_server.py`** — the whole toolkit as an MCP stdio server
   (JSON-RPC 2.0, zero dependencies; a `resources` surface plus a
   tool inventory grouped by concern — store access, attribution and
