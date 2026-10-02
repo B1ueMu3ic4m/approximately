@@ -2526,3 +2526,18 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        Step instead of losing them into `**meta`.
      - `--json` emits `{store, traces, ok, gates:[{gate, value,
        ceiling, ok}]}` for CI annotations. 11 tests.
+
+266. **v2.24.0 - retention by count; the doctor recomputes the chains** ✅ (delivered):
+     - `clean --max-traces N`: the age cap alone lets one busy
+       afternoon accumulate a thousand records forever — the count
+       cap keeps only the newest N (both caps compose; dry-run
+       honest; the JSON payload and human line report what remains).
+     - `doctor --deep`: recompute every record's integrity chain
+       (hash each step, compare against the stamp). A record can be
+       parseable JSON and still lie; only the recompute knows.
+       Keyed records without the key at hand count as *locked*, not
+       broken — accusing TAMPERED there would be wrong (the
+       integrity module's own verdict discipline).
+     - The MCP `doctor` tool grows the same `deep` knob. The
+       doctor's shallow pass stays the default: deep is opt-in
+       because it hashes every step of every record. 11 tests.

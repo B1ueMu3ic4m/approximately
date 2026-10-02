@@ -49,6 +49,9 @@ class DoctorReport:
     spool_dir: str = ""
     spool_pending: int = 0
     spool_unparsed: List[str] = field(default_factory=list)
+    chain_checked: int = 0
+    chain_locked: int = 0
+    chain_failed: List[str] = field(default_factory=list)
 
     @property
     def healthy(self) -> bool:
@@ -56,6 +59,7 @@ class DoctorReport:
                     or self.stale_locks or self.temp_files
                     or self.digest_gaps
                     or self.spool_unparsed
+                    or self.chain_failed
                     or self.ledger_intact is False)
 
     def to_dict(self) -> dict:
@@ -84,6 +88,9 @@ class DoctorReport:
             "spool_dir": self.spool_dir,
             "spool_pending": self.spool_pending,
             "spool_unparsed": self.spool_unparsed,
+            "chain_checked": self.chain_checked,
+            "chain_locked": self.chain_locked,
+            "chain_failed": self.chain_failed,
         }
 
     def render(self) -> str:
@@ -98,6 +105,7 @@ class DoctorReport:
         lines.append(self._render_ledger())
         if self.unsigned:
             lines.append(f"  unsigned records: {self.unsigned}")
+        lines.extend(self._render_chains())
         if self.annotation_lines:
             note = f"  annotations: {self.annotation_lines} note(s)"
             if self.annotation_corrupt:
@@ -141,6 +149,18 @@ class DoctorReport:
         if self.ledger_intact:
             return "  ledger: intact"
         return f"  ledger: TAMPERED: {self.ledger_detail}"
+
+    def _render_chains(self) -> List[str]:
+        if not self.chain_checked:
+            return []
+        note = (f"  integrity chains: {self.chain_checked} verified")
+        if self.chain_locked:
+            note += f", {self.chain_locked} locked (need the key)"
+        if self.chain_failed:
+            note += f", {len(self.chain_failed)} FAILED:"
+        return ([note]
+                + [f"    tampered: {name}"
+                   for name in self.chain_failed[:5]])
 
     def _render_digests(self) -> List[str]:
         if not (self.digest_days or self.torn_lines):
@@ -295,12 +315,20 @@ def _check_spool(spool: Path, report: DoctorReport) -> None:
 
 def doctor(store: Path, digest_dir: Optional[Path] = None,
            judge_cache: Optional[Path] = None,
-           spool_dir: Optional[Path] = None) -> DoctorReport:
-    """Run every check and return the structured report."""
+           spool_dir: Optional[Path] = None,
+           deep: bool = False) -> DoctorReport:
+    """Run every check and return the structured report.
+
+    With ``deep`` each readable record's integrity chain is
+    recomputed and compared against its stamp — a record can be
+    parseable yet lie.
+    """
     report = DoctorReport(store=str(store))
     _check_records(store, report)
     _check_ledger(store, report)
     _check_hygiene(store, report)
+    if deep:
+        _check_chains(store, report)
     if digest_dir is not None and digest_dir.is_dir():
         _check_digests(digest_dir, report)
     health = TraceStore(store).annotations_health()
@@ -317,6 +345,34 @@ def doctor(store: Path, digest_dir: Optional[Path] = None,
     if spool_dir is not None:
         _check_spool(spool_dir, report)
     return report
+
+
+def _check_chains(directory: Path, report: DoctorReport) -> None:
+    """Deep check: recompute every record's integrity chain.
+
+    Keyed records without the key at hand are counted ``locked`` —
+    the evidence is sealed, not broken.  Unsigned records are the
+    ``unsigned`` finding already; the chain says nothing about them.
+    """
+    from .integrity import verify
+
+    for path in sorted(directory.glob("*.json")):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            trace = Trace.from_dict(payload)
+        except (json.JSONDecodeError, AttributeError, KeyError,
+                TypeError, ValueError):
+            continue          # already reported by _check_records
+        result = verify(trace)
+        if not result.signed:
+            continue
+        report.chain_checked += 1
+        if result.intact:
+            continue
+        if result.verdict_override:
+            report.chain_locked += 1
+        else:
+            report.chain_failed.append(path.name)
 
 
 def fix_hygiene(store: Path, report: DoctorReport) -> List[str]:

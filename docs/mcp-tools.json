@@ -127,7 +127,7 @@
     },
     {
       "name": "doctor",
-      "description": "Health check of a trace store: corrupt or misnamed records, evidence-ledger tamper, stale locks, leftover temp files, and (with digest_dir) monitoring gaps.",
+      "description": "Health check of a trace store: corrupt or misnamed records, evidence-ledger tamper, stale locks, leftover temp files, and (with digest_dir) monitoring gaps. With deep, recompute every record's integrity chain.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -144,6 +144,10 @@
           "judge_cache": {
             "type": "string",
             "description": "also count judge-cache entries and unreadable ones"
+          },
+          "deep": {
+            "type": "boolean",
+            "description": "recompute every record's integrity chain \u2014 a record can be parseable yet lie"
           }
         }
       }

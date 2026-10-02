@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.24.0
+
+- retention by count; the doctor recomputes the chains. `clean --max-traces N` keeps a burst day from outliving its welcome — the age cap alone lets one busy afternoon accumulate a thousand records forever. `doctor --deep` recompute every record's integrity chain: a record can be parseable JSON and still lie, and only re-hashing the steps catches it. keyed records without the key at hand count as locked, not broken. the MCP doctor tool grows the same deep knob. 11 tests.
+
 ## v2.23.0
 
 - `approximately ci`: quality gates for agent pipelines. one command composes the ceilings — failure rate, p95/avg step latency, tokens, estimated spend — into a single verdict with pipeline-native exit codes (0 pass, 1 breach, 2 configuration error or empty store). latency meters on step latency, the same ruler as the anomaly detector; spend refuses to pass unpriced models, because a budget you cannot compute does not hold. `Recorder.tool` gains first-class `latency_ms` so adapters that measured the call themselves can land real durations in the Step. 11 tests.
