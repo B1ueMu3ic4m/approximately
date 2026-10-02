@@ -99,3 +99,12 @@ def test_stale_lock_is_flagged_after_the_hour(tmp_path):
     removed = fix_hygiene(tmp_path / "s", report)
     assert removed == [lock.name]
     assert not os.path.exists(lock)
+
+
+def test_distill_finite_handles_junk(tmp_path):
+    from approximately.distill import _finite
+
+    assert _finite(None) is None
+    assert _finite("not-a-number") is None
+    assert _finite(float("nan")) is None
+    assert _finite(3) == 3.0

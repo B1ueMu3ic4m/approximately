@@ -163,6 +163,7 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | ⚖️ Deployment compare | Baseline vs candidate store: new failure modes, rate/token/spend deltas — `--fail-on-new-modes` fails the build when this deployment fails in a way the last one never did | `approximately compare --baseline prod-a --candidate prod-b --fail-on-new-modes` |
 | 🗜️ Digest drain | A 10s watch writes 8,640 snapshot lines a day and the trend only reads the day's final state — `--compact-digests` collapses each day to that line, and the watch drains itself on start and at midnight | `approximately fleet --compact-digests --digest-dir d` |
 | 🧾 Offboarding archive | One command turns the whole store into per-trace evidence packs plus a recomputable index — the store can leave the machine | `approximately evidence --all archive/` |
+| ✅ Pack verification | The reviewer's side of the pack: recompute every manifest hash and the chain inside, then TRUSTED or REFUSED — no tooling beyond the zip required | `approximately evidence --verify case.zip` |
 | 🔮 Failure precursor | Early warning mined from your own history: "runs like this fail Z% of the time" | `approximately predict` |
 | 🧬 Trajectory alignment | Needleman-Wunsch over action sequences — find runs with the same *shape* | `approximately similar` |
 | 📮 SARIF export | Attribution results as GitHub code-scanning alerts | `approximately attribute --sarif` |

@@ -3061,3 +3061,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        is a member), and a non-pack is a loud ValueError.
        Honest note carried from SECURITY.md: the manifest defends
        truncation, the CHAIN defends truth.
+
+311. **v2.62.0 - the pack verifier joins the README; distill's finite edge pinned** ✅ (delivered):
+     - `evidence --verify` joins the capabilities table (the pack
+       chapter now reads buy-side and sell-side).
+     - `_finite`'s junk-input behavior pinned: None and non-numeric
+       strings are None, NaN is None (not a silent 0.0).
