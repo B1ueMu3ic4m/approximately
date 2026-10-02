@@ -123,3 +123,20 @@ def test_cli_door_missing_dir_refuses(tmp_path, capsys):
                  "--digest-dir", str(tmp_path / "nope")])
     assert code == 2
     assert "no such digest directory" in capsys.readouterr().err
+
+
+def test_watch_compacts_on_start(tmp_path):
+    from approximately.fleet import watch_fleet
+
+    digest, store_dir = _digest_dir(tmp_path, days=2, per_day=4)
+    watch_fleet([store_dir], digest, 0.0, iterations=1,
+                alert_cooldown=3600.0, clock=lambda: 0.0)
+    # every prior day collapsed to one line; today's file compacted
+    # too, then the cycle's own append landed after it
+    for path in digest.glob("digest-*.jsonl"):
+        lines = [line for line in path.read_text(
+            encoding="utf-8").splitlines() if line.strip()]
+        assert len(lines) <= 2
+    # and the history still reads as complete days
+    summary = summarize_trend(trend_days(digest))
+    assert len(summary["days"]) == 2

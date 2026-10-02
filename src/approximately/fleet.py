@@ -887,7 +887,10 @@ def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
                 clock: Any = time.monotonic) -> int:
     """Poll the fleet forever (or ``iterations`` times), appending
     snapshots. Returns the number of snapshots written. ``sleep`` is
-    injectable so tests run instantly.
+    injectable so tests run instantly.  Each start also compacts the
+    digest history (one line per day) so a long-lived watch never
+    needs a manual drain; the next append continues from the
+    compacted form.
 
     With ``webhook_url`` every cycle also POSTs the fleet summary
     (same HMAC-signed payload as the one-shot notify). Delivery
@@ -896,6 +899,7 @@ def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
     """
     written = 0
     rotate_digests(digest_dir, keep_days)
+    compact_digests(digest_dir)
     last_reasons: Optional[frozenset] = None
     last_alert_at: Optional[float] = None
     for _ in (range(iterations) if iterations is not None

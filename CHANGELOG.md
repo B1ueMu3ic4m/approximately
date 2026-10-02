@@ -3,6 +3,14 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.58.0
+
+- the watch drains itself: `fleet --watch` compacts the digest history on every start — one line per prior day, the next append continuing from the compacted form. a long-lived watch never needs a manual --compact-digests again. 1 test; plus a healed CHANGELOG entry the docs-health gate caught.
+
+## v2.57.0
+
+- `evidence --all DIR`: the offboarding archive — one pack per trace plus an index.json naming each pack, its chain verdict, and its sha256. empty stores are a loud error. 2 tests.
+
 ## v2.54.0
 
 - the strict bar is enforced, not remembered: CI's mypy step grows --disallow-untyped-defs, so a new unannotated function fails the build exactly the way a failing test does.
