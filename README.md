@@ -95,6 +95,11 @@ with Recorder("book the cheapest SFO-NRT flight") as rec:
 approximately attribute <trace-id>            # automatic attribution (offline, free)
 approximately attribute <trace-id> --judge    # add the LLM judge (optional)
 approximately test <trace-id> --budget 800    # regression guards + budget guard
+
+# the gate loop: wire CI, record with measured tokens/latency, enforce
+approximately init                            # workflow + price table + .gitignore
+approximately ci --store .agents-store \      # exit 1 fails the build
+  --max-failure-rate 0.3 --max-p95-latency-ms 15000
 ```
 
 </details>

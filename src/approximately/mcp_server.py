@@ -881,14 +881,13 @@ def _tool_ci_gate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                        "of max_failure_rate, max_avg_latency_ms, "
                        "max_p95_latency_ms, max_tokens, max_spend")
 
-    class _Args:
-        pass
+    import argparse as _argparse
 
-    ns = _Args()
-    for key in ("max_failure_rate", "max_avg_latency_ms",
-                "max_p95_latency_ms", "max_tokens", "max_spend",
-                "min_traces"):
-        setattr(ns, key, args.get(key))
+    ns = _argparse.Namespace(
+        **{key: args.get(key) for key in
+           ("max_failure_rate", "max_avg_latency_ms",
+            "max_p95_latency_ms", "max_tokens", "max_spend",
+            "min_traces")})
     rows = _ci_gate_rows(traces, store_stats(traces), prices, ns)
     failed = [r for r in rows if not r["ok"]]
     return {"store": str(store.directory), "traces": len(traces),

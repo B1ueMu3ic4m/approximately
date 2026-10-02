@@ -3,6 +3,14 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.36.0
+
+- fuzz round 18, quiet: the CSV and OTLP doors survive None tasks, C1-control agent names, and non-string results; the query grammar matches unicode. the README quickstart now ends with the gate loop (init → ci). 6 tests.
+
+## v2.35.0
+
+- every surface speaks the same money: `status --prices` grows the est-spend line (unpriced models counted), the fleet dashboard's agents table carries the p95 column, one shared pricing helper keeps all surfaces identical. 5 tests.
+
 ## v2.34.0
 
 - the spool pager is naturally one-shot, and now it is pinned: imported files archive out (no re-page), dry runs never count failures, unparsed files never page — a drafted cooldown was rolled back because the tests disproved the storm it guarded against. `spool --json` lines now carry trace_ids. 4 tests.

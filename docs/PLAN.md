@@ -2760,3 +2760,26 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - Kept from the round: `spool_pass` aggregates `trace_ids`, so
        `spool --json` lines name exactly which runs landed in that
        pass.  4 tests.
+
+282. **v2.35.0 - every surface speaks the same money** ✅ (delivered):
+     - The spend estimate existed in `stats`, `fleet`, and the MCP
+       tools — but `status`, the door ops actually watch, could
+       not price a store.  `status --prices FILE` grows the
+       est-spend line (unpriced models counted — the ci-gate rule
+       carried to the ops overview, JSON and prose both), sharing
+       one helper so all pricing surfaces stay identical.
+     - The fleet dashboard's agents table carries the p95 column
+       the CLI scorecards already have (`-` when nothing timed).
+     - The MCP ci-gate shim now builds a real argparse.Namespace
+       (mypy-clean, same behavior).  5 tests.
+
+283. **v2.36.0 - fuzz 18: hostile traces at the export doors; the quickstart grows the gate** ✅ (delivered):
+     - Fuzz round 18, quiet: the CSV door survives a None task, a
+       non-dict meta-free trace, agent names with newlines and C1
+       controls (quoted, preserved), and non-string results (str()
+       fallback); the OTLP door takes the same traces; the query
+       grammar matches unicode tasks and 5k-char values.  All six
+       probes passed first try — the doors earned their keep.
+     - The README dev-quickstart now ends with the gate loop
+       (init → ci), so the path from install to a build that
+       fails on regression is one read long.  6 tests.
