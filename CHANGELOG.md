@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.25.1
+
+- CSV cells refuse to execute. `export --format csv` quotes cells beginning with `= + - @ <tab>` — the standard CSV-injection defense: a tool result starting `=` would run as a formula the moment the file opens in Excel or Sheets. `clean --max-traces 0` refused (0 would mean delete everything, which is rm -rf's job). fuzz round 16 chopped, garbage-stamped and fully-lying records all classified correctly; 8-thread write stampede loses nothing. 11 tests.
+
 ## v2.25.0
 
 - the spreadsheet door; three new query operators. `export --format csv` writes one row per step — tokens/latency/errors pivot per tool per run without unpicking JSON, free text capped so a column cannot swallow the screen. the query DSL gains `endswith`, `matches` (a bounded regex compiled at parse time — the pattern arrives on a command line) and `in` with a list literal: `tools in ('search', 'deploy')` stops being five `or` clauses. 12 tests.

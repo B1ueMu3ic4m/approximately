@@ -32,15 +32,22 @@ from .store import TraceStore
 from .trace import MESSAGE, OBSERVATION, PLAN, RESPONSE, TOOL_CALL, Trace
 
 _CSV_CELL_CAP = 240
+_CSV_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 
 
 def _csv_cell(text) -> str:
     """CSV cells stay surveyable: cap free text so a spreadsheet
     column cannot swallow the screen (the JSONL exports stay
-    lossless — this one is for pivots, not archives)."""
+    lossless — this one is for pivots, not archives).  A cell
+    beginning with ``= + - @`` would execute as a formula when the
+    file opens in Excel/Sheets — tool results are untrusted text, so
+    those get a leading quote (the standard CSV-injection defense).
+    """
     if not text:
         return ""
     text = str(text)
+    if text.startswith(_CSV_FORMULA_PREFIXES):
+        text = "'" + text
     if len(text) > _CSV_CELL_CAP:
         return text[:_CSV_CELL_CAP - 1] + "…"
     return text
@@ -406,9 +413,9 @@ def export_store(store: TraceStore, output: Path,
                         trace.id, trace.task, trace.model or "",
                         "" if trace.success is None else trace.success,
                         trace.created_at, step.index, step.kind,
-                        step.tool or "", step.agent or "", step.tokens,
-                        step.latency_ms, _csv_cell(step.error),
-                        _csv_cell(step.result)])
+                        _csv_cell(step.tool), _csv_cell(step.agent),
+                        step.tokens, step.latency_ms,
+                        _csv_cell(step.error), _csv_cell(step.result)])
                     written += 1
         return {"format": fmt, "traces": len(traces),
                 "written": written, "dedupe_dropped": dropped,

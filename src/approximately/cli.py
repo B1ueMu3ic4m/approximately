@@ -1562,6 +1562,11 @@ def cmd_convert_mast(args: argparse.Namespace) -> int:
 def cmd_clean(args: argparse.Namespace) -> int:
     store = TraceStore(args.store)
     max_traces = getattr(args, "max_traces", None)
+    if max_traces is not None and max_traces < 1:
+        print("error: --max-traces must be >= 1 (0 would mean "
+              "'delete everything', which is rm -rf's job)",
+              file=sys.stderr)
+        return 2
     removed = store.clean(keep_days=args.keep_days,
                           dry_run=bool(getattr(args, "dry_run", False)),
                           max_traces=max_traces)

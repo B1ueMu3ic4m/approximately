@@ -2556,3 +2556,22 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        literal `tools in ('search', 'deploy')` — "did this run
        ever touch any of these" stops being five `or` clauses;
        over set fields it means any-of. 12 tests.
+
+268. **v2.25.1 - CSV cells refuse to execute; fuzz round 16** ✅ (delivered):
+     - Security: `export --format csv` quotes cells beginning with
+       `= + - @ <tab>` — the standard CSV-injection defense. Tool
+       results are untrusted text; a cell starting `=` would
+       execute as a formula the moment the file opens in Excel or
+       Sheets. Tool/agent columns get the same treatment (foreign
+       ids ride in through OTLP import). Leading-minus text gets
+       quoted too: untrusted beats pretty, and the docstring says
+       so.
+     - `clean --max-traces 0` (and negatives) refused exit 2 — 0
+       would mean "delete everything", which is rm -rf's job.
+     - Fuzz round 16, all quiet: chopped step_hashes → tampered;
+       garbage stamp shapes → tampered (the stamp claims a chain,
+       and it does not verify); unknown algorithm → unsigned-
+       classified; every record lying → all named, doctor stays up.
+     - Concurrency stampede: 8 threads × 10 saves lose nothing
+       (80/80); concurrent annotate+save interleaves cleanly
+       (26/26, 6 notes). 11 tests.
