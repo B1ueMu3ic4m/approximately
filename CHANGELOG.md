@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.28.1
+
+- every new door gets a tripwire: four perf gates for ci (10k traces), doctor --deep (2k chains), clean --max-traces, and csv export, budgets from local 10k measurements with runner headroom. perf-gate suite now 14 gates.
+
 ## v2.28.0
 
 - `approximately init`: gate the repo you already have. wires a GitHub Actions workflow running `approximately ci`, a starter price table, and a .gitignore line into an existing repo — idempotent, nothing overwritten without --force, and .gitignore only ever appended to. 6 tests.

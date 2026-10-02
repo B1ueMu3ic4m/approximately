@@ -36,7 +36,8 @@ def main() -> int:
     return (attribution_gate(args) + agent_wave_gate()
             + query_gate() + similar_gate() + fleet_anomaly_gate()
             + import_gate() + export_gate() + doctor_gate()
-            + spool_gate() + survey_spend_gate())
+            + spool_gate() + survey_spend_gate() + ci_gate()
+            + doctor_deep_gate() + clean_gate() + csv_export_gate())
 
 def fleet_anomaly_gate(budget_s: float = 2.0) -> int:
     """Per-tool fleet baselines over a 10k-trace store.
@@ -452,6 +453,160 @@ def survey_spend_gate(budget_s: float = 8.0) -> int:
         return 1
     return 0
 
+
+
+def ci_gate(budget_s: float = 5.0) -> int:
+    """The quality-gate door (v2.23) over a 10k-trace store.
+
+    cmd_ci walks traces three times (durations, tokens, stats) and
+    must stay linear; a CI pipeline runs it on every push, so a
+    superlinear pass fails builds by timeout, not by verdict."""
+    import argparse as _argparse
+    import tempfile
+    from pathlib import Path as _Path
+
+    from approximately.cli import cmd_ci
+    from approximately.recorder import Recorder
+    from approximately.store import TraceStore
+
+    with tempfile.TemporaryDirectory() as tmp:
+        store = TraceStore(_Path(tmp) / "s")
+        for i in range(10_000):
+            rec = Recorder(f"run {i}", save=False)
+            rec.tool("search", {"q": i}, tokens=100 + i % 50,
+                     latency_ms=100 + i % 50)
+            rec.respond("done", success=i % 10 != 0)
+            store.save(rec.trace)
+        args = _argparse.Namespace(store=str(store.directory),
+                                   since=None, json=False,
+                                   max_failure_rate=0.3,
+                                   max_p95_latency_ms=10 ** 9,
+                                   max_tokens=10 ** 12, min_traces=1,
+                                   prices=None)
+        # seeding is setup, not subject: time the gate itself
+        start = time.perf_counter()
+        code = cmd_ci(args)
+    elapsed = time.perf_counter() - start
+    if code != 0:
+        print("FAIL: ci gate did not pass its own store",
+              file=sys.stderr)
+        return 1
+    print(f"perf-gate[ci]: gates over 10k traces in "
+          f"{elapsed * 1000:.0f}ms (budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: ci gate slowed past budget", file=sys.stderr)
+        return 1
+    return 0
+
+
+def doctor_deep_gate(budget_s: float = 10.0) -> int:
+    """doctor --deep over 10k traces: every step of every record
+    re-hashed.  Deep is opt-in because it is the expensive pass;
+    this gate pins that expense to linear-and-bounded (local:
+    ~1.3s at 10k traces)."""
+    import tempfile
+    from pathlib import Path as _Path
+
+    from approximately.doctor import doctor
+    from approximately.integrity import sign
+    from approximately.recorder import Recorder
+    from approximately.store import TraceStore
+
+    with tempfile.TemporaryDirectory() as tmp:
+        store = TraceStore(_Path(tmp) / "s")
+        for i in range(2_000):
+            rec = Recorder(f"run {i}", save=False)
+            rec.tool("deploy", {}, result="ok")
+            rec.respond("done", success=True)
+            sign(rec.trace)
+            store.save(rec.trace)
+        # seeding is setup, not subject: time the deep pass itself
+        start = time.perf_counter()
+        report = doctor(store.directory, deep=True)
+    elapsed = time.perf_counter() - start
+    if report.chain_checked != 2_000 or report.chain_failed:
+        print("FAIL: deep gate mis-verified the chains",
+              file=sys.stderr)
+        return 1
+    print(f"perf-gate[doctor-deep]: chains of 2k traces in "
+          f"{elapsed * 1000:.0f}ms (budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: deep doctor slowed past budget", file=sys.stderr)
+        return 1
+    return 0
+
+
+def clean_gate(budget_s: float = 2.0) -> int:
+    """Retention by count over a 10k-file store: the mtime sort
+    must stay n log n, not degrade into per-file rescans."""
+    import tempfile
+    from pathlib import Path as _Path
+
+    from approximately.recorder import Recorder
+    from approximately.store import TraceStore
+
+    with tempfile.TemporaryDirectory() as tmp:
+        store = TraceStore(_Path(tmp) / "s")
+        for i in range(2_000):
+            rec = Recorder(f"run {i}", save=False)
+            rec.tool("deploy", {}, result="ok")
+            rec.respond("done", success=True)
+            store.save(rec.trace)
+        # seeding is setup, not subject: time the dry run itself
+        start = time.perf_counter()
+        removed = store.clean(keep_days=30, max_traces=1_500,
+                              dry_run=True)
+    elapsed = time.perf_counter() - start
+    if removed != 500:
+        print("FAIL: clean gate trimmed the wrong count",
+              file=sys.stderr)
+        return 1
+    print(f"perf-gate[clean]: count-cap dry run over 2k traces in "
+          f"{elapsed * 1000:.0f}ms (budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: clean slowed past budget", file=sys.stderr)
+        return 1
+    return 0
+
+
+def csv_export_gate(budget_s: float = 5.0) -> int:
+    """CSV export of 1k traces (one row per step): the quoting and
+    formula-injection defense must stay linear per cell."""
+    import tempfile
+    from pathlib import Path as _Path
+
+    from approximately.exporter import export_store
+    from approximately.recorder import Recorder
+    from approximately.store import TraceStore
+
+    with tempfile.TemporaryDirectory() as tmp:
+        store = TraceStore(_Path(tmp) / "s")
+        for i in range(1_000):
+            rec = Recorder(f"task {i}", save=False)
+            for j in range(5):
+                rec.tool("search", {"q": j},
+                         result=f"=c{j}, hit" if j == 0 else "hit")
+            rec.respond(f"done {i}", success=True)
+            store.save(rec.trace)
+        out = _Path(tmp) / "out.csv"
+        # seeding is setup, not subject: time the export itself
+        start = time.perf_counter()
+        result = export_store(store, out, fmt="csv")
+    elapsed = time.perf_counter() - start
+    if result["written"] != 6_000:
+        print("FAIL: csv gate wrote the wrong row count",
+              file=sys.stderr)
+        return 1
+    print(f"perf-gate[csv]: 1k traces / 6k steps in "
+          f"{elapsed * 1000:.0f}ms (budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: csv export slowed past budget", file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
