@@ -33,7 +33,9 @@ def _store_with(tmp_path, tid="k-1", signed=True):
     rec.respond("done", success=True)
     if signed:
         sign(rec.trace)
-    store.save(rec.trace)
+    # signed=False constructs the UNSIGNED fixture: keep it unsigned
+    # through the save (the v244 auto-stamp would sign)
+    store.save(rec.trace, stamp=signed)
     return store
 
 

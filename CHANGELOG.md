@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.31.0
+
+- integration round, and a real seam: `store.save` never signed — the evidence chain only existed on the recorder exit path, so adapters and scripts saving through the store directly silently skipped it. `save(trace, stamp=True)` signs chainless traces on the way in; import/merge pass `stamp=False` because foreign evidence must not acquire our chain. and a better-than-expected find: the producer's integrity chain stays verifiable across a spool hop. 2 tests, 6 fixture updates.
+
 ## v2.30.0
 
 - the scorecards speak percentiles; the selection prices itself. tool/agent scorecards gain nearest-rank p95 columns (latency and tokens) with matching Prometheus gauges; `query --stats --prices` prices the selection, unpriced models counted. 7 tests.

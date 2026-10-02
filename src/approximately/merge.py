@@ -96,19 +96,19 @@ def merge_store(source: Path, target: TraceStore,
             report.refused_tampered.append(trace.id)
             continue
         if target.load(trace.id) is None:
-            target.save(trace)
+            target.save(trace, stamp=False)
             report.imported.append(trace.id)
             continue
         if on_conflict == "skip":
             report.skipped_conflicts.append(trace.id)
         elif on_conflict == "replace":
-            target.save(trace)
+            target.save(trace, stamp=False)
             report.imported.append(trace.id)
         else:  # rename
             old_id = trace.id
             new_id = _rename_id(target, old_id)
             trace.id = new_id
-            target.save(trace)
+            target.save(trace, stamp=False)
             report.renamed[old_id] = new_id
             report.imported.append(new_id)
     # the annotation sidecar travels with the traces: notes about a

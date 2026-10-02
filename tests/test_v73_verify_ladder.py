@@ -56,7 +56,7 @@ def test_verify_unsigned_exits_two(tmp_path, capsys):
     rec.trace.id = "u-1"
     rec.tool("bash", {"cmd": "ls"}, result="ok")
     rec.respond("done", success=True)
-    store.save(rec.trace)
+    store.save(rec.trace, stamp=False)   # unsigned on purpose
     rc = cmd_verify(_args(store, trace="u-1"))
     out = capsys.readouterr().out
     assert rc == 2

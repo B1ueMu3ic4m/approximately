@@ -22,7 +22,9 @@ def _store(tmp_path, builders, sign_traces=True):
         if sign_traces:
             sign(rec.trace)
         build(rec)  # runs after signing: may tamper the signed state
-        store.save(rec.trace)
+        # sign_traces=False constructs an UNSIGNED fixture — keep it
+        # unsigned through the save (the v244 auto-stamp would sign)
+        store.save(rec.trace, stamp=sign_traces)
     return store
 
 

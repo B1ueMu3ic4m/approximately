@@ -153,7 +153,8 @@ class TestStoreIntegration:
         store2 = TraceStore(tmp_path / "s2")
         rec = Recorder("no sig", store=store2, save=False)
         rec.respond("ok")  # never signed
-        store2.save(rec.trace)
+        # unsigned on purpose: the ledger skips unsigned traces
+        store2.save(rec.trace, stamp=False)
         assert not ledger_path(store2.directory).exists()
 
     def test_ledger_failure_never_fails_save(self, store, monkeypatch):

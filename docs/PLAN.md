@@ -2676,3 +2676,22 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        line in prose, unpriced models counted — the ci-gate rule
        (a spend you cannot compute does not hold) carried over to
        ad-hoc questions.  7 tests.
+
+276. **v2.31.0 - integration round: every seam of Night V** ✅ (delivered):
+     - One river through everything the night shipped: record with
+       measured latencies/tokens → deep-verify → spool to a sink →
+       rescore → ci-gate → price → csv pivot → query operators →
+       MCP ci_gate agreement → repo scaffold.
+     - **Seam 1 (real, fixed)**: `store.save` never signed — the
+       evidence chain only existed on the Recorder exit path, so
+       every adapter or script saving through the store directly
+       silently skipped it.  `save(trace, stamp=True)` now signs
+       chainless traces on the way in; ingest paths (import,
+       merge) pass `stamp=False` — foreign evidence must not
+       acquire OUR chain, or doctor --deep would vouch for data we
+       never measured.  Six pins that relied on the old blindness
+       now construct their unsigned fixtures explicitly.
+     - **Seam 2 (better than expected)**: native export carries the
+       meta, so the producer's integrity chain stays VERIFIABLE on
+       the sink side — evidence survives the spool hop intact.
+     - 2 new tests; 6 fixture updates.
