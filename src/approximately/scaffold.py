@@ -187,24 +187,37 @@ def init_scaffold(directory: Path, force: bool = False) -> Dict[str, Any]:
         prices_path, json.dumps(_PRICES, indent=2) + "\n", force)
 
     gi_path = directory / ".gitignore"
-    existing = gi_path.read_text(encoding="utf-8") if gi_path.is_file() \
-        else ""
-    if _GITIGNORE_LINE in existing.splitlines():
-        result[str(gi_path)] = "skipped"
-    elif existing:
-        pad = "" if existing.endswith("\n") else "\n"
-        gi_path.write_text(existing + pad + _GITIGNORE_LINE + "\n",
-                           encoding="utf-8")
-        result[str(gi_path)] = "appended"
-    else:
-        gi_path.write_text(_GITIGNORE_LINE + "\n", encoding="utf-8")
-        result[str(gi_path)] = "written"
+    existing = ""
+    if gi_path.is_file():
+        try:
+            existing = gi_path.read_text(encoding="utf-8")
+        except OSError:
+            result[str(gi_path)] = "refused"
+            return result
+    try:
+        if _GITIGNORE_LINE in existing.splitlines():
+            result[str(gi_path)] = "skipped"
+        elif existing:
+            pad = "" if existing.endswith("\n") else "\n"
+            gi_path.write_text(existing + pad + _GITIGNORE_LINE + "\n",
+                               encoding="utf-8")
+            result[str(gi_path)] = "appended"
+        else:
+            gi_path.write_text(_GITIGNORE_LINE + "\n", encoding="utf-8")
+            result[str(gi_path)] = "written"
+    except OSError:
+        result[str(gi_path)] = "refused"
     return result
 
 
 def _write_once(path: Path, content: str, force: bool) -> str:
     if path.exists() and not force:
         return "skipped"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+    except OSError:
+        # a hostile tree (a file that is a directory, a read-only
+        # parent) is a refusal, not a traceback
+        return "refused"
     return "written"

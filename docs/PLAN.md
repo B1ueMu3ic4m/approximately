@@ -2695,3 +2695,18 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        meta, so the producer's integrity chain stays VERIFIABLE on
        the sink side — evidence survives the spool hop intact.
      - 2 new tests; 6 fixture updates.
+
+277. **v2.31.1 - fuzz round 17: the scaffold fights back** ✅ (delivered):
+     - Three crash classes found and fixed, all on the night's new
+       surfaces: `init` meeting a hostile tree (a `.gitignore` that
+       is itself a directory crashed the read; a read-only parent
+       crashed the mkdir — both now report status ``refused`` and
+       keep the other files coming); `store.save` meeting a trace
+       whose meta is not a dict (the ledger-append and the stamp
+       check both assumed dict — a string meta crashed the save);
+       the query grammar's `()` empty list parsed as a list
+       containing the paren token.
+     - A nested value list (`in (('a','b'))`) turned out to be
+       legal syntax that matches nothing — pinned as such.
+     - 11 tests; contract holds: documented errors or clean skips,
+       never a crash.

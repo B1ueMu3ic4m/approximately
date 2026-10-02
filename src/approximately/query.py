@@ -275,6 +275,8 @@ class _Parser:
         token = self._next()
         kind, value = token
         if kind == "lparen":            # list literal: (a, b, c)
+            if self._matches(")"):
+                return []               # () is empty, not [" ) "]
             items = [self._value()]
             while self._matches(","):
                 items.append(self._value())
