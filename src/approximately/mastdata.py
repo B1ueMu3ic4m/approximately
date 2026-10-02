@@ -29,7 +29,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 from .trace import Step, Trace
 
@@ -157,7 +157,7 @@ def _task_of(record: dict) -> str:
     return " ".join(str(p) for p in parts)[:400]
 
 
-def _success_of(record: dict):
+def _success_of(record: dict) -> "bool | None":
     other = record.get("other_data") or {}
     return bool(other.get("correct")) if "correct" in other else None
 
@@ -230,7 +230,7 @@ def convert_mast(source: Path, out_path: Path,
     return stats
 
 
-def _emit_record(record: dict, modes: List[str], fh, stats,
+def _emit_record(record: dict, modes: List[str], fh: Any, stats: Any,
                  multi_label: bool) -> int:
     trace = _to_trace(record)
     if modes:

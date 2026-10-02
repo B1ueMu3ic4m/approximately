@@ -33,7 +33,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List
 
-from .trace import TOOL_CALL, Trace
+from .trace import TOOL_CALL, Step, Trace
 
 MODIFIED_Z_THRESHOLD = 3.5
 _CONSISTENCY = 0.6745  # Phi^-1(3/4): median of the standard normal
@@ -96,7 +96,7 @@ class TraceLatencyAnomaly:
         return "slow" if self.robust_z > 0 else "fast"
 
 
-def detect_fleet_anomalies(traces, threshold: float
+def detect_fleet_anomalies(traces: list, threshold: float
                            = MODIFIED_Z_THRESHOLD,
                            min_samples: int = 5
                            ) -> List[TraceLatencyAnomaly]:
@@ -192,7 +192,7 @@ def detect_latency_anomalies(trace: Trace, threshold: float
 
 
 
-def _flagged(timed, values, med: float, mad: float,
+def _flagged(timed: list, values: list, med: float, mad: float,
              threshold: float) -> List[LatencyAnomaly]:
     anomalies = []
     for step, value in zip(timed, values):
@@ -312,7 +312,8 @@ def detect_token_anomalies(trace: Trace, threshold: float
 
 
 
-def _flagged_tokens(metered, values, med: float, mad: float,
+def _flagged_tokens(metered: list, values: list, med: float,
+                    mad: float,
                     threshold: float) -> List[TokenAnomaly]:
     anomalies = []
     for step, value in zip(metered, values):
@@ -329,7 +330,7 @@ def _flagged_tokens(metered, values, med: float, mad: float,
     return anomalies
 
 
-def detect_fleet_token_anomalies(traces, threshold: float
+def detect_fleet_token_anomalies(traces: list, threshold: float
                                  = MODIFIED_Z_THRESHOLD,
                                  min_samples: int = 5,
                                  per_model: bool = False
@@ -341,7 +342,7 @@ def detect_fleet_token_anomalies(traces, threshold: float
     ``per_model`` splits each tool family by the trace's model: a
     gpt-4o and a mini doing the "same" search are different scale
     rulers, and pooling them hides both ends."""
-    def family_key(trace, step):
+    def family_key(trace: Trace, step: Step) -> tuple:
         if per_model:
             return (step.tool or "?", str(trace.model or "unknown"))
         return (step.tool or "?",)

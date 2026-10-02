@@ -15,12 +15,12 @@ import json
 import math
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from .distill import check_floors, evaluate_multi, load_dataset
 
 
-def _non_finite(node, path="$"):
+def _non_finite(node: Any, path: str = "$") -> list:
     """Paths of non-finite numbers in a floors document.
 
     ``json.loads`` happily accepts NaN/Infinity; a NaN floor would
@@ -161,7 +161,7 @@ def run_gate(dataset: Path, floors_path: Path, label: str = "gate",
     return 0
 
 
-def main(argv=None) -> int:
+def main(argv: Any = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("dataset", help="labeled JSONL dataset "
                                         "(approx format)")
@@ -193,13 +193,16 @@ def junit_xml(result: dict, label: str = "gate") -> str:
         "tests": "0", "failures": "0",
     })
 
-    def add(name, failed, message=""):
-        suite.set("tests", str(int(suite.get("tests")) + 1))
+    def add(name: str, failed: bool, message: str = "") -> None:
+        suite.set("tests",
+                  str(int(suite.get("tests") or "0") + 1))
         case = ET.SubElement(suite, "testcase", {
             "name": name, "classname": "approximately.bench_gate",
         })
         if failed:
-            suite.set("failures", str(int(suite.get("failures")) + 1))
+            suite.set(
+                "failures",
+                str(int(suite.get("failures") or "0") + 1))
             ET.SubElement(case, "failure", {"message": message})
 
     floor_sample = floors.get("sample_f1")
