@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.45.0
+
+- the digest drain: `fleet --compact-digests` collapses each day's snapshot history to its last line (the final state plus the snapshot count) — a 10s watch writes 8,640 lines a day and the trend reader only ever reads the day's final state. dry-run honest; the next append continues from the compacted form. fleet's store list is now optional. 8 tests.
+
 ## v2.44.0
 
 - the threat model catches up to the night: six new SECURITY.md rows (CSV formula injection, evidence-pack hashing and its limits, zip bombs, webhook pacing, matches regex bounds, init's never-overwrite), fuzz rounds 1-19 listed. 1 test.

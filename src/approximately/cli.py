@@ -1306,6 +1306,32 @@ def _fleet_watch(args: argparse.Namespace, stores) -> int:
     return 0
 
 
+def _fleet_compact(args: argparse.Namespace) -> int:
+    from .fleet import compact_digests
+
+    digest_dir = Path(getattr(args, "digest_dir", None) or
+                      getattr(args, "stores", [""])[0])
+    if not digest_dir.is_dir():
+        print(f"error: no such digest directory: {digest_dir}",
+              file=sys.stderr)
+        return 2
+    report = compact_digests(digest_dir,
+                             dry_run=bool(getattr(args, "dry_run",
+                                                  False)))
+    if getattr(args, "json", False):
+        print(json.dumps(report, indent=2))
+        return 0
+    if not report["files"]:
+        print("nothing to compact (every day has ≤1 snapshot)")
+        return 0
+    note = " would be collapsed" if getattr(args, "dry_run", False) \
+        else " collapsed"
+    for f in report["files"]:
+        print(f"  {f['file']}: {f['before']} lines{note} to 1")
+    print(f"  total: {report['before']} → {report['after']} lines")
+    return 0
+
+
 def _fleet_trend(args: argparse.Namespace) -> int:
     from .fleet import (
         agent_trend_days,
@@ -1443,7 +1469,13 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 
 
 def cmd_fleet(args: argparse.Namespace) -> int:
+    if getattr(args, "compact_digests", False):
+        return _fleet_compact(args)
     stores = [Path(d) for d in args.stores]
+    if not stores:
+        print("error: fleet needs at least one store directory",
+              file=sys.stderr)
+        return 2
     if getattr(args, "watch", None):
         return _fleet_watch(args, stores)
     if getattr(args, "trend", False):
@@ -2955,7 +2987,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("fleet", help="aggregate several stores into one "
                                      "dashboard page")
-    p.add_argument("stores", nargs="+", help="store directories to survey")
+    p.add_argument("stores", nargs="*", help="store directories to "
+                                            "survey (not required with "
+                                            "--compact-digests)")
     p.add_argument("--fleet-html", help="also write a self-contained HTML "
                                         "dashboard to this path")
     p.add_argument("--json", action="store_true",
@@ -2982,6 +3016,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--alert-spend", type=float, metavar="USD",
                    help="also alert when a store's estimated spend "
                         "crosses this budget (needs --prices)")
+    p.add_argument("--compact-digests", action="store_true",
+                   help="collapse each day's snapshot history to "
+                        "its last line (the trend reader only ever "
+                        "reads the day's final state); pair with "
+                        "--digest-dir. A 10s-interval watch writes "
+                        "8,640 lines a day — this is the drain.")
     p.add_argument("--alert-cooldown", type=float, metavar="MIN",
                    default=0.0,
                    help="with --webhook: minutes before the SAME "
