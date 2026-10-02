@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.42.0
+
+- fuzz round 19: `compare` refuses an empty store on either side; the non-dict-meta poison trace hunted out of detectors (five reads) and integrity.verify — a hand-edited record no longer crashes attribution, verification, or the evidence pack. 5 tests.
+
 ## v2.41.0
 
 - the MCP server runs the comparison: `compare` as a tool with the gate's exit surfaced as ok:false and prices bridged from a JSON object. 36 tools. RECIPES 21: the deploy chapter. 6 tests.

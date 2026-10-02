@@ -2862,3 +2862,19 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        updated.
      - RECIPES 21: the deploy chapter — compare against the last
        known good, gate the build, hand off the pack.  6 tests.
+
+290. **v2.42.0 - fuzz round 19: compare and evidence meet hostile input** ✅ (delivered):
+     - The predictable gap, closed before shipping: `compare` over
+       an empty store now refuses loudly on EITHER side (exit 2,
+       the v230 contract — a comparison against nothing proves
+       nothing).
+     - The non-dict-meta poison trace, hunted to its last lairs:
+       `detectors.py` read `trace.meta.get(...)` in five places
+       (prose gate, step_limit, forbidden_tools, ambiguous,
+       role_tools/agents) and `integrity.verify` read it too — a
+       hand-edited record crashed the attribute pass, the verify
+       pass, and therefore the evidence pack.  One `_trace_meta`
+       guard in the detectors, one isinstance in verify; the
+       detectors shrug, unsigned stays unsigned.
+     - The evidence door survives junk annotation lines (carries
+       what is readable) and packs a 2k-step postmortem.  5 tests.
