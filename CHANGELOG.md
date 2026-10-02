@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.25.0
+
+- the spreadsheet door; three new query operators. `export --format csv` writes one row per step — tokens/latency/errors pivot per tool per run without unpicking JSON, free text capped so a column cannot swallow the screen. the query DSL gains `endswith`, `matches` (a bounded regex compiled at parse time — the pattern arrives on a command line) and `in` with a list literal: `tools in ('search', 'deploy')` stops being five `or` clauses. 12 tests.
+
 ## v2.24.0
 
 - retention by count; the doctor recomputes the chains. `clean --max-traces N` keeps a burst day from outliving its welcome — the age cap alone lets one busy afternoon accumulate a thousand records forever. `doctor --deep` recompute every record's integrity chain: a record can be parseable JSON and still lie, and only re-hashing the steps catches it. keyed records without the key at hand count as locked, not broken. the MCP doctor tool grows the same deep knob. 11 tests.

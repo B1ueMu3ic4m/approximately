@@ -156,11 +156,11 @@ def test_otel_composes_with_query(tmp_path):
 def test_unknown_format_still_rejected(tmp_path):
     store = _seed(tmp_path / "s")
     try:
-        export_store(store, tmp_path / "o", fmt="csv")
+        export_store(store, tmp_path / "o", fmt="parquet")
     except ValueError as exc:
         assert "otel" in str(exc)
     else:
-        raise AssertionError("csv accepted")
+        raise AssertionError("parquet accepted")
 
 
 def test_cli_export_otel(tmp_path, capsys):

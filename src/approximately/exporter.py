@@ -22,6 +22,7 @@ recorder keeps no per-step wall clock) and says so via the
 
 from __future__ import annotations
 
+import csv
 import json
 from hashlib import sha256
 from pathlib import Path
@@ -30,10 +31,25 @@ from typing import Any, Dict, List, Optional
 from .store import TraceStore
 from .trace import MESSAGE, OBSERVATION, PLAN, RESPONSE, TOOL_CALL, Trace
 
+_CSV_CELL_CAP = 240
+
+
+def _csv_cell(text) -> str:
+    """CSV cells stay surveyable: cap free text so a spreadsheet
+    column cannot swallow the screen (the JSONL exports stay
+    lossless — this one is for pivots, not archives)."""
+    if not text:
+        return ""
+    text = str(text)
+    if len(text) > _CSV_CELL_CAP:
+        return text[:_CSV_CELL_CAP - 1] + "…"
+    return text
+
 OPENAI_JSONL = "openai-jsonl"
 NATIVE = "native"
 OTEL = "otel"
-_FORMATS = (OPENAI_JSONL, NATIVE, OTEL)
+CSV = "csv"
+_FORMATS = (OPENAI_JSONL, NATIVE, OTEL, CSV)
 
 # OTLP JSON per the spec: 64-bit integers (nanosecond timestamps,
 # int attribute values) as decimal strings, ids as hex.  Consumers
@@ -374,6 +390,28 @@ def export_store(store: TraceStore, output: Path,
             fh.write("\n")
         return {"format": fmt, "traces": len(traces),
                 "written": len(traces), "dedupe_dropped": dropped,
+                "output": str(output)}
+    if fmt == CSV:
+        # one row per STEP — the spreadsheet-native shape: pivot
+        # tokens/latency/errors per tool without unpicking JSON
+        with output.open("w", encoding="utf-8", newline="") as fh:
+            writer = csv.writer(fh)
+            writer.writerow(["trace_id", "task", "model", "success",
+                             "created_at", "step", "kind", "tool",
+                             "agent", "tokens", "latency_ms", "error",
+                             "result"])
+            for trace in traces:
+                for step in trace.steps:
+                    writer.writerow([
+                        trace.id, trace.task, trace.model or "",
+                        "" if trace.success is None else trace.success,
+                        trace.created_at, step.index, step.kind,
+                        step.tool or "", step.agent or "", step.tokens,
+                        step.latency_ms, _csv_cell(step.error),
+                        _csv_cell(step.result)])
+                    written += 1
+        return {"format": fmt, "traces": len(traces),
+                "written": written, "dedupe_dropped": dropped,
                 "output": str(output)}
     with output.open("w", encoding="utf-8") as fh:
         for trace in traces:
