@@ -2733,3 +2733,17 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        strip and the latency card with the 42s stall, instead of a
        silence that looked like a bug.
      - One step-count pin updated (6 → 7 steps).
+
+280. **v2.33.0 - the watch does not cry wolf** ✅ (delivered):
+     - An alarm that rings every cycle is an alarm storm — on-call
+       learns to ignore it exactly when it matters.  `fleet --watch
+       --webhook` gains `--alert-cooldown MIN`: the SAME reason set
+       re-pages only after the cooldown; a reason set that GROWS (a
+       new store degraded, a new gate tripped) pages immediately;
+       the default 0 keeps the every-cycle contract.
+     - Semantics note: a threshold-less watch carries an EMPTY
+       reason set (the schedule is the signal) — the first
+       implementation treated "empty" as always-fresh and stormed
+       anyway; the growth test caught it before CI could.
+     - Digest snapshots still write every cycle: the cooldown gates
+       the PAGER, never the record.  5 tests.

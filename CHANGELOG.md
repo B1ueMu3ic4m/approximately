@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.33.0
+
+- the watch does not cry wolf. `fleet --watch --webhook` gains `--alert-cooldown`: the same reason set re-pages only after the cooldown, a growing reason set pages immediately, 0 keeps the every-cycle contract. digest snapshots still write every cycle — the cooldown gates the pager, never the record. 5 tests.
+
 ## v2.32.0
 
 - the demo tells the whole story: measured tokens and latencies on every step, plus a fare-rules lookup so the detectors have their honest 5+ samples — the report artifacts now show the token-burn bar strip and the latency stall instead of a silence that looked like a bug.
