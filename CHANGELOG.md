@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.44.0
+
+- the threat model catches up to the night: six new SECURITY.md rows (CSV formula injection, evidence-pack hashing and its limits, zip bombs, webhook pacing, matches regex bounds, init's never-overwrite), fuzz rounds 1-19 listed. 1 test.
+
 ## v2.43.1
 
 - the ci gate budget carries Windows headroom: 10s (from 5s) for `ci`, 8s for `evidence` — the Windows runner tripped the old budget on 10k-trace file I/O. no product code change.
