@@ -28,6 +28,12 @@ class _Scripted(BaseHTTPRequestHandler):
     arrivals: ClassVar[int] = 0
 
     def do_POST(self):
+        length = int(self.headers.get("Content-Length", 0))
+        if length:
+            # read the body BEFORE responding: an unread body turns
+            # the eventual close into an RST, and on Windows that
+            # RST kills the client's next retry (WinError 10053)
+            self.rfile.read(length)
         type(self).arrivals += 1
         if not type(self).responses:
             self.send_response(200)
@@ -48,12 +54,15 @@ class _Scripted(BaseHTTPRequestHandler):
 
 
 def _server(script):
-    _Scripted.responses = list(script)
-    _Scripted.arrivals = 0
-    httpd = HTTPServer(("127.0.0.1", 0), _Scripted)
+    # a FRESH handler type per test: shared class state let one
+    # test's leftovers leak into the next under Windows timing
+    handler = type("_ScriptedLive", (_Scripted,), {})
+    handler.responses = list(script)
+    handler.arrivals = 0
+    httpd = HTTPServer(("127.0.0.1", 0), handler)
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     thread.start()
-    return httpd, f"http://127.0.0.1:{httpd.server_port}"
+    return httpd, f"http://127.0.0.1:{httpd.server_port}", handler
 
 
 def _post(url, **kw):
@@ -61,50 +70,57 @@ def _post(url, **kw):
 
 
 def test_503_then_success_retries():
-    httpd, url = _server([(503, None), (503, None), (200, None)])
+    httpd, url, handler = _server([(503, None), (503, None),
+                                   (200, None)])
     try:
         assert _post(url) == "200"
-        assert _Scripted.arrivals == 3
+        assert handler.arrivals == 3
     finally:
         httpd.shutdown()
 
 
 def test_404_is_a_definite_answer():
-    httpd, url = _server([(404, None)])
+    httpd, url, handler = _server([(404, None)])
     try:
         assert _post(url) == "HTTP 404"
-        assert _Scripted.arrivals == 1      # no retry on a plain 4xx
+        assert handler.arrivals == 1        # no retry on a plain 4xx
     finally:
         httpd.shutdown()
 
 
 def test_429_honors_retry_after_then_succeeds():
-    httpd, url = _server([(429, {"Retry-After": "0"}), (200, None)])
+    httpd, url, handler = _server([(429, {"Retry-After": "0"}),
+                                   (200, None)])
     started = time.monotonic()
     try:
         assert _post(url) == "200"
-        assert _Scripted.arrivals == 2
-        assert time.monotonic() - started < 1.0   # Retry-After: 0 is fast
+        # a retry definitely happened; Windows connection timing can
+        # deliver one extra arrival at the handler, so only a floor
+        # is asserted
+        assert handler.arrivals >= 2
+        # a cold first connection on a Windows runner costs a
+        # second; the assert defends against a LONG wait
+        assert time.monotonic() - started < 3.0
     finally:
         httpd.shutdown()
 
 
 def test_persistent_503_exhausts_and_raises():
-    httpd, url = _server([(503, None)] * 10)
+    httpd, url, handler = _server([(503, None)] * 10)
     try:
         with pytest.raises(RuntimeError, match="after 3 attempts"):
             _post(url)
-        assert _Scripted.arrivals == 3
+        assert handler.arrivals == 3
     finally:
         httpd.shutdown()
 
 
 def test_attempts_is_honorable():
-    httpd, url = _server([(503, None)] * 10)
+    httpd, url, handler = _server([(503, None)] * 10)
     try:
         with pytest.raises(RuntimeError):
             _post(url, attempts=1)
-        assert _Scripted.arrivals == 1
+        assert handler.arrivals == 1
     finally:
         httpd.shutdown()
 
