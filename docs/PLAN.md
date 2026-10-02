@@ -2663,3 +2663,16 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        zero-ceilings errors) and `init_gate` (the same idempotent
        three-file scaffold).  34 tools; the committed
        docs/mcp-tools.json mirror regenerated.
+
+275. **v2.30.0 - the scorecards speak percentiles; the selection prices itself** ✅ (delivered):
+     - A mean hides the tail — and the tail is where users live.
+       Both scorecards gain nearest-rank p95 columns (same ruler as
+       the anomaly detectors): per-tool step-latency p95 and token
+       p95, per-agent latency p95.  Prometheus grows matching
+       gauges (`approximately_{tool,agent}_p95_latency_ms` /
+       `_p95_tokens`); the CLI tables carry the new columns.
+     - `query --stats --prices prices.json` prices the selection:
+       `est_spend` over the selected traces in JSON, an `est spend`
+       line in prose, unpriced models counted — the ci-gate rule
+       (a spend you cannot compute does not hold) carried over to
+       ad-hoc questions.  7 tests.
