@@ -2642,3 +2642,15 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        it alone (a hand-tuned ignore file is not ours to reset).
      - The workflow body carries a comment naming the exact next
        step (add --max-spend --prices once tuned).  6 tests.
+
+273. **v2.28.1 - every new door gets a tripwire** ✅ (delivered):
+     - Four new perf gates for the doors this night added, budgets
+       set from 10k-trace local measurements with runner-noise
+       headroom: `ci` over 10k traces (measured 0.7-1.2s, budget
+       5s), `doctor --deep` chains of 2k traces (0.3s, 10s),
+       `clean --max-traces` dry run (0.1s, 2s), CSV export of 1k
+       traces / 6k steps (0.1s, 5s).  A pipeline runs `ci` on
+       every push — a superlinear pass would fail builds by
+       timeout, not by verdict; now it fails the perf gate first.
+     - perf-gate suite: 14 gates.  Also in: the Retry-After
+       None-check mypy fixup from v2.28.0.
