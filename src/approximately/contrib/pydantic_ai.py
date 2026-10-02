@@ -73,7 +73,7 @@ def _response_usage(message: Any) -> Any:
     return usage
 
 
-def _transcribe_part(rec, part: Any, state: dict) -> None:
+def _transcribe_part(rec: Any, part: Any, state: dict) -> None:
     """Record one pydantic-ai part into the recorder."""
     pkind = type(part).__name__
     if pkind in ("UserPromptPart", "SystemPromptPart"):

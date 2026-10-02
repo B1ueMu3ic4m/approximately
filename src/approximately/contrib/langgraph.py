@@ -15,6 +15,11 @@ Requires ``langchain-core`` (already present in any LangGraph install).
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..attributor import FailureReport
+
 import json
 from typing import Any, Dict, Optional
 
@@ -167,7 +172,7 @@ class ApproximatelyCallbackHandler(_LCBaseHandler):
     def respond(self, text: str, success: bool = True) -> None:
         self.recorder.respond(text, success=success)
 
-    def report(self):
+    def report(self) -> "FailureReport":
         """Attribute the recorded trace (rules by default)."""
         from ..attributor import attribute
 

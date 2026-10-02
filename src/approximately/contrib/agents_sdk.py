@@ -14,6 +14,11 @@ Requires ``openai-agents``.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..attributor import FailureReport
+
 import json
 from typing import Any, ClassVar, Optional
 
@@ -35,7 +40,7 @@ def _preview(value: Any, limit: int = 200) -> str:
 class AgentsSDKProcessor:
     """TracingProcessor that records function/generation spans into a trace."""
 
-    def __init__(self, task: str, recorder=None):
+    def __init__(self, task: str, recorder: Any = None):
         from ..recorder import Recorder
 
         self.recorder = recorder or Recorder(task, model="openai-agents",
@@ -118,7 +123,7 @@ class AgentsSDKProcessor:
         self.recorder.respond(text or self._final_output or "run finished",
                               success=success)
 
-    def report(self):
+    def report(self) -> "FailureReport":
         from ..attributor import attribute
 
         return attribute(self.recorder.trace)

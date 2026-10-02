@@ -31,6 +31,11 @@ event handler are testable against fakes without it.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..attributor import FailureReport
+
 import logging
 import types
 from contextlib import contextmanager
@@ -72,7 +77,7 @@ def _known_type(obj: Any) -> Optional[str]:
 class AutoGenEventHandler(logging.Handler):
     """Converts ``autogen_core.events`` objects into recorder steps."""
 
-    def __init__(self, recorder):
+    def __init__(self, recorder: Any) -> None:
         super().__init__(level=logging.INFO)
         self.recorder = recorder
         self.recorded = 0
@@ -152,7 +157,8 @@ class RecordingChatCompletionClient:
     handler when you need streaming coverage.
     """
 
-    def __init__(self, inner: Any, recorder=None, task: str = "autogen run"):
+    def __init__(self, inner: Any, recorder: Any = None,
+                 task: str = "autogen run") -> None:
         from ..recorder import Recorder
 
         self._inner = inner
@@ -196,7 +202,7 @@ class RecordingChatCompletionClient:
         self.recorder.respond(text or self._final or "run finished",
                               success=success)
 
-    def report(self):
+    def report(self) -> "FailureReport":
         from ..attributor import attribute
 
         return attribute(self.recorder.trace)
@@ -205,7 +211,7 @@ class RecordingChatCompletionClient:
 @contextmanager
 def record_autogen(task: str, *,
                    logger_name: str = "autogen_core.events",
-                   level: int = logging.INFO):
+                   level: int = logging.INFO) -> Any:
     """Attach an :class:`AutoGenEventHandler` for the duration of a run."""
     from ..recorder import Recorder
 
