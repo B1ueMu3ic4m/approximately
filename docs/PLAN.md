@@ -2575,3 +2575,22 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - Concurrency stampede: 8 threads × 10 saves lose nothing
        (80/80); concurrent annotate+save interleaves cleanly
        (26/26, 6 notes). 11 tests.
+
+269. **v2.26.0 - the trends you can see** ✅ (delivered):
+     - Fixed: the fleet trend section's failure-rate curve never
+       rendered — it read `r["total"]` from day rows whose key is
+       `traces`, so the sparkline silently degenerated to a
+       placeholder. Found by the new tests, not by review.
+     - The trend section gains inline-SVG curves for the slowness,
+       token-burn and spend day series (the failure-rate curve was
+       there; the other three series only had badges). Same pure
+       markup, no JS, no CDN.
+     - A trace's token-anomaly card opens with a bar strip of every
+       tool call's tokens — a retry loop is a skyline spike, not a
+       footnote. `render_bars` joins `render_sparkline` in
+       report.py.
+     - Noted for a later round: the fleet detector skips families
+       whose MAD == 0 (identical baseline samples) — an outlier
+       against a perfectly flat baseline is invisible. Fixture
+       works around it; a real fallback (mean-abs-deviation when
+       MAD is 0) is future work. 7 tests.

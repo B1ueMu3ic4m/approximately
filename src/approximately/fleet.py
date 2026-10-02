@@ -382,8 +382,11 @@ def _trend_section(summary: dict) -> str:
     import html as _html
 
     esc = _html.escape
-    rates = [r["failed"] / r["total"] * 100 for r in summary["days"]
-             if r.get("total")]
+    # day rows carry `traces`/`failure_rate` (trace-weighted across
+    # stores) — a r.get("total") read here matched nothing, so the
+    # rate curve silently never rendered
+    rates = [r["failure_rate"] * 100 for r in summary["days"]
+             if r.get("traces")]
     spark = render_sparkline(rates, width=420, height=70) if rates \
         else "<p>(no snapshots with traces yet)</p>"
     badge_cls, trend_label = TREND_LABELS[summary["verdict"]]
@@ -412,6 +415,12 @@ def _trend_section(summary: dict) -> str:
                 '<span class="sub">slowness: latest '
                 f'{anomaly_trend["latest"]} flagged step(s), slope '
                 f'{anomaly_trend["slope"]:+.4f}/day</span></div>')
+            trend_bits.append('<div class="row">'
+                              + render_sparkline(
+                                  [r["fleet_anomalies"]
+                                   for r in summary["days"]],
+                                  width=420, height=40)
+                              + "</div>")
         if token_trend:
             t_cls, t_label = TREND_LABELS[token_trend["verdict"]]
             trend_bits.append(
@@ -420,6 +429,12 @@ def _trend_section(summary: dict) -> str:
                 '<span class="sub">token burn: latest '
                 f'{token_trend["latest"]} flagged step(s), slope '
                 f'{token_trend["slope"]:+.4f}/day</span></div>')
+            trend_bits.append('<div class="row">'
+                              + render_sparkline(
+                                  [r["token_anomalies"]
+                                   for r in summary["days"]],
+                                  width=420, height=40)
+                              + "</div>")
         spend_trend = summary.get("spend_trend")
         if spend_trend:
             s_cls, s_label = TREND_LABELS[spend_trend["verdict"]]
@@ -429,6 +444,12 @@ def _trend_section(summary: dict) -> str:
                 '<span class="sub">spend: latest '
                 f'${spend_trend["latest"]:,.2f}, slope '
                 f'${spend_trend["slope"]:+.2f}/day</span></div>')
+            trend_bits.append('<div class="row">'
+                              + render_sparkline(
+                                  [r.get("est_spend") or 0.0
+                                   for r in summary["days"]],
+                                  width=420, height=40)
+                              + "</div>")
         return (
             '<div class="store"><h2>Fleet trend (digest history)</h2>'
             + "".join(trend_bits) +
