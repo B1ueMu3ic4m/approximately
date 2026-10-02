@@ -3043,3 +3043,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        collapses the finished day to its final line right there,
        without waiting for anyone.  1 test (a midnight crossing
        simulated by an alternating append).
+
+309. **v2.60.0 - the README catches up, the coverage confirms** ✅ (delivered):
+     - The digest drain and the offboarding archive join the
+       capabilities table (both shipped in earlier releases
+       tonight; the README row was the last mile).
+     - Coverage re-run over the night's newest code: the watch's
+       midnight drain, the store-archive path, and the compaction
+       door all land covered.  No product change.
