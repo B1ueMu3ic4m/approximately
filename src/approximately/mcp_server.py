@@ -141,7 +141,8 @@ _TOOLS: List[Dict[str, Any]] = [
         "description": "Health check of a trace store: corrupt or "
                        "misnamed records, evidence-ledger tamper, "
                        "stale locks, leftover temp files, and (with "
-                       "digest_dir) monitoring gaps.",
+                       "digest_dir) monitoring gaps. With deep, "
+                       "recompute every record's integrity chain.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -156,6 +157,10 @@ _TOOLS: List[Dict[str, Any]] = [
                                 "description": "also count judge-"
                                                "cache entries and "
                                                "unreadable ones"},
+                "deep": {"type": "boolean",
+                         "description": "recompute every record's "
+                                        "integrity chain — a record "
+                                        "can be parseable yet lie"},
             },
         },
     },
@@ -874,7 +879,8 @@ def _tool_doctor(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                     judge_cache=(Path(str(judge_cache))
                                  if judge_cache else None),
                     spool_dir=(Path(str(spool_dir))
-                               if spool_dir else None))
+                               if spool_dir else None),
+                    deep=bool(args.get("deep")))
     return report.to_dict()
 
 

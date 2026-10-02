@@ -1366,7 +1366,8 @@ def cmd_doctor(args: argparse.Namespace) -> int:
                                  getattr(args, "judge_cache", None)
                                  else None),
                     spool_dir=(Path(args.spool) if
-                               getattr(args, "spool", None) else None))
+                               getattr(args, "spool", None) else None),
+                    deep=bool(getattr(args, "deep", False)))
     if getattr(args, "fix", False):
         removed = fix_hygiene(Path(args.store), report)
         report.stale_locks = [n for n in report.stale_locks
@@ -1560,18 +1561,25 @@ def cmd_convert_mast(args: argparse.Namespace) -> int:
 
 def cmd_clean(args: argparse.Namespace) -> int:
     store = TraceStore(args.store)
+    max_traces = getattr(args, "max_traces", None)
     removed = store.clean(keep_days=args.keep_days,
-                          dry_run=bool(getattr(args, "dry_run", False)))
+                          dry_run=bool(getattr(args, "dry_run", False)),
+                          max_traces=max_traces)
+    remaining = len(list(store.directory.glob("*.json")))
     if getattr(args, "json", False):
         print(json.dumps({"removed": removed,
                           "keep_days": args.keep_days,
+                          "max_traces": max_traces,
+                          "remaining": remaining,
                           "dry_run": bool(getattr(args, "dry_run",
                                                   False))}, indent=2))
         return 0
     note = " would be removed" if getattr(args, "dry_run", False) \
         else " removed"
-    print(f"{removed} trace(s){note} "
-          f"(older than {args.keep_days} days)")
+    policy = f"older than {args.keep_days} days"
+    if max_traces is not None:
+        policy += f" or beyond the newest {max_traces}"
+    print(f"{removed} trace(s){note} ({policy}); {remaining} remain")
     return 0
 
 
@@ -2765,6 +2773,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--spool", metavar="DIR",
                    help="also check a spool directory: pending files "
                         "and ones no pass could parse")
+    p.add_argument("--deep", action="store_true",
+                   help="recompute every record's integrity chain "
+                        "(hash each step and compare against the "
+                        "stamp) — a record can be parseable yet lie; "
+                        "keyed records without the key count as "
+                        "locked, not broken")
     p.add_argument("--json", action="store_true",
                    help="emit the full report as JSON")
     p.set_defaults(func=cmd_doctor)
@@ -2809,6 +2823,10 @@ def build_parser() -> argparse.ArgumentParser:
                        help="delete traces older than N days")
     p.add_argument("--keep-days", type=int, default=30,
                    help="keep traces newer than this many days (default 30)")
+    p.add_argument("--max-traces", type=int, metavar="N",
+                   help="also trim by count: keep only the newest N "
+                        "traces (a count cap complements the age cap — "
+                        "a burst day must not outlive its welcome)")
     p.add_argument("--json", action="store_true",
            help="emit machine-readable JSON instead of prose")
     p.add_argument("--dry-run", action="store_true",

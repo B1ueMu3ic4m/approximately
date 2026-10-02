@@ -222,8 +222,10 @@ class TraceStore:
         return trace.created_at or path.stat().st_mtime
 
     def clean(self, keep_days: int,
-              dry_run: bool = False) -> int:
-        """Delete traces older than *keep_days*; returns the count removed
+              dry_run: bool = False,
+              max_traces: Optional[int] = None) -> int:
+        """Delete traces older than *keep_days* and, with *max_traces*,
+        the oldest beyond that count; returns the total removed
         (or that would be removed, with ``dry_run``)."""
         cutoff = time.time() - keep_days * 86400
         removed = 0
@@ -232,6 +234,21 @@ class TraceStore:
                 if not dry_run:
                     path.unlink()
                 removed += 1
+        if max_traces is not None:
+            remaining = []
+            for path in self.directory.glob("*.json"):
+                try:
+                    remaining.append((path.stat().st_mtime, path.name,
+                                      path))
+                except OSError:
+                    continue
+            excess = len(remaining) - max_traces
+            if excess > 0:
+                remaining.sort()
+                for _mtime, _name, path in remaining[:excess]:
+                    if not dry_run:
+                        path.unlink()
+                    removed += 1
         return removed
 
     def _resolve(self, trace_id: str) -> Optional[Path]:
