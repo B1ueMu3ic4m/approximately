@@ -2801,3 +2801,19 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        whose message names its version.
      - This entry is itself the fix made visible: the same
        mistake, written down, is the one that does not repeat.
+
+285. **v2.37.0 - the audit round: real paths, not stand-ins** ✅ (delivered):
+     - Coverage audit found the seams: the spool's REAL webhook
+       path — HMAC-signed, key from the environment — had never
+       been exercised (every prior test injected a notify stub).
+       Now it is: signature verified against the body, kind=spool,
+       failures named; and the unsigned path pinned too.
+     - Also first-run: the watch's delivery-failure branch (gate
+       exit still reports, stderr warns), Ctrl-C as a clean stop,
+       the token-burns pass line, `_primary_mode` surviving a
+       detector crash (best-effort means best-effort), and the
+       markdown report's rare cards (latency/token anomalies,
+       annotations, nearest neighbours) plus its silent
+       degradation when detectors explode.
+     - spool.py 83% → 98%; markdown_report 85% → mid-90s.  8
+       tests.
