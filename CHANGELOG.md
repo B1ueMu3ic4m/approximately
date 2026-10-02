@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.31.1
+
+- fuzz round 17: three crash classes on the night's new surfaces. `approximately init` now refuses a hostile tree (a .gitignore that is a directory, a read-only parent) instead of tracebacking, keeping the other files coming; `store.save` survives a trace whose meta is not a dict; the query grammar's `()` parses as an empty list instead of a list containing the paren token. 11 tests.
+
 ## v2.31.0
 
 - integration round, and a real seam: `store.save` never signed — the evidence chain only existed on the recorder exit path, so adapters and scripts saving through the store directly silently skipped it. `save(trace, stamp=True)` signs chainless traces on the way in; import/merge pass `stamp=False` because foreign evidence must not acquire our chain. and a better-than-expected find: the producer's integrity chain stays verifiable across a spool hop. 2 tests, 6 fixture updates.

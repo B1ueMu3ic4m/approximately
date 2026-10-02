@@ -61,7 +61,8 @@ class TraceStore:
         ``stamp=False``: foreign evidence must not acquire OUR chain,
         or doctor --deep would vouch for data we never measured.
         """
-        if stamp and not (trace.meta or {}).get("integrity"):
+        if stamp and isinstance(trace.meta, dict) and \
+                not trace.meta.get("integrity"):
             from .integrity import load_key, sign
 
             sign(trace, key=load_key())
@@ -188,7 +189,10 @@ class TraceStore:
         saves are visible to rollback detection (see approximately.ledger).
         Best-effort by design: a ledger failure never fails the save.
         """
-        root = (trace.meta.get("integrity") or {}).get("final")
+        block = trace.meta if isinstance(trace.meta, dict) \
+            else {}
+        root = (block.get("integrity") or {}).get("final") \
+            if isinstance(block.get("integrity"), dict) else None
         if not root or not os.environ.get("APPROXIMATELY_LEDGER"):
             return
         try:
