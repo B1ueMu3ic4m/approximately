@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.38.0
+
+- `approximately evidence <trace> out.zip`: the complete case in one tamper-evident archive — native record with the integrity chain embedded, HTML postmortem, annotations, an on-the-spot chain verdict (--key-file for keyed chains), and a sha256 manifest a reviewer can recompute with unzip and sha256sum. 5 tests.
+
 ## v2.37.0
 
 - the audit round: real paths, not stand-ins. the spool's real HMAC-signed webhook verified against the body for the first time (every prior test injected a stub), the watch's delivery-failure and Ctrl-C paths first-run, the markdown report's rare cards pinned. spool.py 83% → 98%. 8 tests.

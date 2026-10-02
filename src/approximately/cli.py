@@ -2003,6 +2003,35 @@ def cmd_init(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_evidence(args: argparse.Namespace) -> int:
+    """Write one trace's complete case as a tamper-evident zip."""
+    from .evidence import build_evidence_pack
+
+    store = TraceStore(args.store)
+    key = None
+    if getattr(args, "key_file", None):
+        from .integrity import load_key
+
+        key = load_key(args.key_file)
+    try:
+        manifest = build_evidence_pack(
+            store, args.trace, Path(args.output), key=key)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    if getattr(args, "json", False):
+        print(json.dumps(manifest, indent=2))
+    else:
+        chain = manifest["chain"]
+        print(f"evidence pack: {args.output}")
+        print(f"  trace: {manifest['trace_id']} — {manifest['verdict']}")
+        print(f"  chain: {chain['verdict']} "
+              f"({chain['detail'] or 'no detail'})")
+        for name, digest in manifest["members"].items():
+            print(f"  {name}: {digest[:16]}…")
+    return 0
+
+
 def cmd_attribute(args: argparse.Namespace) -> int:
     from .sarif import to_sarif
 
@@ -2447,6 +2476,18 @@ def build_parser() -> argparse.ArgumentParser:
                    default="booking",
                    help="demo scenario (default booking)")
     p.set_defaults(func=cmd_demo)
+
+    p = sub.add_parser("evidence", parents=[common],
+                       help="pack one trace's complete case into a "
+                            "tamper-evident zip (record, postmortem, "
+                            "annotations, chain verdict, manifest)")
+    p.add_argument("trace", help="trace id")
+    p.add_argument("output", help="output zip path")
+    p.add_argument("--key-file", metavar="FILE",
+                   help="verify a keyed chain with this signing key")
+    p.add_argument("--json", action="store_true",
+                   help="emit the manifest as JSON")
+    p.set_defaults(func=cmd_evidence)
 
     p = sub.add_parser("attribute", parents=[common],
                        help="attribute a failure on a trace")
