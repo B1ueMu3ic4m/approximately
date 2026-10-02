@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.23.0
+
+- `approximately ci`: quality gates for agent pipelines. one command composes the ceilings — failure rate, p95/avg step latency, tokens, estimated spend — into a single verdict with pipeline-native exit codes (0 pass, 1 breach, 2 configuration error or empty store). latency meters on step latency, the same ruler as the anomaly detector; spend refuses to pass unpriced models, because a budget you cannot compute does not hold. `Recorder.tool` gains first-class `latency_ms` so adapters that measured the call themselves can land real durations in the Step. 11 tests.
+
 ## v2.22.0
 
 - the stdio flush: the MCP server answers over real pipes. a subprocess smoke of the flagship entry point found the biggest bug of the night — the serve loop wrote each response with stdout.write and never flushed, and piped stdout block-buffers, so `approximately mcp` hung against every real client (Claude Desktop, Zed, anything that pipes). Every prior test drove handle_request in-process; the transport was never exercised. cmd_mcp now flushes per response, and a real-pipe subprocess smoke (tools/list, doctor, initialize) pins the transport forever. 1 test that could only exist as a subprocess.
