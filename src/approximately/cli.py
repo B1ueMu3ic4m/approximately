@@ -912,7 +912,26 @@ def _token_summary(traces) -> tuple:
     return total, burns
 
 
-def _status_payload(store, traces, digest_dir, since=None):
+def _status_spend(traces, prices):
+    """(est spend, unpriced tokens) over the window — the same
+    unpriced-models-counted rule every pricing surface uses."""
+    if not prices:
+        return None, 0
+    by_model: dict = {}
+    for trace in traces:
+        model = str(trace.model or "unknown")
+        by_model[model] = by_model.get(model, 0) + sum(
+            st.tokens for st in trace.steps)
+    unpriced = sum(n for m, n in by_model.items()
+                   if m not in prices)
+    spend = round(sum(n / 1000 * prices[m]
+                      for m, n in by_model.items()
+                      if m in prices), 4)
+    return spend, unpriced
+
+
+def _status_payload(store, traces, digest_dir, since=None,
+                    prices=None):
     """Build the status overview data (shared by text and JSON)."""
     import time as _time
 
@@ -961,6 +980,7 @@ def _status_payload(store, traces, digest_dir, since=None):
     fleet_anoms, coverage = _fleet_and_coverage(traces, annotations,
                                                 stats)
     worst = fleet_anoms[0] if fleet_anoms else None
+    spend, unpriced = _status_spend(traces, prices)
     return {
         "store": str(store.directory),
         "traces": stats.traces,
@@ -968,6 +988,8 @@ def _status_payload(store, traces, digest_dir, since=None):
         "failure_rate": round(stats.failure_rate, 4),
         "total_tokens": total_tokens,
         "token_burns": token_burns,
+        "est_spend": spend,
+        "unpriced_tokens": unpriced,
         "top_modes": dict(list(stats.mode_counts.items())[:3]),
         "annotations": len(annotations),
         "annotations_confirmed": len(confirmed),
@@ -1000,7 +1022,13 @@ def _write_token_line(buf, payload: dict) -> None:
     if payload.get("total_tokens"):
         burns = payload.get("token_burns") or 0
         buf.write(f"  tokens: {payload['total_tokens']:,} "
-                  f"(token burns: {burns})\n")
+                  f"(token burns: {burns})")
+        if payload.get("est_spend") is not None:
+            buf.write(f" | est ${payload['est_spend']:,.2f}")
+            if payload.get("unpriced_tokens"):
+                buf.write(f" ({payload['unpriced_tokens']:,} tokens "
+                          "unpriced)")
+        buf.write("\n")
 
 
 def _render_status(args: argparse.Namespace) -> str:
@@ -1011,7 +1039,9 @@ def _render_status(args: argparse.Namespace) -> str:
     traces = store.list_traces(since_days=getattr(args, "since", None))
     payload = _status_payload(store, traces,
                               getattr(args, "digest_dir", None),
-                              since=getattr(args, "since", None))
+                              since=getattr(args, "since", None),
+                              prices=_load_prices(
+                                  getattr(args, "prices", None)))
     if getattr(args, "json", False):
         return json.dumps(payload, indent=2)
     buf = _io.StringIO()
@@ -1098,7 +1128,9 @@ def cmd_status(args: argparse.Namespace) -> int:
     traces = store.list_traces(since_days=getattr(args, "since", None))
     payload = _status_payload(store, traces,
                               getattr(args, "digest_dir", None),
-                              since=getattr(args, "since", None))
+                              since=getattr(args, "since", None),
+                              prices=_load_prices(
+                                  getattr(args, "prices", None)))
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2))
     else:
@@ -2585,6 +2617,9 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("status", parents=[common],
                        help="one-glance ops overview: health, last "
                             "failure, triage, trend")
+    p.add_argument("--prices", metavar="FILE",
+                   help="model -> blended $/1k JSON table; the "
+                        "tokens line grows an estimated spend")
     p.add_argument("--since", type=int, metavar="DAYS",
                    help="only traces created in the last DAYS days")
     p.add_argument("--digest-dir", metavar="DIR",

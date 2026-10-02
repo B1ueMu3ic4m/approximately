@@ -2760,3 +2760,15 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - Kept from the round: `spool_pass` aggregates `trace_ids`, so
        `spool --json` lines name exactly which runs landed in that
        pass.  4 tests.
+
+282. **v2.35.0 - every surface speaks the same money** ✅ (delivered):
+     - The spend estimate existed in `stats`, `fleet`, and the MCP
+       tools — but `status`, the door ops actually watch, could
+       not price a store.  `status --prices FILE` grows the
+       est-spend line (unpriced models counted — the ci-gate rule
+       carried to the ops overview, JSON and prose both), sharing
+       one helper so all pricing surfaces stay identical.
+     - The fleet dashboard's agents table carries the p95 column
+       the CLI scorecards already have (`-` when nothing timed).
+     - The MCP ci-gate shim now builds a real argparse.Namespace
+       (mypy-clean, same behavior).  5 tests.
