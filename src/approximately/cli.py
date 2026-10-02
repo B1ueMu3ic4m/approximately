@@ -2039,7 +2039,7 @@ def cmd_init(args: argparse.Namespace) -> int:
 
 def cmd_evidence(args: argparse.Namespace) -> int:
     """Write one trace's complete case as a tamper-evident zip."""
-    from .evidence import build_evidence_pack
+    from .evidence import build_evidence_pack, build_store_packs
 
     store = TraceStore(args.store)
     key = None
@@ -2047,6 +2047,28 @@ def cmd_evidence(args: argparse.Namespace) -> int:
         from .integrity import load_key
 
         key = load_key(args.key_file)
+    if getattr(args, "all", False):
+        out_dir = args.output or args.trace
+        if not out_dir:
+            print("error: --all needs an archive directory",
+                  file=sys.stderr)
+            return 2
+        try:
+            report = build_store_packs(store, Path(out_dir), key=key)
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        if getattr(args, "json", False):
+            print(json.dumps(report, indent=2))
+        else:
+            print(f"packed {report['packs']} trace(s) into "
+                  f"{args.output}")
+        return 0
+    if not getattr(args, "trace", None) or not getattr(args, "output",
+                                                       None):
+        print("error: evidence needs a trace id and an output path "
+              "(or --all with a directory)", file=sys.stderr)
+        return 2
     try:
         manifest = build_evidence_pack(
             store, args.trace, Path(args.output), key=key)
@@ -2619,8 +2641,16 @@ def build_parser() -> argparse.ArgumentParser:
                        help="pack one trace's complete case into a "
                             "tamper-evident zip (record, postmortem, "
                             "annotations, chain verdict, manifest)")
-    p.add_argument("trace", help="trace id")
-    p.add_argument("output", help="output zip path")
+    p.add_argument("trace", nargs="?", default=None,
+                   help="trace id (not required with --all)")
+    p.add_argument("output", nargs="?", default=None,
+                   help="output zip path (with --all: the archive "
+                        "directory)")
+    p.add_argument("--all", action="store_true",
+                   help="pack EVERY trace into out_dir (one zip per "
+                        "trace plus an index.json naming each pack "
+                        "and its chain verdict) — the offboarding "
+                        "archive")
     p.add_argument("--key-file", metavar="FILE",
                    help="verify a keyed chain with this signing key")
     p.add_argument("--json", action="store_true",
