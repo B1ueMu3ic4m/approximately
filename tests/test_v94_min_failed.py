@@ -93,6 +93,9 @@ def test_cli_stats_min_failed(tmp_path, capsys):
 
 
 def test_server_info_tracks_installed_version():
-    from importlib import metadata
+    # the version is single-sourced from pyproject.toml (v2.64):
+    # SERVER_INFO must match __version__, never a stale shadow
+    # install's metadata
+    from approximately import __version__
 
-    assert SERVER_INFO["version"] == metadata.version("approximately")
+    assert SERVER_INFO["version"] == __version__ == "2.64.0"

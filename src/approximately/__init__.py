@@ -7,6 +7,8 @@ sampled traces. Approximately makes those approximations safe —
 
 from __future__ import annotations
 
+import pathlib
+import re
 from importlib import metadata as _metadata
 
 from .attributor import FailureReport, attribute
@@ -22,9 +24,6 @@ from .recorder import Recorder, agentstep, current_recorder
 from .regress import render_regression
 from .replayer import replay
 from .report import render_html
-import pathlib
-import re
-
 from .store import TraceStore
 from .taxonomy import all_modes, get_mode
 from .trace import Step, Trace
