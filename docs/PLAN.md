@@ -2841,3 +2841,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - TUTORIAL 11: from regression to evidence — attribute,
        deep-verify, pack, and gate; the loop closed in one
        chapter.  5 tests.
+
+288. **v2.40.0 - `approximately compare`: did this deployment get worse?** ✅ (delivered):
+     - Two stores in, one verdict out: the baseline (last known
+       good) vs the candidate (this deployment).  Runs, failures,
+       rate, tokens and priced spend deltas — and the regression
+       signal that matters: a failure MODE the baseline never
+       showed.  Rate thresholds wobble with sample size; a mode
+       that did not exist yesterday is a fact.
+     - `--fail-on-new-modes` turns that fact into an exit 1 a CI
+       pipeline can gate on (resolved modes are named too, so a
+       fix gets its credit).  7 tests.

@@ -2032,6 +2032,104 @@ def cmd_evidence(args: argparse.Namespace) -> int:
     return 0
 
 
+def _compare_rows(traces):
+    """Per-tool rollup for the compare door (tool -> row)."""
+    from .cluster import tool_scorecard
+
+    return {r["tool"]: r for r in tool_scorecard(traces)}
+
+
+def _compare_stats(store_path, since=None):
+    from .cluster import store_stats
+
+    store = TraceStore(store_path)
+    traces = store.list_traces(since_days=since)
+    stats = store_stats(traces)
+    tokens = sum(st.tokens for t in traces for st in t.steps)
+    modes = dict(stats.mode_counts)
+    return {"traces": traces, "count": stats.traces,
+            "failures": stats.failures,
+            "rate": stats.failure_rate, "tokens": tokens,
+            "modes": modes, "rows": _compare_rows(traces)}
+
+
+def _compare_spend(a, prices):
+    if not prices:
+        return None
+    by_model: dict = {}
+    for trace in a["traces"]:
+        model = str(trace.model or "unknown")
+        by_model[model] = by_model.get(model, 0) + sum(
+            st.tokens for st in trace.steps)
+    unpriced = sum(n for m, n in by_model.items() if m not in prices)
+    total = round(sum(n / 1000 * prices[m]
+                      for m, n in by_model.items() if m in prices), 4)
+    return {"est_spend": total, "unpriced_tokens": unpriced}
+
+
+def cmd_compare(args: argparse.Namespace) -> int:
+    """Baseline vs candidate: what changed between two stores.
+
+    New failure modes the baseline never showed are the regression
+    signal; --fail-on-new-modes turns them into an exit 1 a CI
+    pipeline can gate on."""
+    base = _compare_stats(args.baseline,
+                          getattr(args, "since", None))
+    cand = _compare_stats(args.candidate, getattr(args, "since", None))
+    prices = _load_prices(getattr(args, "prices", None))
+    new_modes = sorted(set(cand["modes"]) - set(base["modes"]))
+    gone_modes = sorted(set(base["modes"]) - set(cand["modes"]))
+    spend_a = _compare_spend(base, prices)
+    spend_c = _compare_spend(cand, prices)
+    payload = {
+        "baseline": {"store": str(args.baseline),
+                     "traces": base["count"],
+                     "failures": base["failures"],
+                     "failure_rate": round(base["rate"], 4),
+                     "tokens": base["tokens"],
+                     "modes": base["modes"]},
+        "candidate": {"store": str(args.candidate),
+                      "traces": cand["count"],
+                      "failures": cand["failures"],
+                      "failure_rate": round(cand["rate"], 4),
+                      "tokens": cand["tokens"],
+                      "modes": cand["modes"]},
+        "new_modes": new_modes,
+        "gone_modes": gone_modes,
+        "tokens_delta": cand["tokens"] - base["tokens"],
+    }
+    if spend_a is not None and spend_c is not None:
+        payload["spend"] = {"baseline": spend_a["est_spend"],
+                            "candidate": spend_c["est_spend"],
+                            "unpriced_tokens":
+                                spend_c["unpriced_tokens"]}
+    if getattr(args, "json", False):
+        print(json.dumps(payload, indent=2))
+    else:
+        b, c = payload["baseline"], payload["candidate"]
+        print(f"  compare: {b['store']}  →  {c['store']}")
+        print(f"  runs:     {b['traces']} → {c['traces']}")
+        print(f"  failures: {b['failures']} → {c['failures']} "
+              f"(rate {b['failure_rate']:.0%} → "
+              f"{c['failure_rate']:.0%})")
+        print(f"  tokens:   {b['tokens']:,} → {c['tokens']:,} "
+              f"(Δ{payload['tokens_delta']:+,})")
+        if "spend" in payload:
+            print(f"  spend:    ${payload['spend']['baseline']:,.2f} "
+                  f"→ ${payload['spend']['candidate']:,.2f}")
+        if new_modes:
+            print(f"  NEW failure modes: {', '.join(new_modes)}")
+        else:
+            print("  no new failure modes")
+        if gone_modes:
+            print(f"  resolved modes: {', '.join(gone_modes)}")
+    if getattr(args, "fail_on_new_modes", False) and new_modes:
+        print(f"gate failed: {len(new_modes)} new failure mode(s)",
+              file=sys.stderr)
+        return 1
+    return 0
+
+
 def cmd_attribute(args: argparse.Namespace) -> int:
     from .sarif import to_sarif
 
@@ -2488,6 +2586,25 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true",
                    help="emit the manifest as JSON")
     p.set_defaults(func=cmd_evidence)
+
+    p = sub.add_parser("compare", parents=[common],
+                       help="baseline vs candidate store: new "
+                            "failure modes, rate and token deltas — "
+                            "--fail-on-new-modes gates CI")
+    p.add_argument("--baseline", required=True,
+                   help="the reference store (last known good)")
+    p.add_argument("--candidate", required=True,
+                   help="the store under test (this deployment)")
+    p.add_argument("--prices", metavar="FILE",
+                   help="model -> blended $/1k JSON; adds a spend row")
+    p.add_argument("--fail-on-new-modes", action="store_true",
+                   help="exit 1 when the candidate shows a failure "
+                        "mode the baseline never had")
+    p.add_argument("--since", type=int, metavar="DAYS",
+                   help="compare only runs from the last N days")
+    p.add_argument("--json", action="store_true",
+                   help="emit the comparison as JSON")
+    p.set_defaults(func=cmd_compare)
 
     p = sub.add_parser("attribute", parents=[common],
                        help="attribute a failure on a trace")

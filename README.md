@@ -160,6 +160,7 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 🚀 Project scaffold | An instrumented agent project with guards, runnable in seconds | `approximately new myagent` |
 | 🚦 Repo gate wiring | `approximately init` wires the CI quality gate into the repo you already have — workflow, price table, .gitignore; idempotent, nothing overwritten without --force | `approximately init` |
 | 🧾 Evidence packs | One trace's complete case in a single tamper-evident zip — record with the integrity chain, postmortem, annotations, chain verdict, and a sha256 manifest anyone can recompute | `approximately evidence <trace> case.zip` |
+| ⚖️ Deployment compare | Baseline vs candidate store: new failure modes, rate/token/spend deltas — `--fail-on-new-modes` fails the build when this deployment fails in a way the last one never did | `approximately compare --baseline prod-a --candidate prod-b --fail-on-new-modes` |
 | 🔮 Failure precursor | Early warning mined from your own history: "runs like this fail Z% of the time" | `approximately predict` |
 | 🧬 Trajectory alignment | Needleman-Wunsch over action sequences — find runs with the same *shape* | `approximately similar` |
 | 📮 SARIF export | Attribution results as GitHub code-scanning alerts | `approximately attribute --sarif` |
