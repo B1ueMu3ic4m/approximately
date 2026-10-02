@@ -3023,3 +3023,15 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        recompute any pack's hash with sha256sum.  Empty stores are
        a loud error; `fleet`'s store list precedent repeated (the
        positional becomes optional under --all).  2 tests.
+
+307. **v2.58.0 - the watch drains itself** ✅ (delivered):
+     - `fleet --watch` compacts the digest history on every start:
+       one line per prior day, the cycle's own append continuing
+       from the compacted form.  A long-lived watch never needs a
+       manual `--compact-digests` again — and the history still
+       reads as complete days (the trend reader cannot tell).
+     - Also: the CHANGELOG skipped v2.55/v2.56 entries when the
+       version counter jumped to 2.57.0 — the docs-health test
+       caught it (newest entry must track pyproject), and the
+       entry is healed.  Semver allows skipping; the docs gate
+       still demands the record.
