@@ -166,7 +166,8 @@ def webhook_payload(summaries: List[StoreSummary]) -> dict:
 def notify_webhook(summaries: List[StoreSummary], url: str,
                    signing_key: Optional[bytes] = None,
                    timeout: float = 10.0,
-                   payload: Optional[dict] = None) -> str:
+                   payload: Optional[dict] = None,
+                   attempts: int = 3) -> str:
     """POST the fleet summary as JSON; returns the response status.
 
     ``payload`` replaces the derived body (the spool watch posts its
@@ -175,8 +176,12 @@ def notify_webhook(summaries: List[StoreSummary], url: str,
     is HMAC-signed and the hex digest travels in the
     ``X-Approximately-Signature`` header, so a receiver can authenticate
     the alert the same way the evidence chain authenticates traces.
-    Transport errors raise - the caller decides whether notification
-    failure is fatal for their pipeline.
+
+    Transient failures are retried with bounded exponential backoff
+    (0.5s, 1s, 2s): connection errors, and definite-but-busy answers
+    (5xx and 429, which honors a bounded Retry-After).  Any other
+    4xx is a definite answer — retrying would just re-announce the
+    same summary.  Exhausting the attempts raises.
     """
     import hashlib
     import hmac
@@ -195,26 +200,44 @@ def notify_webhook(summaries: List[StoreSummary], url: str,
     if signing_key:
         digest = hmac.new(signing_key, body, hashlib.sha256).hexdigest()
         headers["X-Approximately-Signature"] = f"sha256={digest}"
-    request = urllib.request.Request(url, data=body, headers=headers,
-                                     method="POST")
-    attempts = 2  # one retry for transient transport failures
+    attempts = max(1, int(attempts))
     last_error: Exception = RuntimeError("no attempt made")
     for attempt in range(1, attempts + 1):
+        # a fresh Request per attempt: urllib handlers may consume
+        # the payload, and a reused one has resent as garbage before
+        request = urllib.request.Request(url, data=body,
+                                         headers=headers, method="POST")
         try:
             with urllib.request.urlopen(  # nosec B310: scheme checked above
                     request, timeout=timeout) as response:
                 return f"{response.status}"
         except urllib.error.HTTPError as exc:
-            # a definite answer from the endpoint: retrying a 4xx/5xx
-            # would just re-announce the same summary
+            if exc.code == 429 or exc.code >= 500:
+                last_error = RuntimeError(f"HTTP {exc.code}")
+                if attempt < attempts:
+                    time.sleep(_retry_delay(exc, attempt))
+                continue
             return f"HTTP {exc.code}"
         except (urllib.error.URLError, OSError) as exc:
             last_error = exc
             if attempt < attempts:
-                time.sleep(0.5 * attempt)  # brief backoff, bounded
+                time.sleep(min(4.0, 0.5 * 2 ** (attempt - 1)))
     raise RuntimeError(
         f"webhook delivery failed after {attempts} attempts: "
         f"{last_error}") from last_error
+
+
+def _retry_delay(exc: "urllib.error.HTTPError", attempt: int) -> float:
+    """Bounded exponential backoff; a 429's Retry-After wins when it
+    parses, capped at 5s so a hostile header cannot stall a watch."""
+    base = min(4.0, 0.5 * 2 ** (attempt - 1))
+    if exc.code == 429 and exc.headers is not None:
+        try:
+            return min(5.0, max(0.0, float(exc.headers.get(
+                "Retry-After"))))
+        except (TypeError, ValueError):
+            return base
+    return base
 
 
 def survey(stores: List[Path], top_agents: int = 3,

@@ -2611,3 +2611,20 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - Module docstring updated: MAD is still the scale of choice
        (Leys et al. 2013); the fallback only fires when it
        collapses.  6 tests.
+
+271. **v2.27.0 - the webhook retries like it means it** ✅ (delivered):
+     - A watcher that pages a human must survive a busy receiver:
+       Slack answers 503 under load, rate limiters answer 429, and
+       a blip in between is exactly when the alert matters most.
+       The old POST gave up after one try on ANY HTTP error —
+       including 503s the server itself called transient.
+     - New policy: connection errors and 5xx/429 retry with bounded
+       exponential backoff (0.5s, 1s, 2s, capped); a 429 honors a
+       Retry-After capped at 5s (a hostile header cannot stall a
+       watch); any other 4xx stays a definite answer.  A fresh
+       Request per attempt — urllib handlers may consume the
+       payload, and a reused one resends garbage.
+     - `notify_webhook(attempts=N)` is caller-tunable; fleet watch
+       and spool watch both inherit the tougher delivery.  The two
+       v16 pins enshrining one-try-and-done are rewritten.  7 new
+       tests.

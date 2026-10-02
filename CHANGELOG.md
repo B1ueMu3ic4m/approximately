@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.27.0
+
+- the webhook retries like it means it. connection errors and 5xx/429 now retry with bounded exponential backoff; a 429 honors a capped Retry-After; other 4xx stay a definite answer; a fresh Request per attempt. fleet watch and spool watch both inherit the tougher delivery. 7 tests.
+
 ## v2.26.1
 
 - no blind spots on a flat baseline. ms-rounded tool latencies make MAD == 0 common, and the modified z-score went quiet exactly where an outlier is most obvious. the scale falls back to the mean absolute deviation when MAD collapses; only a truly uniform sample stays an honest no-op. swept across all four meters (per-trace/fleet × latency/tokens). 6 tests.

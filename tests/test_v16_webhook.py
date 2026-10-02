@@ -118,9 +118,12 @@ class TestDelivery:
         with pytest.raises(RuntimeError, match="must be http"):
             notify_webhook(populated, f"file://{secret}")
 
-    def test_http_error_reported(self, populated, server):
+    def test_500_is_transient_now_retried_then_raises(self, populated):
         class Rejecting(BaseHTTPRequestHandler):
+            arrivals = 0
+
             def do_POST(self):
+                type(self).arrivals += 1
                 self.send_response(500)
                 self.end_headers()
 
@@ -131,9 +134,10 @@ class TestDelivery:
         thread = threading.Thread(target=httpd.serve_forever, daemon=True)
         thread.start()
         try:
-            status = notify_webhook(populated,
-                                    f"http://127.0.0.1:{httpd.server_port}")
-            assert status == "HTTP 500"
+            with pytest.raises(RuntimeError, match="after 3 attempts"):
+                notify_webhook(populated,
+                               f"http://127.0.0.1:{httpd.server_port}")
+            assert Rejecting.arrivals == 3
         finally:
             httpd.shutdown()
 
@@ -211,5 +215,5 @@ class TestRetry:
             raise urllib.error.URLError("down")
 
         monkeypatch.setattr(fleet.urllib.request, "urlopen", always_down)
-        with pytest.raises(RuntimeError, match="after 2 attempts"):
+        with pytest.raises(RuntimeError, match="after 3 attempts"):
             notify_webhook(populated, "http://127.0.0.1:1/x", timeout=1.0)
