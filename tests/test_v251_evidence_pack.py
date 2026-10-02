@@ -15,7 +15,7 @@ import zipfile
 import pytest
 
 from approximately.cli import main
-from approximately.evidence import build_evidence_pack
+from approximately.evidence import build_evidence_pack, verify_evidence_pack
 from approximately.integrity import sign
 from approximately.recorder import Recorder
 from approximately.store import TraceStore
@@ -131,3 +131,75 @@ def test_store_archive_refuses_an_empty_store(tmp_path):
     code = main(["evidence", "--store", str(tmp_path / "s"),
                  "--all", str(tmp_path / "a")])
     assert code == 2
+
+
+def test_verify_accepts_an_honest_pack(tmp_path):
+    from approximately.evidence import verify_evidence_pack
+
+    store = _seed(tmp_path / "s")
+    out = tmp_path / "case.zip"
+    build_evidence_pack(store, rec_id(store), out)
+    verdict = verify_evidence_pack(out)
+    assert verdict["manifest_ok"] is True
+    assert verdict["chain"]["intact"] is True
+    code = main(["evidence", "--store", str(tmp_path / "s"),
+                 "--verify", str(out)])
+    assert code == 0
+
+
+def test_verify_refuses_a_swapped_member(tmp_path):
+    import zipfile
+
+    from approximately.evidence import build_evidence_pack, verify_evidence_pack
+
+    store = _seed(tmp_path / "s")
+    out = tmp_path / "case.zip"
+    build_evidence_pack(store, rec_id(store), out)
+    # tamper: rewrite report.html, keep the old manifest
+    with zipfile.ZipFile(out) as zf:
+        members = {n: zf.read(n) for n in zf.namelist()}
+    members["report.html"] = b"<html>forged</html>"
+    with zipfile.ZipFile(out, "w") as zf:
+        for name, data in members.items():
+            zf.writestr(name, data)
+    verdict = verify_evidence_pack(out)
+    assert verdict["manifest_ok"] is False
+    assert "report.html" in verdict["mismatched"]
+    assert verdict["chain"]["intact"] is True   # chain untouched
+    code = main(["evidence", "--store", str(tmp_path / "s"),
+                 "--verify", str(out)])
+    assert code == 1
+
+
+def test_verify_refuses_a_rewritten_record(tmp_path):
+    # the deeper forgery: swap the record itself — the manifest
+    # still matches the (re-hashed) members?  No: the manifest is
+    # a member too, so ANY rewrite without re-signing the manifest
+    # fails the hash check first
+    import zipfile
+
+    from approximately.evidence import build_evidence_pack, verify_evidence_pack
+
+    store = _seed(tmp_path / "s")
+    out = tmp_path / "case.zip"
+    build_evidence_pack(store, rec_id(store), out)
+    with zipfile.ZipFile(out) as zf:
+        members = {n: zf.read(n) for n in zf.namelist()}
+    record = json.loads(members["trace.json"])
+    record["task"] = "rewritten after packing"
+    members["trace.json"] = json.dumps(record).encode("utf-8")
+    with zipfile.ZipFile(out, "w") as zf:
+        for name, data in members.items():
+            zf.writestr(name, data)
+    verdict = verify_evidence_pack(out)
+    assert verdict["manifest_ok"] is False
+
+
+def test_verify_rejects_a_non_pack(tmp_path):
+    junk = tmp_path / "junk.zip"
+    import zipfile as zfmod
+
+    with zfmod.ZipFile(junk, "w") as zf:
+        zf.writestr("readme.txt", "not an evidence pack")
+    with pytest.raises(ValueError):
+        verify_evidence_pack(junk)

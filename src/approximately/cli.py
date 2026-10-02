@@ -2037,16 +2037,49 @@ def cmd_init(args: argparse.Namespace) -> int:
     return 0
 
 
+def _evidence_verify(pack: Path, key: Any, as_json: bool) -> int:
+    """--verify: recompute the manifest and the chain; 1 refuses."""
+    import zipfile
+
+    from .evidence import verify_evidence_pack
+
+    try:
+        verdict = verify_evidence_pack(pack, key=key)
+    except (ValueError, zipfile.BadZipFile) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    if as_json:
+        print(json.dumps(verdict, indent=2))
+        return 0 if verdict["manifest_ok"] and verdict["chain"] \
+            and verdict["chain"]["intact"] else 1
+    ok = verdict["manifest_ok"] and verdict["chain"] \
+        and verdict["chain"]["intact"]
+    print(f"pack: {verdict['pack']}")
+    chain = verdict["chain"] or {}
+    print(f"  manifest: "
+          f"{'OK' if verdict['manifest_ok'] else 'ALTERED'} "
+          f"({verdict['members_checked']} members)")
+    if chain:
+        print(f"  chain: {chain['verdict']} — {chain['detail']}")
+    print(f"  verdict: {'TRUSTED' if ok else 'REFUSED'}")
+    return 0 if ok else 1
+
+
 def cmd_evidence(args: argparse.Namespace) -> int:
     """Write one trace's complete case as a tamper-evident zip."""
+
     from .evidence import build_evidence_pack, build_store_packs
 
-    store = TraceStore(args.store)
     key = None
     if getattr(args, "key_file", None):
         from .integrity import load_key
 
         key = load_key(args.key_file)
+    if getattr(args, "verify", None):
+        return _evidence_verify(Path(args.verify), key,
+                                bool(getattr(args, "json", False)))
+
+    store = TraceStore(args.store)
     if getattr(args, "all", False):
         out_dir = args.output or args.trace
         if not out_dir:
@@ -2646,6 +2679,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("output", nargs="?", default=None,
                    help="output zip path (with --all: the archive "
                         "directory)")
+    p.add_argument("--verify", metavar="PACK",
+                   help="verify an existing pack: recompute every "
+                        "manifest hash and the chain inside; exit 1 "
+                        "refuses it")
     p.add_argument("--all", action="store_true",
                    help="pack EVERY trace into out_dir (one zip per "
                         "trace plus an index.json naming each pack "
@@ -2691,6 +2728,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="raise the per-detection admission floor above "
                         "the built-in 0.5 (noisy environments); never "
                         "lowers it")
+    p.add_argument("--verify", metavar="PACK",
+                   help="verify an existing pack: recompute every "
+                        "manifest hash and the chain inside; exit 1 "
+                        "refuses it")
     p.add_argument("--all", action="store_true",
                    help="attribute every trace in the store (JSON output)")
     p.add_argument("--sarif", help="write attribution as SARIF 2.1.0 "
@@ -2734,6 +2775,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("report", parents=[common],
                        help="render the HTML postmortem report")
     p.add_argument("trace", nargs="?", help="trace id or path (required unless --all)")
+    p.add_argument("--verify", metavar="PACK",
+                   help="verify an existing pack: recompute every "
+                        "manifest hash and the chain inside; exit 1 "
+                        "refuses it")
     p.add_argument("--all", action="store_true",
                    help="render an index page over every trace in the store")
     p.add_argument("-o", "--output", help="output HTML path")
@@ -2882,6 +2927,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--new-key-file", required=True, help="new signing key")
     p.add_argument("--json", action="store_true",
            help="emit machine-readable JSON instead of prose")
+    p.add_argument("--verify", metavar="PACK",
+                   help="verify an existing pack: recompute every "
+                        "manifest hash and the chain inside; exit 1 "
+                        "refuses it")
     p.add_argument("--all", action="store_true",
                    help="rotate every trace in the store (refused "
                         "traces are listed, exit 1 if any)")
@@ -2988,6 +3037,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("trace", nargs="?", help="trace id (required unless --all)")
     p.add_argument("--key-file",
                    help="signing key file for HMAC-keyed traces")
+    p.add_argument("--verify", metavar="PACK",
+                   help="verify an existing pack: recompute every "
+                        "manifest hash and the chain inside; exit 1 "
+                        "refuses it")
     p.add_argument("--all", action="store_true",
                    help="verify every trace in the store (exit 1 on any "
                         "TAMPERED or rolled-back trace; then trace id is "
@@ -3144,6 +3197,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="with --tokens --all: split each tool family "
                         "by the trace's model (a gpt-4o and a mini "
                         "are different rulers)")
+    p.add_argument("--verify", metavar="PACK",
+                   help="verify an existing pack: recompute every "
+                        "manifest hash and the chain inside; exit 1 "
+                        "refuses it")
     p.add_argument("--all", action="store_true",
                    help="fleet mode: baseline each tool family "
                         "across the whole store instead of one "

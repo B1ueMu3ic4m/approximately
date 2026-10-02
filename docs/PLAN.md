@@ -3051,3 +3051,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - Coverage re-run over the night's newest code: the watch's
        midnight drain, the store-archive path, and the compaction
        door all land covered.  No product change.
+
+310. **v2.61.0 - the reviewer's side: `evidence --verify`** ✅ (delivered):
+     - The pack loop closes: `evidence --verify PACK` recomputes
+       every manifest hash and the chain inside the extracted
+       record, then prints TRUSTED or REFUSED (exit 1 refuses).
+       The three forgery cases pinned: a swapped member fails the
+       hash check, a rewritten record fails it too (the manifest
+       is a member), and a non-pack is a loud ValueError.
+       Honest note carried from SECURITY.md: the manifest defends
+       truncation, the CHAIN defends truth.
