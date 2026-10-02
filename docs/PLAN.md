@@ -2504,3 +2504,25 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      real-pipe subprocess smoke (tools/list, doctor, initialize)
      pins the transport forever.  1 test that could only exist as a
      subprocess.
+
+265. **v2.23.0 - `approximately ci`: quality gates for agent pipelines** ✅ (delivered):
+     - The gap: teams run agents inside pipelines, and a regressed
+       agent has to fail the build — not merely decorate a report.
+       `stats --fail-over` gated spend only; nothing composed the
+       other ceilings into one pipeline-native verdict.
+     - `approximately ci --store S --max-failure-rate 0.2
+       --max-p95-latency-ms 8000 --max-tokens 100000 --max-spend 5
+       --prices prices.json` → one verdict, exit 0 pass / 1 breach /
+       2 configuration error or empty store (the v230 contract: a
+       gate over zero runs proves nothing, and zero ceilings is a
+       misconfiguration).
+     - Latency meters on step latency — the same ruler the anomaly
+       detector uses (runs carry no wall-clock end time; steps are
+       the honest sample). Spend refuses to pass unpriced models: a
+       budget you cannot compute does not hold.
+     - `Recorder.tool` gains first-class `latency_ms` (None =
+       auto-measure) — adapters that measured the call themselves
+       (and the OTLP import path) can now land real durations in the
+       Step instead of losing them into `**meta`.
+     - `--json` emits `{store, traces, ok, gates:[{gate, value,
+       ceiling, ok}]}` for CI annotations. 11 tests.

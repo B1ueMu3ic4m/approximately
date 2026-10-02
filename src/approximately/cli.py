@@ -1775,6 +1775,135 @@ def _budget_gate(args: argparse.Namespace, total_tokens: int,
     return code
 
 
+def _step_latencies(traces) -> list:
+    """Every step's recorded latency_ms across the store — the same
+    ruler the anomaly detector meters on (runs carry no wall-clock
+    end time, so steps are the honest sample)."""
+    return [step.latency_ms for trace in traces for step in trace.steps]
+
+
+def _p95(values: list) -> Optional[float]:
+    """Nearest-rank 95th percentile of a non-empty list."""
+    if not values:
+        return None
+    ordered = sorted(values)
+    idx = max(0, min(len(ordered) - 1,
+                     round(0.95 * (len(ordered) - 1))))
+    return ordered[idx]
+
+
+def _ci_spend(traces, prices: dict) -> tuple:
+    """(priced total, unpriced tokens) — models without a rate in
+    the table leave their tokens unpriced, and unpriced tokens make
+    the spend gate unprovable."""
+    by_model: dict = {}
+    for trace in traces:
+        model = str(trace.model or "unknown")
+        by_model[model] = by_model.get(model, 0) + sum(
+            step.tokens for step in trace.steps)
+    unpriced = sum(tokens for model, tokens in by_model.items()
+                   if model not in prices)
+    total = round(sum(tokens / 1000 * prices[model]
+                      for model, tokens in by_model.items()
+                      if model in prices), 4)
+    return total, unpriced
+
+
+def _ci_gate_rows(traces, stats, prices: Optional[dict],
+                  args: argparse.Namespace) -> list:
+    """One row per enabled ceiling; each row carries its measured
+    value, the ceiling, and the pass/fail verdict."""
+    rows = []
+    count = len(traces)
+    minimum = getattr(args, "min_traces", None) or 1
+    rows.append({"gate": "min-traces", "value": count,
+                 "ceiling": minimum, "ok": count >= minimum})
+    ceiling = getattr(args, "max_failure_rate", None)
+    if ceiling is not None:
+        rows.append({"gate": "failure-rate",
+                     "value": round(stats.failure_rate, 4),
+                     "ceiling": ceiling,
+                     "ok": stats.failure_rate <= ceiling})
+    latencies = _step_latencies(traces)
+    avg = sum(latencies) / len(latencies) if latencies else 0.0
+    ceiling = getattr(args, "max_avg_latency_ms", None)
+    if ceiling is not None:
+        rows.append({"gate": "avg-latency-ms", "value": round(avg, 1),
+                     "ceiling": ceiling, "ok": avg <= ceiling})
+    ceiling = getattr(args, "max_p95_latency_ms", None)
+    if ceiling is not None:
+        p95 = _p95(latencies) or 0.0
+        rows.append({"gate": "p95-latency-ms",
+                     "value": round(p95, 1),
+                     "ceiling": ceiling, "ok": p95 <= ceiling})
+    ceiling = getattr(args, "max_tokens", None)
+    if ceiling is not None:
+        total_tokens = sum(step.tokens for trace in traces
+                           for step in trace.steps)
+        rows.append({"gate": "tokens", "value": total_tokens,
+                     "ceiling": ceiling,
+                     "ok": total_tokens <= ceiling})
+    budget = getattr(args, "max_spend", None)
+    if budget is not None:
+        spent, unpriced = _ci_spend(traces, prices or {})
+        rows.append({"gate": "spend-usd", "value": spent,
+                     "ceiling": budget,
+                     "unpriced_tokens": unpriced,
+                     "ok": spent <= budget and unpriced == 0})
+    return rows
+
+
+def _ci_show(rows: list) -> None:
+    for r in rows:
+        mark = "PASS" if r["ok"] else "FAIL"
+        value = r["value"]
+        shown = (f"{value:,.1f}" if isinstance(value, float)
+                 else f"{value:,}")
+        print(f"  {mark} {r['gate']:<16} {shown:>14}"
+              f"  (ceiling {r['ceiling']:,})")
+
+
+def cmd_ci(args: argparse.Namespace) -> int:
+    """The quality-gate door: compose ceilings over the store into
+    one verdict a pipeline can gate on.  Exit 0 pass, 1 breach,
+    2 configuration error or empty store."""
+    from .cluster import store_stats
+
+    ceilings = [getattr(args, name, None) for name in
+                ("max_failure_rate", "max_avg_latency_ms",
+                 "max_p95_latency_ms", "max_tokens", "max_spend")]
+    if all(c is None for c in ceilings):
+        print("error: no ceilings configured — pass at least one of "
+              "--max-failure-rate, --max-avg-latency-ms, "
+              "--max-p95-latency-ms, --max-tokens, --max-spend",
+              file=sys.stderr)
+        return 2
+    store = TraceStore(args.store)
+    traces = store.list_traces(since_days=getattr(args, "since", None))
+    if not traces:
+        print(f"error: store {args.store} is empty: no runs to gate",
+              file=sys.stderr)
+        return 2
+    prices = _load_prices(getattr(args, "prices", None))
+    if getattr(args, "max_spend", None) is not None and not prices:
+        print("error: --max-spend needs --prices", file=sys.stderr)
+        return 2
+    rows = _ci_gate_rows(traces, store_stats(traces), prices, args)
+    failed = [r for r in rows if not r["ok"]]
+    if getattr(args, "json", False):
+        print(json.dumps({"store": str(store.directory),
+                          "traces": len(traces), "ok": not failed,
+                          "gates": rows}, indent=2))
+        return 1 if failed else 0
+    print(f"  ci gates over {len(traces)} traces "
+          f"({store.directory})")
+    _ci_show(rows)
+    verdict = ("all gates passed" if not failed else
+               f"{len(failed)} gate(s) breached")
+    print(f"  gate verdict: {verdict}")
+    return 1 if failed else 0
+
+
 def cmd_attribute(args: argparse.Namespace) -> int:
     from .sarif import to_sarif
 
@@ -2685,6 +2814,33 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--dry-run", action="store_true",
                    help="count what would be removed, delete nothing")
     p.set_defaults(func=cmd_clean)
+
+    p = sub.add_parser("ci", parents=[common],
+                       help="quality gate for agent pipelines: exit 1 "
+                            "when a ceiling is breached")
+    p.add_argument("--max-failure-rate", type=float, metavar="RATE",
+                   help="fail when failed/total exceeds RATE (e.g. 0.2)")
+    p.add_argument("--max-avg-latency-ms", type=float, metavar="MS",
+                   help="fail when mean step latency exceeds MS")
+    p.add_argument("--max-p95-latency-ms", type=float, metavar="MS",
+                   help="fail when the p95 step latency exceeds MS")
+    p.add_argument("--max-tokens", type=int, metavar="N",
+                   help="fail when recorded tokens exceed N")
+    p.add_argument("--max-spend", type=float, metavar="USD",
+                   help="fail when estimated spend exceeds USD "
+                        "(needs --prices; a model with no rate fails "
+                        "the gate — a budget you cannot compute does "
+                        "not hold)")
+    p.add_argument("--prices", metavar="FILE",
+                   help="model -> blended $/1k JSON table")
+    p.add_argument("--min-traces", type=int, metavar="N",
+                   help="fail when fewer than N runs are recorded "
+                        "(default 1)")
+    p.add_argument("--since", type=int, metavar="DAYS",
+                   help="gate only runs from the last N days")
+    p.add_argument("--json", action="store_true",
+                   help="emit machine-readable JSON instead of prose")
+    p.set_defaults(func=cmd_ci)
 
     p = sub.add_parser("stats", parents=[common],
                        help="one-glance store health numbers")
