@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.39.0
+
+- the MCP server hands over the evidence: `evidence_pack` mirrors the CLI door (same manifest, loud unknown-id error, `--key-file`). 35 tools. TUTORIAL 11 closes the loop: attribute → deep-verify → pack → gate. 5 tests.
+
 ## v2.38.0
 
 - `approximately evidence <trace> out.zip`: the complete case in one tamper-evident archive — native record with the integrity chain embedded, HTML postmortem, annotations, an on-the-spot chain verdict (--key-file for keyed chains), and a sha256 manifest a reviewer can recompute with unzip and sha256sum. 5 tests.

@@ -181,6 +181,29 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "evidence_pack",
+        "description": "Write one trace's complete case as a "
+                       "tamper-evident zip: the native record with "
+                       "its integrity chain, the HTML postmortem, "
+                       "annotations, the chain verdict, and a "
+                       "sha256 manifest.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "trace": {"type": "string",
+                          "description": "trace id to pack"},
+                "output": {"type": "string",
+                           "description": "zip path (default: "
+                                          "<trace>.evidence.zip)"},
+                "key_file": {"type": "string",
+                             "description": "signing key to verify "
+                                            "a keyed chain"},
+            },
+            "required": ["trace"],
+        },
+    },
+    {
         "name": "doctor",
         "description": "Health check of a trace store: corrupt or "
                        "misnamed records, evidence-ledger tamper, "
@@ -964,6 +987,28 @@ def _tool_bisect(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     }
 
 
+def _tool_evidence_pack(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    """One trace's complete case as a tamper-evident zip — the same
+    pack `approximately evidence` writes."""
+    from .evidence import build_evidence_pack
+
+    trace_id = args.get("trace")
+    if not trace_id:
+        raise KeyError("trace is required")
+    output = args.get("output") or f"{trace_id}.evidence.zip"
+    key = None
+    key_file = args.get("key_file")
+    if key_file:
+        from .integrity import load_key
+
+        key = load_key(str(key_file))
+    try:
+        return build_evidence_pack(_store(ctx, args), str(trace_id),
+                                   Path(output), key=key)
+    except ValueError as exc:
+        raise KeyError(str(exc)) from exc
+
+
 def _tool_doctor(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .doctor import doctor
 
@@ -1523,6 +1568,7 @@ _HANDLERS = {
     "verify": _tool_verify,
     "survey": _tool_survey,
     "ci_gate": _tool_ci_gate,
+    "evidence_pack": _tool_evidence_pack,
     "init_gate": _tool_init_gate,
     "query": _tool_query,
     "bisect": _tool_bisect,
