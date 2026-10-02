@@ -54,9 +54,18 @@ class TestDetection:
         assert detect_latency_anomalies(trace) == []  # too few samples
         assert detect_latency_anomalies(trace, min_samples=2)  # opt-in
 
-    def test_mad_zero_is_degenerate_not_broken(self):
-        trace = _trace([100] * 6 + [100, 5000])  # all identical...
-        # ...so MAD=0: honest "no scale information", no anomalies
+    def test_flat_baseline_outlier_still_visible(self):
+        # ms-rounded baselines make MAD == 0 common; a flat baseline
+        # is where an outlier is most obvious, so the scale falls
+        # back to the mean absolute deviation and the 5000 flags
+        trace = _trace([100] * 6 + [100, 5000])
+        findings = detect_latency_anomalies(trace)
+        assert len(findings) == 1
+        assert findings[0].latency_ms == 5000
+
+    def test_truly_uniform_sample_stays_a_noop(self):
+        # every sample identical: no scale at all, honest silence
+        trace = _trace([100] * 8)
         assert detect_latency_anomalies(trace) == []
 
     def test_non_tool_and_zero_latency_ignored(self):

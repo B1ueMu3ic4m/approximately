@@ -2594,3 +2594,20 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        against a perfectly flat baseline is invisible. Fixture
        works around it; a real fallback (mean-abs-deviation when
        MAD is 0) is future work. 7 tests.
+
+270. **v2.26.1 - no blind spots on a flat baseline** ✅ (delivered):
+     - The detector gap R5's fixture exposed, fixed for real:
+       ms-rounded tool latencies make MAD == 0 common (the majority
+       of samples identical), and the modified z-score went quiet
+       exactly where an outlier is most obvious — a perfectly flat
+       baseline.  The scale now falls back to the mean absolute
+       deviation when MAD == 0; only a truly uniform sample (every
+       value equal) stays an honest no-op.
+     - Swept across all four meters: per-trace latency, fleet
+       latency, per-trace token burn, fleet token burn.  The v12
+       pin that enshrined the old blindness ("MAD=0: no scale
+       information") is rewritten to the new contract, and a
+       uniform-sample no-op pin takes its place beside it.
+     - Module docstring updated: MAD is still the scale of choice
+       (Leys et al. 2013); the fallback only fires when it
+       collapses.  6 tests.
