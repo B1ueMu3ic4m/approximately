@@ -3007,3 +3007,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - 59 files, ~120 signatures annotated across eight batches.
        No behavior change anywhere; full suite and every gate
        green throughout.
+
+305. **v2.54.0 - the strict bar is enforced, not remembered** ✅ (delivered):
+     - CI's mypy step grows `--disallow-untyped-defs`: the
+       strict-typing milestone is now a gate, not a memory — a
+       new unannotated function fails the build exactly the way a
+       failing test does.  (The four optional-dependency
+       import-not-found notes stay tolerated via
+       --ignore-missing-imports.)
