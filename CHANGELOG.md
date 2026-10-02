@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.37.0
+
+- the audit round: real paths, not stand-ins. the spool's real HMAC-signed webhook verified against the body for the first time (every prior test injected a stub), the watch's delivery-failure and Ctrl-C paths first-run, the markdown report's rare cards pinned. spool.py 83% → 98%. 8 tests.
+
 ## v2.36.0
 
 - fuzz round 18, quiet: the CSV and OTLP doors survive None tasks, C1-control agent names, and non-string results; the query grammar matches unicode. the README quickstart now ends with the gate loop (init → ci). 6 tests.
