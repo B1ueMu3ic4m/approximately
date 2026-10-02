@@ -37,7 +37,8 @@ def main() -> int:
             + query_gate() + similar_gate() + fleet_anomaly_gate()
             + import_gate() + export_gate() + doctor_gate()
             + spool_gate() + survey_spend_gate() + ci_gate()
-            + doctor_deep_gate() + clean_gate() + csv_export_gate())
+            + doctor_deep_gate() + clean_gate() + csv_export_gate()
+            + evidence_gate() + compare_gate())
 
 def fleet_anomaly_gate(budget_s: float = 2.0) -> int:
     """Per-tool fleet baselines over a 10k-trace store.
@@ -605,6 +606,91 @@ def csv_export_gate(budget_s: float = 5.0) -> int:
           + ("PASS" if elapsed <= budget_s else "FAIL"))
     if elapsed > budget_s:
         print("FAIL: csv export slowed past budget", file=sys.stderr)
+        return 1
+    return 0
+
+
+def evidence_gate(budget_s: float = 5.0) -> int:
+    """Evidence pack over a 2k-step trace: attribute + render_html +
+    verify + zip must stay linear in steps (the postmortem is the
+    big member; local: well under a second)."""
+    import tempfile
+    from pathlib import Path as _Path
+
+    from approximately.evidence import build_evidence_pack
+    from approximately.integrity import sign
+    from approximately.recorder import Recorder
+    from approximately.store import TraceStore
+
+    with tempfile.TemporaryDirectory() as tmp:
+        store = TraceStore(_Path(tmp) / "s")
+        rec = Recorder("wide run", save=False)
+        for i in range(2_000):
+            rec.tool("probe", {"i": i}, result="x" * 100)
+        rec.respond("done", success=False)
+        sign(rec.trace)
+        store.save(rec.trace)
+        out = _Path(tmp) / "case.zip"
+        # seeding is setup, not subject: time the pack itself
+        start = time.perf_counter()
+        manifest = build_evidence_pack(store, rec.trace.id, out)
+        pack_bytes = out.stat().st_size   # tmpdir dies with the block
+    elapsed = time.perf_counter() - start
+    if len(manifest["members"]) != 3 or pack_bytes <= 0:
+        print("FAIL: evidence gate packed the wrong members",
+              file=sys.stderr)
+        return 1
+    print(f"perf-gate[evidence]: 2k-step pack in "
+          f"{elapsed * 1000:.0f}ms ({pack_bytes // 1024}KiB, "
+          f"budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: evidence slowed past budget", file=sys.stderr)
+        return 1
+    return 0
+
+
+def compare_gate(budget_s: float = 8.0) -> int:
+    """compare over two 2k-trace stores: two attribution passes and
+    two scorecards; the deploy gate runs this per push."""
+    import argparse as _argparse
+    import tempfile
+    from pathlib import Path as _Path
+
+    from approximately.cli import cmd_compare
+    from approximately.recorder import Recorder
+    from approximately.store import TraceStore
+
+    with tempfile.TemporaryDirectory() as tmp:
+        for name in ("base", "cand"):
+            store = TraceStore(_Path(tmp) / name)
+            for i in range(2_000):
+                rec = Recorder(f"run {i}", save=False)
+                rec.tool("search", {"q": i}, tokens=100,
+                         latency_ms=100)
+                rec.respond("done", success=i % 9 != 0)
+                store.save(rec.trace)
+        args = _argparse.Namespace(
+            baseline=str(_Path(tmp) / "base"),
+            candidate=str(_Path(tmp) / "cand"), prices=None,
+            since=None, fail_on_new_modes=False, json=True)
+        # seeding is setup, not subject: time the comparison itself
+        import contextlib
+
+        start = time.perf_counter()
+        with contextlib.redirect_stdout(
+                open(_Path(tmp) / "verdict.json", "w")):
+            code = cmd_compare(args)
+    elapsed = time.perf_counter() - start
+    if code != 0:
+        print("FAIL: compare gate did not pass its own stores",
+              file=sys.stderr)
+        return 1
+    print(f"perf-gate[compare]: 2k vs 2k traces in "
+          f"{elapsed * 1000:.0f}ms (budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: compare slowed past budget", file=sys.stderr)
         return 1
     return 0
 
