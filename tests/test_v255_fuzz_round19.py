@@ -11,8 +11,6 @@ and a hostile meta; a huge postmortem still packs.
 import json
 import zipfile
 
-import pytest
-
 from approximately.cli import main
 from approximately.evidence import build_evidence_pack
 from approximately.recorder import Recorder
@@ -55,7 +53,7 @@ def test_evidence_survives_junk_annotations(tmp_path):
     lines.append('"just a string, not a dict"')
     annotations.write_text("\n".join(lines) + "\n", encoding="utf-8")
     out = tmp_path / "case.zip"
-    manifest = build_evidence_pack(store, store.list_traces()[0].id,
+    build_evidence_pack(store, store.list_traces()[0].id,
                                    out)
     with zipfile.ZipFile(out) as zf:
         notes = json.loads(zf.read("annotations.json"))
