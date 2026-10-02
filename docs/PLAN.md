@@ -2830,3 +2830,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - Unknown ids are a loud error (exit 2) — a pack is never an
        empty archive with a shrug.  Deterministic member order;
        no store paths leak into the archive.  5 tests.
+
+287. **v2.39.0 - the MCP server hands over the evidence** ✅ (delivered):
+     - `evidence_pack` mirrors the CLI door: same manifest, same
+       loud unknown-id error, `output` defaulting to
+       `<trace>.evidence.zip`, `key_file` for keyed chains.  An
+       agent — or a reviewer's assistant — assembles a case
+       without shelling out.  35 tools; docs/mcp-tools.json
+       regenerated.
+     - TUTORIAL 11: from regression to evidence — attribute,
+       deep-verify, pack, and gate; the loop closed in one
+       chapter.  5 tests.

@@ -1,5 +1,5 @@
 {
-  "count": 34,
+  "count": 35,
   "tools": [
     {
       "name": "list_traces",
@@ -178,6 +178,33 @@
         "required": [
           "trace",
           "other"
+        ]
+      }
+    },
+    {
+      "name": "evidence_pack",
+      "description": "Write one trace's complete case as a tamper-evident zip: the native record with its integrity chain, the HTML postmortem, annotations, the chain verdict, and a sha256 manifest.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "trace": {
+            "type": "string",
+            "description": "trace id to pack"
+          },
+          "output": {
+            "type": "string",
+            "description": "zip path (default: <trace>.evidence.zip)"
+          },
+          "key_file": {
+            "type": "string",
+            "description": "signing key to verify a keyed chain"
+          }
+        },
+        "required": [
+          "trace"
         ]
       }
     },

@@ -193,3 +193,36 @@ tells you when a file needs a human.
 - Module map: [docs/ARCHITECTURE.md](ARCHITECTURE.md)
 - Threat model: [docs/SECURITY.md](SECURITY.md)
 - Roadmap: [docs/PLAN.md](PLAN.md)
+
+
+## 11. From regression to evidence: closing the loop
+
+The last chapter of the tour is the one your future self thanks
+you for: when a run fails in production, the questions arrive
+before the context does.  Three commands answer them in order.
+
+```bash
+# what happened: the postmortem, offline and free
+approximately attribute <trace-id>
+
+# can it be trusted: is this record the run that happened?
+approximately doctor --store ~/.approximately/traces --deep
+approximately evidence <trace-id> case.zip
+```
+
+`case.zip` is the hand-off: the record with its integrity chain,
+the HTML postmortem, the on-call notes, and a sha256 manifest a
+reviewer can recompute with `unzip` and `sha256sum` — no store,
+no tool, no trust required.  Keyed chains verify with
+`--key-file`.
+
+And when the same failure starts repeating across runs, stop
+reading reports and start failing builds:
+
+```bash
+approximately init                    # wire the gate once
+approximately ci --max-failure-rate 0.2   # exit 1 in CI
+```
+
+The recorder wrote the evidence; the gate makes someone read it;
+the pack proves it was never rewritten in between.
