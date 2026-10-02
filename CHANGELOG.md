@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.49.0
+
+- strict-mypy batch four: store, context and mcp_server join the typed set — 15 modules now read clean under --disallow-untyped-defs, covering the storage layer, the context runtime and the whole MCP transport. no behavior change.
+
 ## v2.48.0
 
 - strict-mypy batch three: fleet and exporter join the typed set — 16 more signatures, 12 modules total. no behavior change.

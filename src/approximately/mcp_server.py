@@ -825,7 +825,7 @@ class ServerContext:
         self.store = store
 
 
-def _store(ctx: ServerContext, args: Dict[str, Any]):
+def _store(ctx: ServerContext, args: Dict[str, Any]) -> Any:
     from .store import TraceStore
 
     return TraceStore(Path(args.get("store") or ctx.store))
@@ -1070,7 +1070,7 @@ def _tool_compare(ctx: ServerContext, args: Dict[str, Any]) -> dict:
 _TEMP_PRICES: Dict[str, Any] = {}
 
 
-def _write_temp_prices(table):
+def _write_temp_prices(table: Any) -> Any:
     """The MCP tool takes prices as a JSON object; the CLI door
     reads a file path — bridge with a temp file."""
     import tempfile
@@ -1376,7 +1376,7 @@ def _tool_anomalies(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                           for a in anomalies]}
 
 
-def _token_anomalies(store, args: Dict[str, Any],
+def _token_anomalies(store: Any, args: Dict[str, Any],
                      threshold: float) -> dict:
     """The anomalies tool metered on tokens: burn/frugal flags from
     per-tool robust baselines, per trace or across the fleet."""
@@ -1576,7 +1576,7 @@ def _tool_explain(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                           _explain_detectors(mode_id)]}
 
 
-def _explain_detectors(mode_id):
+def _explain_detectors(mode_id: str) -> list:
     from .explain import detectors_for_mode
 
     return detectors_for_mode(mode_id)
@@ -1679,7 +1679,7 @@ _HANDLERS = {
 }
 
 
-def _error(request_id, code: int, message: str) -> dict:
+def _error(request_id: Any, code: int, message: str) -> dict:
     return {"jsonrpc": "2.0", "id": request_id,
             "error": {"code": code, "message": message}}
 
@@ -1710,8 +1710,8 @@ def _resources(ctx: ServerContext) -> List[dict]:
     return out
 
 
-def _resources_read(msg: Dict[str, Any], ctx: ServerContext,
-                    request_id) -> dict:
+def _resources_read(msg: Dict[str, Any], ctx: Any,
+                    request_id: Any) -> dict:
     uri = str(((msg.get("params") or {}).get("uri")) or "")
     if not uri.startswith("approximately://"):
         return _error(request_id, -32602,
@@ -1781,8 +1781,8 @@ def handle_request(msg: Dict[str, Any], ctx: ServerContext) -> Optional[dict]:
     return _error(request_id, -32601, f"unknown method {method!r}")
 
 
-def _tools_call(msg: Dict[str, Any], ctx: ServerContext,
-                request_id) -> dict:
+def _tools_call(msg: Dict[str, Any], ctx: Any,
+                request_id: Any) -> dict:
     params: Dict[str, Any] = msg.get("params") or {}
     name = str(params.get("name") or "")
     handler = _HANDLERS.get(name)
@@ -1802,7 +1802,7 @@ def _tools_call(msg: Dict[str, Any], ctx: ServerContext,
                 "isError": "error" in payload}}
 
 
-def serve(read, write, ctx: ServerContext,
+def serve(read: Any, write: Any, ctx: Any,
           max_requests: Optional[int] = None) -> int:
     """Line-delimited loop over two byte/text streams. Returns the
     number of responses written. Malformed JSON lines produce a
@@ -1840,7 +1840,7 @@ def _handle_line(line: str, ctx: ServerContext) -> Optional[dict]:
         return _error(msg.get("id"), -32600, "invalid request envelope")
 
 
-def cmd_mcp(args) -> int:
+def cmd_mcp(args: Any) -> int:
     """CLI entry: serve MCP over real stdio."""
     ctx = ServerContext(args.store)
     stdin = getattr(args, "_stdin", sys.stdin)

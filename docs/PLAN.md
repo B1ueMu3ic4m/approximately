@@ -2968,3 +2968,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        rest) and exporter (the chat-shape helpers) join the typed
        set — 16 more signatures, 12 modules total.  No behavior
        change; full suite and every gate unchanged.
+
+300. **v2.49.0 - strict-mypy batch four: the store, context, and the server** ✅ (delivered):
+     - store, context, mcp_server join the typed set (12 more
+       signatures) — 15 modules now read clean under
+       `--disallow-untyped-defs`, covering the storage layer, the
+       context runtime, and the whole MCP transport.  No behavior
+       change; full suite and every gate unchanged.

@@ -232,7 +232,7 @@ class TraceStore:
         return out
 
     @staticmethod
-    def _created(trace: Trace, path) -> float:
+    def _created(trace: Trace, path: "Path") -> float:
         """Trace's own creation time, falling back to file mtime."""
         return trace.created_at or path.stat().st_mtime
 

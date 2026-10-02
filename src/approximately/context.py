@@ -52,7 +52,7 @@ def estimate_tokens(text: str) -> int:
     return max(1, len(text) // 4)
 
 
-def full_context_tokens(trace) -> int:
+def full_context_tokens(trace: "Trace") -> int:
     """Total tokens of the trace rendered in full."""
     total = sum(estimate_tokens(s.result) + 8
                 for s in trace.steps if s.result)
@@ -270,7 +270,7 @@ def default_facts(trace: Trace) -> Dict[str, str]:
     return facts
 
 
-def _probe_evictions(runtime, evicted_now: List[str], facts: Dict[str, str],
+def _probe_evictions(runtime: "ContextRuntime", evicted_now: List[str], facts: Dict[str, str],
                      lost: set, pending: set) -> List[str]:
     """Re-verify pending facts whose supporting item just got evicted.
 
