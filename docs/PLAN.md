@@ -2888,3 +2888,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        OUTSIDE its TemporaryDirectory block — the directory had
        already been deleted, so the gate could never pass.  The
        size is captured inside the block now.
+
+292. **v2.43.1 - the ci gate budget carries Windows headroom** ✅ (delivered):
+     - The Windows runner tripped the `ci` gate's 5s budget
+       (10k-trace store; Windows file I/O runs several times
+       slower than the local 0.7-1.2s).  Same medicine as the
+       import/spool gates: 10s for `ci`, 8s for `evidence` —
+       generous enough that runner noise cannot trip it, tight
+       enough that a superlinear regression still does.
