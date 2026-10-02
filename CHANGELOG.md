@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.54.0
+
+- the strict bar is enforced, not remembered: CI's mypy step grows --disallow-untyped-defs, so a new unannotated function fails the build exactly the way a failing test does.
+
 ## v2.53.0
 
 - the whole tree reads clean under strict mypy: batch eight closes cli (31 signatures), ledger, mermaid, integrity, prose, precursor, diff, recorder and calibration — 59 files, ~120 signatures across eight batches. the only remaining diagnostics are import-not-found notes for optional deps not installed in the lint environment. no behavior change.
