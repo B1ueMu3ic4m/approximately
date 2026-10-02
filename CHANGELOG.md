@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.28.0
+
+- `approximately init`: gate the repo you already have. wires a GitHub Actions workflow running `approximately ci`, a starter price table, and a .gitignore line into an existing repo — idempotent, nothing overwritten without --force, and .gitignore only ever appended to. 6 tests.
+
 ## v2.27.0
 
 - the webhook retries like it means it. connection errors and 5xx/429 now retry with bounded exponential backoff; a 429 honors a capped Retry-After; other 4xx stay a definite answer; a fresh Request per attempt. fleet watch and spool watch both inherit the tougher delivery. 7 tests.

@@ -232,11 +232,12 @@ def _retry_delay(exc: "urllib.error.HTTPError", attempt: int) -> float:
     parses, capped at 5s so a hostile header cannot stall a watch."""
     base = min(4.0, 0.5 * 2 ** (attempt - 1))
     if exc.code == 429 and exc.headers is not None:
-        try:
-            return min(5.0, max(0.0, float(exc.headers.get(
-                "Retry-After"))))
-        except (TypeError, ValueError):
-            return base
+        raw = exc.headers.get("Retry-After")
+        if raw is not None:
+            try:
+                return min(5.0, max(0.0, float(raw)))
+            except ValueError:
+                return base
     return base
 
 
