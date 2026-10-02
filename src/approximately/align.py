@@ -22,14 +22,14 @@ from __future__ import annotations
 import json
 from typing import List, Tuple
 
-from .trace import TOOL_CALL, Trace
+from .trace import TOOL_CALL, Step, Trace
 
 GAP_PENALTY = -1.0
 MATCH_SCORE = 2.0
 STRUCTURE_SUBSTITUTION = 1.0
 
 
-def normalize_step(step) -> Tuple[str, str]:
+def normalize_step(step: Step) -> Tuple[str, str]:
     """A step becomes (identity_token, structure_token).
 
     ``identity_token`` is the full ``kind:tool:sorted-arg-keys:sorted-arg-
@@ -142,7 +142,7 @@ def rank_similar(target: Trace, traces: List[Trace],
     return scored
 
 
-def duplicate_groups(traces, threshold: float = 0.95,
+def duplicate_groups(traces: list, threshold: float = 0.95,
                      max_traces: int = 2000) -> dict:
     """Near-duplicate clusters: traces so aligned they are the same
     run wearing a different id.
@@ -176,7 +176,7 @@ def duplicate_groups(traces, threshold: float = 0.95,
             "capped": capped}
 
 
-def dedupe_traces(traces, threshold: float = 0.95,
+def dedupe_traces(traces: list, threshold: float = 0.95,
                   max_traces: int = 2000) -> Tuple[List[Trace], int]:
     """The dedupe pass as data: keep one representative per cluster.
 
@@ -195,7 +195,7 @@ def dedupe_traces(traces, threshold: float = 0.95,
     return kept, dropped
 
 
-def similar_payload(target, traces, top: int = 5,
+def similar_payload(target: "Trace", traces: list, top: int = 5,
                     min_score: float = 0.0) -> dict:
     """The `similar` answer as data (shared by CLI --json and MCP).
 

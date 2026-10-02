@@ -114,7 +114,8 @@ def _curve_dots(curve: BudgetCurve, width: int, height: int, pad: int) -> str:
     return "".join(dots)
 
 
-def _scatter_svg(scatter, width: int, height: int, pad: int) -> str:
+def _scatter_svg(scatter: list | None, width: int, height: int,
+                 pad: int) -> str:
     if not scatter:
         return ""
     max_tokens = max((t for t, _ in scatter), default=1) or 1

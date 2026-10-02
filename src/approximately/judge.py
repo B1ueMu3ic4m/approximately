@@ -179,7 +179,7 @@ def _cache_key(trace: Trace, chosen_model: str, preset: str) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def _cache_path(cache_dir, key: str) -> Path:
+def _cache_path(cache_dir: "Path", key: str) -> Path:
     return Path(cache_dir) / f"{key}.json"
 
 
@@ -199,7 +199,7 @@ def cache_stats(reset: bool = False) -> dict:
     return stats
 
 
-def _load_cached(cache_dir, key: str) -> Optional[JudgeVerdict]:
+def _load_cached(cache_dir: "Path", key: str) -> Optional[JudgeVerdict]:
     """A cache hit must look exactly like a fresh verdict; anything
     unreadable is a miss, and the next write overwrites it."""
     try:

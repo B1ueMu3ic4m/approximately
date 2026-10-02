@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 
-def build_evidence_pack(store, trace_id: str, output: Path,
+def build_evidence_pack(store: Any, trace_id: str, output: Path,
                         key: Optional[bytes] = None) -> Dict[str, Any]:
     """Write the evidence pack for *trace_id*; returns the manifest.
 

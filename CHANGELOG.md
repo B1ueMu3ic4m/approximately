@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.46.0
+
+- strict-mypy batch one: metrics, evidence, curve, align, distill and judge are fully typed under --disallow-untyped-defs (19 signatures, no behavior change). the audit's verdict: bandit clean at low severity; xenon's C bar stays as recorded debt.
+
 ## v2.45.1
 
 - the coverage tail: the dead zero-scale heuristics removed (the mean-abs-deviation fallback made them unreachable) and the doctor's last render branches covered — forged ledgers render TAMPERED, locked chains note themselves, stale locks flag and fix. 5 tests.
