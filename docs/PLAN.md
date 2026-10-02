@@ -2975,3 +2975,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        `--disallow-untyped-defs`, covering the storage layer, the
        context runtime, and the whole MCP transport.  No behavior
        change; full suite and every gate unchanged.
+
+301. **v2.50.0 - strict-mypy batch five: the detector and evidence core** ✅ (delivered):
+     - mastdata, anomaly, detectors, benchgate join the typed set
+       (25 more signatures, including the detectors' inner
+       helpers with honest Tuple returns).  19 modules strict;
+       the remaining bulk is cli.py (31) and the contrib
+       adapters.

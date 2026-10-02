@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.50.0
+
+- strict-mypy batch five: mastdata, anomaly, detectors and benchgate join the typed set — 19 modules strict-clean. no behavior change.
+
 ## v2.49.0
 
 - strict-mypy batch four: store, context and mcp_server join the typed set — 15 modules now read clean under --disallow-untyped-defs, covering the storage layer, the context runtime and the whole MCP transport. no behavior change.

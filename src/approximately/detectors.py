@@ -12,12 +12,12 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import AbstractSet, Any, List, Optional, Tuple
 
 from .trace import ERROR, MESSAGE, PLAN, RESPONSE, TOOL_CALL, Step, Trace
 
 
-def _trace_meta(trace) -> dict:
+def _trace_meta(trace: "Trace") -> dict:
     """Trace meta, as a dict — a hand-edited record can carry a
     non-dict meta, and the detectors must shrug, not crash."""
     meta = getattr(trace, "meta", None)
@@ -102,7 +102,8 @@ class CycleRepeatDetector:
     min_cycle_calls = 16
 
     @classmethod
-    def _longest_cycle(cls, tools: List[str]):
+    def _longest_cycle(cls,
+                       tools: List[str]) -> "Tuple[int, int, int]":
         """(calls consumed, period, end offset) of the longest run of
         back-to-back identical blocks."""
         best_run, best_period, best_end = 0, 0, 0
@@ -345,7 +346,8 @@ class DerailmentDetector:
     relevance_floor = 0.3
 
     @staticmethod
-    def _irrelevant(calls, keywords) -> list:
+    def _irrelevant(calls: List["Step"],
+                    keywords: AbstractSet[str]) -> list:
         irrelevant = []
         for step in calls:
             text = _join(
@@ -601,7 +603,7 @@ class IgnoredInputDetector:
     mode_id = "FM-2.5"
 
     @staticmethod
-    def _unacked_message(trace: Trace):
+    def _unacked_message(trace: Trace) -> "Optional[Tuple[int, Step, Any]]":
         """First requires_ack message whose recipient never acted on it."""
         for i, step in enumerate(trace.steps):
             if step.kind != MESSAGE:
@@ -651,7 +653,8 @@ class RoleViolationDetector:
     mode_id = "FM-1.2"
 
     @staticmethod
-    def _off_role_step(trace: Trace, role_tools: dict, role_of: dict):
+    def _off_role_step(trace: Trace, role_tools: dict,
+                       role_of: dict) -> Optional[Tuple[Step, Any, Any, Any]]:
         """First tool call outside the actor's allowed set, if any."""
         for step in trace.steps:
             if step.kind != TOOL_CALL or not step.tool:
@@ -692,7 +695,7 @@ class RoleViolationDetector:
 _ENTITY_RE = None
 
 
-def _entities(text: str):
+def _entities(text: str) -> AbstractSet[str]:
     """Identifiers that normally come from tool results (#conf-123, AB1234)."""
     global _ENTITY_RE
     if _ENTITY_RE is None:
