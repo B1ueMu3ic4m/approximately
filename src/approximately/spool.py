@@ -105,6 +105,7 @@ def spool_pass(store: TraceStore, directory: Path,
         "failures": 0, "failed_traces": 0, "archived": 0,
         "deleted": 0, "left": 0, "errors": [], "failure_modes": {},
         "token_burns": 0,  # nosec B105: a count, not a credential
+        "trace_ids": [],
     }
     for path in files:
         try:
@@ -117,6 +118,7 @@ def spool_pass(store: TraceStore, directory: Path,
             continue
         result["imported"] += outcome["imported"]
         result["skipped"] += outcome["skipped"]
+        result["trace_ids"].extend(outcome.get("trace_ids") or [])
         failed_here = burns_here = 0
         if not dry_run:
             from .anomaly import detect_token_anomalies
@@ -163,7 +165,10 @@ def watch_spool(store: TraceStore, directory: Path,
             exit_code = 1
         if webhook_url and outcome["failed_traces"]:
             # pages only when a failed run actually landed — the
-            # quiet-by-default contract, same as the fleet watch
+            # quiet-by-default contract, same as the fleet watch.
+            # No cooldown needed: imported files archive out of the
+            # spool, so the same failure cannot re-page (dry runs
+            # and unparsed files never page at all).
             poster = notify or _notify_spool
             try:
                 poster(store, outcome, webhook_url)

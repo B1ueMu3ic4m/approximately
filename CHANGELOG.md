@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.34.0
+
+- the spool pager is naturally one-shot, and now it is pinned: imported files archive out (no re-page), dry runs never count failures, unparsed files never page — a drafted cooldown was rolled back because the tests disproved the storm it guarded against. `spool --json` lines now carry trace_ids. 4 tests.
+
 ## v2.33.0
 
 - the watch does not cry wolf. `fleet --watch --webhook` gains `--alert-cooldown`: the same reason set re-pages only after the cooldown, a growing reason set pages immediately, 0 keeps the every-cycle contract. digest snapshots still write every cycle — the cooldown gates the pager, never the record. 5 tests.

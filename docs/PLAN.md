@@ -2747,3 +2747,16 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        anyway; the growth test caught it before CI could.
      - Digest snapshots still write every cycle: the cooldown gates
        the PAGER, never the record.  5 tests.
+
+281. **v2.34.0 - the spool pager is naturally one-shot (pinned)** ✅ (delivered):
+     - A cooldown for the spool watch was drafted — and rolled back,
+       because the pin tests said the storm cannot happen: imported
+       files archive out of the spool (the same failure cannot
+       re-page), dry runs never count failures (never page), and
+       unparsed files never page (they are not run failures — a
+       human reads them).  A suspicion disproven by tests is worth
+       more than a feature guarding nothing; the non-feature is
+       now pinned so it stays true.
+     - Kept from the round: `spool_pass` aggregates `trace_ids`, so
+       `spool --json` lines name exactly which runs landed in that
+       pass.  4 tests.
