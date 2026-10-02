@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.62.0
+
+- the pack verifier joins the README; distill's finite edge pinned (NaN is None, not a silent 0.0). docs+tests only.
+
 ## v2.61.0
 
 - the reviewer's side: `evidence --verify PACK` recomputes every manifest hash and the chain inside the extracted record, printing TRUSTED or REFUSED (exit 1 refuses). the three forgery cases pinned: swapped member, rewritten record, non-pack. 4 tests.
