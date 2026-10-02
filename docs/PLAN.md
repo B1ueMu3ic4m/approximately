@@ -2878,3 +2878,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        detectors shrug, unsigned stays unsigned.
      - The evidence door survives junk annotation lines (carries
        what is readable) and packs a 2k-step postmortem.  5 tests.
+
+291. **v2.43.0 - perf gates for the evidence and compare doors** ✅ (delivered):
+     - evidence: a 2k-step pack (attribute + render_html + verify +
+       zip) in ~0.4s, budget 5s.  compare: 2k vs 2k traces (two
+       attribution passes, two scorecards) in ~0.4s, budget 8s.
+       Suite: 18 gates.
+     - Gate bug of the round: the evidence gate judged `out.exists()`
+       OUTSIDE its TemporaryDirectory block — the directory had
+       already been deleted, so the gate could never pass.  The
+       size is captured inside the block now.

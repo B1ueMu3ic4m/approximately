@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.43.0
+
+- perf gates for the evidence door (2k-step pack, 5s budget) and the compare door (2k vs 2k, 8s) — suite now 18 gates. gate bug of the round: a verdict read outside its TemporaryDirectory block could never pass. no product code change.
+
 ## v2.42.0
 
 - fuzz round 19: `compare` refuses an empty store on either side; the non-dict-meta poison trace hunted out of detectors (five reads) and integrity.verify — a hand-edited record no longer crashes attribution, verification, or the evidence pack. 5 tests.
