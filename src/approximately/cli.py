@@ -2076,6 +2076,12 @@ def cmd_compare(args: argparse.Namespace) -> int:
     base = _compare_stats(args.baseline,
                           getattr(args, "since", None))
     cand = _compare_stats(args.candidate, getattr(args, "since", None))
+    for side, stats in (("baseline", base), ("candidate", cand)):
+        if stats["count"] == 0:
+            print(f"error: {side} store {getattr(args, side)} is "
+                  "empty: a comparison against nothing proves "
+                  "nothing", file=sys.stderr)
+            return 2
     prices = _load_prices(getattr(args, "prices", None))
     new_modes = sorted(set(cand["modes"]) - set(base["modes"]))
     gone_modes = sorted(set(base["modes"]) - set(cand["modes"]))

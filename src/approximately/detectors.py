@@ -16,6 +16,13 @@ from typing import List, Optional
 
 from .trace import ERROR, MESSAGE, PLAN, RESPONSE, TOOL_CALL, Step, Trace
 
+
+def _trace_meta(trace) -> dict:
+    """Trace meta, as a dict — a hand-edited record can carry a
+    non-dict meta, and the detectors must shrug, not crash."""
+    meta = getattr(trace, "meta", None)
+    return meta if isinstance(meta, dict) else {}
+
 STOPWORDS = {
     "the", "a", "an", "and", "or", "to", "of", "for", "with", "from", "by",
     "on", "in", "at", "is", "are", "be", "that", "this", "it", "as", "then",
@@ -184,7 +191,7 @@ class NoTerminationDetector:
         return None
 
     def _budget_exhausted(self, trace: Trace) -> Optional[Detection]:
-        step_limit = trace.meta.get("step_limit")
+        step_limit = _trace_meta(trace).get("step_limit")
         if not (isinstance(step_limit, int) and len(trace.steps) >= step_limit):
             return None
         if not trace.steps or trace.steps[-1].kind == RESPONSE:
@@ -479,7 +486,7 @@ class SpecViolationDetector:
     mode_id = "FM-1.1"
 
     def detect(self, trace: Trace) -> Optional[Detection]:
-        forbidden = trace.meta.get("forbidden_tools") or []
+        forbidden = _trace_meta(trace).get("forbidden_tools") or []
         for step in trace.steps:
             if step.kind == TOOL_CALL and step.tool in forbidden:
                 return Detection(
@@ -505,7 +512,7 @@ class ClarificationDetector:
     def _is_ambiguous(trace: Trace) -> bool:
         task = trace.task.lower()
         return (" or " in task and ("?" in task or "either" in task)) or \
-            bool(trace.meta.get("ambiguous"))
+            bool(_trace_meta(trace).get("ambiguous"))
 
     @staticmethod
     def _asked_something(trace: Trace) -> bool:
@@ -660,8 +667,8 @@ class RoleViolationDetector:
         return None
 
     def detect(self, trace: Trace) -> Optional[Detection]:
-        role_tools = trace.meta.get("role_tools") or {}
-        role_of = trace.meta.get("agents") or {}
+        role_tools = _trace_meta(trace).get("role_tools") or {}
+        role_of = _trace_meta(trace).get("agents") or {}
         if not role_tools:
             return None
         hit = self._off_role_step(trace, role_tools, role_of)
@@ -756,7 +763,7 @@ def run_rules(trace: Trace) -> List[Detection]:
     without real tool calls, and the tool family would fire on every
     same-agent turn pair.
     """
-    if trace.meta.get("prose"):
+    if _trace_meta(trace).get("prose"):
         from .prose import PROSE_DETECTORS
 
         found = [d for d in (det.detect(trace)

@@ -198,8 +198,10 @@ def verify(trace: Trace, key: Optional[bytes] = None) -> VerificationResult:
     Keyed traces require the same key. Verifying a keyed trace without the
     key returns verdict ``keyed`` — the evidence is locked, not broken.
     """
-    block = trace.meta.get("integrity")
-    if not block or block.get("algorithm") not in (ALGORITHM, ALGORITHM_KEYED):
+    meta = trace.meta if isinstance(trace.meta, dict) else {}
+    block = meta.get("integrity")
+    if not isinstance(block, dict) or block.get("algorithm") not in (
+            ALGORITHM, ALGORITHM_KEYED):
         return VerificationResult(signed=False,
                                   detail="trace carries no integrity block")
 
