@@ -2939,10 +2939,12 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("export", parents=[common],
                        help="export traces as foreign transcript JSONL")
     p.add_argument("output", help="output JSONL path")
-    p.add_argument("--format", choices=["openai-jsonl", "native", "otel"],
+    p.add_argument("--format", choices=["openai-jsonl", "native", "otel",
+                                        "csv"],
                    default="openai-jsonl",
                    help="transcript shape (default openai-jsonl; "
-                        "otel = OTLP JSON for tracing backends)")
+                        "otel = OTLP JSON for tracing backends; "
+                        "csv = one row per step for spreadsheets)")
     p.add_argument("--query",
                    help="select traces with the shared query DSL, "
                         "e.g. 'success == false and tool=ls'")

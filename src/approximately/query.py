@@ -9,7 +9,9 @@ Grammar (recursive descent, precedence or < and < not < primary):
     not_expr:= "not" not_expr | primary
     primary := "(" expr ")" | field OP value
     OP      := "==" "!=" ">=" "<=" ">" "<" "contains" "startswith"
+               "endswith" "matches" "in"
     value   := 'quoted string' | number | bareword (true/false/none/FM-x.y)
+               | "(" value ("," value)* ")"     ← list, for `in`
 
 Fields are trace-level: ``id task success model created steps tokens
 duration mode`` — ``mode`` is the set of rule-detected failure modes,
@@ -30,6 +32,7 @@ _TOKEN = re.compile(
         (?P<op>==|!=|>=|<=|>|<)
       | (?P<lparen>\()
       | (?P<rparen>\))
+      | (?P<comma>,)
       | (?P<string>'[^']*'|"[^"]*")
       | (?P<number>-?\d+(?:\.\d+)?)
       | (?P<word>[A-Za-z_][A-Za-z0-9_.\-]*)
@@ -41,6 +44,8 @@ _FIELDS = ("id", "task", "success", "model", "created", "steps",
            "tools", "failed_tools", "failed_agents", "errors")
 
 _MAX_EXPR_CHARS = 4000
+_MAX_PATTERN_CHARS = 256     # `matches` regex source bound
+_MAX_MATCH_SUBJECT = 4096    # per-evaluation subject bound
 
 
 class QueryError(ValueError):
@@ -234,6 +239,9 @@ class _Parser:
         if word == ")" and kind == "rparen":
             self.pos += 1
             return True
+        if word == "," and kind == "comma":
+            self.pos += 1
+            return True
         return False
 
     def _primary(self) -> Callable:
@@ -256,7 +264,8 @@ class _Parser:
         op = op_token[1] if op_token[0] == "op" else \
             op_token[1].lower()
         if op not in ("==", "!=", ">=", "<=", ">", "<",
-                      "contains", "startswith"):
+                      "contains", "startswith", "endswith",
+                      "matches", "in"):
             raise QueryError(f"expected an operator after "
                              f"{token[1]!r}, got {op!r}")
         value = self._value()
@@ -265,6 +274,13 @@ class _Parser:
     def _value(self) -> Any:
         token = self._next()
         kind, value = token
+        if kind == "lparen":            # list literal: (a, b, c)
+            items = [self._value()]
+            while self._matches(","):
+                items.append(self._value())
+            if not self._matches(")"):
+                raise QueryError("expected ')' closing the value list")
+            return items
         if kind in ("string", "number"):
             return value
         lowered = value.lower()
@@ -277,7 +293,31 @@ class _Parser:
         return value
 
 
+def _compile_pattern(value: Any):
+    """`matches` compiles at parse time and fails loudly: the pattern
+    arrives on a command line, so it is attacker-adjacent — bounded
+    source, bounded subjects, no silent no-match on a bad regex."""
+    pattern = str(value)
+    if len(pattern) > _MAX_PATTERN_CHARS:
+        raise QueryError(f"regex pattern longer than "
+                         f"{_MAX_PATTERN_CHARS} characters")
+    try:
+        return re.compile(pattern)
+    except re.error as exc:
+        raise QueryError(f"bad regex {pattern!r}: {exc}") from None
+
+
 def _comparator(getter, op: str, value: Any) -> Callable:
+    if op == "matches":
+        rx = _compile_pattern(value)
+
+        def match_eval(trace: Trace) -> bool:
+            left = getter(trace)
+            subject = str(left or "")[:_MAX_MATCH_SUBJECT]
+            return rx.search(subject) is not None
+
+        return match_eval
+
     def evaluate(trace: Trace) -> bool:
         left = getter(trace)
         if op == "==":
@@ -299,7 +339,17 @@ def _comparator(getter, op: str, value: Any) -> Callable:
             if isinstance(left, set):
                 return value in left
             return str(value) in str(left or "")
-        return str(left or "").startswith(str(value))
+        if op == "startswith":
+            return str(left or "").startswith(str(value))
+        if op == "endswith":
+            return str(left or "").endswith(str(value))
+        if op == "in":
+            if isinstance(value, (list, tuple)):
+                if isinstance(left, (set, list, tuple)):
+                    return any(item in left for item in value)
+                return left in value
+            return left == value
+        return False
 
     return evaluate
 

@@ -2541,3 +2541,18 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - The MCP `doctor` tool grows the same `deep` knob. The
        doctor's shallow pass stays the default: deep is opt-in
        because it hashes every step of every record. 11 tests.
+
+267. **v2.25.0 - the spreadsheet door; three new query operators** ✅ (delivered):
+     - `export --format csv`: one row per STEP — the spreadsheet-
+       native shape. tokens/latency/errors pivot per tool per run
+       without unpicking JSON; free text caps at 240 cells so a
+       column cannot swallow the screen (the JSONL exports stay
+       lossless — this one is for pivots, not archives); embedded
+       newlines/commas survive quoting.
+     - query DSL: `endswith`, `matches` (regex compiled at parse
+       time — the pattern arrives on a command line, so it is
+       attacker-adjacent: bounded at 256 chars, subjects at 4k,
+       bad regex fails loudly at parse), and `in` with a list
+       literal `tools in ('search', 'deploy')` — "did this run
+       ever touch any of these" stops being five `or` clauses;
+       over set fields it means any-of. 12 tests.
