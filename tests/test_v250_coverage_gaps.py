@@ -13,6 +13,7 @@ import hmac
 import json
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from typing import ClassVar
 
 from approximately.recorder import Recorder
 from approximately.spool import _notify_spool, _primary_mode, watch_spool
@@ -20,7 +21,7 @@ from approximately.store import TraceStore
 
 
 class _Capture(BaseHTTPRequestHandler):
-    received = []
+    received: ClassVar[list] = []
 
     def do_POST(self):
         length = int(self.headers.get("Content-Length", 0))
