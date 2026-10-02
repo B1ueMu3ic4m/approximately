@@ -2852,3 +2852,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - `--fail-on-new-modes` turns that fact into an exit 1 a CI
        pipeline can gate on (resolved modes are named too, so a
        fix gets its credit).  7 tests.
+
+289. **v2.41.0 - the MCP server runs the comparison** ✅ (delivered):
+     - `compare` as a tool: baseline/candidate/prices/since/
+       fail_on_new_modes — the CLI gate's exit code surfaced as
+       `ok: false`, prices bridged from a JSON object through a
+       temp table (validated: a string rate is refused).  36
+       tools; docs/mcp-tools.json regenerated; count pins
+       updated.
+     - RECIPES 21: the deploy chapter — compare against the last
+       known good, gate the build, hand off the pack.  6 tests.

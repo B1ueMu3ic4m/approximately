@@ -204,6 +204,32 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "compare",
+        "description": "Baseline vs candidate store: runs, "
+                       "failures, rate and token deltas, priced "
+                       "spend, and the regression signal — failure "
+                       "modes the baseline never showed.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "baseline": {"type": "string",
+                             "description": "reference store "
+                                            "(last known good)"},
+                "candidate": {"type": "string",
+                              "description": "store under test"},
+                "prices": {"type": "object",
+                           "description": "model -> blended $/1k"},
+                "since": {"type": "integer"},
+                "fail_on_new_modes": {"type": "boolean",
+                                      "description": "ok=false when "
+                                                      "the candidate "
+                                                      "shows a new "
+                                                      "mode"},
+            },
+            "required": ["baseline", "candidate"],
+        },
+    },
+    {
         "name": "doctor",
         "description": "Health check of a trace store: corrupt or "
                        "misnamed records, evidence-ledger tamper, "
@@ -1009,6 +1035,57 @@ def _tool_evidence_pack(ctx: ServerContext, args: Dict[str, Any]) -> dict:
         raise KeyError(str(exc)) from exc
 
 
+def _tool_compare(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    """Baseline vs candidate store — the same verdict
+    `approximately compare` prints, as structured data."""
+    import argparse as _argparse
+    import contextlib
+    import io as _io
+
+    from .cli import cmd_compare
+
+    baseline = args.get("baseline")
+    candidate = args.get("candidate")
+    if not baseline or not candidate:
+        raise KeyError("baseline and candidate store paths are "
+                       "required")
+    prices_path = None
+    if args.get("prices") is not None:
+        prices_path = _write_temp_prices(args.get("prices"))
+    ns = _argparse.Namespace(
+        baseline=str(baseline), candidate=str(candidate),
+        prices=prices_path,
+        since=(int(args["since"]) if args.get("since") is not None
+               else None),
+        fail_on_new_modes=bool(args.get("fail_on_new_modes")),
+        json=True)
+    buf = _io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        code = cmd_compare(ns)
+    payload = json.loads(buf.getvalue())
+    payload["ok"] = code == 0
+    return payload
+
+
+_TEMP_PRICES: Dict[str, Any] = {}
+
+
+def _write_temp_prices(table):
+    """The MCP tool takes prices as a JSON object; the CLI door
+    reads a file path — bridge with a temp file."""
+    import tempfile
+
+    if not isinstance(table, dict) or not all(
+            isinstance(v, (int, float)) and v >= 0
+            for v in table.values()):
+        raise KeyError("prices must be a JSON object mapping model "
+                       "to non-negative numbers")
+    path = Path(tempfile.mkstemp(suffix=".json")[1])
+    path.write_text(json.dumps(table), encoding="utf-8")
+    _TEMP_PRICES[str(path)] = True
+    return path
+
+
 def _tool_doctor(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .doctor import doctor
 
@@ -1569,6 +1646,7 @@ _HANDLERS = {
     "survey": _tool_survey,
     "ci_gate": _tool_ci_gate,
     "evidence_pack": _tool_evidence_pack,
+    "compare": _tool_compare,
     "init_gate": _tool_init_gate,
     "query": _tool_query,
     "bisect": _tool_bisect,
