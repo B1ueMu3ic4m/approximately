@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.48.0
+
+- strict-mypy batch three: fleet and exporter join the typed set — 16 more signatures, 12 modules total. no behavior change.
+
 ## v2.47.0
 
 - strict-mypy batch two: query, attributor, cluster and spool join the typed set — the analysis spine reads clean under --disallow-untyped-defs (10 modules total, 31 signatures). no behavior change.

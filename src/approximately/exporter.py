@@ -35,7 +35,7 @@ _CSV_CELL_CAP = 240
 _CSV_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 
 
-def _csv_cell(text) -> str:
+def _csv_cell(text: Any) -> str:
     """CSV cells stay surveyable: cap free text so a spreadsheet
     column cannot swallow the screen (the JSONL exports stay
     lossless — this one is for pivots, not archives).  A cell
@@ -69,7 +69,8 @@ def _content(text: str) -> Any:
     return text if text else ""
 
 
-def _tool_result(name, call_id, text, error) -> Dict[str, Any]:
+def _tool_result(name: Any, call_id: Any, text: Any,
+                 error: Any) -> Dict[str, Any]:
     msg: Dict[str, Any] = {"role": "tool",
                            "name": name or "tool",
                            "content": _content(text)}
@@ -80,7 +81,7 @@ def _tool_result(name, call_id, text, error) -> Dict[str, Any]:
     return msg
 
 
-def _simple_message(step) -> Dict[str, Any]:
+def _simple_message(step: Any) -> Dict[str, Any]:
     if step.kind == OBSERVATION:
         return _tool_result(step.tool, None, step.result, step.error)
     if step.kind == RESPONSE:
@@ -96,7 +97,8 @@ def _simple_message(step) -> Dict[str, Any]:
             "is_error": True}
 
 
-def _emit_call_block(steps, i, total, messages, call_no):
+def _emit_call_block(steps: list, i: int, total: int,
+                     messages: list, call_no: int) -> tuple:
     """Emit one run of adjacent tool_call steps as a single assistant
     message plus its tool results; returns (next index, next number)."""
     block = []
@@ -131,7 +133,7 @@ def _emit_call_block(steps, i, total, messages, call_no):
     return i, call_no
 
 
-def _tool_messages(steps) -> List[Dict[str, Any]]:
+def _tool_messages(steps: list) -> List[Dict[str, Any]]:
     """Invert steps to chat-API messages.  A run of adjacent tool_call
     steps is one assistant message; the observations that follow pair
     with the call ids in order, and any call the observations don't
@@ -177,7 +179,7 @@ def _attr(key: str, value: Any) -> Optional[Dict[str, Any]]:
     return {"key": key, "value": {"stringValue": _cap(value)}}
 
 
-def _attrs(pairs) -> List[Dict[str, Any]]:
+def _attrs(pairs: list) -> List[Dict[str, Any]]:
     out = [a for a in (_attr(k, v) for k, v in pairs) if a is not None]
     # key order for byte-stable output regardless of dict ordering
     return sorted(out, key=lambda a: a["key"])
