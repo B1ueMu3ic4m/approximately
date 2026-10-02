@@ -110,6 +110,36 @@ def render_sparkline(values: Sequence[float], width: int = 220,
     )
 
 
+def render_bars(values: Sequence[float], width: int = 420,
+                height: int = 48, color: str = "#b02a37") -> str:
+    """Inline-SVG bar strip — pure markup, no JS, no CDN.
+
+    Bars make one tall step jump out of a series in a way a table
+    row never does: a token burn is a skyline spike, not a number.
+    """
+    vals = _finite(values)
+    if not vals:
+        return ""
+    hi = max(vals)
+    if hi <= 0 or not math.isfinite(hi):
+        hi = 1.0
+    n = len(vals)
+    slot = width / n
+    bw = max(2.0, slot * 0.62)
+    bars = []
+    for i, v in enumerate(vals):
+        h = max(1.0, (v / hi) * (height - 4))
+        x = i * slot + (slot - bw) / 2
+        y = height - h
+        bars.append(
+            f'<rect x="{x:.1f}" y="{y:.1f}" width="{bw:.1f}" '
+            f'height="{h:.1f}" fill="{color}">'
+            f"<title>{v:g}</title></rect>")
+    return (f'<svg width="{width}" height="{height}" '
+            f'viewBox="0 0 {width} {height}" role="img" '
+            f'aria-label="bar chart">' + "".join(bars) + "</svg>")
+
+
 def theil_sen_slope(values: Sequence[float]) -> float:
     """Robust trend slope: the median of all pairwise slopes.
 
@@ -295,12 +325,15 @@ def _token_card(trace: Trace) -> str:
             f"z={a.robust_z} ({a.direction})</td></tr>"
             for a in anomalies[:6]
         )
+        bars = render_bars([s.tokens for s in trace.steps
+                            if s.kind == "tool_call"])
         return (
             '<div class="card"><h2>Token anomalies</h2>'
             '<p style="margin:4px 0 8px;color:#6c757d;font-size:13px">'
             "Modified z-score over tool-call token counts (median/MAD, "
             "threshold 3.5). A burn step is the receipt a retry loop "
             "leaves behind:</p>"
+            + bars +
             f'<table class="steps"><tr><th>#</th><th>tool</th>'
             f"<th>tokens</th><th>vs median</th></tr>{rows}</table></div>"
         )
