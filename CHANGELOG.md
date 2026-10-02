@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.64.0
+
+- `--version` was lying by a hundred minors: it read the installed distribution's metadata, and a stale site-packages shadowing a 2.x checkout printed 1.14.0. the version is now single-sourced from pyproject.toml — a source checkout reads the file next to the package; installed users fall back to pip's metadata. caught by the module-door pin on its first run. 2 tests.
+
 ## v2.63.0
 
 - `python -m approximately` works: the package gained a `__main__.py`, so the module form and the console script are the same door. a RECIPES command that lied (`doctor traces --fix` — doctor only takes --store) reads --store now. 24 command families smoke-tested end to end through the module form.

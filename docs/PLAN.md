@@ -3078,3 +3078,15 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        store) — doctor only takes `--store`.  The recipe reads
        `--store` now.  24 command families smoke-tested end to
        end through the module form.
+
+313. **v2.64.0 - `--version` was lying by a hundred minors** ✅ (delivered):
+     - The module-door pin caught it on its first run:
+       `approximately --version` printed **1.14.0** — the
+       `__init__` reads the *installed distribution's* metadata,
+       and a months-old site-packages shadowing a 2.x checkout
+       answered with a hundred-minors-old lie.  The version is
+       now single-sourced from pyproject.toml: a source checkout
+       reads the file next to the package (always current);
+       installed users fall back to the metadata pip keeps in
+       sync.  The subprocess pin sets its own PYTHONPATH so it
+       tests THIS tree, not whichever ghost is installed.

@@ -22,13 +22,31 @@ from .recorder import Recorder, agentstep, current_recorder
 from .regress import render_regression
 from .replayer import replay
 from .report import render_html
+import pathlib
+import re
+
 from .store import TraceStore
 from .taxonomy import all_modes, get_mode
 from .trace import Step, Trace
 
 
 def _dist_version() -> str:
-    """Installed distribution version (the single source of truth)."""
+    """The version, single-sourced from pyproject.toml.
+
+    A source checkout reads the pyproject sitting next to the
+    package — an installed distribution's metadata can be months
+    stale (a 1.14.0 site-packages shadowing a 2.x checkout was
+    caught printing exactly that).  Installed users fall back to
+    the distribution metadata, which pip keeps in sync.
+    """
+    candidate = (pathlib.Path(__file__).resolve().parent.parent
+                 .parent / "pyproject.toml")
+    if candidate.is_file():
+        match = re.search(r'^version = "(.+)"$',
+                          candidate.read_text(encoding="utf-8"),
+                          re.MULTILINE)
+        if match:
+            return match.group(1)
     try:
         return _metadata.version("approximately")
     except Exception:
