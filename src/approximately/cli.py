@@ -1264,7 +1264,9 @@ def _fleet_watch(args: argparse.Namespace, stores) -> int:
             alert_spend=(float(args.alert_spend) if
                          getattr(args, "alert_spend", None)
                          else None),
-            prices=_fleet_prices(args))
+            prices=_fleet_prices(args),
+            alert_cooldown=float(getattr(args, "alert_cooldown", 0.0)
+                                 or 0.0) * 60.0)
     except KeyboardInterrupt:
         print("watch stopped")
         return 0
@@ -2781,6 +2783,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--alert-spend", type=float, metavar="USD",
                    help="also alert when a store's estimated spend "
                         "crosses this budget (needs --prices)")
+    p.add_argument("--alert-cooldown", type=float, metavar="MIN",
+                   default=0.0,
+                   help="with --webhook: minutes before the SAME "
+                        "alarm re-pages (a growing reason set pages "
+                        "immediately; 0 = every cycle, the old "
+                        "behavior; default 0)")
     p.add_argument("--prices", metavar="FILE",
                    help="JSON map of model -> blended $/1k; fleet "
                         "cards and --json gain a per-store spend "

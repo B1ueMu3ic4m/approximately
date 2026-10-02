@@ -770,6 +770,32 @@ def render_trend(summary: dict) -> str:
     return "\n".join(lines)
 
 
+def _alert_reasons(summaries, threshold, alert_anomalies,
+                   alert_tokens, alert_spend) -> frozenset:
+    """Per-store alert reasons — the dedup key for cooldown.
+
+    A frozenset of ``name:reason`` strings; an unchanged set inside
+    the cooldown window is the same alarm still ringing, not a new
+    one."""
+    reasons = set()
+    for s in summaries:
+        if s.worsening:
+            reasons.add(f"{s.name}:worsening")
+        if threshold is not None and s.failure_rate >= threshold:
+            reasons.add(f"{s.name}:failure-rate")
+        if alert_anomalies is not None and \
+                getattr(s, "fleet_anomalies", 0) >= alert_anomalies:
+            reasons.add(f"{s.name}:anomalies")
+        if alert_tokens is not None and \
+                getattr(s, "token_anomalies", 0) >= alert_tokens:
+            reasons.add(f"{s.name}:tokens")
+        if alert_spend is not None and \
+                getattr(s, "est_spend", None) is not None and \
+                s.est_spend > alert_spend:
+            reasons.add(f"{s.name}:spend")
+    return frozenset(reasons)
+
+
 def _should_alert(summaries, threshold: Optional[float],
                   alert_anomalies: Optional[int] = None,
                   alert_tokens: Optional[int] = None,
@@ -807,7 +833,9 @@ def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
                 alert_anomalies: Optional[int] = None,
                 alert_tokens: Optional[int] = None,
                 alert_spend: Optional[float] = None,
-                prices: Optional[dict] = None) -> int:
+                prices: Optional[dict] = None,
+                alert_cooldown: float = 0.0,
+                clock=time.monotonic) -> int:
     """Poll the fleet forever (or ``iterations`` times), appending
     snapshots. Returns the number of snapshots written. ``sleep`` is
     injectable so tests run instantly.
@@ -819,6 +847,8 @@ def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
     """
     written = 0
     rotate_digests(digest_dir, keep_days)
+    last_reasons: Optional[frozenset] = None
+    last_alert_at: Optional[float] = None
     for _ in (range(iterations) if iterations is not None
               else iter(int, 1)):
         summaries = survey(stores, top_agents, prices=prices)
@@ -827,11 +857,30 @@ def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
         if webhook_url and _should_alert(summaries, alert_worse_than,
                                          alert_anomalies,
                                          alert_tokens, alert_spend):
-            poster = notify or notify_webhook
-            try:
-                poster(summaries, webhook_url)
-            except Exception as exc:
-                print(f"watch: webhook delivery failed: {exc}",
-                      file=sys.stderr)
+            # cooldown: the SAME alarm ringing every cycle is an
+            # alarm storm, not signal.  Re-pages happen when the
+            # reason set GROWS (a new store degraded, a new gate
+            # tripped) or after the cooldown lapses.
+            reasons = _alert_reasons(summaries, alert_worse_than,
+                                     alert_anomalies, alert_tokens,
+                                     alert_spend)
+            now = clock()
+            grown = bool(reasons - (last_reasons or frozenset()))
+            lapsed = (last_alert_at is None
+                      or now - last_alert_at >= alert_cooldown)
+            # fresh = first page, a GROWN reason set (a new store
+            # degraded, a new gate tripped), or a lapsed cooldown.
+            # Note a threshold-less watch carries an empty reason
+            # set — same empty set is the same alarm, not a new one.
+            fresh = last_reasons is None or grown or lapsed
+            if fresh:
+                poster = notify or notify_webhook
+                try:
+                    poster(summaries, webhook_url)
+                    last_reasons = reasons
+                    last_alert_at = now
+                except Exception as exc:
+                    print(f"watch: webhook delivery failed: {exc}",
+                          file=sys.stderr)
         sleep(interval)
     return written
