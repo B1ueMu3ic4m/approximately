@@ -95,13 +95,13 @@ def _verdict(trend_rows: List[dict]) -> tuple:
     return trend_verdict(rates)
 
 
-def _top_agents(traces, n: int = 3) -> List[dict]:
+def _top_agents(traces: list, n: int = 3) -> List[dict]:
     """Busiest named agents across the store (scorecard order)."""
     return [r for r in agent_scorecard(traces)
             if r["agent"] != UNATTRIBUTED][:n]
 
 
-def _top_failure_modes(traces) -> List[tuple]:
+def _top_failure_modes(traces: list) -> List[tuple]:
     """Attribute every non-success trace with the rule detectors only."""
     modes: dict = {}
     for t in traces:
@@ -303,7 +303,7 @@ def survey(stores: List[Path], top_agents: int = 3,
     return summaries
 
 
-def _spend(traces, total_tokens: int,
+def _spend(traces: list, total_tokens: int,
            prices: Optional[dict]) -> dict:
     """Per-store spend when a prices table is in play (blended $/1k
     per trace model); unpriced tokens are counted, never silently
@@ -815,8 +815,10 @@ def render_trend(summary: dict) -> str:
     return "\n".join(lines)
 
 
-def _alert_reasons(summaries, threshold, alert_anomalies,
-                   alert_tokens, alert_spend) -> frozenset:
+def _alert_reasons(summaries: list, threshold: Optional[float],
+                   alert_anomalies: Optional[int],
+                   alert_tokens: Optional[int],
+                   alert_spend: Optional[float]) -> frozenset:
     """Per-store alert reasons — the dedup key for cooldown.
 
     A frozenset of ``name:reason`` strings; an unchanged set inside
@@ -841,7 +843,7 @@ def _alert_reasons(summaries, threshold, alert_anomalies,
     return frozenset(reasons)
 
 
-def _should_alert(summaries, threshold: Optional[float],
+def _should_alert(summaries: list, threshold: Optional[float],
                   alert_anomalies: Optional[int] = None,
                   alert_tokens: Optional[int] = None,
                   alert_spend: Optional[float] = None) -> bool:
@@ -872,15 +874,17 @@ def _should_alert(summaries, threshold: Optional[float],
 
 def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
                 keep_days: int = 30, iterations: Optional[int] = None,
-                top_agents: int = 3, sleep=time.sleep,
+                top_agents: int = 3,
+                sleep: Any = time.sleep,
                 webhook_url: Optional[str] = None,
-                notify=None, alert_worse_than: Optional[float] = None,
+                notify: Any = None,
+                alert_worse_than: Optional[float] = None,
                 alert_anomalies: Optional[int] = None,
                 alert_tokens: Optional[int] = None,
                 alert_spend: Optional[float] = None,
                 prices: Optional[dict] = None,
                 alert_cooldown: float = 0.0,
-                clock=time.monotonic) -> int:
+                clock: Any = time.monotonic) -> int:
     """Poll the fleet forever (or ``iterations`` times), appending
     snapshots. Returns the number of snapshots written. ``sleep`` is
     injectable so tests run instantly.

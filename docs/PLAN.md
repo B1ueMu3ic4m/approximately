@@ -2955,3 +2955,16 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        `--disallow-untyped-defs`.  Strict total: 10 modules, 31
        signatures.  No behavior change; full suite and every gate
        unchanged.
+
+298. **README audit: all 39 command examples verified** ✅ (recorded):
+     - Every `approximately ...` example in the README smoke-tested
+       against the live parser: doors exist, flags exist
+       (`attribute --sarif` takes a value; `compare
+       --fail-on-new-modes` is real). No drift found.
+
+299. **v2.48.0 - strict-mypy batch three: fleet and exporter** ✅ (delivered):
+     - fleet (14 signatures: _top_agents, _top_failure_modes,
+       _spend, _alert_reasons, _should_alert, watch_fleet and the
+       rest) and exporter (the chat-shape helpers) join the typed
+       set — 16 more signatures, 12 modules total.  No behavior
+       change; full suite and every gate unchanged.
