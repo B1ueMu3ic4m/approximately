@@ -22,7 +22,7 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from .attributor import attribute
 from .cluster import UNATTRIBUTED, agent_scorecard, trend
@@ -557,6 +557,49 @@ def append_digest(digest_dir: Path, snapshot: dict) -> Path:
     with path.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(snapshot, sort_keys=True) + "\n")
     return path
+
+
+def compact_digests(digest_dir: Path, dry_run: bool = False
+                    ) -> Dict[str, Any]:
+    """Collapse each day's snapshot history to its last line.
+
+    A watch appends every cycle; a fleet running at a 10s interval
+    writes 8,640 lines per day, and the trend reader only ever
+    looks at the LAST snapshot per day (trend_days).  Compaction
+    keeps exactly what the trend reads — the day's final state and
+    its snapshot count — and rewrites each day file in place.
+    Today's file is included: the compacted form is what append
+    continues from.  Returns per-file line counts.
+    """
+    report: Dict[str, Any] = {"files": [], "before": 0, "after": 0}
+    for path in sorted(digest_dir.glob("digest-*.jsonl")):
+        lines = [line for line in path.read_text(
+            encoding="utf-8").splitlines() if line.strip()]
+        last = None
+        snapshots = 0
+        for raw in lines:
+            try:
+                snap = json.loads(raw)
+            except json.JSONDecodeError:
+                continue          # torn tail line: same rule as trend_days
+            if isinstance(snap, dict):
+                last = snap
+                snapshots += 1
+        if last is None or snapshots <= 1:
+            continue              # nothing to collapse
+        before = len(lines)
+        kept = dict(last)
+        kept["snapshots"] = snapshots
+        report["files"].append({"file": path.name, "before": before,
+                                "after": 1})
+        report["before"] += before
+        report["after"] += 1
+        if not dry_run:
+            path.write_text(json.dumps(kept, sort_keys=True) + "\n",
+                            encoding="utf-8")
+    report["before"] = report["before"] or sum(
+        f["before"] for f in report["files"])
+    return report
 
 
 def rotate_digests(digest_dir: Path, keep_days: int) -> List[Path]:

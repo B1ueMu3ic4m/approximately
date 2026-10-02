@@ -2912,3 +2912,15 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - Fuzz-rounds section lists rounds 1-19 and their surfaces.
      - One more no-op pin: the per-trace latency and token
        detectors on a truly uniform sample.  1 test.
+
+294. **v2.45.0 - the digest drain** ✅ (delivered):
+     - A watch at a 10-second interval writes 8,640 snapshot lines
+       a day, and the trend reader only ever looks at the LAST
+       snapshot of each day.  `fleet --compact-digests --digest-dir
+       D` collapses each day file to exactly that — the final
+       state plus the day's snapshot count — so the history keeps
+       its meaning while the disk stops filling.  Dry-run honest;
+       torn tail lines follow the trend reader's rule; today's
+       file compacts too and the next append continues from the
+       compacted form.  `fleet`'s store list is now optional (the
+       compaction door needs none).  8 tests.
