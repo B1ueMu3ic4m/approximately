@@ -15,6 +15,8 @@ Label values are escaped per the Prometheus text-exformat rules
 
 from __future__ import annotations
 
+from typing import Any
+
 
 def escape_label(value: str) -> str:
     """Escape a label value per Prometheus text-exposition rules."""
@@ -23,7 +25,7 @@ def escape_label(value: str) -> str:
                  .replace("\n", "\\n"))
 
 
-def render_prometheus(stats, extra_labels: dict | None = None,
+def render_prometheus(stats: "Any", extra_labels: dict | None = None,
                       total_tokens: int | None = None) -> str:
     """Render store statistics as Prometheus text exposition format."""
     labels = ""
@@ -67,20 +69,20 @@ def render_prometheus(stats, extra_labels: dict | None = None,
     return "\n".join(lines)
 
 
-def render_tool_prometheus(rows, extra_labels: dict | None = None) -> str:
+def render_tool_prometheus(rows: list, extra_labels: dict | None = None) -> str:
     """Render per-tool scorecard rows (tool_scorecard output) as
     Prometheus text exposition, with the same label escaping."""
     return _render_entity_prometheus(rows, "tool", extra_labels)
 
 
-def render_agent_prometheus(rows, extra_labels: dict | None = None) -> str:
+def render_agent_prometheus(rows: list, extra_labels: dict | None = None) -> str:
     """Render per-agent scorecard rows (agent_scorecard output) as
     Prometheus text exposition. Agent names are label values and get
     the same escaping as everything else untrusted."""
     return _render_entity_prometheus(rows, "agent", extra_labels)
 
 
-def _render_entity_prometheus(rows, entity: str,
+def _render_entity_prometheus(rows: list, entity: str,
                               extra_labels: dict | None = None) -> str:
     labels = ""
     if extra_labels:

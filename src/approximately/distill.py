@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Iterable, List, Optional
+from typing import Any, Callable, Iterable, List, Optional
 
 from .attributor import attribute
 from .detectors import run_rules
@@ -46,7 +46,7 @@ def rules_labeler(min_confidence: float = 0.7) -> Labeler:
 def teacher_labeler(model: str, base_url: Optional[str] = None,
                     api_key: Optional[str] = None,
                     min_confidence: float = 0.6,
-                    cache_dir=None) -> Labeler:
+                    cache_dir: Optional["Path"] = None) -> Labeler:
     """Label with a strong judge model; None when it is unsure or fails.
 
     ``cache_dir`` feeds the judge disk cache: relabeling a dataset is
@@ -266,7 +266,7 @@ def _set_scores(predicted: set, gold_set: set, tp_set: set) -> dict:
     return {"precision": precision, "recall": recall, "f1": f1}
 
 
-def _finite(value) -> Optional[float]:
+def _finite(value: Any) -> Optional[float]:
     """The floor as a finite float, or None (bools/strings/NaN etc.
     are corruption, not floors — json.loads happily parses NaN)."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):

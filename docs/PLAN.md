@@ -2937,3 +2937,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        themselves, the digests section prints its gaps, a keyed
        record counts locked-not-broken, a two-hour-old lock is
        flagged and then removed by --fix.  5 tests.
+
+296. **v2.46.0 - strict-mypy batch one: six modules fully typed** ✅ (delivered):
+     - The deep audit's verdict: bandit clean even at low severity;
+       xenon's C bar stays (tightening to B means refactoring the
+       eight complex core functions for a metric's sake — recorded
+       as known debt, not paid in risk); mypy-strict had 142
+       errors across the tree — batching begins.
+     - Batch one, fully typed under `--disallow-untyped-defs`:
+       metrics, evidence, curve, align, distill, judge (19
+       signatures).  No behavior change; the full suite and every
+       gate unchanged.
