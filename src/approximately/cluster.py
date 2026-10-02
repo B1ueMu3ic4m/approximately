@@ -12,7 +12,7 @@ to the same MAST mode and their failing steps touch the same tools.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from .attributor import attribute
 from .detectors import args_hash
@@ -203,7 +203,7 @@ def agent_scorecard(traces: Iterable[Trace],
     return sorted(rows, key=lambda r: (-r["steps"], r["agent"]))
 
 
-def _p95(values: List[float]):
+def _p95(values: List[float]) -> Optional[float]:
     """Nearest-rank 95th percentile; None when nothing timed."""
     if not values:
         return None
@@ -268,7 +268,7 @@ def tool_scorecard(traces: Iterable[Trace]) -> List[dict]:
 SPARK_BLOCKS = "▁▂▃▄▅▆▇█"
 
 
-def _clean_value(v) -> float:
+def _clean_value(v: Any) -> float:
     """Non-finite or non-numeric values read as 0 (scale floor)."""
     try:
         f = float(v)
@@ -277,7 +277,7 @@ def _clean_value(v) -> float:
     return f if f == f and abs(f) != float("inf") else 0.0
 
 
-def sparkline(values, width: int = 0) -> str:
+def sparkline(values: Any, width: int = 0) -> str:
     """Unicode-block sparkline for terminal output.
 
     Zero-width or empty input renders as an empty string; constant

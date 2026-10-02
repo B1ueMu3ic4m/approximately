@@ -55,7 +55,7 @@ def _archive(path: Path, done_dir: Path, delete: bool = False) -> str:
     return "archived"
 
 
-def _primary_mode(trace) -> Optional[str]:
+def _primary_mode(trace: Any) -> Optional[str]:
     """Rule-detector attribution of a failed trace (deterministic,
     no network) — the pass report says WHAT landed, not just how
     much.  Best-effort: attribution trouble yields no label."""
@@ -86,7 +86,7 @@ def _notify_spool(store: TraceStore, outcome: Dict[str, Any],
     notify_webhook([], url, payload=body, signing_key=_spool_key())
 
 
-def _spool_key():
+def _spool_key() -> Optional[bytes]:
     import os
 
     key = os.environ.get("APPROXIMATELY_SIGNING_KEY")
@@ -143,13 +143,13 @@ def spool_pass(store: TraceStore, directory: Path,
     return result
 
 
-def watch_spool(store: TraceStore, directory: Path,
+def watch_spool(store: "TraceStore", directory: "Path",
                 interval: float = 60.0, once: bool = False,
                 delete: bool = False, dry_run: bool = False,
                 max_passes: Optional[int] = None,
                 as_json: bool = False,
                 webhook_url: Optional[str] = None,
-                notify=None) -> int:
+                notify: Optional[Any] = None) -> int:
     """``notify(summaries, url)`` is injectable for tests, matching
     the fleet watch's seam."""
     """Run passes until interrupted; exit 1 if any pass ingested a

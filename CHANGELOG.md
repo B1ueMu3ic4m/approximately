@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.47.0
+
+- strict-mypy batch two: query, attributor, cluster and spool join the typed set — the analysis spine reads clean under --disallow-untyped-defs (10 modules total, 31 signatures). no behavior change.
+
 ## v2.46.0
 
 - strict-mypy batch one: metrics, evidence, curve, align, distill and judge are fully typed under --disallow-untyped-defs (19 signatures, no behavior change). the audit's verdict: bandit clean at low severity; xenon's C bar stays as recorded debt.

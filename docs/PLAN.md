@@ -2948,3 +2948,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        metrics, evidence, curve, align, distill, judge (19
        signatures).  No behavior change; the full suite and every
        gate unchanged.
+
+297. **v2.47.0 - strict-mypy batch two: the analysis spine** ✅ (delivered):
+     - query, attributor, cluster, spool join the typed set (12
+       more signatures) — the analysis spine now reads clean under
+       `--disallow-untyped-defs`.  Strict total: 10 modules, 31
+       signatures.  No behavior change; full suite and every gate
+       unchanged.

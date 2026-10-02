@@ -295,7 +295,7 @@ class _Parser:
         return value
 
 
-def _compile_pattern(value: Any):
+def _compile_pattern(value: Any) -> "re.Pattern":
     """`matches` compiles at parse time and fails loudly: the pattern
     arrives on a command line, so it is attacker-adjacent — bounded
     source, bounded subjects, no silent no-match on a bad regex."""
@@ -309,7 +309,8 @@ def _compile_pattern(value: Any):
         raise QueryError(f"bad regex {pattern!r}: {exc}") from None
 
 
-def _comparator(getter, op: str, value: Any) -> Callable:
+def _comparator(getter: Callable, op: str,
+                value: Any) -> Callable:
     if op == "matches":
         rx = _compile_pattern(value)
 

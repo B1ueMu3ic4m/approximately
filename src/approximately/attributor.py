@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from .detectors import Detection, run_rules
 from .judge import JudgeError, judge_trace
@@ -65,7 +65,7 @@ CONFIRM_BONUS = 0.1
 MIN_CONFIDENCE = 0.5
 
 
-def _arbitrate(detections: List, verdict) -> Optional[str]:
+def _arbitrate(detections: List, verdict: Any) -> Optional[str]:
     """Fuse a judge verdict into the rule detections in place.
 
     Agreement boosts the top rule's confidence; disagreement appends the
@@ -130,7 +130,7 @@ def _verdict_summary(failed: bool, meaningful: List) -> tuple:
 
 def attribute(trace: Trace, use_judge: bool = False,
               min_confidence: Optional[float] = None,
-              **judge_kwargs) -> FailureReport:
+              **judge_kwargs: Any) -> FailureReport:
     """Produce a FailureReport for *trace*.
 
     ``use_judge=True`` adds the LLM verdict; when the judge is unavailable
