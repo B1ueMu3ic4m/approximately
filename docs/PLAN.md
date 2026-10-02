@@ -2783,3 +2783,21 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - The README dev-quickstart now ends with the gate loop
        (init → ci), so the path from install to a build that
        fails on regression is one read long.  6 tests.
+
+284. **process incident, on the record** ✅ (recorded):
+     - v2.36.0's commit reached main via a force-push made in
+       error during a compound command (amend ran on main; the
+       push bypassed the PR; the commit message still said
+       v2.35.0).  The content was correct and fully gated — the
+       1585-test suite, ruff/mypy/xenon/bandit, and the Release
+       pipeline all ran on exactly this tree — but the process
+       was wrong: main's history must move through PRs, and a
+       commit's message must describe its content.
+     - Correction protocol, effective immediately: never `--amend`
+       or force-push anything but the current feature branch;
+       never run compound commands that mix branch switches with
+       pushes without re-checking `git branch --show-current`
+       first; every release's tag must point at a merge commit
+       whose message names its version.
+     - This entry is itself the fix made visible: the same
+       mistake, written down, is the one that does not repeat.
