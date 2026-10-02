@@ -135,7 +135,8 @@ class ProseRepeatDetector:
                     return self._detection(i, j, turns)
         return None
 
-    def _detection(self, i: int, j: int, turns: List[str]):
+    def _detection(self, i: int, j: int,
+                   turns: List[str]) -> Any:
         from .detectors import Detection
 
         return Detection(

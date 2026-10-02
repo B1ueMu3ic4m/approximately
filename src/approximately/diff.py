@@ -102,7 +102,7 @@ def _substitution(ida: str, idb: str, sta: str, stb: str) -> Tuple[float, Op]:
     return 0.0, Op.MUTATED
 
 
-def _dp_matrix(toks_a, toks_b):
+def _dp_matrix(toks_a: list, toks_b: list) -> list:
     """Forward Needleman-Wunsch matrix (same scoring as align.align_score)."""
     n, m = len(toks_a), len(toks_b)
     dp = [[0.0] * (m + 1) for _ in range(n + 1)]
@@ -121,7 +121,8 @@ def _dp_matrix(toks_a, toks_b):
     return dp
 
 
-def _traceback(dp, toks_a, toks_b, steps_a, steps_b) -> List[DiffEntry]:
+def _traceback(dp: list, toks_a: list, toks_b: list,
+                steps_a: list, steps_b: list) -> List[DiffEntry]:
     """Walk the optimal path: diagonal, then delete, then insert."""
     entries: List[DiffEntry] = []
     i, j = len(toks_a), len(toks_b)

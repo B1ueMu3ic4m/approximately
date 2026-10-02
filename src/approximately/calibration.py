@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Sequence, Tuple
 
 from .attributor import score_modes
 from .trace import Trace  # noqa: F401 - re-exported type used by callers
@@ -122,7 +122,7 @@ class ConformalModel:
     def target_coverage(self) -> float:
         return 1 - self.alpha
 
-    def prediction_set(self, trace_or_scores) -> Tuple[set, Dict[str, float]]:
+    def prediction_set(self, trace_or_scores: Any) -> Tuple[set, Dict[str, float]]:
         """Modes plausibly responsible, with their calibrated probabilities.
 
         Accepts a Trace (scores computed via ``scores_of``) or a raw score

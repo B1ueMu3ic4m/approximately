@@ -9,7 +9,7 @@ user-controlled is stripped of mermaid-breaking characters.
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from .trace import TOOL_CALL, Trace
 
@@ -23,7 +23,7 @@ def _sanitize(text: str, limit: int = _EXCERPT) -> str:
     return flat[:limit] + ("…" if len(flat) > limit else "")
 
 
-def _step_lines(step, by_step: dict) -> List[str]:
+def _step_lines(step: Any, by_step: dict) -> List[str]:
     """Diagram lines for one step (plus a warning note on failure)."""
     idx = step.index
     if step.kind == TOOL_CALL:
