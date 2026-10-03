@@ -12,6 +12,7 @@ from typing import Any, List, Optional
 from . import __version__
 from .attributor import attribute
 from .demo import run_demo
+from .fleet import _budget_breaches
 from .regress import render_regression
 from .replayer import replay
 from .report import render_html
@@ -1297,6 +1298,10 @@ def _fleet_watch(args: argparse.Namespace, stores: list) -> int:
             alert_spend=(float(args.alert_spend) if
                          getattr(args, "alert_spend", None)
                          else None),
+            alert_budget_breaches=(int(args.alert_budget_breaches)
+                                   if getattr(
+                                       args, "alert_budget_breaches",
+                                       None) is not None else None),
             prices=_fleet_prices(args),
             alert_cooldown=float(getattr(args, "alert_cooldown", 0.0)
                                  or 0.0) * 60.0)
@@ -1969,11 +1974,7 @@ def _ci_gate_rows(traces: list, stats: Any, prices: Optional[dict],
     if ceiling is not None:
         # the live rails stamp their verdict in meta["budget"]; this
         # gate turns a stamped breach into a pipeline-relevant failure
-        breaches = sum(
-            1 for t in traces
-            if isinstance(t.meta, dict)
-            and isinstance(t.meta.get("budget"), dict)
-            and t.meta["budget"].get("exceeded") is True)
+        breaches = _budget_breaches(traces)
         rows.append({"gate": "budget-breaches", "value": breaches,
                      "ceiling": ceiling, "ok": breaches <= ceiling})
     return rows
@@ -3173,6 +3174,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--alert-spend", type=float, metavar="USD",
                    help="also alert when a store's estimated spend "
                         "crosses this budget (needs --prices)")
+    p.add_argument("--alert-budget-breaches", type=int, metavar="N",
+                   help="also alert when a store carries at least N "
+                        "runs stamped as budget breaches by the live "
+                        "rails (use 1 to page on the first)")
     p.add_argument("--compact-digests", action="store_true",
                    help="collapse each day's snapshot history to "
                         "its last line (the trend reader only ever "

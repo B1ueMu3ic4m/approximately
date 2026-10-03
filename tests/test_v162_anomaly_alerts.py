@@ -53,8 +53,13 @@ def test_anomaly_threshold_fires_on_outliers(tmp_path):
 
 
 def test_no_threshold_still_always_fires(tmp_path):
+    # threshold-less watch: the schedule is the signal
     summaries = _summary(_healthy_store(tmp_path).directory)
-    assert _should_alert(summaries, None, alert_anomalies=1) is True
+    assert _should_alert(summaries, None) is True
+    # (v2.72.0 fix: an anomaly threshold WITHOUT a failure threshold
+    # used to page healthy stores every cycle — the rate clause was
+    # `failure_rate >= (None or 0.0)`, always true)
+    assert _should_alert(summaries, None, alert_anomalies=1) is False
 
 
 def test_watch_posts_on_anomaly_spike(tmp_path):

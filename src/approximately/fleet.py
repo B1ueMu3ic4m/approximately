@@ -83,10 +83,23 @@ class StoreSummary:
     total_tokens: int = 0
     est_spend: Optional[float] = None
     spend_unpriced_tokens: int = 0
+    budget_breaches: int = 0
 
     @property
     def worsening(self) -> bool:
         return self.trend_verdict == "worsening"
+
+
+def _budget_breaches(traces: list) -> int:
+    """Runs the live Budget rails stamped as breached.
+
+    The single predicate every surface shares (fleet card, webhook
+    payload, alert reasons, the ci gate's ``--max-budget-breaches``);
+    the non-dict-meta poison guard travels with it."""
+    return sum(1 for t in traces
+               if isinstance(t.meta, dict)
+               and isinstance(t.meta.get("budget"), dict)
+               and t.meta["budget"].get("exceeded") is True)
 
 
 def _verdict(trend_rows: List[dict]) -> tuple:
@@ -146,6 +159,7 @@ def webhook_payload(summaries: List[StoreSummary]) -> dict:
                 "est_spend": getattr(s, "est_spend", None),
                 "spend_unpriced_tokens":
                     getattr(s, "spend_unpriced_tokens", 0),
+                "budget_breaches": getattr(s, "budget_breaches", 0),
                 "top_modes": [
                     {"mode": mode, "count": count}
                     for mode, count in s.top_modes
@@ -298,6 +312,7 @@ def survey(stores: List[Path], top_agents: int = 3,
                 "robust_z": token_flags[0].robust_z,
             },
             total_tokens=total_tokens,
+            budget_breaches=_budget_breaches(traces),
             **_spend(traces, total_tokens, prices),
         ))
     return summaries
@@ -377,6 +392,7 @@ def _store_card(s: StoreSummary) -> str:
             f"<td>{worst_tok['tokens']} tok</td>"
             f"<td>family median {worst_tok['median_tokens']:.0f} · "
             f"z={worst_tok['robust_z']}</td></tr></table>")
+    anomaly_html += _breach_html(s)
     sub = (f'{esc(s.path)} · {s.traces} traces · ledger: '
            f'{ledger_note} · notes: {getattr(s, "annotations", 0)} '
            f'({getattr(s, "annotations_confirmed", 0)} confirmed)')
@@ -401,6 +417,17 @@ def _store_card(s: StoreSummary) -> str:
         "<th>fail-rate</th><th>p95</th></tr>"
         + agents_html + "</table></div>"
     )
+
+
+def _breach_html(s: StoreSummary) -> str:
+    """The budget-breach card row — empty when the store is clean."""
+    breaches = getattr(s, "budget_breaches", 0) or 0
+    if not breaches:
+        return ""
+    return ('<div class="row"><span class="rate bad">'
+            f'{breaches}</span><span class="badge bad">'
+            "budget breach(es) — the live rails stopped these "
+            "runs</span></div>")
 
 
 def _trend_section(summary: dict) -> str:
@@ -818,7 +845,9 @@ def render_trend(summary: dict) -> str:
 def _alert_reasons(summaries: list, threshold: Optional[float],
                    alert_anomalies: Optional[int],
                    alert_tokens: Optional[int],
-                   alert_spend: Optional[float]) -> frozenset:
+                   alert_spend: Optional[float],
+                   alert_budget_breaches: Optional[int] = None
+                   ) -> frozenset:
     """Per-store alert reasons — the dedup key for cooldown.
 
     A frozenset of ``name:reason`` strings; an unchanged set inside
@@ -840,13 +869,17 @@ def _alert_reasons(summaries: list, threshold: Optional[float],
                 getattr(s, "est_spend", None) is not None and \
                 s.est_spend > alert_spend:
             reasons.add(f"{s.name}:spend")
+        if alert_budget_breaches is not None and \
+                getattr(s, "budget_breaches", 0) >= alert_budget_breaches:
+            reasons.add(f"{s.name}:budget-breaches")
     return frozenset(reasons)
 
 
 def _should_alert(summaries: list, threshold: Optional[float],
                   alert_anomalies: Optional[int] = None,
                   alert_tokens: Optional[int] = None,
-                  alert_spend: Optional[float] = None) -> bool:
+                  alert_spend: Optional[float] = None,
+                  alert_budget_breaches: Optional[int] = None) -> bool:
     """Quiet-by-default alerting: post only on signal, not on schedule.
 
     No thresholds: every cycle posts (the schedule is the signal).
@@ -855,20 +888,25 @@ def _should_alert(summaries: list, threshold: Optional[float],
     ``alert_anomalies``/``alert_tokens``/``alert_spend``: also when a
     store carries at least that many fleet latency / token-burn
     outliers, or its estimated spend crosses the budget (needs
-    prices in play — unpriced stores never trip the spend gate).  A
-    healthy fleet must not page anyone.
+    prices in play — unpriced stores never trip the spend gate).
+    ``alert_budget_breaches``: when at least that many runs carry the
+    live rails' stamped breach.  A healthy fleet must not page anyone.
     """
     if threshold is None and alert_anomalies is None \
-            and alert_tokens is None and alert_spend is None:
+            and alert_tokens is None and alert_spend is None \
+            and alert_budget_breaches is None:
         return True
     return any(
-        s.worsening or s.failure_rate >= (threshold or 0.0)
+        s.worsening
+        or (threshold is not None and s.failure_rate >= threshold)
         or (alert_anomalies is not None
             and getattr(s, "fleet_anomalies", 0) >= alert_anomalies)
         or (alert_tokens is not None
             and getattr(s, "token_anomalies", 0) >= alert_tokens)
         or (alert_spend is not None
             and (getattr(s, "est_spend", None) or 0) >= alert_spend)
+        or (alert_budget_breaches is not None
+            and getattr(s, "budget_breaches", 0) >= alert_budget_breaches)
         for s in summaries)
 
 
@@ -882,6 +920,7 @@ def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
                 alert_anomalies: Optional[int] = None,
                 alert_tokens: Optional[int] = None,
                 alert_spend: Optional[float] = None,
+                alert_budget_breaches: Optional[int] = None,
                 prices: Optional[dict] = None,
                 alert_cooldown: float = 0.0,
                 clock: Any = time.monotonic) -> int:
@@ -916,14 +955,16 @@ def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
         last_day_file = day_file
         if webhook_url and _should_alert(summaries, alert_worse_than,
                                          alert_anomalies,
-                                         alert_tokens, alert_spend):
+                                         alert_tokens, alert_spend,
+                                         alert_budget_breaches):
             # cooldown: the SAME alarm ringing every cycle is an
             # alarm storm, not signal.  Re-pages happen when the
             # reason set GROWS (a new store degraded, a new gate
             # tripped) or after the cooldown lapses.
             reasons = _alert_reasons(summaries, alert_worse_than,
                                      alert_anomalies, alert_tokens,
-                                     alert_spend)
+                                     alert_spend,
+                                     alert_budget_breaches)
             now = clock()
             grown = bool(reasons - (last_reasons or frozenset()))
             lapsed = (last_alert_at is None
