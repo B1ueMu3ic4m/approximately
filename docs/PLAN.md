@@ -3090,3 +3090,17 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        installed users fall back to the metadata pip keeps in
        sync.  The subprocess pin sets its own PYTHONPATH so it
        tests THIS tree, not whichever ghost is installed.
+
+314. **v2.65.0 - the Windows RST lesson, on the record** ✅ (delivered):
+     - The webhook-retry pins were flaky on Windows for a real
+       protocol reason: `_Scripted.do_POST` answered 4xx/5xx
+       WITHOUT reading the request body, so the test server's
+       eventual close sent an RST — and on Windows that RST killed
+       the client's NEXT retry attempt (WinError 10053, "connection
+       aborted by your host machine").  Real webhook receivers read
+       the body; the fake now does too, and the pins have been
+       green across the matrix since.
+     - Recorded because it is exactly the kind of knowledge that
+       walks out the door with the person who learned it: an HTTP
+       server that responds before draining the request is not
+       merely impolite — it can murder the client's retry loop.
