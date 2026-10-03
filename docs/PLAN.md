@@ -3333,3 +3333,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        fix-in-place; helpers extracted (xenon).
      - init wires agent-audit.yml (nightly cron, --fix on) beside
        the PR gate; init tests updated for four files.
+
+341. **v2.92.0 - one participant's trajectory** (planned):
+     - align.tokens/rank_similar/similar_payload gain agent=; the
+       filter keeps only that agent's tool steps (unattributed
+       steps never match a named filter).
+     - `similar --agent` CLI + MCP schema + mcp-tools.json.
+     - A variable-reuse incident wrote cli content over align.py
+       mid-round; caught by import, reverted from git, re-applied
+       atomically with per-edit anchors. No main-branch impact.
