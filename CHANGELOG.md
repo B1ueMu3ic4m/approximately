@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.65.0
+
+- the Windows RST lesson, on the record: the test webhook answered 4xx/5xx without reading the request body, so its close sent an RST that killed the client's next retry (WinError 10053). the fake now drains the body like a real receiver. docs-only; the fix itself rode v2.64.0.
+
 ## v2.64.0
 
 - `--version` was lying by a hundred minors: it read the installed distribution's metadata, and a stale site-packages shadowing a 2.x checkout printed 1.14.0. the version is now single-sourced from pyproject.toml — a source checkout reads the file next to the package; installed users fall back to pip's metadata. caught by the module-door pin on its first run. 2 tests.
