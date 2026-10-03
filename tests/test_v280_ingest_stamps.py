@@ -94,8 +94,6 @@ def test_stamp_survives_a_json_roundtrip(tmp_path):
     store = _seeded(tmp_path / "x")
     trace = next(t for t in store.list_traces()
                  if stamped_breach(t.meta))
-    revived = TraceStore.from_dict(trace.to_dict()) \
-        if hasattr(TraceStore, "from_dict") else None
     from approximately.trace import Trace
     clone = Trace.from_dict(json.loads(json.dumps(
         trace.to_dict())))
