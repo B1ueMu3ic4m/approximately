@@ -1391,15 +1391,54 @@ def _fleet_trend(args: argparse.Namespace) -> int:
             return 1
         return 0
     summary = summarize_trend(days)
+    ceiling = getattr(args, "spend_ceiling", None)
+    forecast = None
+    if ceiling is not None:
+        from .forecast import forecast_spend
+
+        forecast = forecast_spend(summary["days"],
+                                  ceiling=float(ceiling))
+        summary["spend_forecast"] = forecast
     if getattr(args, "json", False):
         print(json.dumps(summary, indent=2))
     else:
         print(render_trend(summary))
+        if forecast:
+            _print_spend_forecast(forecast)
     if getattr(args, "fail_on_worsening", False) \
             and summary["verdict"] == "worsening":
         print("fleet trend is worsening", file=sys.stderr)
         return 1
+    if forecast and forecast.get("days_to_ceiling") == 0:
+        print(f"spend ceiling ${ceiling:,.2f} already exceeded",
+              file=sys.stderr)
+        return 1
     return 0
+
+
+def _print_spend_forecast(forecast: dict) -> None:
+    """Prose for the spend forecast — refusals included, honestly."""
+    if not forecast.get("usable"):
+        print(f"  spend forecast: refuses to guess "
+              f"({forecast.get('reason')})")
+        return
+    line = (f"  spend forecast: latest ${forecast['latest']:,.2f}, "
+            f"slope ${forecast['slope']:+,.2f}/day "
+            f"({forecast['verdict']})")
+    ceiling = forecast.get("ceiling")
+    if forecast.get("days_to_ceiling") is not None:
+        days = forecast["days_to_ceiling"]
+        line += (f" — ceiling ${ceiling:,.2f} "
+                 + ("ALREADY EXCEEDED" if days == 0
+                    else f"reached in ~{days} day(s) at this trend"))
+    elif ceiling is not None:
+        line += " — ceiling never reached at this trend"
+    print(line)
+    end = forecast["projection"][-1] if forecast["projection"] else None
+    if end:
+        print(f"  projected {end['day']}: ${end['est_spend']:,.2f} "
+              "(linear extrapolation; it cannot see your next "
+              "deploy)")
 
 
 def _fleet_prices(args: argparse.Namespace) -> Any:
@@ -3309,6 +3348,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--trend", action="store_true",
                    help="summarize the digest history in --digest-dir: "
                         "per-day fleet state, sparkline, verdict")
+    p.add_argument("--spend-ceiling", type=float, metavar="USD",
+                   help="with --trend: project the daily spend forward "
+                        "and report days until the ceiling (exit 1 when "
+                        "already exceeded; linear extrapolation of the "
+                        "Theil-Sen slope — it cannot see your next "
+                        "deploy)")
     p.add_argument("--top-agents", type=int, default=3, metavar="N",
                    help="busiest named agents kept per store in "
                         "digest snapshots and dashboards (default 3; "

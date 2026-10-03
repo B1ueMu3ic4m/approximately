@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.87.0
+
+- the trend says which way; the forecast says what that means in days: `fleet --trend --spend-ceiling USD` projects the daily spend series forward (Theil-Sen slope, horizon projection floored at zero) and reports days until the ceiling — 0 and exit 1 when already over, `None` when the trend never gets there, and a forecast that refuses to guess on one day of history. honestly labeled: linear extrapolation of a robust slope, blind to your next deploy.
+
 ## v2.86.0
 
 - the stamp reaches the scrapers and the spreadsheets: Prometheus entity renderings gain `approximately_{tool,agent}_breached_traces_total` beside `failed_traces` (both scorecards count breached runs the entity touched), and CSV export gains a `budget_breached` column per step row — a spreadsheet filters the burn without unpacking JSON. position-based CSV pins moved for the new column; the injection defense is pinned unchanged.
