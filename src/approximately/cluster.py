@@ -16,6 +16,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from .attributor import attribute
 from .detectors import args_hash
+from .store import stamped_breach
 from .taxonomy import OTHER
 from .trace import TOOL_CALL, Trace
 
@@ -165,6 +166,7 @@ def agent_scorecard(traces: Iterable[Trace],
             row = per.setdefault(name, {
                 "trace_ids": set(), "steps": 0, "tool_calls": 0,
                 "tokens": 0, "errors": 0, "failed_ids": set(),
+                "breached_ids": set(),
                 "latencies": [], "token_samples": [],
             })
             row["trace_ids"].add(trace.id)
@@ -176,6 +178,8 @@ def agent_scorecard(traces: Iterable[Trace],
                 row["latencies"].append(float(step.latency_ms))
             if step.tokens:
                 row["token_samples"].append(float(step.tokens))
+            if stamped_breach(trace.meta):
+                row["breached_ids"].add(trace.id)
             if failed:
                 row["failed_ids"].add(trace.id)
     rows = []
@@ -192,6 +196,7 @@ def agent_scorecard(traces: Iterable[Trace],
             "tokens": row["tokens"],
             "errors": row["errors"],
             "failed_traces": failed_n,
+            "breached_traces": len(row["breached_ids"]),
             "failure_rate": round(failed_n / touched, 3) if touched
                             else 0.0,
             "p95_ms": round(p95_ms, 1) if p95_ms is not None else None,

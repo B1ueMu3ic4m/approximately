@@ -183,9 +183,11 @@ def webhook_payload(summaries: List[StoreSummary]) -> dict:
                     for mode, count in s.top_modes
                 ],
                 "top_agents": [
-                    {k: r[k] for k in ("agent", "steps", "tool_calls",
-                                       "errors", "tokens", "failed_traces",
-                                       "failure_rate")}
+                    {k: r.get(k) for k in ("agent", "steps",
+                                           "tool_calls", "errors",
+                                           "tokens", "failed_traces",
+                                           "failure_rate", "p95_ms",
+                                           "breached_traces")}
                     for r in s.top_agents
                 ],
             }

@@ -92,6 +92,8 @@ def build_store_packs(store: Any, out_dir: Path,
     plus an ``index.json`` naming each pack and its chain verdict.
     Empty stores raise — an archive of nothing is a mistake.
     """
+    from .store import stamped_breach
+
     traces = store.list_traces()
     if not traces:
         raise ValueError("store is empty: no runs to pack")
@@ -106,6 +108,7 @@ def build_store_packs(store: Any, out_dir: Path,
             "task": trace.task,
             "verdict": manifest["verdict"],
             "chain": manifest["chain"]["verdict"],
+            "budget_breached": stamped_breach(trace.meta),
             "pack": pack_path.name,
             "sha256": hashlib.sha256(pack_path.read_bytes())
                       .hexdigest(),

@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.84.0
+
+- the last two readers of the stamp: the agent scorecard gains `breached_traces` (parallel to failed_traces — a run the live rails stopped is a fact about every agent who touched it, the unattributed steps included), and `evidence --all`'s archive index carries `budget_breached` per trace, so a reviewer opening the offboarding archive sees which runs came home over budget without unpacking a single zip. webhook top-agent rows carry the column too.
+
 ## v2.83.0
 
 - the breach count learns to trend: digest day-rows carried each store's budget_breaches since v2.72 and the trend section finally reads them — a Theil-Sen breach_trend verdict, a sparkline, and a day-table column, so "is the fleet burning more or less over time?" is a glance. the perf wall's two flaky-tonight budgets get the Night V remedy (spool 5s→8s, clean 2s→4s — Windows shared-runner variance, both green on rerun).

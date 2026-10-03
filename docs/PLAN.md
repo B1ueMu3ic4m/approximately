@@ -3274,3 +3274,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        section gate and row generator now tolerate partial rows).
      - perf budgets widened after tonight's two Windows flakes:
        spool 5s->8s, clean 2s->4s (ci-gate precedent).
+
+333. **v2.84.0 - the last two readers of the stamp** (planned):
+     - agent_scorecard gains breached_traces (set semantics parallel
+       to failed_traces; run-level fact for every participant).
+     - build_store_packs index carries budget_breached per trace.
+     - webhook top_agents rows gain the column (and p95_ms, which
+       the tuple had silently dropped).
