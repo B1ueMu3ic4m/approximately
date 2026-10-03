@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.71.0
+
+- the gate speaks junit: `ci --format junit` renders the gate rows as native CI annotations — one testcase per gate, a <failure> element per breach, and config refusals become <error> testcases so GitHub Actions and GitLab show WHY the gate refused. exit codes never move. plus `--max-budget-breaches N`: the live Budget rails' stamped verdict becomes a pipeline-relevant ceiling; runs with no rails at all never count against the gate.
+
 ## v2.70.0
 
 - the breaker inside the run: Recorder gains a live Budget — token and dollar ceilings enforced DURING recording (the `ci` gate settles after; this stops the burn). three modes: stamp (record the breach, the default), warn (stderr once per ceiling), raise (BudgetExceededError from the charging call, offending step already on the record). unpriced models never silently count as $0 — they ride in unpriced_tokens. the exit stamp lands before signing, so the signature covers the verdict.

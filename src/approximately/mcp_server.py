@@ -129,6 +129,10 @@ _TOOLS: List[Dict[str, Any]] = [
                 "max_tokens": {"type": "integer"},
                 "max_spend": {"type": "number",
                               "description": "USD; needs prices"},
+                "max_budget_breaches": {"type": "integer",
+                                        "description": "fail when more "
+                                        "than N runs carry a stamped "
+                                        "budget breach"},
                 "prices": {"type": "object",
                            "description": "model -> blended $/1k"},
                 "min_traces": {"type": "integer"},
@@ -914,7 +918,8 @@ def _tool_ci_gate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     ceilings = [args.get(k) for k in ("max_failure_rate",
                                       "max_avg_latency_ms",
                                       "max_p95_latency_ms",
-                                      "max_tokens", "max_spend")]
+                                      "max_tokens", "max_spend",
+                                      "max_budget_breaches")]
     if not traces:
         raise KeyError("store is empty: no runs to gate")
     prices = None

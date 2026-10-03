@@ -1965,6 +1965,17 @@ def _ci_gate_rows(traces: list, stats: Any, prices: Optional[dict],
                      "ceiling": budget,
                      "unpriced_tokens": unpriced,
                      "ok": spent <= budget and unpriced == 0})
+    ceiling = getattr(args, "max_budget_breaches", None)
+    if ceiling is not None:
+        # the live rails stamp their verdict in meta["budget"]; this
+        # gate turns a stamped breach into a pipeline-relevant failure
+        breaches = sum(
+            1 for t in traces
+            if isinstance(t.meta, dict)
+            and isinstance(t.meta.get("budget"), dict)
+            and t.meta["budget"].get("exceeded") is True)
+        rows.append({"gate": "budget-breaches", "value": breaches,
+                     "ceiling": ceiling, "ok": breaches <= ceiling})
     return rows
 
 
@@ -1978,34 +1989,95 @@ def _ci_show(rows: list) -> None:
               f"  (ceiling {r['ceiling']:,})")
 
 
+def _ci_junit(rows: list, store: Any, count: int) -> str:
+    """JUnit XML for the gate rows — one testcase per gate, a
+    <failure> element per breach — so GitHub Actions and GitLab render
+    the verdict natively instead of as a wall of text."""
+    import xml.etree.ElementTree as ET  # nosec B405 - build-only
+
+    suites = ET.Element("testsuites", {"name": "approximately-ci"})
+    suite = ET.SubElement(suites, "testsuite", {
+        "name": f"ci gates over {count} traces ({store.directory})",
+        "tests": str(len(rows)),
+        "failures": str(sum(1 for r in rows if not r["ok"]))})
+    for r in rows:
+        tc = ET.SubElement(suite, "testcase",
+                           {"name": r["gate"],
+                            "classname": "approximately.ci"})
+        if not r["ok"]:
+            msg = (f"{r['gate']}: measured {r['value']} vs "
+                   f"ceiling {r['ceiling']}")
+            ET.SubElement(tc, "failure",
+                          {"message": msg,
+                           "type": "gate-breach"}).text = msg
+    return (ET.tostring(suites, encoding="utf-8",
+                        xml_declaration=True).decode("utf-8"))
+
+
+def _ci_junit_error(reason: str) -> str:
+    """JUnit XML for a config-level refusal (exit 2): one errored
+    testcase, so the CI system shows WHY the gate refused."""
+    import xml.etree.ElementTree as ET  # nosec B405 - build-only
+
+    suites = ET.Element("testsuites", {"name": "approximately-ci"})
+    suite = ET.SubElement(suites, "testsuite",
+                          {"name": "ci gate refused", "tests": "1",
+                           "errors": "1"})
+    tc = ET.SubElement(suite, "testcase",
+                       {"name": "gate-configuration",
+                        "classname": "approximately.ci"})
+    ET.SubElement(tc, "error",
+                  {"message": reason, "type": "config-error"}).text = reason
+    return (ET.tostring(suites, encoding="utf-8",
+                        xml_declaration=True).decode("utf-8"))
+
+
 def cmd_ci(args: argparse.Namespace) -> int:
     """The quality-gate door: compose ceilings over the store into
     one verdict a pipeline can gate on.  Exit 0 pass, 1 breach,
     2 configuration error or empty store."""
     from .cluster import store_stats
 
+    # explicit --format wins; bare --json stays a working shortcut
+    fmt = (getattr(args, "format", None)
+           or ("json" if getattr(args, "json", False) else "text"))
     ceilings = [getattr(args, name, None) for name in
                 ("max_failure_rate", "max_avg_latency_ms",
-                 "max_p95_latency_ms", "max_tokens", "max_spend")]
+                 "max_p95_latency_ms", "max_tokens", "max_spend",
+                 "max_budget_breaches")]
     if all(c is None for c in ceilings):
-        print("error: no ceilings configured — pass at least one of "
-              "--max-failure-rate, --max-avg-latency-ms, "
-              "--max-p95-latency-ms, --max-tokens, --max-spend",
-              file=sys.stderr)
+        reason = ("no ceilings configured — pass at least one of "
+                  "--max-failure-rate, --max-avg-latency-ms, "
+                  "--max-p95-latency-ms, --max-tokens, --max-spend, "
+                  "--max-budget-breaches")
+        if fmt == "junit":
+            print(_ci_junit_error(reason))
+            return 2
+        print(f"error: {reason}", file=sys.stderr)
         return 2
     store = TraceStore(args.store)
     traces = store.list_traces(since_days=getattr(args, "since", None))
     if not traces:
-        print(f"error: store {args.store} is empty: no runs to gate",
-              file=sys.stderr)
+        reason = f"store {args.store} is empty: no runs to gate"
+        if fmt == "junit":
+            print(_ci_junit_error(reason))
+            return 2
+        print(f"error: {reason}", file=sys.stderr)
         return 2
     prices = _load_prices(getattr(args, "prices", None))
     if getattr(args, "max_spend", None) is not None and not prices:
-        print("error: --max-spend needs --prices", file=sys.stderr)
+        reason = "--max-spend needs --prices"
+        if fmt == "junit":
+            print(_ci_junit_error(reason))
+            return 2
+        print(f"error: {reason}", file=sys.stderr)
         return 2
     rows = _ci_gate_rows(traces, store_stats(traces), prices, args)
     failed = [r for r in rows if not r["ok"]]
-    if getattr(args, "json", False):
+    if fmt == "junit":
+        print(_ci_junit(rows, store, len(traces)))
+        return 1 if failed else 0
+    if fmt == "json":
         print(json.dumps({"store": str(store.directory),
                           "traces": len(traces), "ok": not failed,
                           "gates": rows}, indent=2))
@@ -3252,10 +3324,20 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--min-traces", type=int, metavar="N",
                    help="fail when fewer than N runs are recorded "
                         "(default 1)")
+    p.add_argument("--max-budget-breaches", type=int, metavar="N",
+                   help="fail when more than N runs carry a stamped "
+                        "budget breach (the live Budget rails stamp "
+                        "meta[\"budget\"] as they stop the burn)")
     p.add_argument("--since", type=int, metavar="DAYS",
                    help="gate only runs from the last N days")
     p.add_argument("--json", action="store_true",
                    help="emit machine-readable JSON instead of prose")
+    p.add_argument("--format", choices=("text", "json", "junit"),
+                   default=None,
+                   help="output shape: text (default), json, or junit "
+                        "XML that GitHub Actions / GitLab render "
+                        "natively; --json is a shortcut for "
+                        "--format json")
     p.set_defaults(func=cmd_ci)
 
     p = sub.add_parser("init", parents=[common],
