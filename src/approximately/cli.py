@@ -2173,6 +2173,45 @@ def cmd_ci(args: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
+def cmd_budget(args: argparse.Namespace) -> int:
+    """Replay a recorded run against rails it did not have: where
+    would this ceiling have stopped it, and how much would that
+    have saved?  The sizing door for arming rails on new agents."""
+    from .budget import simulate
+
+    store = TraceStore(args.store)
+    trace = store.load(args.trace)
+    if trace is None:
+        print(f"error: no trace {args.trace!r} in {args.store}",
+              file=sys.stderr)
+        return 2
+    prices = _load_prices(getattr(args, "prices", None))
+    if getattr(args, "usd", None) is not None and not prices:
+        print("error: --usd needs --prices", file=sys.stderr)
+        return 2
+    tokens = getattr(args, "tokens", None)
+    usd = getattr(args, "usd", None)
+    if tokens is None and usd is None:
+        print("error: pass --tokens and/or --usd (with --prices)",
+              file=sys.stderr)
+        return 2
+    result = simulate(trace, tokens=tokens, usd=usd, prices=prices)
+    if getattr(args, "json", False):
+        print(json.dumps(result, indent=2))
+        return 0
+    if result["would_trip"]:
+        line = (f"would trip at step {result['trip_step']} — "
+                f"saving {result['saved_tokens']:,} tokens")
+        if result["saved_usd"]:
+            line += f" and ${result['saved_usd']:,.4f}"
+        print(line)
+    else:
+        print("would not trip: this ceiling never catches this run")
+    print(f"  recorded: {result['recorded_tokens']:,} tokens across "
+          f"tool steps")
+    return 0
+
+
 def cmd_init(args: argparse.Namespace) -> int:
     """Wire the CI quality gate into the current repo."""
     from .scaffold import init_scaffold
@@ -3495,6 +3534,20 @@ def build_parser() -> argparse.ArgumentParser:
                         "(cat >> $GITHUB_STEP_SUMMARY); --json is a "
                         "shortcut for --format json")
     p.set_defaults(func=cmd_ci)
+
+    p = sub.add_parser("budget", parents=[common],
+                       help="replay a recorded run against rails it "
+                            "did not have: trip step + savings")
+    p.add_argument("trace", help="trace id (or .json path)")
+    p.add_argument("--tokens", type=int, metavar="N",
+                   help="hypothetical token ceiling")
+    p.add_argument("--usd", type=float, metavar="USD",
+                   help="hypothetical dollar ceiling (needs --prices)")
+    p.add_argument("--prices", metavar="FILE",
+                   help="model -> blended $/1k JSON table")
+    p.add_argument("--json", action="store_true",
+                   help="emit the simulation as JSON")
+    p.set_defaults(func=cmd_budget)
 
     p = sub.add_parser("init", parents=[common],
                        help="wire the CI quality gate into this repo "

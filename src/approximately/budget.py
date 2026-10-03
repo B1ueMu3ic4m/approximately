@@ -217,3 +217,49 @@ class Budget:
             kind = reasons[0]
         raise BudgetExceededError(kind, self._limit_of(kind),
                                   self._spent_of(kind))
+
+
+def simulate(trace: Any, tokens: Optional[int] = None,
+             usd: Optional[float] = None,
+             prices: Optional[Dict[str, float]] = None
+             ) -> Dict[str, Any]:
+    """Replay a recorded run against rails it did not have.
+
+    Sizing question: "had this ceiling been armed, where would the
+    run have stopped?"  Walks the recorded tool steps, charging each
+    into a fresh Budget, and reports the first step that trips it —
+    or that no ceiling in this configuration would have.  Savings
+    are measured from the trip point to the run's recorded end
+    (tokens the run burned after the step where it should have
+    died); for runs that never trip, both savings are 0.
+    """
+    rails = Budget(tokens=tokens, usd=usd, prices=prices,
+                   on_exceed="raise")
+    steps = [s for s in trace.steps if s.kind == "tool_call"]
+    total = sum(s.tokens or 0 for s in steps)
+    saved_tokens = 0
+    tripped_at = None
+    for step in steps:
+        try:
+            rails.charge(tokens=step.tokens or 0, model=trace.model)
+        except BudgetExceededError:
+            tripped_at = step.index
+            saved_tokens = total - sum(
+                s.tokens or 0 for s in steps
+                if s.index <= step.index)
+            break
+    saved_usd = 0.0
+    if tripped_at is not None and prices and trace.model in prices:
+        after = [s for s in steps if s.index > tripped_at]
+        saved_usd = round(sum(s.tokens or 0 for s in after)
+                          / 1000 * prices[trace.model], 4)
+    return {
+        "trace_id": trace.id,
+        "would_trip": tripped_at is not None,
+        "trip_step": tripped_at,
+        "limit_tokens": tokens,
+        "limit_usd": usd,
+        "recorded_tokens": total,
+        "saved_tokens": saved_tokens,
+        "saved_usd": saved_usd,
+    }
