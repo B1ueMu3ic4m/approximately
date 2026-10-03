@@ -3119,3 +3119,26 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        banner counts are re-checked whenever a tool or a test
        wave lands (the docs-health gate already catches the
        harder drifts; this was the soft one).
+
+317. **v2.68.0 - the night's ledger, closed** ✅ (delivered):
+     - Night V final account: v2.23.0 → v2.67.0, 55 releases, every
+       one through branch → PR → 22-check CI → squash → autotag →
+       Release assets (three spot-checked HTTP 200).
+     - Real bugs fixed: `--version` lying by a hundred minors
+       (stale shadow install metadata), `python -m approximately`
+       dead (no `__main__.py`), the fleet trend's never-rendering
+       failure-rate curve (wrong day-row key), MAD == 0 detector
+       blindness (four meters), the non-dict-meta poison trace
+       (six reads across four modules), CSV formula injection,
+       compare's empty-store hole, the unread-body RST that
+       murdered Windows webhook retries.
+     - Capabilities shipped: the `ci` quality gate, `compare`,
+       `evidence` (+`--all`, `--verify`), `init`, retention by
+       count, deep doctor, the digest drain, alert cooldown,
+       webhook retry, CSV export, three query operators, p95
+       scorecards, 18 perf gates, strict mypy tree-wide and
+       enforced in CI.
+     - Final state: main == v2.67.0, main CI success, double
+       suite 1646×2 with no flakes, 18 perf gates + bench green,
+       ruff/mypy-strict/xenon/bandit clean, v2 tags 102 ↔
+       releases 102.
