@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.90.0
+
+- the composed nightly door: `approximately audit` — doctor (optionally `--fix`/`--deep`), the quality gate over the store, and with `--digest-dir` the fleet trend plus the `--spend-ceiling` forecast — one report (prose or `--json`), one exit code (0 quiet, 1 any finding, 2 refusal). what a 3am cron runs instead of four commands and a shell script. the forecast-input lesson (entries vs summarized rows) now has a comment in its third fix site.
+
 ## v2.89.0
 
 - the analytics become agent-callable: `budget_sim` (the sizing door — trip step and savings against hypothetical ceilings, prices/ceiling validation mirroring the CLI) and `spend_forecast` (days-to-ceiling over the digest history) join the MCP surface — 38 tools. the forecast handler reads the summarized day-rows, not the raw entries; README banner counts and docs/mcp-tools.json follow. local ruff upgraded to CI's era after tonight's lint drift.

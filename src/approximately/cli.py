@@ -2173,6 +2173,114 @@ def cmd_ci(args: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
+def cmd_audit(args: argparse.Namespace) -> int:
+    """The composed nightly door: doctor, the quality gate, and the
+    trend+spend forecast in one report with one exit code — the
+    thing a cron runs at 3am instead of four commands and a script.
+    Exit 0 everything quiet, 1 any finding, 2 refusal."""
+    from .cluster import store_stats
+    from .doctor import doctor as doctor_run
+    from .doctor import fix_hygiene, quarantine_corrupt
+
+    store_dir = Path(args.store)
+    store = TraceStore(store_dir)
+    traces = store.list_traces(since_days=getattr(args, "since",
+                                                  None))
+    if not traces:
+        print(f"error: store {args.store} is empty: an audit of "
+              "nothing proves nothing", file=sys.stderr)
+        return 2
+    report: dict = {"store": str(store_dir), "ok": True}
+
+    doc = doctor_run(store_dir, deep=bool(getattr(args, "deep",
+                                                   False)))
+    if getattr(args, "fix", False):
+        removed = fix_hygiene(store_dir, doc)
+        doc.stale_locks = [n for n in doc.stale_locks
+                           if n not in removed]
+        doc.temp_files = [n for n in doc.temp_files
+                          if n not in removed]
+        moved = quarantine_corrupt(store_dir, doc)
+        doc.corrupt = [n for n in doc.corrupt if n not in moved]
+        doc.quarantined = moved
+    report["doctor"] = {"healthy": doc.healthy,
+                        "corrupt": doc.corrupt,
+                        "quarantined": doc.quarantined,
+                        "chain_failed": doc.chain_failed,
+                        "ledger_intact": doc.ledger_intact}
+    report["ok"] = report["ok"] and doc.healthy
+
+    prices = _load_prices(getattr(args, "prices", None))
+    if getattr(args, "max_spend", None) is not None and not prices:
+        print("error: --max-spend needs --prices", file=sys.stderr)
+        return 2
+    rows = _ci_gate_rows(traces, store_stats(traces), prices, args)
+    failed = [r for r in rows if not r["ok"]]
+    report["gate"] = {"ok": not failed, "gates": rows}
+    report["ok"] = report["ok"] and not failed
+
+    _audit_digest(args, report)
+
+    if getattr(args, "json", False):
+        print(json.dumps(report, indent=2))
+    else:
+        _print_audit(report, len(traces))
+    return 0 if report["ok"] else 1
+
+
+def _audit_digest(args: argparse.Namespace, report: dict) -> None:
+    """Trend + spend-forecast section of the audit (optional)."""
+    digest_dir = getattr(args, "digest_dir", None)
+    if not digest_dir or not Path(digest_dir).is_dir():
+        return
+    from .fleet import summarize_trend, trend_days
+    from .forecast import forecast_spend
+
+    trend = summarize_trend(trend_days(Path(digest_dir)))
+    report["trend"] = {"verdict": trend["verdict"],
+                       "slope": trend["slope"]}
+    if trend["verdict"] == "worsening" and getattr(
+            args, "fail_on_worsening", False):
+        report["ok"] = False
+    ceiling = getattr(args, "spend_ceiling", None)
+    if ceiling is None:
+        return
+    # the forecast reads the summarized day-rows — the raw
+    # trend_days entries carry no est_spend (third time this
+    # lesson has been learned; now it is a comment)
+    fc = forecast_spend(trend["days"], ceiling=float(ceiling))
+    report["forecast"] = fc
+    if fc.get("days_to_ceiling") == 0:
+        report["ok"] = False
+
+
+def _print_audit(report: dict, trace_count: int) -> None:
+    """Prose for the audit report — each component on its own line."""
+    print(f"  audit over {trace_count} traces ({report['store']})")
+    doc_ok = report["doctor"]["healthy"]
+    print(f"  doctor:    {'healthy' if doc_ok else 'FINDINGS'}")
+    gate = report["gate"]
+    gate_line = "all passed" if gate["ok"] else \
+        f"{len([g for g in gate['gates'] if not g['ok']])} breached"
+    print(f"  gate:      {gate_line}")
+    if "trend" in report:
+        print(f"  trend:     {report['trend']['verdict']} "
+              f"(slope {report['trend']['slope']:+.4f}/day)")
+    if "forecast" in report:
+        fc = report["forecast"]
+        if fc.get("usable"):
+            left = fc.get("days_to_ceiling")
+            if left:
+                line = f"  forecast:  ceiling reached in ~{left} day(s)"
+            elif left is None:
+                line = "  forecast:  ceiling not reached at this trend"
+            else:
+                line = "  forecast:  CEILING ALREADY EXCEEDED"
+            print(line)
+    print("  verdict:   "
+          + ("quiet" if report["ok"] else "FINDINGS - see above"))
+
+
 def cmd_budget(args: argparse.Namespace) -> int:
     """Replay a recorded run against rails it did not have: where
     would this ceiling have stopped it, and how much would that
@@ -3534,6 +3642,48 @@ def build_parser() -> argparse.ArgumentParser:
                         "(cat >> $GITHUB_STEP_SUMMARY); --json is a "
                         "shortcut for --format json")
     p.set_defaults(func=cmd_ci)
+
+    p = sub.add_parser("audit", parents=[common],
+                       help="composed nightly door: doctor + "
+                            "quality gate + trend/forecast in one "
+                            "report with one exit code")
+    p.add_argument("--digest-dir", metavar="DIR",
+                   help="also audit the fleet trend and, with "
+                        "--spend-ceiling, the spend forecast")
+    p.add_argument("--spend-ceiling", type=float, metavar="USD",
+                   help="audit fails when the spend forecast says "
+                        "the ceiling is already exceeded")
+    p.add_argument("--deep", action="store_true",
+                   help="recompute every record's integrity chain")
+    p.add_argument("--fix", action="store_true",
+                   help="repair while auditing: hygiene removed, "
+                        "corrupt records quarantined")
+    p.add_argument("--fail-on-worsening", action="store_true",
+                   help="audit fails when the fleet trend verdict "
+                        "is worsening")
+    for flag, kind, meta, hlp in (
+            ("--max-failure-rate", float, "RATE",
+             "gate: fail above this failure rate"),
+            ("--max-avg-latency-ms", float, "MS",
+             "gate: fail above this mean step latency"),
+            ("--max-p95-latency-ms", float, "MS",
+             "gate: fail above this p95 step latency"),
+            ("--max-tokens", int, "N",
+             "gate: fail above this token total"),
+            ("--max-spend", float, "USD",
+             "gate: fail above this spend (needs --prices)"),
+            ("--max-budget-breaches", int, "N",
+             "gate: fail above this many stamped breaches"),
+            ("--min-traces", int, "N", "gate: floor on run count"),
+    ):
+        p.add_argument(flag, type=kind, metavar=meta, help=hlp)
+    p.add_argument("--prices", metavar="FILE",
+                   help="model -> blended $/1k JSON table")
+    p.add_argument("--since", type=int, metavar="DAYS",
+                   help="audit only runs from the last N days")
+    p.add_argument("--json", action="store_true",
+                   help="emit the audit report as JSON")
+    p.set_defaults(func=cmd_audit)
 
     p = sub.add_parser("budget", parents=[common],
                        help="replay a recorded run against rails it "
