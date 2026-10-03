@@ -3313,3 +3313,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - `approximately budget <trace>` CLI door: prose + json,
        refusals (unknown trace, no ceiling, usd-without-prices)
        exit 2.
+
+338. **v2.89.0 - the analytics become agent-callable** (planned):
+     - MCP `budget_sim` + `spend_forecast` (38 tools): validation
+       mirrors the CLI doors; the forecast handler consumes
+       summarize_trend rows (the entries-vs-rows lesson, again).
+     - README banner + mcp-tools.json synced; count pins moved.
+     - Local ruff upgraded 0.16.6 -> 0.16.10 after the CI lint
+       caught what local missed.

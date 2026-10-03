@@ -1,5 +1,5 @@
 {
-  "count": 36,
+  "count": 38,
   "tools": [
     {
       "name": "list_traces",
@@ -241,6 +241,59 @@
         "required": [
           "baseline",
           "candidate"
+        ]
+      }
+    },
+    {
+      "name": "budget_sim",
+      "description": "Replay a recorded run against rails it did not have: which step a hypothetical token/dollar ceiling would have tripped at, and how much the run burned after that point. The sizing door for arming Budget rails on new agents. Mirrors `approximately budget`.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "trace": {
+            "type": "string"
+          },
+          "tokens": {
+            "type": "integer",
+            "description": "hypothetical token ceiling"
+          },
+          "usd": {
+            "type": "number",
+            "description": "hypothetical dollar ceiling; needs prices"
+          },
+          "prices": {
+            "type": "object",
+            "description": "model -> blended $/1k"
+          }
+        },
+        "required": [
+          "trace"
+        ]
+      }
+    },
+    {
+      "name": "spend_forecast",
+      "description": "Project the fleet's daily spend forward: Theil-Sen slope over the digest history, a horizon projection floored at zero, and days-until-ceiling (0 when already over, null when the trend never gets there). Linear extrapolation: robust to outliers, blind to your next deploy. Mirrors `fleet --trend --spend-ceiling`.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "digest_dir": {
+            "type": "string"
+          },
+          "ceiling": {
+            "type": "number",
+            "description": "USD; days-until is reported against it"
+          },
+          "horizon_days": {
+            "type": "integer",
+            "description": "projection length (default 14)"
+          }
+        },
+        "required": [
+          "digest_dir"
         ]
       }
     },
