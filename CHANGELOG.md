@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.79.0
+
+- the verdict reaches the agent side and the pulse: the MCP doctor tool gains `fix` (an agent harness can repair its own store through the same door the CLI uses — hygiene removed, corrupt records quarantined, bytes preserved), and `status` carries the budget-breach count in both shapes (json field + a text line: "budget breaches: 1 run(s) the live rails stopped"). the MCP surface is documented back into docs/mcp-tools.json.
+
 ## v2.78.0
 
 - fuzz 20 audits the new surfaces and finds three real meter lies: a NEGATIVE price paid the run to burn (usd drifted to -1,500 while the ceiling sat silent), negative tokens ran the meter backwards (500 charged, 400 "refunded", ceiling never tripped), and float tokens drifted the meters. prices must now be finite and non-negative; token counts must be non-negative ints — and budgeted recorders validate BEFORE the step lands (an impossible input never enters a trace; a real breach records first, then trips). plus quarantine/junit hostile-input pins (unicode+quote names, clash storms, pathologically named tasks).

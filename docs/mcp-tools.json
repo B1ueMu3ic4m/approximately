@@ -267,6 +267,10 @@
           "deep": {
             "type": "boolean",
             "description": "recompute every record's integrity chain — a record can be parseable yet lie"
+          },
+          "fix": {
+            "type": "boolean",
+            "description": "also repair: remove stale locks and temp files, quarantine corrupt records into <store>/.quarantine with a manifest (bytes preserved)"
           }
         }
       }
