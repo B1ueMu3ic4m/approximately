@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.69.0
+
+- one mypy, everywhere: the strict bar moves into [tool.mypy] in pyproject.toml — local `mypy` and CI check the same 60 files with the same flags. configuration is code.
+
 ## v2.68.0
 
 - the night's ledger, closed: 55 releases tonight (v2.23.0 → v2.67.0), each through the full branch → PR → 22-check CI → squash → autotag → Release pipeline. docs-only (the account itself).

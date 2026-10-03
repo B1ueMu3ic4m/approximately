@@ -3142,3 +3142,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        suite 1646×2 with no flakes, 18 perf gates + bench green,
        ruff/mypy-strict/xenon/bandit clean, v2 tags 102 ↔
        releases 102.
+
+318. **v2.69.0 - one mypy, everywhere** ✅ (delivered):
+     - The strict bar moves into `[tool.mypy]` in pyproject.toml:
+       `mypy` with no arguments (local) and CI's invocation now
+       check the same 60 files with the same flags.  Configuration
+       is code.
