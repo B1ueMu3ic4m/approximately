@@ -3111,3 +3111,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        contract: SERVER_INFO == __version__, and that value
        appears in pyproject.toml (single-sourced, shadow-proof,
        bump-proof).
+
+316. **v2.67.0 - the banner's numbers age too** ✅ (delivered):
+     - The README banner said 34 MCP tools and 1,500+ tests; the
+       tree ships 36 tools and 1,600+ tests.  Round numbers in a
+       banner drift by design — the audit's rule going forward:
+       banner counts are re-checked whenever a tool or a test
+       wave lands (the docs-health gate already catches the
+       harder drifts; this was the soft one).
