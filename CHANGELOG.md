@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.77.0
+
+- the breaker gets its chapters: RECIPES 22 walks the live budget end to end (arm the rails, read the stamp everywhere: gate, fleet, retention, postmortem) and TUTORIAL 12 tells the looping-agent story with the Live budget card as the receipt. docs-only — the seven releases before it wrote the code, this one teaches it.
+
 ## v2.76.0
 
 - the deployment gate speaks junit: `compare --format junit` mirrors the one gateable verdict (new failure modes under --fail-on-new-modes) as a failing testcase, with rate/token/spend deltas as informational cases; refusals stay exit 2 as <error> testcases. verdicts are mirrored, never invented. the perf-gate wall grows to 21: budget rails (2k budgeted runs), junit render (2k traces), and quarantine (doctor + move over 220 files) earn their budgets like every surface before them.
