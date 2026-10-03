@@ -3321,3 +3321,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - README banner + mcp-tools.json synced; count pins moved.
      - Local ruff upgraded 0.16.6 -> 0.16.10 after the CI lint
        caught what local missed.
+
+339. **v2.90.0 - the composed nightly door** (planned):
+     - `approximately audit`: doctor (+fix/deep) + ci ceilings +
+       trend/--spend-ceiling forecast, one report one exit code.
+     - Prose renderer and digest section extracted (xenon).
+     - Forecast-input lesson commented at its third fix site.
