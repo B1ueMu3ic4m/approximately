@@ -440,3 +440,44 @@ quantitative side and `evidence <trace> case.zip` for the
 hand-off when the build does fail: mode, magnitude, proof.
 Resolved modes are named too — when a fix lands, the compare
 output says so in the same breath.
+
+## 22. The breaker chapter: budgets that stop the burn
+
+Every ceiling in the gate chapter settles accounts after the run:
+the build fails, but the tokens are already spent.  A live Budget is
+the other half — the circuit breaker DURING the run.
+
+```python
+from approximately.budget import Budget
+from approximately.recorder import Recorder
+
+budget = Budget(tokens=50_000, usd=2.0, prices=prices,
+                on_exceed="raise")   # or "warn", or "stamp" (default)
+with Recorder("task", model="gpt-4o", store=store,
+              budget=budget) as rec:
+    ...
+```
+
+`raise` stops the burn mid-episode: the offending step is already on
+the record when the breaker trips, the run is marked failed, and the
+saved trace shows exactly where the money stopped.  `warn` pages
+stderr once per ceiling and lets the run finish; `stamp` only
+records the verdict for the gates to find.
+
+What the stamp buys, everywhere else:
+
+```bash
+# the pipeline refuses runs that came home over budget
+approximately ci --store .agents-store --max-budget-breaches 0
+
+# the fleet watch pages when a store starts burning
+approximately fleet --digest-dir d --alert-budget-breaches 1
+
+# housekeeping never destroys breach evidence
+approximately clean --store .agents-store --keep-days 7 --keep-breached
+```
+
+The postmortem renders the receipt (the Live budget card), the
+evidence pack carries it, and the junit gates render natively in
+your CI.  Unpriced models are counted, never silently valued at
+zero — a dollar ceiling you cannot compute does not hold.

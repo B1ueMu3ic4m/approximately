@@ -226,3 +226,38 @@ approximately ci --max-failure-rate 0.2   # exit 1 in CI
 
 The recorder wrote the evidence; the gate makes someone read it;
 the pack proves it was never rewritten in between.
+
+## 12. Stop the burn: live budgets
+
+The agent has been looping for a while now.  Each retry re-reads the
+whole inventory into context; the token counter climbs; nobody is
+watching.  The gate will catch it — after the run, when the money is
+gone.  A Budget catches it during.
+
+```python
+from approximately.budget import Budget
+from approximately.recorder import Recorder
+
+budget = Budget(tokens=50_000, on_exceed="raise")
+with Recorder("find and book the flight", model="gpt-4o",
+              store=store, budget=budget) as rec:
+    for attempt in attempts:          # your agent loop
+        rec.tool("search_flights", {...}, tokens=cost_of(attempt))
+```
+
+When the run crosses 50,000 tokens the loop dies with
+`BudgetExceededError` — and the trace that lands in the store is not
+a mystery: the offending step is on the record, the run is marked
+failed, and `meta["budget"]` carries the meters and the verdict,
+covered by the integrity signature like everything else.
+
+Open the report and the receipt is right there: the Live budget
+card shows tokens against ceiling, estimated spend against ceiling,
+and a red BREACHED badge — the postmortem answers "why did this run
+stop early?" without a diff.
+
+Then let the machinery carry it forward: `ci --max-budget-breaches 0`
+keeps burned runs out of your pipeline, `fleet
+--alert-budget-breaches 1` pages when a store starts burning, and
+`clean --keep-breached` makes sure housekeeping never deletes the
+evidence before the postmortem reads it.

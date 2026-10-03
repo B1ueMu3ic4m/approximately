@@ -3221,3 +3221,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        tokens-delta / spend-delta ride as informational cases;
        empty-store refusals emit the shared <error> XML, exit 2.
      - perf_gate 18 -> 21: budget_gate, junit_gate, quarantine_gate.
+
+326. **v2.77.0 - the breaker gets its chapters** (planned):
+     - RECIPES 22: budgets that stop the burn — raise/warn/stamp,
+       the stamp's downstream surfaces, unpriced honesty.
+     - TUTORIAL 12: the looping-agent story, the Live budget card
+       as the receipt, the machinery that carries the verdict
+       forward (gate / fleet / retention).
+     - Docs-only release (v2.68 precedent).
