@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.91.0
+
+- the audit reaches standing surfaces: `audit` joins the MCP surface (39 tools — doctor section, gate section, digest trend + forecast, `fix` repairs in place), and `init` now wires a nightly `agent-audit.yml` (cron 03:00, `--fix` on) beside the PR gate — the composed door is something a schedule runs, so both standing surfaces carry it. banner counts and docs/mcp-tools.json follow.
+
 ## v2.90.0
 
 - the composed nightly door: `approximately audit` — doctor (optionally `--fix`/`--deep`), the quality gate over the store, and with `--digest-dir` the fleet trend plus the `--spend-ceiling` forecast — one report (prose or `--json`), one exit code (0 quiet, 1 any finding, 2 refusal). what a 3am cron runs instead of four commands and a shell script. the forecast-input lesson (entries vs summarized rows) now has a comment in its third fix site.

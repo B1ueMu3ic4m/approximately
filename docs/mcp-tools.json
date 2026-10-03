@@ -1,5 +1,5 @@
 {
-  "count": 38,
+  "count": 39,
   "tools": [
     {
       "name": "list_traces",
@@ -242,6 +242,40 @@
           "baseline",
           "candidate"
         ]
+      }
+    },
+    {
+      "name": "audit",
+      "description": "The composed nightly door: store doctor (optionally repairing), the quality gate over the store's runs, and with a digest_dir the fleet trend plus the days-until-ceiling spend forecast. One report, one verdict. Mirrors `approximately audit`.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "digest_dir": {
+            "type": "string"
+          },
+          "spend_ceiling": {
+            "type": "number"
+          },
+          "max_failure_rate": {
+            "type": "number"
+          },
+          "max_tokens": {
+            "type": "integer"
+          },
+          "max_budget_breaches": {
+            "type": "integer"
+          },
+          "deep": {
+            "type": "boolean"
+          },
+          "fix": {
+            "type": "boolean",
+            "description": "repair while auditing: hygiene removed, corrupt records quarantined"
+          }
+        }
       }
     },
     {
