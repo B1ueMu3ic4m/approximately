@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.68.0
+
+- the night's ledger, closed: 55 releases tonight (v2.23.0 → v2.67.0), each through the full branch → PR → 22-check CI → squash → autotag → Release pipeline. docs-only (the account itself).
+
 ## v2.67.0
 
 - the banner's numbers age too: 34 tools / 1,500+ tests refreshed to 36 / 1,600+. banner counts get re-checked whenever a tool or test wave lands. docs-only.
