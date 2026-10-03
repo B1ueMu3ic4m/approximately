@@ -3349,3 +3349,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - 4 pins: merge carriage, conflict-replace, foreign-import
        non-stamping, json roundtrip survival.
      - README alignment row names --agent.
+
+343. **v2.94.0 - the fresh doors, aligned** (planned):
+     - budget.simulate(--agent) + CLI flag: per-agent sizing on one
+       participant's steps; token-ceiling required for the scope.
+     - status --spend-ceiling: the fleet-trend forecast in the ops
+       pulse (json + prose).
+     - Helper extractions keep xenon at its bar.

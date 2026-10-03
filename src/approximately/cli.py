@@ -932,9 +932,19 @@ def _status_spend(traces: list, prices: Any) -> tuple:
     return spend, unpriced
 
 
+def _digest_trend(digest_dir: Any) -> Optional[dict]:
+    """The fleet trend summary, when a digest directory is in play."""
+    if not digest_dir or not Path(digest_dir).is_dir():
+        return None
+    from .fleet import summarize_trend, trend_days
+
+    return summarize_trend(trend_days(Path(digest_dir)))
+
+
 def _status_payload(store: Any, traces: list, digest_dir: Any,
                     since: Any = None,
-                    prices: Any = None) -> dict:
+                    prices: Any = None,
+                    spend_ceiling: Any = None) -> dict:
     """Build the status overview data (shared by text and JSON)."""
     import time as _time
 
@@ -962,11 +972,7 @@ def _status_payload(store: Any, traces: list, digest_dir: Any,
         from .integrity import verify
 
         chain = verify(last_failed).verdict
-    trend = None
-    if digest_dir and Path(digest_dir).is_dir():
-        from .fleet import summarize_trend, trend_days
-
-        trend = summarize_trend(trend_days(Path(digest_dir)))
+    trend = _digest_trend(digest_dir)
     recidivists = agent_scorecard(traces, min_failed=2)
     from .cluster import tool_scorecard
 
@@ -986,7 +992,7 @@ def _status_payload(store: Any, traces: list, digest_dir: Any,
     spend, unpriced = _status_spend(traces, prices)
     from .fleet import _budget_breaches
 
-    return {
+    payload = {
         "store": str(store.directory),
         "traces": stats.traces,
         "failures": stats.failures,
@@ -1021,6 +1027,12 @@ def _status_payload(store: Any, traces: list, digest_dir: Any,
         },
         "triage_coverage": coverage,
     }
+    if spend_ceiling is not None and trend:
+        from .forecast import forecast_spend
+
+        payload["spend_forecast"] = forecast_spend(
+            trend["days"], ceiling=float(spend_ceiling))
+    return payload
 
 
 def _write_token_line(buf: Any, payload: dict) -> None:
@@ -1035,6 +1047,24 @@ def _write_token_line(buf: Any, payload: dict) -> None:
                 buf.write(f" ({payload['unpriced_tokens']:,} tokens "
                           "unpriced)")
         buf.write("\n")
+
+
+def _write_forecast_line(buf: Any, forecast: Any) -> None:
+    """The spend-forecast line — silent when no ceiling was asked."""
+    if not (forecast and forecast.get("usable")
+            and forecast.get("ceiling") is not None):
+        return
+    left = forecast.get("days_to_ceiling")
+    if left:
+        line = (f"  spend forecast: ceiling "
+                f"${forecast['ceiling']:,.2f} reached in "
+                f"~{left} day(s)")
+    elif left is None:
+        line = ("  spend forecast: ceiling not reached at "
+                "this trend")
+    else:
+        line = "  spend forecast: CEILING ALREADY EXCEEDED"
+    buf.write(line + "\n")
 
 
 def _write_breach_line(buf: Any, payload: dict) -> None:
@@ -1054,7 +1084,9 @@ def _render_status(args: argparse.Namespace) -> str:
                               getattr(args, "digest_dir", None),
                               since=getattr(args, "since", None),
                               prices=_load_prices(
-                                  getattr(args, "prices", None)))
+                                  getattr(args, "prices", None)),
+                              spend_ceiling=getattr(
+                                  args, "spend_ceiling", None))
     if getattr(args, "json", False):
         return json.dumps(payload, indent=2)
     buf = _io.StringIO()
@@ -1082,6 +1114,7 @@ def _render_status(args: argparse.Namespace) -> str:
                   f"{worst.get('latency_ms')}ms, "
                   f"z={worst.get('robust_z'):+.1f})\n")
     _write_breach_line(buf, payload)
+    _write_forecast_line(buf, payload.get("spend_forecast"))
     last = payload["last_failure"]
     if last is not None:
         buf.write(f"  last failure: {last['id']} chain={last['chain']} "
@@ -1144,7 +1177,9 @@ def cmd_status(args: argparse.Namespace) -> int:
                               getattr(args, "digest_dir", None),
                               since=getattr(args, "since", None),
                               prices=_load_prices(
-                                  getattr(args, "prices", None)))
+                                  getattr(args, "prices", None)),
+                              spend_ceiling=getattr(
+                                  args, "spend_ceiling", None))
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2))
     else:
@@ -2304,18 +2339,22 @@ def cmd_budget(args: argparse.Namespace) -> int:
         print("error: pass --tokens and/or --usd (with --prices)",
               file=sys.stderr)
         return 2
-    result = simulate(trace, tokens=tokens, usd=usd, prices=prices)
+    agent = getattr(args, "agent", None)
+    result = simulate(trace, tokens=tokens, usd=usd, prices=prices,
+                      agent=agent)
     if getattr(args, "json", False):
         print(json.dumps(result, indent=2))
         return 0
+    scope = f" for agent {agent!r}" if agent else ""
     if result["would_trip"]:
-        line = (f"would trip at step {result['trip_step']} — "
+        line = (f"would trip at step {result['trip_step']}{scope} — "
                 f"saving {result['saved_tokens']:,} tokens")
         if result["saved_usd"]:
             line += f" and ${result['saved_usd']:,.4f}"
         print(line)
     else:
-        print("would not trip: this ceiling never catches this run")
+        print(f"would not trip{scope}: this ceiling never catches "
+              "this run")
     print(f"  recorded: {result['recorded_tokens']:,} tokens across "
           f"tool steps")
     return 0
@@ -3282,6 +3321,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--fail-on-worsening", action="store_true",
                    help="exit 1 when the fleet trend verdict is "
                         "worsening (needs --digest-dir)")
+    p.add_argument("--spend-ceiling", type=float, metavar="USD",
+                   help="with --digest-dir: project the daily spend "
+                        "forward and surface days until the ceiling "
+                        "(linear extrapolation of the Theil-Sen "
+                        "slope)")
     p.set_defaults(func=cmd_status)
 
     p = sub.add_parser("rotate", parents=[common],
@@ -3695,6 +3739,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("trace", help="trace id (or .json path)")
     p.add_argument("--tokens", type=int, metavar="N",
                    help="hypothetical token ceiling")
+    p.add_argument("--agent", metavar="NAME",
+                   help="simulate per-agent rails: only this "
+                        "participant's steps charge")
     p.add_argument("--usd", type=float, metavar="USD",
                    help="hypothetical dollar ceiling (needs --prices)")
     p.add_argument("--prices", metavar="FILE",

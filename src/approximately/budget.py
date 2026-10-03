@@ -219,38 +219,38 @@ class Budget:
                                   self._spent_of(kind))
 
 
+def _first_trip(rails: "Budget", steps: list, model: str,
+                agent: Optional[str]) -> Optional[int]:
+    """Index of the first step that trips the rails, if any."""
+    for step in steps:
+        rails.charge(tokens=step.tokens or 0, model=model, agent=agent)
+        if rails.exceeded_reasons():
+            return step.index
+    return None
+
+
 def simulate(trace: Any, tokens: Optional[int] = None,
              usd: Optional[float] = None,
-             prices: Optional[Dict[str, float]] = None
-             ) -> Dict[str, Any]:
+             prices: Optional[Dict[str, float]] = None,
+             agent: Optional[str] = None) -> Dict[str, Any]:
     """Replay a recorded run against rails it did not have.
 
     Sizing question: "had this ceiling been armed, where would the
     run have stopped?"  Walks the recorded tool steps, charging each
     into a fresh Budget, and reports the first step that trips it —
-    or that no ceiling in this configuration would have.  Savings
-    are measured from the trip point to the run's recorded end
-    (tokens the run burned after the step where it should have
-    died); for runs that never trip, both savings are 0.
+    or that no ceiling in this configuration would have.  With
+    ``agent``, only that participant's steps charge (per-agent
+    rails).  Savings are measured from the trip point to the run's
+    recorded end (tokens the run burned after the step where it
+    should have died); for runs that never trip, both savings are 0.
     """
+    if agent is not None and tokens is None:
+        raise ValueError("an agent-scoped simulation needs a token "
+                         "ceiling (per_agent rails are token-only)")
     rails = Budget(tokens=tokens, usd=usd, prices=prices)
-    steps = [s for s in trace.steps if s.kind == "tool_call"]
+    steps = _scoped_steps(trace, agent)
     total = sum(s.tokens or 0 for s in steps)
-    saved_tokens = 0
-    tripped_at = None
-    for step in steps:
-        rails.charge(tokens=step.tokens or 0, model=trace.model)
-        if rails.exceeded_reasons():
-            tripped_at = step.index
-            saved_tokens = total - sum(
-                s.tokens or 0 for s in steps
-                if s.index <= step.index)
-            break
-    saved_usd = 0.0
-    if tripped_at is not None and prices and trace.model in prices:
-        after = [s for s in steps if s.index > tripped_at]
-        saved_usd = round(sum(s.tokens or 0 for s in after)
-                          / 1000 * prices[trace.model], 4)
+    tripped_at = _first_trip(rails, steps, trace.model, agent)
     return {
         "trace_id": trace.id,
         "would_trip": tripped_at is not None,
@@ -258,6 +258,33 @@ def simulate(trace: Any, tokens: Optional[int] = None,
         "limit_tokens": tokens,
         "limit_usd": usd,
         "recorded_tokens": total,
-        "saved_tokens": saved_tokens,
-        "saved_usd": saved_usd,
+        "saved_tokens": _saved_tokens(steps, total, tripped_at),
+        "saved_usd": _saved_usd(steps, tripped_at, prices,
+                                trace.model),
     }
+
+
+def _scoped_steps(trace: Any, agent: Optional[str]) -> list:
+    """Tool-call steps, narrowed to one participant when asked."""
+    steps = [s for s in trace.steps if s.kind == "tool_call"]
+    if agent is not None:
+        steps = [s for s in steps if s.agent == agent]
+    return steps
+
+
+def _saved_tokens(steps: list, total: int,
+                  tripped_at: Optional[int]) -> int:
+    if tripped_at is None:
+        return 0
+    return total - sum(s.tokens or 0 for s in steps
+                       if s.index <= tripped_at)
+
+
+def _saved_usd(steps: list, tripped_at: Optional[int],
+               prices: Optional[Dict[str, float]],
+               model: str) -> float:
+    if tripped_at is None or not prices or model not in prices:
+        return 0.0
+    after = [s for s in steps if s.index > tripped_at]
+    return round(sum(s.tokens or 0 for s in after)
+                 / 1000 * prices[model], 4)
