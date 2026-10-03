@@ -3205,3 +3205,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - Best-effort contract: no stamp, no card; non-dict meta
        renders nothing (poison-guarded via store.stamped_breach).
      - Evidence packs carry the card; verify stays intact.
+
+324. **v2.75.0 - quarantine for the unreadable** (planned):
+     - doctor._check_records now captures the parse error per corrupt
+       file (corrupt_detail); quarantine_corrupt moves them into
+       <store>/.quarantine/ + manifest.jsonl (file, error, moved_at).
+     - --fix semantics widened: hygiene artifacts removed, corrupt
+       records quarantined — preserved bytes, not destroyed.
+     - suffix-on-clash, skip-if-vanished; report.quarantined in the
+       json payload; healthy again after the pass.

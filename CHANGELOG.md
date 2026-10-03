@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.75.0
+
+- quarantine for the unreadable: `doctor --fix` moves corrupt record files into `<store>/.quarantine/` with a jsonl manifest (what, when, why) — the bytes are preserved for forensics, never unlinked, and the store stops re-reporting the same poison on every scan. name clashes are suffixed, vanished files skipped, and the parse error travels with the record. a quarantined store reports healthy again.
+
 ## v2.74.0
 
 - the breaker's receipt in the postmortem: a Live budget card in report.html — what the rails metered (tokens, est. spend, unpriced tokens), what the ceilings were, and whether the breaker tripped. best-effort like every card: no stamp, no card; poison meta renders nothing. evidence packs carry it and stay TRUSTED. the budget loop now closes end to end: record → gate → fleet → retention → postmortem.
