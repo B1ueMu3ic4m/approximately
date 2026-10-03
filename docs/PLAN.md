@@ -3260,3 +3260,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        unchanged. Refusal paths unified into _ci_refuse.
      - Fleet surfaces breached_agents (survey, webhook payload,
        digest, card row names them: "agents: researcher, booker").
+
+331. **v2.82.0 - fuzz 21: evidence, diff, cluster** (planned):
+     - Probes found no holes; 8 pins added: keyed-pack semantics
+       (intact / wrong-key / keyed), tamper + missing-member naming,
+       zero-step traces through pack + scorecards + trend, the
+       50-identical-failure cluster collapse, self-diff stability.
+     - Tests-only release.
