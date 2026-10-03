@@ -3305,3 +3305,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - Bug found in wiring: the forecast originally consumed
        trend_days entries (no est_spend); it reads the summarized
        rows.
+
+337. **v2.88.0 - size the rails on yesterday's burn** (planned):
+     - budget.simulate(trace, tokens, usd, prices): replay tool
+       steps into a raise-mode Budget; trip step, saved tokens/USD
+       (burn after the trip point only).
+     - `approximately budget <trace>` CLI door: prose + json,
+       refusals (unknown trace, no ceiling, usd-without-prices)
+       exit 2.

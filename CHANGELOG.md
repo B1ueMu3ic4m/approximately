@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.88.0
+
+- size the rails on yesterday's burn: `approximately budget <trace> --tokens N [--usd X --prices P]` replays a recorded, unbudgeted run against hypothetical ceilings and answers the arming question with evidence — which step the breaker trips at, how many tokens (and dollars) the run burned after the step where it should have died. runs the ceiling never catches say so; the json payload carries the whole simulation.
+
 ## v2.87.0
 
 - the trend says which way; the forecast says what that means in days: `fleet --trend --spend-ceiling USD` projects the daily spend series forward (Theil-Sen slope, horizon projection floored at zero) and reports days until the ceiling — 0 and exit 1 when already over, `None` when the trend never gets there, and a forecast that refuses to guess on one day of history. honestly labeled: linear extrapolation of a robust slope, blind to your next deploy.
