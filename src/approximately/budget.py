@@ -16,6 +16,7 @@ map, so ``unpriced_tokens`` travels with the state.
 
 from __future__ import annotations
 
+import math
 import sys
 from typing import Any, Dict, Optional
 
@@ -50,6 +51,17 @@ class Budget:
 
     MODES = ("stamp", "warn", "raise")
 
+    @staticmethod
+    def validate_tokens(tokens: int) -> None:
+        """Reject meter lies up front: token counts are non-negative
+        ints.  Validation happens BEFORE the step is recorded — an
+        impossible input never lands in a trace; a real input that
+        breaches a ceiling lands first and THEN trips the breaker."""
+        if isinstance(tokens, bool) or not isinstance(tokens, int) \
+                or tokens < 0:
+            raise ValueError(f"tokens must be a non-negative int, "
+                             f"got {tokens!r}")
+
     def __init__(self,
                  tokens: Optional[int] = None,
                  usd: Optional[float] = None,
@@ -64,6 +76,17 @@ class Budget:
         if prices is None and usd is not None:
             raise ValueError("a usd ceiling needs a price map "
                              "(prices={model: usd per 1k tokens})")
+        if prices:
+            # a negative price pays you to burn; inf/NaN never trip a
+            # ceiling (NaN compares false, inf belongs to no budget) —
+            # a price map that lies makes the dollar meter decorative
+            bad = {m: v for m, v in prices.items()
+                   if isinstance(v, bool)
+                   or not isinstance(v, (int, float))
+                   or not math.isfinite(v) or v < 0}
+            if bad:
+                raise ValueError("prices must be finite non-negative "
+                                 f"numbers, got {bad}")
         self.limit_tokens = tokens
         self.limit_usd = usd
         self.prices = dict(prices) if prices else {}
@@ -81,6 +104,7 @@ class Budget:
         ``"raise"`` mode when a ceiling is crossed; warns in ``"warn"``
         mode, once per newly crossed ceiling.
         """
+        self.validate_tokens(tokens)
         self.tokens += tokens
         if model is not None and model in self.prices:
             self.usd = round(

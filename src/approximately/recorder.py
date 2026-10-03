@@ -102,6 +102,11 @@ class Recorder:
              error: Optional[str] = None, agent: Optional[str] = None,
              tokens: int = 0, latency_ms: Optional[int] = None,
              **meta: Any) -> Step:
+        if self.budget is not None:
+            # impossible input never lands in a trace: validate
+            # before the step is recorded (a real breach records
+            # first, THEN trips the breaker below)
+            Budget.validate_tokens(tokens)
         step = self.trace.add(
             Step(
                 kind=TOOL_CALL,

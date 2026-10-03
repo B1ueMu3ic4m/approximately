@@ -3229,3 +3229,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        as the receipt, the machinery that carries the verdict
        forward (gate / fleet / retention).
      - Docs-only release (v2.68 precedent).
+
+327. **v2.78.0 - fuzz 20: the meters cannot lie** (planned):
+     - Budget prices validated at construction: finite, non-negative
+       numbers (a negative price pays the burn; NaN/inf never trip).
+     - Token counts: non-negative ints only; budgeted recorders
+       validate before the step is recorded — validation rejects,
+       breaches record-then-trip. The distinction is the contract.
+     - Quarantine + junit hostile-input pins; 10 new tests.

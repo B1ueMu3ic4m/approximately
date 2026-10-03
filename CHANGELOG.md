@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.78.0
+
+- fuzz 20 audits the new surfaces and finds three real meter lies: a NEGATIVE price paid the run to burn (usd drifted to -1,500 while the ceiling sat silent), negative tokens ran the meter backwards (500 charged, 400 "refunded", ceiling never tripped), and float tokens drifted the meters. prices must now be finite and non-negative; token counts must be non-negative ints — and budgeted recorders validate BEFORE the step lands (an impossible input never enters a trace; a real breach records first, then trips). plus quarantine/junit hostile-input pins (unicode+quote names, clash storms, pathologically named tasks).
+
 ## v2.77.0
 
 - the breaker gets its chapters: RECIPES 22 walks the live budget end to end (arm the rails, read the stamp everywhere: gate, fleet, retention, postmortem) and TUTORIAL 12 tells the looping-agent story with the Live budget card as the receipt. docs-only — the seven releases before it wrote the code, this one teaches it.
