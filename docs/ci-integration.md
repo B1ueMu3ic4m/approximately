@@ -46,6 +46,38 @@ turns worsening, and `doctor --digest-dir DIR` (add `--fix` to clean
 stale writer locks and leftover temp files) reports monitoring gaps
 for the same window.
 
+## 2b. The quality gate: ceilings, junit, step summaries
+
+`approximately init` wires `approximately ci` into your workflow; the
+ceilings compose into one verdict — exit 0 pass, 1 breach, 2 refusal
+(empty store, no ceilings):
+
+```bash
+approximately ci --store .agents-store \
+  --max-failure-rate 0.3 \
+  --max-p95-latency-ms 15000 \
+  --max-tokens 2000000 \
+  --max-budget-breaches 0
+```
+
+`--max-budget-breaches` fails the build when recorded runs came home
+over their live Budget (`Recorder(budget=Budget(tokens=..., usd=...))`
+— see RECIPES 22). Runs with no rails never count against it.
+
+Two machine-friendly renderings, same exit codes:
+
+```bash
+# native GitHub Actions / GitLab rendering (one testcase per gate)
+approximately ci ... --format junit
+
+# GitHub step summary: cat the table into $GITHUB_STEP_SUMMARY
+approximately ci ... --format markdown >> "$GITHUB_STEP_SUMMARY"
+```
+
+The deployment side gates the same way — `compare --format junit`
+turns "candidate shows a failure mode the baseline never had" into a
+failing testcase under `--fail-on-new-modes`.
+
 ## 3. Budget policy
 
 Treat `--min-recall` like coverage: start at your current measured recall

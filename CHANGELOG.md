@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.85.0
+
+- the CI guide learns what the gate can do now: docs/ci-integration.md gains the quality-gate section — ceiling composition, `--max-budget-breaches`, the junit and step-summary renderings with the same exit codes, and the deployment compare's junit testcase. ARCHITECTURE's module map stops pretending budget.py doesn't exist. docs-only.
+
 ## v2.84.0
 
 - the last two readers of the stamp: the agent scorecard gains `breached_traces` (parallel to failed_traces — a run the live rails stopped is a fact about every agent who touched it, the unattributed steps included), and `evidence --all`'s archive index carries `budget_breached` per trace, so a reviewer opening the offboarding archive sees which runs came home over budget without unpacking a single zip. webhook top-agent rows carry the column too.

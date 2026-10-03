@@ -3281,3 +3281,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - build_store_packs index carries budget_breached per trace.
      - webhook top_agents rows gain the column (and p95_ms, which
        the tuple had silently dropped).
+
+334. **v2.85.0 - the CI guide learns what the gate can do** (planned):
+     - docs/ci-integration.md: quality-gate section (ceilings,
+       --max-budget-breaches, junit / step-summary renderings,
+       deployment compare junit).
+     - ARCHITECTURE module map names budget.py.
+     - Docs-only release.
