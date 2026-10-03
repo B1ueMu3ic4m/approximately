@@ -3214,3 +3214,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        records quarantined — preserved bytes, not destroyed.
      - suffix-on-clash, skip-if-vanished; report.quarantined in the
        json payload; healthy again after the pass.
+
+325. **v2.76.0 - the deployment gate speaks junit** (planned):
+     - compare --format junit: new-failure-modes testcase fails iff
+       the gate is armed and the candidate regressed; failure-rate /
+       tokens-delta / spend-delta ride as informational cases;
+       empty-store refusals emit the shared <error> XML, exit 2.
+     - perf_gate 18 -> 21: budget_gate, junit_gate, quarantine_gate.

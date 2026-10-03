@@ -38,7 +38,8 @@ def main() -> int:
             + import_gate() + export_gate() + doctor_gate()
             + spool_gate() + survey_spend_gate() + ci_gate()
             + doctor_deep_gate() + clean_gate() + csv_export_gate()
-            + evidence_gate() + compare_gate())
+            + evidence_gate() + compare_gate() + budget_gate()
+            + junit_gate() + quarantine_gate())
 
 def fleet_anomaly_gate(budget_s: float = 2.0) -> int:
     """Per-tool fleet baselines over a 10k-trace store.
@@ -497,6 +498,119 @@ def ci_gate(budget_s: float = 10.0) -> int:
           + ("PASS" if elapsed <= budget_s else "FAIL"))
     if elapsed > budget_s:
         print("FAIL: ci gate slowed past budget", file=sys.stderr)
+        return 1
+    return 0
+
+
+def budget_gate(budget_s: float = 5.0) -> int:
+    """The live Budget rails (v2.70) over 2k recorded runs.
+
+    Charging happens on every tool step of every budgeted run; the
+    per-call cost must stay invisible next to the recording itself."""
+    import tempfile
+
+    from approximately.budget import Budget
+    from approximately.recorder import Recorder
+
+    start = time.perf_counter()
+    with tempfile.TemporaryDirectory() as tmp:
+        del tmp
+        for i in range(2_000):
+            budget = Budget(tokens=10 ** 12)
+            rec = Recorder(f"burn check {i}", save=False,
+                           budget=budget)
+            rec.tool("search", {"q": i}, tokens=100 + i % 50)
+            rec.respond("done", success=True)
+    elapsed = time.perf_counter() - start
+    print(f"perf-gate[budget]: 2k budgeted runs in "
+          f"{elapsed * 1000:.0f}ms (budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: budget rails slowed past budget", file=sys.stderr)
+        return 1
+    return 0
+
+
+def junit_gate(budget_s: float = 10.0) -> int:
+    """`ci --format junit` (v2.71) over a 2k-trace store.
+
+    The XML build rides on the same store walk as the text gate; the
+    ElementTree rendering must not double the pass."""
+    import argparse as _argparse
+    import io
+    import tempfile
+    from contextlib import redirect_stdout
+    from pathlib import Path as _Path
+
+    from approximately.cli import cmd_ci
+    from approximately.recorder import Recorder
+    from approximately.store import TraceStore
+
+    with tempfile.TemporaryDirectory() as tmp:
+        store = TraceStore(_Path(tmp) / "s")
+        for i in range(2_000):
+            rec = Recorder(f"run {i}", save=False)
+            rec.tool("search", {"q": i}, tokens=100)
+            rec.respond("done", success=True)
+            store.save(rec.trace)
+        args = _argparse.Namespace(store=str(store.directory),
+                                   since=None, json=False,
+                                   format="junit", max_failure_rate=0.3,
+                                   max_p95_latency_ms=10 ** 9,
+                                   max_tokens=10 ** 12, min_traces=1,
+                                   prices=None)
+        sink = io.StringIO()
+        start = time.perf_counter()
+        with redirect_stdout(sink):
+            code = cmd_ci(args)
+    elapsed = time.perf_counter() - start
+    out = sink.getvalue()
+    if code != 0 or "<testsuites" not in out:
+        print("FAIL: junit gate produced no suite", file=sys.stderr)
+        return 1
+    print(f"perf-gate[junit]: junit over 2k traces in "
+          f"{elapsed * 1000:.0f}ms (budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: junit render slowed past budget", file=sys.stderr)
+        return 1
+    return 0
+
+
+def quarantine_gate(budget_s: float = 5.0) -> int:
+    """doctor + quarantine (v2.75) over a store with poison in it.
+
+    The scan must read every record once; the quarantine move must
+    not re-read the world."""
+    import tempfile
+    from pathlib import Path as _Path
+
+    from approximately.doctor import doctor, quarantine_corrupt
+    from approximately.recorder import Recorder
+    from approximately.store import TraceStore
+
+    with tempfile.TemporaryDirectory() as tmp:
+        store_dir = _Path(tmp) / "s"
+        store = TraceStore(store_dir)
+        for i in range(200):
+            rec = Recorder(f"run {i}", save=False)
+            rec.tool("t", tokens=10)
+            store.save(rec.trace)
+        for j in range(20):
+            (store_dir / f"poison{j}.json").write_text(
+                "{not json", encoding="utf-8")
+        start = time.perf_counter()
+        report = doctor(store_dir)
+        moved = quarantine_corrupt(store_dir, report)
+    elapsed = time.perf_counter() - start
+    if len(moved) != 20:
+        print("FAIL: quarantine missed the poison", file=sys.stderr)
+        return 1
+    print(f"perf-gate[quarantine]: doctor+quarantine over 220 files "
+          f"in {elapsed * 1000:.0f}ms (budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: quarantine slowed past budget", file=sys.stderr)
         return 1
     return 0
 
