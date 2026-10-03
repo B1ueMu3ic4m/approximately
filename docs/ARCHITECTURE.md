@@ -100,7 +100,7 @@ report.py / mermaid.py / sarif.py / metrics.py
 ## Analysis layer
 
 `anomaly.py` (median/MAD latency z-scores) · `cluster.py` (recidivist
-clustering) · `context.py` (context-budget forecasts, `optimize`
+`budget.py` (live Budget rails: token/USD/per-agent ceilings, charged during recording, stamped signature-covered) · clustering) · `context.py` (context-budget forecasts, `optimize`
 binary-search) · `drift.py` (PSI action drift) · `precursor.py`
 (failure prediction from history) · `streaming.py` (live in-flight
 risk monitor).
