@@ -3148,3 +3148,17 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        `mypy` with no arguments (local) and CI's invocation now
        check the same 60 files with the same flags.  Configuration
        is code.
+
+319. **v2.70.0 - the breaker inside the run** (planned):
+     - Recorder gains a live Budget: token/USD ceilings charged on
+       every tool step, DURING the run — the ci gate settles
+       accounts after, this stops the burn mid-episode.
+     - Three enforcement modes: stamp (default; breach recorded in
+       the exit stamp), warn (stderr, once per newly crossed
+       ceiling), raise (BudgetExceededError; the offending step is
+       already on the record, __exit__ marks failure and saves).
+     - House pricing convention throughout: {model: usd/1k}, 4-dp
+       spend, unpriced models counted in unpriced_tokens, never
+       silently valued at zero.
+     - The stamp lands in trace.meta["budget"] BEFORE signing, so
+       the integrity signature covers the verdict.

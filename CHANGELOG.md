@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.70.0
+
+- the breaker inside the run: Recorder gains a live Budget — token and dollar ceilings enforced DURING recording (the `ci` gate settles after; this stops the burn). three modes: stamp (record the breach, the default), warn (stderr once per ceiling), raise (BudgetExceededError from the charging call, offending step already on the record). unpriced models never silently count as $0 — they ride in unpriced_tokens. the exit stamp lands before signing, so the signature covers the verdict.
+
 ## v2.69.0
 
 - one mypy, everywhere: the strict bar moves into [tool.mypy] in pyproject.toml — local `mypy` and CI check the same 60 files with the same flags. configuration is code.
