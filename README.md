@@ -11,10 +11,10 @@
 <b>Free & open source · Zero dependencies · MIT · Python 3.9+ · pip install approximately</b>
 </p>
 
-> **v2** — a production-stable toolkit: 34 MCP tools (+resources), 7 framework
+> **v2** — a production-stable toolkit: 36 MCP tools (+resources), 7 framework
 > adapters, MAST attribution with a gated quality floor, tamper-evident evidence,
 > pipeline quality gates (`ci`), fleet monitoring with quiet alerting, and
-> 1,500+ tests across a 15-job CI matrix.  Semver with teeth: major for big or
+> 1,600+ tests across a 15-job CI matrix.  Semver with teeth: major for big or
 > breaking updates, minor for features, patch for fixes.
 
 ---

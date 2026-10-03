@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.67.0
+
+- the banner's numbers age too: 34 tools / 1,500+ tests refreshed to 36 / 1,600+. banner counts get re-checked whenever a tool or test wave lands. docs-only.
+
 ## v2.66.0
 
 - a pin should never know the version's face: the server-info pin hardcoded "2.64.0" and the very next bump flipped it red. it now asserts the real contract — SERVER_INFO == __version__ == the pyproject entry. tests-only.
