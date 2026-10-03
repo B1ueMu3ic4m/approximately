@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.93.0
+
+- stamps are data, and ingest knows it: probes over the merge/import paths found the Night V rule intact — merged traces carry the stamps they earned in their own store (and the destination's gate reads them), imported and spooled traces never acquire ours (`stamp=False` at every ingest save). four pins keep it that way; the README's alignment row names `--agent`. tests-only-plus-one-row.
+
 ## v2.92.0
 
 - one participant's trajectory: `similar --agent NAME` aligns a single agent's action stream instead of the interleaved multi-agent run — two research agents taking different paths inside otherwise identical runs become distinguishable, and the interleaved noise (the other agent's identical steps, messages, responses) stops propping up false neighbors. tokens()/rank_similar/similar_payload take the filter; CLI, MCP schema and docs/mcp-tools.json carry it. payload gains an "agent" key when scoped.

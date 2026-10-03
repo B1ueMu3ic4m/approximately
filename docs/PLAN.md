@@ -3342,3 +3342,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - A variable-reuse incident wrote cli content over align.py
        mid-round; caught by import, reverted from git, re-applied
        atomically with per-edit anchors. No main-branch impact.
+
+342. **v2.93.0 - stamps are data, and ingest knows it** (planned):
+     - Probes confirmed: merge carries stamps (the destination gate
+       reads imported breaches); importer/spool save stamp=False.
+     - 4 pins: merge carriage, conflict-replace, foreign-import
+       non-stamping, json roundtrip survival.
+     - README alignment row names --agent.

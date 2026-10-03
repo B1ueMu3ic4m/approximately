@@ -167,7 +167,7 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 🧾 Offboarding archive | One command turns the whole store into per-trace evidence packs plus a recomputable index — the store can leave the machine | `approximately evidence --all archive/` |
 | ✅ Pack verification | The reviewer's side of the pack: recompute every manifest hash and the chain inside, then TRUSTED or REFUSED — no tooling beyond the zip required | `approximately evidence --verify case.zip` |
 | 🔮 Failure precursor | Early warning mined from your own history: "runs like this fail Z% of the time" | `approximately predict` |
-| 🧬 Trajectory alignment | Needleman-Wunsch over action sequences — find runs with the same *shape* | `approximately similar` |
+| 🧬 Trajectory alignment | Needleman-Wunsch over action sequences — find runs with the same *shape*; `--agent` aligns one participant's stream instead of the interleaved multi-agent run | `approximately similar <trace> --agent researcher` |
 | 📮 SARIF export | Attribution results as GitHub code-scanning alerts | `approximately attribute --sarif` |
 | 🕵️ Tool-poisoning scanner | Static analysis of MCP tool descriptions (homoglyphs, bidi, injection) | `approximately scan-tool` |
 | 🧪 Conformal attribution | Prediction **sets** with a distribution-free 90% coverage guarantee — ambiguity widens the set honestly | `calibrate` + `attribute` |
