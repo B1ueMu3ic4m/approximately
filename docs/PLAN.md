@@ -3244,3 +3244,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        agents; schema + docs/mcp-tools.json synced (36 tools).
      - status payload/render carry budget_breaches (window-scoped
        like every other status tally).
+
+329. **v2.80.0 - per-agent ceilings** (planned):
+     - Budget(per_agent={name: tokens}): per-agent meters charged
+       from the step's resolved agent (override or recorder-level);
+       trips independently of the global ceilings.
+     - raise/warn name the agent; stamp carries meta["budget"]
+       ["agents"] = {name: {tokens, limit, exceeded}}.
+     - Validation: positive ints; per_agent alone satisfies the
+       at-least-one-ceiling rule.

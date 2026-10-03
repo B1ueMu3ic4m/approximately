@@ -33,10 +33,15 @@ class BudgetExceededError(RuntimeError):
         self.kind = kind
         self.limit = limit
         self.spent = spent
-        unit = "tokens" if kind == "tokens" else "USD"
+        if kind.startswith("agent:"):
+            head = f"agent {kind[6:]!r}"
+            unit = "tokens"
+        else:
+            head = "run"
+            unit = "tokens" if kind == "tokens" else "USD"
         super().__init__(
-            f"budget exceeded: {spent:,.4g}/{limit:,.4g} {unit} "
-            f"({kind} ceiling)")
+            f"budget exceeded: {head} {spent:,.4g}/{limit:,.4g} "
+            f"{unit} ({kind} ceiling)")
 
 
 class Budget:
@@ -50,6 +55,31 @@ class Budget:
     """
 
     MODES = ("stamp", "warn", "raise")
+
+    @staticmethod
+    def _validate_prices(prices: Optional[Dict[str, float]]) -> None:
+        """A negative price pays you to burn; inf/NaN never trip a
+        ceiling (NaN compares false, inf belongs to no budget) — a
+        price map that lies makes the dollar meter decorative."""
+        if not prices:
+            return
+        bad = {m: v for m, v in prices.items()
+               if isinstance(v, bool)
+               or not isinstance(v, (int, float))
+               or not math.isfinite(v) or v < 0}
+        if bad:
+            raise ValueError("prices must be finite non-negative "
+                             f"numbers, got {bad}")
+
+    @staticmethod
+    def _validate_per_agent(per_agent: Optional[Dict[str, int]]) -> None:
+        if not per_agent:
+            return
+        bad = {a: n for a, n in per_agent.items()
+               if isinstance(n, bool) or not isinstance(n, int) or n < 1}
+        if bad:
+            raise ValueError("per-agent ceilings must be positive "
+                             f"ints, got {bad}")
 
     @staticmethod
     def validate_tokens(tokens: int) -> None:
@@ -66,43 +96,40 @@ class Budget:
                  tokens: Optional[int] = None,
                  usd: Optional[float] = None,
                  prices: Optional[Dict[str, float]] = None,
-                 on_exceed: str = "stamp"):
-        if tokens is None and usd is None:
+                 on_exceed: str = "stamp",
+                 per_agent: Optional[Dict[str, int]] = None):
+        if tokens is None and usd is None and not per_agent:
             raise ValueError("budget needs at least one ceiling: "
-                             "tokens or usd")
+                             "tokens, usd, or per_agent")
         if on_exceed not in self.MODES:
             raise ValueError(f"on_exceed must be one of {self.MODES}, "
                              f"got {on_exceed!r}")
         if prices is None and usd is not None:
             raise ValueError("a usd ceiling needs a price map "
                              "(prices={model: usd per 1k tokens})")
-        if prices:
-            # a negative price pays you to burn; inf/NaN never trip a
-            # ceiling (NaN compares false, inf belongs to no budget) —
-            # a price map that lies makes the dollar meter decorative
-            bad = {m: v for m, v in prices.items()
-                   if isinstance(v, bool)
-                   or not isinstance(v, (int, float))
-                   or not math.isfinite(v) or v < 0}
-            if bad:
-                raise ValueError("prices must be finite non-negative "
-                                 f"numbers, got {bad}")
+        self._validate_prices(prices)
+        self._validate_per_agent(per_agent)
         self.limit_tokens = tokens
         self.limit_usd = usd
         self.prices = dict(prices) if prices else {}
         self.on_exceed = on_exceed
+        self.per_agent = dict(per_agent) if per_agent else {}
+        self.agent_tokens: Dict[str, int] = {}
         self.tokens = 0
         self.unpriced_tokens = 0
         self.usd = 0.0
         self._warned: set = set()
 
-    def charge(self, tokens: int = 0, model: Optional[str] = None) -> Dict[str, Any]:
+    def charge(self, tokens: int = 0, model: Optional[str] = None,
+               agent: Optional[str] = None) -> Dict[str, Any]:
         """Charge ``tokens`` against the ceilings and return the state.
 
         Priced models move the dollar meter; unpriced ones only move
-        ``unpriced_tokens`` (never silently valued at zero).  Raises in
-        ``"raise"`` mode when a ceiling is crossed; warns in ``"warn"``
-        mode, once per newly crossed ceiling.
+        ``unpriced_tokens`` (never silently valued at zero).  With
+        ``per_agent`` configured and ``agent`` named, the agent's own
+        ceiling meters too.  Raises in ``"raise"`` mode when a ceiling
+        is crossed; warns in ``"warn"`` mode, once per newly crossed
+        ceiling.
         """
         self.validate_tokens(tokens)
         self.tokens += tokens
@@ -111,6 +138,9 @@ class Budget:
                 self.usd + tokens / 1000 * self.prices[model], 4)
         else:
             self.unpriced_tokens += tokens
+        if agent is not None and agent in self.per_agent:
+            self.agent_tokens[agent] = (self.agent_tokens.get(agent, 0)
+                                        + tokens)
         reasons = self.exceeded_reasons()
         if reasons and self.on_exceed == "raise":
             self._raise_first(reasons)
@@ -118,19 +148,22 @@ class Budget:
             for kind in reasons:
                 if kind not in self._warned:
                     self._warned.add(kind)
-                    print(f"budget warning: {self._spent_of(kind):,.4g}"
-                          f"/{self._limit_of(kind):,.4g} "
-                          f"{'tokens' if kind == 'tokens' else 'USD'} "
-                          "exceeded", file=sys.stderr)
+                    print(f"budget warning: "
+                          f"{self._describe(kind)} exceeded",
+                          file=sys.stderr)
         return self.state
 
     def exceeded_reasons(self) -> list:
-        """Which ceilings are crossed: ``["tokens"]``, ``["usd"]`` or both."""
+        """Which ceilings are crossed: global ones first (``tokens``,
+        ``usd``), then per-agent ones (``agent:<name>``)."""
         reasons = []
         if self.limit_tokens is not None and self.tokens > self.limit_tokens:
             reasons.append("tokens")
         if self.limit_usd is not None and self.usd > self.limit_usd:
             reasons.append("usd")
+        for name, limit in self.per_agent.items():
+            if self.agent_tokens.get(name, 0) > limit:
+                reasons.append(f"agent:{name}")
         return reasons
 
     @property
@@ -146,17 +179,41 @@ class Budget:
             out["limit_tokens"] = self.limit_tokens
         if self.limit_usd is not None:
             out["limit_usd"] = self.limit_usd
+        if self.per_agent:
+            out["agents"] = {
+                name: {"tokens": self.agent_tokens.get(name, 0),
+                       "limit": limit,
+                       "exceeded":
+                           self.agent_tokens.get(name, 0) > limit}
+                for name, limit in self.per_agent.items()}
         return out
 
+    def _describe(self, kind: str) -> str:
+        spent, limit = self._spent_of(kind), self._limit_of(kind)
+        if kind.startswith("agent:"):
+            return (f"agent {kind[6:]!r} {spent:,.4g}/{limit:,.4g} "
+                    "tokens")
+        unit = "tokens" if kind == "tokens" else "USD"
+        return f"{spent:,.4g}/{limit:,.4g} {unit}"
+
     def _limit_of(self, kind: str) -> float:
+        if kind.startswith("agent:"):
+            return float(self.per_agent[kind[6:]])
         return (float(self.limit_tokens or 0) if kind == "tokens"
                 else float(self.limit_usd or 0))
 
     def _spent_of(self, kind: str) -> float:
+        if kind.startswith("agent:"):
+            return float(self.agent_tokens.get(kind[6:], 0))
         return float(self.tokens) if kind == "tokens" else self.usd
 
     def _raise_first(self, reasons: list) -> None:
-        # deterministic order: tokens first, then usd
-        kind = "tokens" if "tokens" in reasons else reasons[0]
+        # deterministic order: global ceilings first, then agents
+        for preferred in ("tokens", "usd"):
+            if preferred in reasons:
+                kind = preferred
+                break
+        else:
+            kind = reasons[0]
         raise BudgetExceededError(kind, self._limit_of(kind),
                                   self._spent_of(kind))

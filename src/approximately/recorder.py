@@ -126,7 +126,8 @@ class Recorder:
             # the offending step is on the record BEFORE the breaker
             # trips, so a raised BudgetExceededError leaves a trace
             # that shows exactly where the burn stopped
-            self.budget.charge(tokens=tokens, model=self.trace.model)
+            self.budget.charge(tokens=tokens, model=self.trace.model,
+                               agent=agent or self.agent)
         return step
 
     def observe(self, text: str, agent: Optional[str] = None,
