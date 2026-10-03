@@ -234,6 +234,55 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "budget_sim",
+        "description": "Replay a recorded run against rails it did "
+                       "not have: which step a hypothetical token/"
+                       "dollar ceiling would have tripped at, and "
+                       "how much the run burned after that point. "
+                       "The sizing door for arming Budget rails on "
+                       "new agents. Mirrors `approximately budget`.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "trace": {"type": "string"},
+                "tokens": {"type": "integer",
+                           "description": "hypothetical token "
+                                          "ceiling"},
+                "usd": {"type": "number",
+                        "description": "hypothetical dollar ceiling; "
+                                       "needs prices"},
+                "prices": {"type": "object",
+                           "description": "model -> blended $/1k"},
+            },
+            "required": ["trace"],
+        },
+    },
+    {
+        "name": "spend_forecast",
+        "description": "Project the fleet's daily spend forward: "
+                       "Theil-Sen slope over the digest history, a "
+                       "horizon projection floored at zero, and "
+                       "days-until-ceiling (0 when already over, "
+                       "null when the trend never gets there). "
+                       "Linear extrapolation: robust to outliers, "
+                       "blind to your next deploy. Mirrors "
+                       "`fleet --trend --spend-ceiling`.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "digest_dir": {"type": "string"},
+                "ceiling": {"type": "number",
+                            "description": "USD; days-until is "
+                                           "reported against it"},
+                "horizon_days": {"type": "integer",
+                                 "description": "projection length "
+                                                "(default 14)"},
+            },
+            "required": ["digest_dir"],
+        },
+    },
+    {
         "name": "doctor",
         "description": "Health check of a trace store: corrupt or "
                        "misnamed records, evidence-ledger tamper, "
@@ -1097,6 +1146,54 @@ def _write_temp_prices(table: Any) -> Any:
     return path
 
 
+def _tool_budget_sim(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .budget import Budget, simulate
+
+    prices = args.get("prices")
+    if prices is not None and (not isinstance(prices, dict)
+                               or not all(
+            isinstance(v, (int, float)) and v >= 0
+            and not isinstance(v, bool)
+            for v in prices.values())):
+        raise KeyError("prices must map model -> non-negative "
+                       "number")
+    if args.get("usd") is not None and not prices:
+        raise KeyError("usd ceiling needs prices: a budget you "
+                       "cannot compute does not hold")
+    tokens = args.get("tokens")
+    if tokens is None and args.get("usd") is None:
+        raise KeyError("pass tokens and/or usd: a simulation with "
+                       "no ceiling proves nothing")
+    store = _store(ctx, args)
+    trace = store.load(str(args["trace"]))
+    if trace is None:
+        raise KeyError(f"no trace {args['trace']!r} in store")
+    try:
+        Budget(tokens=tokens, usd=args.get("usd"), prices=prices)
+    except ValueError as exc:
+        raise KeyError(str(exc)) from exc
+    return simulate(trace, tokens=tokens, usd=args.get("usd"),
+                    prices=prices)
+
+
+def _tool_spend_forecast(ctx: ServerContext,
+                         args: Dict[str, Any]) -> dict:
+    from .fleet import summarize_trend, trend_days
+    from .forecast import forecast_spend
+
+    digest_dir = Path(str(args["digest_dir"]))
+    if not digest_dir.is_dir():
+        raise KeyError(f"no such digest directory: {digest_dir}")
+    horizon = args.get("horizon_days")
+    if horizon is not None and (not isinstance(horizon, int)
+                                or isinstance(horizon, bool)
+                                or horizon < 1):
+        raise KeyError("horizon_days must be a positive integer")
+    rows = summarize_trend(trend_days(digest_dir))["days"]
+    return forecast_spend(rows, ceiling=args.get("ceiling"),
+                          horizon_days=horizon or 14)
+
+
 def _tool_doctor(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .doctor import doctor, fix_hygiene, quarantine_corrupt
 
@@ -1673,6 +1770,8 @@ _HANDLERS = {
     "query": _tool_query,
     "bisect": _tool_bisect,
     "doctor": _tool_doctor,
+    "budget_sim": _tool_budget_sim,
+    "spend_forecast": _tool_spend_forecast,
     "spool_once": _tool_spool_once,
     "trend": _tool_trend,
     "stats": _tool_stats,

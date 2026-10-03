@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.89.0
+
+- the analytics become agent-callable: `budget_sim` (the sizing door — trip step and savings against hypothetical ceilings, prices/ceiling validation mirroring the CLI) and `spend_forecast` (days-to-ceiling over the digest history) join the MCP surface — 38 tools. the forecast handler reads the summarized day-rows, not the raw entries; README banner counts and docs/mcp-tools.json follow. local ruff upgraded to CI's era after tonight's lint drift.
+
 ## v2.88.0
 
 - size the rails on yesterday's burn: `approximately budget <trace> --tokens N [--usd X --prices P]` replays a recorded, unbudgeted run against hypothetical ceilings and answers the arming question with evidence — which step the breaker trips at, how many tokens (and dollars) the run burned after the step where it should have died. runs the ceiling never catches say so; the json payload carries the whole simulation.

@@ -33,7 +33,7 @@ def test_stdio_server_answers_over_a_real_pipe(tmp_path):
         stderr=subprocess.DEVNULL, text=True)
     try:
         tools = _rpc(proc, TOOLS_REQUEST)["result"]["tools"]
-        assert len(tools) == 36
+        assert len(tools) == 38
 
         doctor = _rpc(proc, DOCTOR_CALL)["result"]["content"][0]["text"]
         payload = json.loads(doctor)
