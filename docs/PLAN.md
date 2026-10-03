@@ -3198,3 +3198,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        fewer.
      - `clean --keep-breached` CLI flag (json + prose both report
        it); init workflow template gains --max-budget-breaches 0.
+
+323. **v2.74.0 - the breaker's receipt in the postmortem** (planned):
+     - report.html gains a Live budget card: meters, ceilings,
+       BREACHED / within budget verdict, unpriced tokens surfaced.
+     - Best-effort contract: no stamp, no card; non-dict meta
+       renders nothing (poison-guarded via store.stamped_breach).
+     - Evidence packs carry the card; verify stays intact.
