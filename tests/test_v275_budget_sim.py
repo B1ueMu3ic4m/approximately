@@ -28,7 +28,7 @@ def _recorded(tmp_path, tokens=(1_000, 2_000, 8_000, 500)):
 
 
 def test_simulate_finds_the_trip_step(tmp_path):
-    store, trace = _recorded(tmp_path)  # 11,500 tokens total
+    _, trace = _recorded(tmp_path)  # 11,500 tokens total
     result = simulate(trace, tokens=5_000)
     assert result["would_trip"] is True
     # 1k + 2k = 3k stays under; +8k = 11k trips at the third step
@@ -39,7 +39,7 @@ def test_simulate_finds_the_trip_step(tmp_path):
 
 
 def test_simulate_usd_ceiling_with_prices(tmp_path):
-    store, trace = _recorded(tmp_path)
+    _, trace = _recorded(tmp_path)
     result = simulate(trace, usd=0.05, prices={"m/1": 0.01})
     # $0.01 + $0.02 = $0.03 under; +$0.08 = $0.11 trips at step 2
     assert result["would_trip"] is True
@@ -48,7 +48,7 @@ def test_simulate_usd_ceiling_with_prices(tmp_path):
 
 
 def test_simulate_never_trips(tmp_path):
-    store, trace = _recorded(tmp_path)
+    _, trace = _recorded(tmp_path)
     result = simulate(trace, tokens=1_000_000)
     assert result["would_trip"] is False
     assert result["trip_step"] is None

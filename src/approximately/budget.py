@@ -233,16 +233,14 @@ def simulate(trace: Any, tokens: Optional[int] = None,
     (tokens the run burned after the step where it should have
     died); for runs that never trip, both savings are 0.
     """
-    rails = Budget(tokens=tokens, usd=usd, prices=prices,
-                   on_exceed="raise")
+    rails = Budget(tokens=tokens, usd=usd, prices=prices)
     steps = [s for s in trace.steps if s.kind == "tool_call"]
     total = sum(s.tokens or 0 for s in steps)
     saved_tokens = 0
     tripped_at = None
     for step in steps:
-        try:
-            rails.charge(tokens=step.tokens or 0, model=trace.model)
-        except BudgetExceededError:
+        rails.charge(tokens=step.tokens or 0, model=trace.model)
+        if rails.exceeded_reasons():
             tripped_at = step.index
             saved_tokens = total - sum(
                 s.tokens or 0 for s in steps
