@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.74.0
+
+- the breaker's receipt in the postmortem: a Live budget card in report.html — what the rails metered (tokens, est. spend, unpriced tokens), what the ceilings were, and whether the breaker tripped. best-effort like every card: no stamp, no card; poison meta renders nothing. evidence packs carry it and stay TRUSTED. the budget loop now closes end to end: record → gate → fleet → retention → postmortem.
+
 ## v2.73.0
 
 - the stamp survives housekeeping: `clean --keep-breached` — runs the live Budget rails stamped as breached survive retention no matter their age or the count ceiling, because housekeeping must not destroy breach evidence before the postmortem reads it. unreadable files are never kept by the guard (a poison file is not evidence); the count cap skips past a breached trace to the next victim instead. the predicate moved to store.stamped_breach, one copy behind every surface. the init workflow template now gates with `--max-budget-breaches 0` out of the box.
