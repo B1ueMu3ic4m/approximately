@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.94.0
+
+- the fresh doors, aligned: `budget --agent NAME` sizes per-agent rails on one participant's steps only (an agent-scoped simulation needs its token ceiling — per_agent rails are token-only), and `status --spend-ceiling USD` gives the ops pulse the same days-to-ceiling forecast the fleet trend carries (json field + prose line; silent without a ceiling). xenon kept honest via _first_trip/_scoped_steps/_saved_* and _digest_trend/_write_forecast_line extractions.
+
 ## v2.93.0
 
 - stamps are data, and ingest knows it: probes over the merge/import paths found the Night V rule intact — merged traces carry the stamps they earned in their own store (and the destination's gate reads them), imported and spooled traces never acquire ours (`stamp=False` at every ingest save). four pins keep it that way; the README's alignment row names `--agent`. tests-only-plus-one-row.

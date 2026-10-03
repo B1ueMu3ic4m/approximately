@@ -79,7 +79,8 @@ def test_worsening_trend_fails(tmp_path, capsys, monkeypatch):
         return FakeTrend()
 
     monkeypatch.setattr(cli_mod, "_status_payload",
-                        lambda store, traces, digest_dir, since=None, prices=None:
+                        lambda store, traces, digest_dir, since=None,
+                    prices=None, spend_ceiling=None:
                         {"store": "fake", "traces": 1,
                          "failures": 0,
                          "failure_rate": 0.0, "top_modes": {},
