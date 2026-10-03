@@ -96,6 +96,13 @@ def test_server_info_tracks_installed_version():
     # the version is single-sourced from pyproject.toml (v2.64):
     # SERVER_INFO must match __version__, never a stale shadow
     # install's metadata
+    from pathlib import Path
+
     from approximately import __version__
 
-    assert SERVER_INFO["version"] == __version__ == "2.64.0"
+    assert SERVER_INFO["version"] == __version__
+    # and it is the pyproject version — single-sourced, never a
+    # shadow install's metadata
+    pyproject = (Path(__file__).resolve().parent.parent
+                 / "pyproject.toml")
+    assert __version__ in pyproject.read_text(encoding="utf-8")

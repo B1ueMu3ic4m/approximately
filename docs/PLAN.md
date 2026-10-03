@@ -3104,3 +3104,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        walks out the door with the person who learned it: an HTTP
        server that responds before draining the request is not
        merely impolite — it can murder the client's retry loop.
+
+315. **v2.66.0 - a pin should never know the version's face** ✅ (delivered):
+     - The v294 server-info pin hardcoded "2.64.0" — the very next
+       bump flipped it to red.  The pin now asserts the real
+       contract: SERVER_INFO == __version__, and that value
+       appears in pyproject.toml (single-sourced, shadow-proof,
+       bump-proof).

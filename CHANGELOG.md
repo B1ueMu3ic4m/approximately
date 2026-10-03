@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.66.0
+
+- a pin should never know the version's face: the server-info pin hardcoded "2.64.0" and the very next bump flipped it red. it now asserts the real contract — SERVER_INFO == __version__ == the pyproject entry. tests-only.
+
 ## v2.65.0
 
 - the Windows RST lesson, on the record: the test webhook answered 4xx/5xx without reading the request body, so its close sent an RST that killed the client's next retry (WinError 10053). the fake now drains the body like a real receiver. docs-only; the fix itself rode v2.64.0.
