@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.82.0
+
+- fuzz 21 points the hostile probes at the surfaces the budget wave never touched — evidence packs, trace diff, clustering — and finds no holes; the pins keep it that way: keyed-pack verdict semantics (right key intact / wrong key wrong-key / no key keyed, sealed not broken), tampered and missing members named exactly, zero-step traces through packs and every scorecard, fifty identical failures collapsing to one cluster, self-diff stability. tests-only release (v2.66 precedent).
+
 ## v2.81.0
 
 - the verdict reads well where humans look: `ci --format markdown` renders a step-summary table a pipeline can cat into $GITHUB_STEP_SUMMARY (gate / measured / ceiling / verdict, refusals as paragraphs, exit codes unchanged), and the fleet card now NAMES the agents the per-agent ceilings caught — v2.80.0's stamp carried the data, the card just reads it (summary, webhook payload and digest follow; "budget breach(es) — agents: researcher, booker").
