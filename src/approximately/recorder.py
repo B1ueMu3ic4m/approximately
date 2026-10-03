@@ -22,6 +22,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, TypeVar
 
+from .budget import Budget
 from .store import TraceStore
 from .trace import ERROR, MESSAGE, OBSERVATION, PLAN, RESPONSE, TOOL_CALL, Step, Trace
 
@@ -45,6 +46,7 @@ class Recorder:
         save: bool = True,
         step_limit: Optional[int] = None,
         agent: Optional[str] = None,
+        budget: Optional[Budget] = None,
     ):
         self.trace = Trace(task=task, model=model)
         if step_limit is not None:
@@ -53,6 +55,7 @@ class Recorder:
         self.store = store
         self.save_on_exit = save
         self.saved_path: Optional[Path] = None
+        self.budget = budget
         self._previous: Optional["Recorder"] = None
         self._t0 = time.perf_counter()
 
@@ -73,6 +76,9 @@ class Recorder:
                 )
             )
             self.trace.success = False
+        if self.budget is not None:
+            # stamp BEFORE signing so the signature covers the verdict
+            self.trace.meta["budget"] = self.budget.state
         if self.save_on_exit:
 
             from .integrity import load_key, sign
@@ -96,7 +102,7 @@ class Recorder:
              error: Optional[str] = None, agent: Optional[str] = None,
              tokens: int = 0, latency_ms: Optional[int] = None,
              **meta: Any) -> Step:
-        return self.trace.add(
+        step = self.trace.add(
             Step(
                 kind=TOOL_CALL,
                 tool=name,
@@ -111,6 +117,12 @@ class Recorder:
                 meta=meta,
             )
         )
+        if self.budget is not None:
+            # the offending step is on the record BEFORE the breaker
+            # trips, so a raised BudgetExceededError leaves a trace
+            # that shows exactly where the burn stopped
+            self.budget.charge(tokens=tokens, model=self.trace.model)
+        return step
 
     def observe(self, text: str, agent: Optional[str] = None,
                 **meta: Any) -> Step:
