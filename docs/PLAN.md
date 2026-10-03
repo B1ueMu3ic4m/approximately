@@ -3237,3 +3237,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        validate before the step is recorded — validation rejects,
        breaches record-then-trip. The distinction is the contract.
      - Quarantine + junit hostile-input pins; 10 new tests.
+
+328. **v2.79.0 - the verdict reaches the agent side and the pulse**
+      (planned):
+     - MCP doctor tool gains `fix`: hygiene + quarantine callable by
+       agents; schema + docs/mcp-tools.json synced (36 tools).
+     - status payload/render carry budget_breaches (window-scoped
+       like every other status tally).

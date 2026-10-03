@@ -983,6 +983,8 @@ def _status_payload(store: Any, traces: list, digest_dir: Any,
                                                 stats)
     worst = fleet_anoms[0] if fleet_anoms else None
     spend, unpriced = _status_spend(traces, prices)
+    from .fleet import _budget_breaches
+
     return {
         "store": str(store.directory),
         "traces": stats.traces,
@@ -992,6 +994,7 @@ def _status_payload(store: Any, traces: list, digest_dir: Any,
         "token_burns": token_burns,
         "est_spend": spend,
         "unpriced_tokens": unpriced,
+        "budget_breaches": _budget_breaches(traces),
         "top_modes": dict(list(stats.mode_counts.items())[:3]),
         "annotations": len(annotations),
         "annotations_confirmed": len(confirmed),
@@ -1033,6 +1036,13 @@ def _write_token_line(buf: Any, payload: dict) -> None:
         buf.write("\n")
 
 
+def _write_breach_line(buf: Any, payload: dict) -> None:
+    """The budget-breach line — silent when the rails never tripped."""
+    if payload.get("budget_breaches"):
+        buf.write(f"  budget breaches: {payload['budget_breaches']} "
+                  f"run(s) the live rails stopped\n")
+
+
 def _render_status(args: argparse.Namespace) -> str:
     """One status frame — shared by the one-shot and watch modes."""
     import io as _io
@@ -1070,6 +1080,7 @@ def _render_status(args: argparse.Namespace) -> str:
                   f" (worst: {worst.get('tool')} "
                   f"{worst.get('latency_ms')}ms, "
                   f"z={worst.get('robust_z'):+.1f})\n")
+    _write_breach_line(buf, payload)
     last = payload["last_failure"]
     if last is not None:
         buf.write(f"  last failure: {last['id']} chain={last['chain']} "

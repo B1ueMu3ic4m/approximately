@@ -258,6 +258,12 @@ _TOOLS: List[Dict[str, Any]] = [
                          "description": "recompute every record's "
                                         "integrity chain — a record "
                                         "can be parseable yet lie"},
+                "fix": {"type": "boolean",
+                        "description": "also repair: remove stale "
+                                       "locks and temp files, "
+                                       "quarantine corrupt records "
+                                       "into <store>/.quarantine with "
+                                       "a manifest (bytes preserved)"},
             },
         },
     },
@@ -1092,18 +1098,29 @@ def _write_temp_prices(table: Any) -> Any:
 
 
 def _tool_doctor(ctx: ServerContext, args: Dict[str, Any]) -> dict:
-    from .doctor import doctor
+    from .doctor import doctor, fix_hygiene, quarantine_corrupt
 
     digest_dir = args.get("digest_dir")
     judge_cache = args.get("judge_cache")
     spool_dir = args.get("spool_dir")
-    report = doctor(_store(ctx, args).directory,
+    directory = _store(ctx, args).directory
+    report = doctor(directory,
                     Path(digest_dir) if digest_dir else None,
                     judge_cache=(Path(str(judge_cache))
                                  if judge_cache else None),
                     spool_dir=(Path(str(spool_dir))
                                if spool_dir else None),
                     deep=bool(args.get("deep")))
+    if args.get("fix"):
+        removed = fix_hygiene(Path(directory), report)
+        report.stale_locks = [n for n in report.stale_locks
+                              if n not in removed]
+        report.temp_files = [n for n in report.temp_files
+                             if n not in removed]
+        moved = quarantine_corrupt(Path(directory), report)
+        report.corrupt = [n for n in report.corrupt
+                          if n not in moved]
+        report.quarantined = moved
     return report.to_dict()
 
 
