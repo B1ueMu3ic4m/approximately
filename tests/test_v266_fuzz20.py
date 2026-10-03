@@ -85,10 +85,11 @@ def test_quarantine_manifest_survives_hostile_error_text(tmp_path):
     store = TraceStore(tmp_path)
     with Recorder("good", model="m/1", store=store) as rec:
         rec.respond("done", success=True)
-    weird = tmp_path / "wëird 名字 with \"quotes\".json"
-    weird.write_text('{"steps": [1e999]}', encoding="utf-8")
+    weird = tmp_path / "wëird 名字 with ⌘.json"
+    weird.write_text('{"steps": ["quote \" and <angle>"]}',
+                     encoding="utf-8")
     report = doctor(tmp_path)
-    assert "wëird 名字 with \"quotes\".json" in report.corrupt
+    assert weird.name in report.corrupt
     assert quarantine_corrupt(tmp_path, report) == \
         [weird.name]
     line = (tmp_path / QUARANTINE_DIR / "manifest.jsonl"
