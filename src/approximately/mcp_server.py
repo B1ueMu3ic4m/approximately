@@ -14,6 +14,7 @@ methods -32601, bad params -32602.
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import sys
@@ -231,6 +232,32 @@ _TOOLS: List[Dict[str, Any]] = [
                                                       "mode"},
             },
             "required": ["baseline", "candidate"],
+        },
+    },
+    {
+        "name": "audit",
+        "description": "The composed nightly door: store doctor "
+                       "(optionally repairing), the quality gate "
+                       "over the store's runs, and with a "
+                       "digest_dir the fleet trend plus the "
+                       "days-until-ceiling spend forecast. One "
+                       "report, one verdict. Mirrors "
+                       "`approximately audit`.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "digest_dir": {"type": "string"},
+                "spend_ceiling": {"type": "number"},
+                "max_failure_rate": {"type": "number"},
+                "max_tokens": {"type": "integer"},
+                "max_budget_breaches": {"type": "integer"},
+                "deep": {"type": "boolean"},
+                "fix": {"type": "boolean",
+                        "description": "repair while auditing: "
+                                       "hygiene removed, corrupt "
+                                       "records quarantined"},
+            },
         },
     },
     {
@@ -1146,6 +1173,82 @@ def _write_temp_prices(table: Any) -> Any:
     return path
 
 
+def _audit_doctor(directory: Any, args: Dict[str, Any]) -> dict:
+    """Doctor section of the audit; repairs when asked."""
+    from .doctor import doctor as doctor_run
+    from .doctor import fix_hygiene, quarantine_corrupt
+
+    doc = doctor_run(Path(directory), deep=bool(args.get("deep")))
+    if args.get("fix"):
+        removed = fix_hygiene(Path(directory), doc)
+        doc.stale_locks = [n for n in doc.stale_locks
+                           if n not in removed]
+        doc.temp_files = [n for n in doc.temp_files
+                          if n not in removed]
+        moved = quarantine_corrupt(Path(directory), doc)
+        doc.corrupt = [n for n in doc.corrupt if n not in moved]
+        doc.quarantined = moved
+    return {"healthy": doc.healthy, "corrupt": doc.corrupt,
+            "quarantined": doc.quarantined,
+            "chain_failed": doc.chain_failed,
+            "ledger_intact": doc.ledger_intact}
+
+
+def _audit_gate(traces: list, args: Dict[str, Any]) -> dict:
+    """Quality-gate section of the audit (ci rows, ci validation)."""
+    from .cli import _ci_gate_rows
+    from .cluster import store_stats
+
+    prices = args.get("prices")
+    if args.get("max_spend") is not None and not (
+            isinstance(prices, dict) and prices):
+        raise KeyError("max_spend needs prices")
+    rows = _ci_gate_rows(
+        traces, store_stats(traces), prices or {},
+        argparse.Namespace(
+            max_failure_rate=args.get("max_failure_rate"),
+            max_avg_latency_ms=None, max_p95_latency_ms=None,
+            max_tokens=args.get("max_tokens"), max_spend=None,
+            max_budget_breaches=args.get("max_budget_breaches"),
+            min_traces=None))
+    failed = [r for r in rows if not r["ok"]]
+    return {"ok": not failed, "gates": rows}
+
+
+def _tool_audit(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .fleet import summarize_trend, trend_days
+    from .forecast import forecast_spend
+
+    store = _store(ctx, args)
+    directory = store.directory
+    traces = store.list_traces()
+    if not traces:
+        raise KeyError("store is empty: an audit of nothing proves "
+                       "nothing")
+    report: Dict[str, Any] = {"store": str(directory), "ok": True}
+    report["doctor"] = _audit_doctor(directory, args)
+    report["ok"] = report["ok"] and report["doctor"]["healthy"]
+    report["gate"] = _audit_gate(traces, args)
+    report["ok"] = report["ok"] and report["gate"]["ok"]
+
+    digest_dir = args.get("digest_dir")
+    if digest_dir:
+        dd = Path(str(digest_dir))
+        if not dd.is_dir():
+            raise KeyError(f"no such digest directory: {dd}")
+        trend = summarize_trend(trend_days(dd))
+        report["trend"] = {"verdict": trend["verdict"],
+                           "slope": trend["slope"]}
+        ceiling = args.get("spend_ceiling")
+        if ceiling is not None:
+            # summarized rows, not raw entries (est_spend lives here)
+            fc = forecast_spend(trend["days"], ceiling=float(ceiling))
+            report["forecast"] = fc
+            if fc.get("days_to_ceiling") == 0:
+                report["ok"] = False
+    return report
+
+
 def _tool_budget_sim(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .budget import Budget, simulate
 
@@ -1770,6 +1873,7 @@ _HANDLERS = {
     "query": _tool_query,
     "bisect": _tool_bisect,
     "doctor": _tool_doctor,
+    "audit": _tool_audit,
     "budget_sim": _tool_budget_sim,
     "spend_forecast": _tool_spend_forecast,
     "spool_once": _tool_spool_once,

@@ -11,7 +11,7 @@
 <b>Free & open source · Zero dependencies · MIT · Python 3.9+ · pip install approximately</b>
 </p>
 
-> **v2** — a production-stable toolkit: 38 MCP tools (+resources), 7 framework
+> **v2** — a production-stable toolkit: 39 MCP tools (+resources), 7 framework
 > adapters, MAST attribution with a gated quality floor, tamper-evident evidence,
 > pipeline quality gates (`ci`), fleet monitoring with quiet alerting, and
 > 1,600+ tests across a 15-job CI matrix.  Semver with teeth: major for big or
@@ -187,7 +187,7 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 💰 Spend is a signal | Adapters/OTLP capture real usage; per-model prices turn tokens into a per-store spend estimate, `--fail-over` alarms in CI, `--alert-spend` pages the watch | `approximately stats --prices prices.json --fail-over 50` |
 | 🚦 CI quality gates | One command composes the ceilings (failure rate, p95 step latency, tokens, estimated spend, stamped budget breaches) into a pipeline-native verdict: exit 0 pass, 1 breach, 2 misconfiguration — an empty store is refused, a gate over zero runs proves nothing. `--format junit` renders natively in GitHub Actions / GitLab | `approximately ci --max-failure-rate 0.2 --max-p95-latency-ms 8000 --max-budget-breaches 0 --format junit` |
 | 🧹 Retention by count | `clean --max-traces N` keeps only the newest N runs — an age cap alone lets one busy afternoon accumulate a thousand records forever; both caps compose, dry-run stays honest | `approximately clean --keep-days 30 --max-traces 500` |
-| 🔌 MCP server | The whole toolkit as a Model Context Protocol stdio server (38 tools and counting — the committed [mcp-tools.json](docs/mcp-tools.json) mirrors it; `tools/list` is authoritative) — query failures and agent scoreboards from any MCP client | `approximately mcp` |
+| 🔌 MCP server | The whole toolkit as a Model Context Protocol stdio server (39 tools and counting — the committed [mcp-tools.json](docs/mcp-tools.json) mirrors it; `tools/list` is authoritative) — query failures and agent scoreboards from any MCP client | `approximately mcp` |
 | 🧪 Attribution quality gates | Gold-corpus + large-n synthetic floors run in CI — a detector refactor that degrades P/R fails the build | `python scripts/bench_gate.py [--synth]` |
 | 🚦 Gate as a GitHub Action | The same attribution gate as a drop-in action for your own repo's workflow | `uses: B1ueMu3ic4m/approximately@v0` |
 

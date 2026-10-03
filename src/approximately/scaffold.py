@@ -161,6 +161,33 @@ jobs:
           #   approximately ci --store {store} --max-spend 5 --prices prices.json
 """.format(store=_STORE_DIR)
 
+_AUDIT_WORKFLOW = """\
+name: agent-audit
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install approximately
+      - name: nightly audit (doctor + gate + forecast)
+        run: |
+          approximately audit --store {store} \\
+            --max-failure-rate 0.3 \\
+            --max-p95-latency-ms 15000 \\
+            --max-tokens 2000000 \\
+            --max-budget-breaches 0 \\
+            --min-traces 1 \\
+            --fix
+        # add --digest-dir + --spend-ceiling once a watch feeds digests
+""".format(store=_STORE_DIR)
+
 _PRICES: Dict[str, Any] = {
     "gpt-4o": 2.5,
     "gpt-4o-mini": 0.15,
@@ -182,6 +209,11 @@ def init_scaffold(directory: Path, force: bool = False) -> Dict[str, Any]:
 
     wf_path = directory / ".github" / "workflows" / "agent-gate.yml"
     result[str(wf_path)] = _write_once(wf_path, _WORKFLOW, force)
+
+    audit_path = (directory / ".github" / "workflows" /
+                  "agent-audit.yml")
+    result[str(audit_path)] = _write_once(audit_path,
+                                          _AUDIT_WORKFLOW, force)
 
     prices_path = directory / "prices.json"
     result[str(prices_path)] = _write_once(

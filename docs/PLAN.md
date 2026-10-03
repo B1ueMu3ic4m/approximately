@@ -3327,3 +3327,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        trend/--spend-ceiling forecast, one report one exit code.
      - Prose renderer and digest section extracted (xenon).
      - Forecast-input lesson commented at its third fix site.
+
+340. **v2.91.0 - the audit reaches standing surfaces** (planned):
+     - MCP `audit` tool (39 tools): doctor/gate/digest sections,
+       fix-in-place; helpers extracted (xenon).
+     - init wires agent-audit.yml (nightly cron, --fix on) beside
+       the PR gate; init tests updated for four files.

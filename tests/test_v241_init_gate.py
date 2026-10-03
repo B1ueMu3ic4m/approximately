@@ -22,6 +22,11 @@ def test_init_writes_three_files(tmp_path):
     wf = tmp_path / ".github" / "workflows" / "agent-gate.yml"
     assert "approximately ci" in wf.read_text(encoding="utf-8")
     assert "--max-failure-rate 0.3" in wf.read_text(encoding="utf-8")
+    audit_wf = (tmp_path / ".github" / "workflows" /
+                "agent-audit.yml")
+    audit_text = audit_wf.read_text(encoding="utf-8")
+    assert "approximately audit" in audit_text
+    assert "cron:" in audit_text
     prices = json.loads(
         (tmp_path / "prices.json").read_text(encoding="utf-8"))
     assert all(isinstance(v, (int, float)) and v >= 0
@@ -45,7 +50,7 @@ def test_force_overwrites_workflow_but_never_gitignore(tmp_path):
     gi.write_text(".agents-store/\n# keep me\n", encoding="utf-8")
     statuses = init_scaffold(tmp_path, force=True)
     wf_status = [v for k, v in statuses.items() if k.endswith(".yml")]
-    assert wf_status == ["written"]
+    assert wf_status == ["written", "written"]  # gate + audit
     assert gi.read_text(encoding="utf-8") == ".agents-store/\n# keep me\n"
 
 
@@ -64,7 +69,7 @@ def test_init_cli_door(tmp_path, capsys):
     assert code == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["directory"] == str(tmp_path)
-    assert len(payload["files"]) == 3
+    assert len(payload["files"]) == 4
 
 
 def test_init_human_output_names_next_steps(tmp_path, capsys):
