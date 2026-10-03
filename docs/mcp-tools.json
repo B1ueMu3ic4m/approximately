@@ -483,6 +483,10 @@
             "type": "string",
             "description": "compare against traces in another store"
           },
+          "agent": {
+            "type": "string",
+            "description": "align one participant's trajectory"
+          },
           "top": {
             "type": "number",
             "description": "how many candidates (default 5)"

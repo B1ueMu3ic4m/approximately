@@ -400,7 +400,8 @@ def cmd_similar(args: argparse.Namespace) -> int:
         candidates = TraceStore(other).list_traces()
     payload = similar_payload(trace, candidates, top=args.top,
                               min_score=getattr(args, "min_score",
-                                                0.0) or 0.0)
+                                                0.0) or 0.0,
+                              agent=getattr(args, "agent", None))
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2))
         return 0
@@ -3184,6 +3185,9 @@ def build_parser() -> argparse.ArgumentParser:
                         "(cross-project nearest neighbours)")
     p.add_argument("--json", action="store_true",
                    help="emit the same payload as the MCP similar tool")
+    p.add_argument("--agent", metavar="NAME",
+                   help="align one participant's trajectory instead "
+                        "of the interleaved multi-agent stream")
     p.set_defaults(func=cmd_similar)
 
     p = sub.add_parser("predict", parents=[common],

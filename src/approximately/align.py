@@ -20,7 +20,7 @@ so it lands in [0, 1] and is comparable across trace pairs of any length.
 from __future__ import annotations
 
 import json
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from .trace import TOOL_CALL, Step, Trace
 
@@ -54,9 +54,18 @@ def normalize_step(step: Step) -> Tuple[str, str]:
     return f"{head}:{values}", f"{head} {{{keys}}}"
 
 
-def tokens(trace: Trace) -> List[Tuple[str, str]]:
-    """Identity/structure token pairs for every tool-call step of a trace."""
-    return [normalize_step(s) for s in trace.steps if s.kind == TOOL_CALL]
+def tokens(trace: Trace,
+           agent: Optional[str] = None) -> List[Tuple[str, str]]:
+    """Identity/structure token pairs for every tool-call step.
+
+    With ``agent``, only that agent's steps align — the trajectory
+    of one participant in a multi-agent run, not the interleaved
+    stream of everyone.  Steps without an agent never match a named
+    filter (the unattributed stream is its own alignment problem)."""
+    steps = (s for s in trace.steps if s.kind == TOOL_CALL)
+    if agent is not None:
+        steps = (s for s in steps if s.agent == agent)
+    return [normalize_step(s) for s in steps]
 
 
 def align_score(a: List[Tuple[str, str]], b: List[Tuple[str, str]]) -> float:
@@ -103,7 +112,9 @@ def similarity(a: Trace, b: Trace) -> float:
 
 
 def rank_similar(target: Trace, traces: List[Trace],
-                 top: int = 5) -> List[Tuple[Trace, float]]:
+                 top: int = 5,
+                 agent: Optional[str] = None
+                 ) -> List[Tuple[Trace, float]]:
     """The ``top`` most alignment-similar traces to *target*, best first.
 
     Two savings keep this linear-ish on big stores while returning
@@ -116,14 +127,14 @@ def rank_similar(target: Trace, traces: List[Trace],
       DP is skipped. Input order is preserved, so ties break exactly
       as they did before.
     """
-    target_tokens = tokens(target)
+    target_tokens = tokens(target, agent=agent)
     n_target = len(target_tokens)
     scored: List[Tuple[Trace, float]] = []
     threshold = 0.0  # score of the current Nth place (0 while unfilled)
     for candidate in traces:
         if candidate.id == target.id:
             continue
-        cand_tokens = tokens(candidate)
+        cand_tokens = tokens(candidate, agent=agent)
         n_cand = len(cand_tokens)
         if n_target == 0 or n_cand == 0:
             score = 0.0
@@ -196,14 +207,18 @@ def dedupe_traces(traces: list, threshold: float = 0.95,
 
 
 def similar_payload(target: "Trace", traces: list, top: int = 5,
-                    min_score: float = 0.0) -> dict:
+                    min_score: float = 0.0,
+                    agent: Optional[str] = None) -> dict:
     """The `similar` answer as data (shared by CLI --json and MCP).
 
     ``min_score`` cuts weak neighbours: only matches scoring at least
     that much survive (the top-N cap still applies)."""
-    ranked = rank_similar(target, traces, top=max(0, top))
-    return {"trace": target.id,
-            "matches": [{"id": c.id, "task": c.task,
-                         "similarity": round(score, 4)}
-                        for c, score in ranked
-                        if score >= min_score]}
+    ranked = rank_similar(target, traces, top=max(0, top),
+                          agent=agent)
+    matches = [{"id": c.id, "task": c.task,
+                "similarity": round(score, 4)}
+               for c, score in ranked if score >= min_score]
+    payload = {"trace": target.id, "matches": matches}
+    if agent is not None:
+        payload["agent"] = agent
+    return payload

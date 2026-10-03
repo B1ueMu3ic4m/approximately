@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.92.0
+
+- one participant's trajectory: `similar --agent NAME` aligns a single agent's action stream instead of the interleaved multi-agent run — two research agents taking different paths inside otherwise identical runs become distinguishable, and the interleaved noise (the other agent's identical steps, messages, responses) stops propping up false neighbors. tokens()/rank_similar/similar_payload take the filter; CLI, MCP schema and docs/mcp-tools.json carry it. payload gains an "agent" key when scoped.
+
 ## v2.91.0
 
 - the audit reaches standing surfaces: `audit` joins the MCP surface (39 tools — doctor section, gate section, digest trend + forecast, `fix` repairs in place), and `init` now wires a nightly `agent-audit.yml` (cron 03:00, `--fix` on) beside the PR gate — the composed door is something a schedule runs, so both standing surfaces carry it. banner counts and docs/mcp-tools.json follow.

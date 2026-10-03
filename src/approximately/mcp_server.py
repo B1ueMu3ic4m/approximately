@@ -454,7 +454,9 @@ _TOOLS: List[Dict[str, Any]] = [
                                 "description": "compare against "
                                                "traces in another "
                                                "store"},
-                "top": {"type": "number",
+                "agent": {"type": "string",
+"description": "align one participant's trajectory"},
+"top": {"type": "number",
                         "description": "how many candidates "
                                        "(default 5)"},
                 "min_score": {"type": "number",
@@ -1432,13 +1434,14 @@ def _tool_similar(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     min_score = (float(args["min_score"])
                  if args.get("min_score") is not None else 0.0)
     candidates = store.list_traces()
+    agent = args.get("agent")
     if args.get("other_store"):
         from pathlib import Path as _Path
 
         from .store import TraceStore as _TS
 
         candidates = _TS(_Path(str(args["other_store"]))).list_traces()
-    return similar_payload(trace, candidates, top=top, min_score=min_score)
+    return similar_payload(trace, candidates, top=top, min_score=min_score, agent=agent)
 
 
 def _tool_drift(ctx: ServerContext, args: Dict[str, Any]) -> dict:
