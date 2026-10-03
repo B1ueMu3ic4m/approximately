@@ -3162,3 +3162,15 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        silently valued at zero.
      - The stamp lands in trace.meta["budget"] BEFORE signing, so
        the integrity signature covers the verdict.
+
+320. **v2.71.0 - the gate speaks junit** (planned):
+     - `ci --format junit`: one testcase per gate row, <failure> per
+       breach, <error> testcase for config refusals (exit 2 still
+       prints valid XML — CI systems show why the gate refused).
+       Exit codes unchanged; the format changes what CI sees, not
+       what the pipeline gates on.  `--json` stays a working
+       shortcut; explicit `--format` wins.
+     - `--max-budget-breaches N`: counts runs stamped
+       meta["budget"].exceeded by the live rails (v2.70.0) and fails
+       the gate past N; unstamped traces never count.
+     - MCP ci_gate gains the same ceiling; 36 tools unchanged.

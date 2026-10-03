@@ -120,6 +120,10 @@
             "type": "number",
             "description": "USD; needs prices"
           },
+          "max_budget_breaches": {
+            "type": "integer",
+            "description": "fail when more than N runs carry a stamped budget breach"
+          },
           "prices": {
             "type": "object",
             "description": "model -> blended $/1k"
@@ -136,7 +140,7 @@
     },
     {
       "name": "init_gate",
-      "description": "Wire the CI quality gate into a repo directory: GitHub Actions workflow, starter price table, .gitignore line. Idempotent \u2014 nothing is overwritten without force.",
+      "description": "Wire the CI quality gate into a repo directory: GitHub Actions workflow, starter price table, .gitignore line. Idempotent — nothing is overwritten without force.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -210,7 +214,7 @@
     },
     {
       "name": "compare",
-      "description": "Baseline vs candidate store: runs, failures, rate and token deltas, priced spend, and the regression signal \u2014 failure modes the baseline never showed.",
+      "description": "Baseline vs candidate store: runs, failures, rate and token deltas, priced spend, and the regression signal — failure modes the baseline never showed.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -262,7 +266,7 @@
           },
           "deep": {
             "type": "boolean",
-            "description": "recompute every record's integrity chain \u2014 a record can be parseable yet lie"
+            "description": "recompute every record's integrity chain — a record can be parseable yet lie"
           }
         }
       }
@@ -496,7 +500,7 @@
     },
     {
       "name": "plan_repair",
-      "description": "Smallest honest intervention set that clears a trace's failure modes: dedupe repeats, insert verifications, re-attribute. Planning only \u2014 the repaired trace is described, not written; whatever still fires needs an agent-level change.",
+      "description": "Smallest honest intervention set that clears a trace's failure modes: dedupe repeats, insert verifications, re-attribute. Planning only — the repaired trace is described, not written; whatever still fires needs an agent-level change.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -514,7 +518,7 @@
     },
     {
       "name": "import_annotations",
-      "description": "Merge an annotation sidecar (JSONL) into the store, append-only: rows the store has never seen are added, keyed on stable triage content \u2014 a re-import skips.",
+      "description": "Merge an annotation sidecar (JSONL) into the store, append-only: rows the store has never seen are added, keyed on stable triage content — a re-import skips.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -630,7 +634,7 @@
           },
           "tokens": {
             "type": "boolean",
-            "description": "meter on tokens instead of milliseconds \u2014 burn flags the receipt a retry loop leaves"
+            "description": "meter on tokens instead of milliseconds — burn flags the receipt a retry loop leaves"
           },
           "per_model": {
             "type": "boolean",
