@@ -2034,7 +2034,7 @@ def _ci_junit_error(reason: str) -> str:
 
     suites = ET.Element("testsuites", {"name": "approximately-ci"})
     suite = ET.SubElement(suites, "testsuite",
-                          {"name": "ci gate refused", "tests": "1",
+                          {"name": "gate refused", "tests": "1",
                            "errors": "1"})
     tc = ET.SubElement(suite, "testcase",
                        {"name": "gate-configuration",
@@ -2241,20 +2241,68 @@ def _compare_spend(a: dict, prices: Any) -> Any:
     return {"est_spend": total, "unpriced_tokens": unpriced}
 
 
+def _compare_junit(payload: dict, gated: bool) -> str:
+    """JUnit XML for a deployment compare: the one gateable verdict
+    (new failure modes) is a testcase that fails when the gate is
+    armed and the candidate regressed; the deltas ride along as
+    informational cases.  Mirrors verdicts, never invents ceilings."""
+    import xml.etree.ElementTree as ET  # nosec B405 - build-only
+
+    b, c = payload["baseline"], payload["candidate"]
+    new_modes = payload["new_modes"]
+    breached = gated and bool(new_modes)
+    suites = ET.Element("testsuites", {"name": "approximately-compare"})
+    suite = ET.SubElement(suites, "testsuite", {
+        "name": f"{b['store']} -> {c['store']}",
+        "tests": "4" if "spend" in payload else "3",
+        "failures": "1" if breached else "0"})
+    tc = ET.SubElement(suite, "testcase",
+                       {"name": "new-failure-modes",
+                        "classname": "approximately.compare"})
+    if breached:
+        msg = (f"{len(new_modes)} new failure mode(s): "
+               f"{', '.join(new_modes)}")
+        ET.SubElement(tc, "failure",
+                      {"message": msg,
+                       "type": "gate-breach"}).text = msg
+    for name, text in (
+            ("failure-rate",
+             f"{b['failure_rate']:.4f} -> {c['failure_rate']:.4f}"),
+            ("tokens-delta", f"{payload['tokens_delta']:+,}")):
+        ET.SubElement(suite, "testcase",
+                      {"name": name,
+                       "classname": "approximately.compare",
+                       "value": text})
+    if "spend" in payload:
+        ET.SubElement(suite, "testcase",
+                      {"name": "spend-delta",
+                       "classname": "approximately.compare",
+                       "value": (f"${payload['spend']['baseline']:,.2f}"
+                                 " -> "
+                                 f"${payload['spend']['candidate']:,.2f}")})
+    return (ET.tostring(suites, encoding="utf-8",
+                        xml_declaration=True).decode("utf-8"))
+
+
 def cmd_compare(args: argparse.Namespace) -> int:
     """Baseline vs candidate: what changed between two stores.
 
     New failure modes the baseline never showed are the regression
     signal; --fail-on-new-modes turns them into an exit 1 a CI
     pipeline can gate on."""
+    fmt = (getattr(args, "format", None)
+           or ("json" if getattr(args, "json", False) else "text"))
     base = _compare_stats(args.baseline,
                           getattr(args, "since", None))
     cand = _compare_stats(args.candidate, getattr(args, "since", None))
     for side, stats in (("baseline", base), ("candidate", cand)):
         if stats["count"] == 0:
-            print(f"error: {side} store {getattr(args, side)} is "
-                  "empty: a comparison against nothing proves "
-                  "nothing", file=sys.stderr)
+            reason = (f"{side} store {getattr(args, side)} is empty: "
+                      "a comparison against nothing proves nothing")
+            if fmt == "junit":
+                print(_ci_junit_error(reason))
+                return 2
+            print(f"error: {reason}", file=sys.stderr)
             return 2
     prices = _load_prices(getattr(args, "prices", None))
     new_modes = sorted(set(cand["modes"]) - set(base["modes"]))
@@ -2283,7 +2331,13 @@ def cmd_compare(args: argparse.Namespace) -> int:
                             "candidate": spend_c["est_spend"],
                             "unpriced_tokens":
                                 spend_c["unpriced_tokens"]}
-    if getattr(args, "json", False):
+    if fmt == "junit":
+        print(_compare_junit(payload,
+                             bool(getattr(args, "fail_on_new_modes",
+                                          False))))
+        return 1 if (getattr(args, "fail_on_new_modes", False)
+                     and new_modes) else 0
+    if fmt == "json":
         print(json.dumps(payload, indent=2))
     else:
         b, c = payload["baseline"], payload["candidate"]
@@ -2796,6 +2850,11 @@ def build_parser() -> argparse.ArgumentParser:
                    help="compare only runs from the last N days")
     p.add_argument("--json", action="store_true",
                    help="emit the comparison as JSON")
+    p.add_argument("--format", choices=("text", "json", "junit"),
+                   default=None,
+                   help="output shape: text (default), json, or junit "
+                        "XML for native CI rendering; --json is a "
+                        "shortcut for --format json")
     p.set_defaults(func=cmd_compare)
 
     p = sub.add_parser("attribute", parents=[common],

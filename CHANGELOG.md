@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.76.0
+
+- the deployment gate speaks junit: `compare --format junit` mirrors the one gateable verdict (new failure modes under --fail-on-new-modes) as a failing testcase, with rate/token/spend deltas as informational cases; refusals stay exit 2 as <error> testcases. verdicts are mirrored, never invented. the perf-gate wall grows to 21: budget rails (2k budgeted runs), junit render (2k traces), and quarantine (doctor + move over 220 files) earn their budgets like every surface before them.
+
 ## v2.75.0
 
 - quarantine for the unreadable: `doctor --fix` moves corrupt record files into `<store>/.quarantine/` with a jsonl manifest (what, when, why) — the bytes are preserved for forensics, never unlinked, and the store stops re-reporting the same poison on every scan. name clashes are suffixed, vanished files skipped, and the parse error travels with the record. a quarantined store reports healthy again.
