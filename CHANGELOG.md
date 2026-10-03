@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.83.0
+
+- the breach count learns to trend: digest day-rows carried each store's budget_breaches since v2.72 and the trend section finally reads them — a Theil-Sen breach_trend verdict, a sparkline, and a day-table column, so "is the fleet burning more or less over time?" is a glance. the perf wall's two flaky-tonight budgets get the Night V remedy (spool 5s→8s, clean 2s→4s — Windows shared-runner variance, both green on rerun).
+
 ## v2.82.0
 
 - fuzz 21 points the hostile probes at the surfaces the budget wave never touched — evidence packs, trace diff, clustering — and finds no holes; the pins keep it that way: keyed-pack verdict semantics (right key intact / wrong key wrong-key / no key keyed, sealed not broken), tampered and missing members named exactly, zero-step traces through packs and every scorecard, fifty identical failures collapsing to one cluster, self-diff stability. tests-only release (v2.66 precedent).

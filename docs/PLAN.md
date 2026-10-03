@@ -3267,3 +3267,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        zero-step traces through pack + scorecards + trend, the
        50-identical-failure cluster collapse, self-diff stability.
      - Tests-only release.
+
+332. **v2.83.0 - the breach count learns to trend** (planned):
+     - summarize_trend reads budget_breaches from digest day-rows:
+       breach_trend verdict + sparkline + day-table column (the
+       section gate and row generator now tolerate partial rows).
+     - perf budgets widened after tonight's two Windows flakes:
+       spool 5s->8s, clean 2s->4s (ci-gate precedent).

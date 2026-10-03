@@ -358,7 +358,7 @@ def similar_gate(budget_s: float = 2.0) -> int:
 
 
 
-def spool_gate(budget_s: float = 5.0) -> int:
+def spool_gate(budget_s: float = 8.0) -> int:
     """Ingest 200 mixed spool files (transcripts + OTLP envelopes)
     in one pass.  The watch loop runs this forever, so the pass
     must stay cheap; the budget is runner-noise headroom like the
@@ -653,7 +653,7 @@ def doctor_deep_gate(budget_s: float = 10.0) -> int:
     return 0
 
 
-def clean_gate(budget_s: float = 2.0) -> int:
+def clean_gate(budget_s: float = 4.0) -> int:
     """Retention by count over a 10k-file store: the mtime sort
     must stay n log n, not degrade into per-file rescans."""
     import tempfile

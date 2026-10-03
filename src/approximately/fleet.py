@@ -470,11 +470,13 @@ def _trend_section(summary: dict) -> str:
     badge_cls, trend_label = TREND_LABELS[summary["verdict"]]
     anomaly_trend = summary.get("anomaly_trend")
     token_trend = summary.get("token_trend")
-    if anomaly_trend or token_trend:
+    breach_trend = summary.get("breach_trend")
+    if anomaly_trend or token_trend or breach_trend:
         rows = (f"<tr><td>{esc(r['day'])}</td>"
                 f"<td>{r['traces']}</td>"
-                f"<td>{r['fleet_anomalies']}</td>"
-                f"<td>{r['token_anomalies']}</td>"
+                f"<td>{r.get('fleet_anomalies', 0)}</td>"
+                f"<td>{r.get('token_anomalies', 0)}</td>"
+                f"<td>{r.get('budget_breaches', 0)}</td>"
                 f"<td>{r['failure_rate']:.0%}</td></tr>"
                 for r in summary["days"])
         trend_bits = [('<div class="row">'
@@ -513,6 +515,21 @@ def _trend_section(summary: dict) -> str:
                                    for r in summary["days"]],
                                   width=420, height=40)
                               + "</div>")
+        breach_trend = summary.get("breach_trend")
+        if breach_trend:
+            b_cls, b_label = TREND_LABELS[breach_trend["verdict"]]
+            trend_bits.append(
+                '<div class="row"><span class="badge ' + b_cls + '">'
+                f'{esc(b_label)}</span>'
+                '<span class="sub">budget breaches: latest '
+                f'{breach_trend["latest"]}, slope '
+                f'{breach_trend["slope"]:+.4f}/day</span></div>')
+            trend_bits.append('<div class="row">'
+                              + render_sparkline(
+                                  [r.get("budget_breaches", 0)
+                                   for r in summary["days"]],
+                                  width=420, height=40)
+                              + "</div>")
         spend_trend = summary.get("spend_trend")
         if spend_trend:
             s_cls, s_label = TREND_LABELS[spend_trend["verdict"]]
@@ -533,6 +550,7 @@ def _trend_section(summary: dict) -> str:
             + "".join(trend_bits) +
             "<table><tr><th>day</th><th>traces</th>"
             "<th>slow outliers</th><th>token burn</th>"
+            "<th>budget breaches</th>"
             "<th>failure rate</th></tr>"
             + "".join(rows) + "</table></div>")
     rows_html = "".join(
@@ -726,8 +744,10 @@ def _trend_row(entry: dict) -> dict:
     anomalies = sum(s.get("fleet_anomalies", 0) for s in stores)
     token_flags = sum(s.get("token_anomalies", 0) for s in stores)
     spend = sum(s.get("est_spend") or 0 for s in stores)
+    breaches = sum(s.get("budget_breaches", 0) for s in stores)
     return {
         "day": entry["day"],
+        "budget_breaches": breaches,
         "snapshots": entry["snapshots"],
         "stores": len(stores),
         "traces": traces,
@@ -770,11 +790,19 @@ def summarize_trend(days: List[dict]) -> dict:
         spend_verdict = {"verdict": s_verdict,
                          "slope": round(s_slope, 4),
                          "latest": spend_series[-1]}
+    breach_series = [r.get("budget_breaches", 0) for r in rows]
+    breach_verdict = None
+    if len(breach_series) >= 2 and any(breach_series):
+        b_verdict, b_slope = trend_verdict(breach_series)
+        breach_verdict = {"verdict": b_verdict,
+                          "slope": round(b_slope, 4),
+                          "latest": breach_series[-1]}
     return {"days": rows, "verdict": verdict, "slope": round(slope, 4),
             "snapshots": sum(r["snapshots"] for r in rows),
             "anomaly_trend": anomaly_verdict,
             "token_trend": token_verdict,
-            "spend_trend": spend_verdict}
+            "spend_trend": spend_verdict,
+            "breach_trend": breach_verdict}
 
 
 AGENT_TREND_KEYS = ("steps", "tool_calls", "errors",
