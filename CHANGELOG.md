@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.73.0
+
+- the stamp survives housekeeping: `clean --keep-breached` — runs the live Budget rails stamped as breached survive retention no matter their age or the count ceiling, because housekeeping must not destroy breach evidence before the postmortem reads it. unreadable files are never kept by the guard (a poison file is not evidence); the count cap skips past a breached trace to the next victim instead. the predicate moved to store.stamped_breach, one copy behind every surface. the init workflow template now gates with `--max-budget-breaches 0` out of the box.
+
 ## v2.72.0
 
 - the fleet sees the stamp: a live Budget breach now surfaces in the store summary, the webhook payload, the HTML card ("budget breach(es) — the live rails stopped these runs"), and alerting via `--alert-budget-breaches N`. one predicate (`fleet._budget_breaches`) feeds every surface, the ci gate included. plus a real alerting fix: an anomaly/token/spend threshold WITHOUT a failure threshold used to page healthy stores every cycle — the rate clause was `failure_rate >= (None or 0.0)`, always true. healthy fleets are quiet now, as the docstring always promised.

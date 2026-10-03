@@ -18,6 +18,18 @@ def default_store_dir() -> Path:
     return Path.home() / ".approximately" / "traces"
 
 
+def stamped_breach(meta: object) -> bool:
+    """True when meta carries the live Budget rails' breach stamp.
+
+    The single predicate behind the ci gate's
+    ``--max-budget-breaches``, the fleet card and alert reasons, and
+    ``clean --keep-breached``'s evidence guard; the non-dict-meta
+    poison guard travels with it."""
+    return (isinstance(meta, dict)
+            and isinstance(meta.get("budget"), dict)
+            and meta["budget"].get("exceeded") is True)
+
+
 def _replace_bounded(tmp: Path, path: Path,
                      attempts: int = 100, pause_s: float = 0.01) -> None:
     """``os.replace`` with a bounded retry for Windows sharing clashes.
@@ -238,17 +250,28 @@ class TraceStore:
 
     def clean(self, keep_days: int,
               dry_run: bool = False,
-              max_traces: Optional[int] = None) -> int:
+              max_traces: Optional[int] = None,
+              keep_breached: bool = False) -> int:
         """Delete traces older than *keep_days* and, with *max_traces*,
         the oldest beyond that count; returns the total removed
-        (or that would be removed, with ``dry_run``)."""
+        (or that would be removed, with ``dry_run``).
+
+        With ``keep_breached``, runs the live Budget rails stamped as
+        breached (``meta["budget"].exceeded``) survive the pass no
+        matter their age — housekeeping must not destroy breach
+        evidence before the postmortem reads it.  Unreadable files
+        are never kept by this guard: a poison file is not evidence.
+        """
         cutoff = time.time() - keep_days * 86400
         removed = 0
         for path in self.directory.glob("*.json"):
-            if path.stat().st_mtime < cutoff:
-                if not dry_run:
-                    path.unlink()
-                removed += 1
+            if path.stat().st_mtime >= cutoff:
+                continue
+            if keep_breached and self._is_breached(path):
+                continue
+            if not dry_run:
+                path.unlink()
+            removed += 1
         if max_traces is not None:
             remaining = []
             for path in self.directory.glob("*.json"):
@@ -260,11 +283,28 @@ class TraceStore:
             excess = len(remaining) - max_traces
             if excess > 0:
                 remaining.sort()
-                for _mtime, _name, path in remaining[:excess]:
+                for _mtime, _name, path in remaining:
+                    if excess <= 0:
+                        break
+                    if keep_breached and self._is_breached(path):
+                        continue
                     if not dry_run:
                         path.unlink()
                     removed += 1
+                    excess -= 1
         return removed
+
+    @staticmethod
+    def _is_breached(path: "Path") -> bool:
+        """Whether the trace file carries the live rails' breach stamp.
+
+        Unreadable counts as NOT breached: the guard preserves
+        evidence, not poison."""
+        try:
+            trace = Trace.from_json(path.read_text(encoding="utf-8"))
+        except Exception:
+            return False
+        return stamped_breach(trace.meta)
 
     def _resolve(self, trace_id: str) -> Optional[Path]:
         path = Path(trace_id)

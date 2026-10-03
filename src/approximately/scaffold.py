@@ -155,6 +155,7 @@ jobs:
             --max-failure-rate 0.3 \\
             --max-p95-latency-ms 15000 \\
             --max-tokens 2000000 \\
+            --max-budget-breaches 0 \\
             --min-traces 1
           # tune ceilings, then add a spend gate:
           #   approximately ci --store {store} --max-spend 5 --prices prices.json
