@@ -84,10 +84,28 @@ class StoreSummary:
     est_spend: Optional[float] = None
     spend_unpriced_tokens: int = 0
     budget_breaches: int = 0
+    breached_agents: List[str] = field(default_factory=list)
 
     @property
     def worsening(self) -> bool:
         return self.trend_verdict == "worsening"
+
+
+def _breached_agents(traces: list) -> List[str]:
+    """Agents named by per-agent ceilings as breached, in stamp order."""
+    names: List[str] = []
+    for t in traces:
+        if not isinstance(t.meta, dict):
+            continue
+        agents = t.meta.get("budget", {}).get("agents") \
+            if isinstance(t.meta.get("budget"), dict) else None
+        if isinstance(agents, dict):
+            for name, st in agents.items():
+                if isinstance(st, dict) and \
+                        st.get("exceeded") is True and \
+                        name not in names:
+                    names.append(name)
+    return names
 
 
 def _budget_breaches(traces: list) -> int:
@@ -159,6 +177,7 @@ def webhook_payload(summaries: List[StoreSummary]) -> dict:
                 "spend_unpriced_tokens":
                     getattr(s, "spend_unpriced_tokens", 0),
                 "budget_breaches": getattr(s, "budget_breaches", 0),
+                "breached_agents": getattr(s, "breached_agents", []),
                 "top_modes": [
                     {"mode": mode, "count": count}
                     for mode, count in s.top_modes
@@ -312,6 +331,7 @@ def survey(stores: List[Path], top_agents: int = 3,
             },
             total_tokens=total_tokens,
             budget_breaches=_budget_breaches(traces),
+            breached_agents=_breached_agents(traces),
             **_spend(traces, total_tokens, prices),
         ))
     return summaries
@@ -423,10 +443,16 @@ def _breach_html(s: StoreSummary) -> str:
     breaches = getattr(s, "budget_breaches", 0) or 0
     if not breaches:
         return ""
+    import html as _html
+
+    agents = [a for a in getattr(s, "breached_agents", [])
+              if isinstance(a, str)]
+    who = (f" — agents: {_html.escape(', '.join(agents))}"
+           if agents else "")
     return ('<div class="row"><span class="rate bad">'
             f'{breaches}</span><span class="badge bad">'
             "budget breach(es) — the live rails stopped these "
-            "runs</span></div>")
+            f"runs{who}</span></div>")
 
 
 def _trend_section(summary: dict) -> str:

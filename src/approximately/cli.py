@@ -2038,6 +2038,34 @@ def _ci_junit(rows: list, store: Any, count: int) -> str:
                         xml_declaration=True).decode("utf-8"))
 
 
+def _ci_refuse(fmt: str, reason: str) -> int:
+    """Print a refusal in the configured shape; the exit stays 2."""
+    if fmt == "junit":
+        print(_ci_junit_error(reason))
+    elif fmt == "markdown":
+        print(f"**approximately ci** refused: {reason}\n")
+    else:
+        print(f"error: {reason}", file=sys.stderr)
+    return 2
+
+
+def _ci_markdown(rows: list, store: Any, count: int) -> str:
+    """GitHub step-summary markdown: a verdict table a pipeline can
+    ``cat >> $GITHUB_STEP_SUMMARY`` without escaping anything."""
+    head = (f"**approximately ci** — {count} trace(s) over "
+            f"`{store.directory}`")
+    lines = [head, "",
+             "| gate | measured | ceiling | verdict |",
+             "|---|---:|---:|---|"]
+    for r in rows:
+        value = r["value"]
+        shown = (f"{value:,.1f}" if isinstance(value, float)
+                 else f"{value:,}")
+        lines.append(f"| {r['gate']} | {shown} | {r['ceiling']:,} "
+                     f"| {'✅ pass' if r['ok'] else '❌ BREACH'} |")
+    return "\n".join(lines) + "\n"
+
+
 def _ci_junit_error(reason: str) -> str:
     """JUnit XML for a config-level refusal (exit 2): one errored
     testcase, so the CI system shows WHY the gate refused."""
@@ -2074,32 +2102,23 @@ def cmd_ci(args: argparse.Namespace) -> int:
                   "--max-failure-rate, --max-avg-latency-ms, "
                   "--max-p95-latency-ms, --max-tokens, --max-spend, "
                   "--max-budget-breaches")
-        if fmt == "junit":
-            print(_ci_junit_error(reason))
-            return 2
-        print(f"error: {reason}", file=sys.stderr)
-        return 2
+        return _ci_refuse(fmt, reason)
     store = TraceStore(args.store)
     traces = store.list_traces(since_days=getattr(args, "since", None))
     if not traces:
         reason = f"store {args.store} is empty: no runs to gate"
-        if fmt == "junit":
-            print(_ci_junit_error(reason))
-            return 2
-        print(f"error: {reason}", file=sys.stderr)
-        return 2
+        return _ci_refuse(fmt, reason)
     prices = _load_prices(getattr(args, "prices", None))
     if getattr(args, "max_spend", None) is not None and not prices:
         reason = "--max-spend needs --prices"
-        if fmt == "junit":
-            print(_ci_junit_error(reason))
-            return 2
-        print(f"error: {reason}", file=sys.stderr)
-        return 2
+        return _ci_refuse(fmt, reason)
     rows = _ci_gate_rows(traces, store_stats(traces), prices, args)
     failed = [r for r in rows if not r["ok"]]
     if fmt == "junit":
         print(_ci_junit(rows, store, len(traces)))
+        return 1 if failed else 0
+    if fmt == "markdown":
+        print(_ci_markdown(rows, store, len(traces)))
         return 1 if failed else 0
     if fmt == "json":
         print(json.dumps({"store": str(store.directory),
@@ -2861,7 +2880,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="compare only runs from the last N days")
     p.add_argument("--json", action="store_true",
                    help="emit the comparison as JSON")
-    p.add_argument("--format", choices=("text", "json", "junit"),
+    p.add_argument("--format", choices=("text", "json", "junit",
+                                        "markdown"),
                    default=None,
                    help="output shape: text (default), json, or junit "
                         "XML for native CI rendering; --json is a "
@@ -3425,10 +3445,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="emit machine-readable JSON instead of prose")
     p.add_argument("--format", choices=("text", "json", "junit"),
                    default=None,
-                   help="output shape: text (default), json, or junit "
-                        "XML that GitHub Actions / GitLab render "
-                        "natively; --json is a shortcut for "
-                        "--format json")
+                   help="output shape: text (default), json, junit "
+                        "XML, or a GitHub step-summary markdown table "
+                        "(cat >> $GITHUB_STEP_SUMMARY); --json is a "
+                        "shortcut for --format json")
     p.set_defaults(func=cmd_ci)
 
     p = sub.add_parser("init", parents=[common],
