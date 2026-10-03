@@ -3253,3 +3253,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        ["agents"] = {name: {tokens, limit, exceeded}}.
      - Validation: positive ints; per_agent alone satisfies the
        at-least-one-ceiling rule.
+
+330. **v2.81.0 - the verdict reads well where humans look** (planned):
+     - ci --format markdown: step-summary table (cat >>
+       $GITHUB_STEP_SUMMARY), refusals as paragraphs, exits 0/1/2
+       unchanged. Refusal paths unified into _ci_refuse.
+     - Fleet surfaces breached_agents (survey, webhook payload,
+       digest, card row names them: "agents: researcher, booker").

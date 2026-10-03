@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.81.0
+
+- the verdict reads well where humans look: `ci --format markdown` renders a step-summary table a pipeline can cat into $GITHUB_STEP_SUMMARY (gate / measured / ceiling / verdict, refusals as paragraphs, exit codes unchanged), and the fleet card now NAMES the agents the per-agent ceilings caught — v2.80.0's stamp carried the data, the card just reads it (summary, webhook payload and digest follow; "budget breach(es) — agents: researcher, booker").
+
 ## v2.80.0
 
 - per-agent ceilings: a shared budget lets one runaway agent hide inside the group total — `Budget(per_agent={"researcher": 10_000}, ...)` meters each named agent's tokens beside the global ceilings. trips independently, names the agent in the error ("budget exceeded: agent 'researcher' 1,500/1,000 tokens"), warns the same way, and lands per-agent meters in the stamp (`meta["budget"]["agents"]`). the multi-agent story gets the same breaker the single run had.
