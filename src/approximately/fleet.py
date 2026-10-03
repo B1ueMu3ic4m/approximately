@@ -93,13 +93,12 @@ class StoreSummary:
 def _budget_breaches(traces: list) -> int:
     """Runs the live Budget rails stamped as breached.
 
-    The single predicate every surface shares (fleet card, webhook
-    payload, alert reasons, the ci gate's ``--max-budget-breaches``);
-    the non-dict-meta poison guard travels with it."""
-    return sum(1 for t in traces
-               if isinstance(t.meta, dict)
-               and isinstance(t.meta.get("budget"), dict)
-               and t.meta["budget"].get("exceeded") is True)
+    A thin count over store.stamped_breach — the single predicate
+    every surface shares (fleet card, webhook payload, alert
+    reasons, the ci gate's ``--max-budget-breaches``)."""
+    from .store import stamped_breach
+
+    return sum(1 for t in traces if stamped_breach(t.meta))
 
 
 def _verdict(trend_rows: List[dict]) -> tuple:

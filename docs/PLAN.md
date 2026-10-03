@@ -3187,3 +3187,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        --alert-worse-than was set, so any single threshold silently
        turned a healthy fleet into page-every-cycle. Now the clause
        is off unless the threshold is set. Pinned contract updated.
+
+322. **v2.73.0 - the stamp survives housekeeping** (planned):
+     - store.clean gains keep_breached: stamped breaches survive the
+       age pass and the count pass (the count loop skips past a
+       breached trace to the next-oldest victim).  Unreadable files
+       stay removable — evidence, not poison.
+     - Predicate single-homed: store.stamped_breach; fleet counts
+       through it; cli gate unchanged in behavior, one definition
+       fewer.
+     - `clean --keep-breached` CLI flag (json + prose both report
+       it); init workflow template gains --max-budget-breaches 0.

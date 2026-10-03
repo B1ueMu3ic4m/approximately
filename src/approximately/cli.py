@@ -1664,14 +1664,17 @@ def cmd_clean(args: argparse.Namespace) -> int:
               "'delete everything', which is rm -rf's job)",
               file=sys.stderr)
         return 2
+    keep_breached = bool(getattr(args, "keep_breached", False))
     removed = store.clean(keep_days=args.keep_days,
                           dry_run=bool(getattr(args, "dry_run", False)),
-                          max_traces=max_traces)
+                          max_traces=max_traces,
+                          keep_breached=keep_breached)
     remaining = len(list(store.directory.glob("*.json")))
     if getattr(args, "json", False):
         print(json.dumps({"removed": removed,
                           "keep_days": args.keep_days,
                           "max_traces": max_traces,
+                          "keep_breached": keep_breached,
                           "remaining": remaining,
                           "dry_run": bool(getattr(args, "dry_run",
                                                   False))}, indent=2))
@@ -1681,6 +1684,8 @@ def cmd_clean(args: argparse.Namespace) -> int:
     policy = f"older than {args.keep_days} days"
     if max_traces is not None:
         policy += f" or beyond the newest {max_traces}"
+    if keep_breached:
+        policy += "; budget-breached traces survive"
     print(f"{removed} trace(s){note} ({policy}); {remaining} remain")
     return 0
 
@@ -3303,9 +3308,13 @@ def build_parser() -> argparse.ArgumentParser:
                         "traces (a count cap complements the age cap — "
                         "a burst day must not outlive its welcome)")
     p.add_argument("--json", action="store_true",
-           help="emit machine-readable JSON instead of prose")
+                   help="emit machine-readable JSON instead of prose")
     p.add_argument("--dry-run", action="store_true",
                    help="count what would be removed, delete nothing")
+    p.add_argument("--keep-breached", action="store_true",
+                   help="never delete runs the live Budget rails "
+                        "stamped as breached — housekeeping does not "
+                        "destroy breach evidence")
     p.set_defaults(func=cmd_clean)
 
     p = sub.add_parser("ci", parents=[common],
