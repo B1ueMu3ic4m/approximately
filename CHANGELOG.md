@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.72.0
+
+- the fleet sees the stamp: a live Budget breach now surfaces in the store summary, the webhook payload, the HTML card ("budget breach(es) — the live rails stopped these runs"), and alerting via `--alert-budget-breaches N`. one predicate (`fleet._budget_breaches`) feeds every surface, the ci gate included. plus a real alerting fix: an anomaly/token/spend threshold WITHOUT a failure threshold used to page healthy stores every cycle — the rate clause was `failure_rate >= (None or 0.0)`, always true. healthy fleets are quiet now, as the docstring always promised.
+
 ## v2.71.0
 
 - the gate speaks junit: `ci --format junit` renders the gate rows as native CI annotations — one testcase per gate, a <failure> element per breach, and config refusals become <error> testcases so GitHub Actions and GitLab show WHY the gate refused. exit codes never move. plus `--max-budget-breaches N`: the live Budget rails' stamped verdict becomes a pipeline-relevant ceiling; runs with no rails at all never count against the gate.

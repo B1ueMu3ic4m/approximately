@@ -3174,3 +3174,16 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        meta["budget"].exceeded by the live rails (v2.70.0) and fails
        the gate past N; unstamped traces never count.
      - MCP ci_gate gains the same ceiling; 36 tools unchanged.
+
+321. **v2.72.0 - the fleet sees the stamp** (planned):
+     - StoreSummary.budget_breaches counted by fleet._budget_breaches
+       (the shared predicate; the ci gate reuses it too).
+     - `fleet --alert-budget-breaches N`: alert reason
+       `name:budget-breaches`, cooldown dedup unchanged; the breach
+       row renders on the store card; webhook payload carries the
+       count; digest snapshots carry it too.
+     - BUG FIX: _should_alert's rate clause was
+       `failure_rate >= (threshold or 0.0)` — always true when no
+       --alert-worse-than was set, so any single threshold silently
+       turned a healthy fleet into page-every-cycle. Now the clause
+       is off unless the threshold is set. Pinned contract updated.
