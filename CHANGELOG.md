@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.80.0
+
+- per-agent ceilings: a shared budget lets one runaway agent hide inside the group total — `Budget(per_agent={"researcher": 10_000}, ...)` meters each named agent's tokens beside the global ceilings. trips independently, names the agent in the error ("budget exceeded: agent 'researcher' 1,500/1,000 tokens"), warns the same way, and lands per-agent meters in the stamp (`meta["budget"]["agents"]`). the multi-agent story gets the same breaker the single run had.
+
 ## v2.79.0
 
 - the verdict reaches the agent side and the pulse: the MCP doctor tool gains `fix` (an agent harness can repair its own store through the same door the CLI uses — hygiene removed, corrupt records quarantined, bytes preserved), and `status` carries the budget-breach count in both shapes (json field + a text line: "budget breaches: 1 run(s) the live rails stopped"). the MCP surface is documented back into docs/mcp-tools.json.
