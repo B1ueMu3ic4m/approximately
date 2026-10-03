@@ -3295,3 +3295,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        Prometheus entity renderings gain the counter.
      - CSV export: budget_breached column (header index 12); the
        fuzz pins for the result column moved 12 -> 13.
+
+336. **v2.87.0 - what the trend means in days** (planned):
+     - forecast.py: forecast_spend(days, ceiling, horizon) —
+       Theil-Sen slope, clamped projection, days_to_ceiling (0 =
+       already over; None = never), refusal on <2 days.
+     - fleet --trend --spend-ceiling: prose line + json
+       spend_forecast; already-exceeded exits 1.
+     - Bug found in wiring: the forecast originally consumed
+       trend_days entries (no est_spend); it reads the summarized
+       rows.
