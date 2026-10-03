@@ -47,21 +47,22 @@ def test_tokens_filter_by_agent(tmp_path):
 
 def test_agent_scoped_ranking_distinguishes_routes(tmp_path):
     store = _store(tmp_path)
-    target = store.list_traces()[0]
+    by_task = {t.task: t for t in store.list_traces()}
+    target = by_task["route A"]
     payload = similar_payload(target, store.list_traces(),
                               agent="researcher")
     assert payload["agent"] == "researcher"
     matches = {m["id"]: m["similarity"] for m in payload["matches"]}
     # route A again aligns perfectly on the researcher stream
-    assert matches[store.list_traces()[1].id] == 1.0
-    assert matches[store.list_traces()[2].id] < 1.0
+    assert matches[by_task["route A again"].id] == 1.0
+    assert matches[by_task["route B"].id] < 1.0
 
 
 def test_interleaved_stream_masks_the_difference(tmp_path):
     store = _store(tmp_path)
-    traces = store.list_traces()
-    target = traces[0]
-    route_b = traces[2].id
+    by_task = {t.task: t for t in store.list_traces()}
+    target = by_task["route A"]
+    route_b = by_task["route B"].id
     interleaved = {m["id"]: m["similarity"]
                    for m in similar_payload(target,
                                             store.list_traces())
@@ -76,7 +77,8 @@ def test_interleaved_stream_masks_the_difference(tmp_path):
 
 def test_cli_door_passes_the_filter(tmp_path, capsys):
     store = _store(tmp_path)
-    trace = store.list_traces()[0]
+    trace = next(t for t in store.list_traces()
+                 if t.task == "route A")
     rc = main(["similar", trace.id, "--store", str(store.directory),
                "--agent", "researcher", "--json"])
     out = capsys.readouterr().out
