@@ -3288,3 +3288,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        deployment compare junit).
      - ARCHITECTURE module map names budget.py.
      - Docs-only release.
+
+335. **v2.86.0 - the stamp reaches scrapers and spreadsheets**
+      (planned):
+     - tool_scorecard + agent_scorecard: breached_traces column;
+       Prometheus entity renderings gain the counter.
+     - CSV export: budget_breached column (header index 12); the
+       fuzz pins for the result column moved 12 -> 13.

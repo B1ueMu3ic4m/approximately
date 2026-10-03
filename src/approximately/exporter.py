@@ -28,7 +28,7 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from .store import TraceStore
+from .store import TraceStore, stamped_breach
 from .trace import MESSAGE, OBSERVATION, PLAN, RESPONSE, TOOL_CALL, Trace
 
 _CSV_CELL_CAP = 240
@@ -408,8 +408,9 @@ def export_store(store: TraceStore, output: Path,
             writer.writerow(["trace_id", "task", "model", "success",
                              "created_at", "step", "kind", "tool",
                              "agent", "tokens", "latency_ms", "error",
-                             "result"])
+                             "budget_breached", "result"])
             for trace in traces:
+                breached = stamped_breach(trace.meta)
                 for step in trace.steps:
                     writer.writerow([
                         trace.id, trace.task, trace.model or "",
@@ -417,7 +418,8 @@ def export_store(store: TraceStore, output: Path,
                         trace.created_at, step.index, step.kind,
                         _csv_cell(step.tool), _csv_cell(step.agent),
                         step.tokens, step.latency_ms,
-                        _csv_cell(step.error), _csv_cell(step.result)])
+                        _csv_cell(step.error), breached,
+                        _csv_cell(step.result)])
                     written += 1
         return {"format": fmt, "traces": len(traces),
                 "written": written, "dedupe_dropped": dropped,

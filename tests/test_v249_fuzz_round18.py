@@ -51,7 +51,7 @@ def test_csv_survives_non_string_results(tmp_path):
     out = tmp_path / "s.csv"
     export_store(store, out, fmt="csv")
     rows = _rows(out)
-    assert "42" in rows[1][12]                  # str() of the dict
+    assert "42" in rows[1][13]                  # str() of the dict
 
 
 def test_otel_survives_the_same_hostile_traces(tmp_path):

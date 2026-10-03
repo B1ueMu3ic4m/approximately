@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.86.0
+
+- the stamp reaches the scrapers and the spreadsheets: Prometheus entity renderings gain `approximately_{tool,agent}_breached_traces_total` beside `failed_traces` (both scorecards count breached runs the entity touched), and CSV export gains a `budget_breached` column per step row — a spreadsheet filters the burn without unpacking JSON. position-based CSV pins moved for the new column; the injection defense is pinned unchanged.
+
 ## v2.85.0
 
 - the CI guide learns what the gate can do now: docs/ci-integration.md gains the quality-gate section — ceiling composition, `--max-budget-breaches`, the junit and step-summary renderings with the same exit codes, and the deployment compare's junit testcase. ARCHITECTURE's module map stops pretending budget.py doesn't exist. docs-only.
