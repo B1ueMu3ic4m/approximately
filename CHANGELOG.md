@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.95.0
+
+- the audit gets its chapter: RECIPES 23 walks the composed nightly door — the four questions it answers in one report, `--fix` quarantine semantics, the `--spend-ceiling` forecast with its honest caveat, and the two workflows `init` wires (push gate + 03:00 audit). docs-only.
+
 ## v2.94.0
 
 - the fresh doors, aligned: `budget --agent NAME` sizes per-agent rails on one participant's steps only (an agent-scoped simulation needs its token ceiling — per_agent rails are token-only), and `status --spend-ceiling USD` gives the ops pulse the same days-to-ceiling forecast the fleet trend carries (json field + prose line; silent without a ceiling). xenon kept honest via _first_trip/_scoped_steps/_saved_* and _digest_trend/_write_forecast_line extractions.

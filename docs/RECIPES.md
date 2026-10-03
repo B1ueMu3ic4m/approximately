@@ -481,3 +481,40 @@ The postmortem renders the receipt (the Live budget card), the
 evidence pack carries it, and the junit gates render natively in
 your CI.  Unpriced models are counted, never silently valued at
 zero — a dollar ceiling you cannot compute does not hold.
+
+## 23. The audit chapter: one door for the 3am cron
+
+Four answers a night shift needs — is the store healthy, do the
+runs pass the gate, which way is the fleet drifting, and when does
+the spend cross the ceiling — used to be four commands. `audit`
+composes them into one report with one exit code.
+
+```bash
+approximately audit --store .agents-store \\
+  --max-failure-rate 0.3 \\
+  --max-budget-breaches 0 \\
+  --deep --fix
+```
+
+`--fix` repairs while auditing: stale locks and temp files removed,
+corrupt records quarantined into `.agents-store/.quarantine/` with a
+manifest (bytes preserved, never unlinked). Exit 0 quiet, 1 any
+finding, 2 refusal — an empty store proves nothing.
+
+With a digest directory the audit grows the time dimension:
+
+```bash
+approximately audit --store .agents-store \\
+  --digest-dir .agents-digest \\
+  --spend-ceiling 50 --fail-on-worsening
+```
+
+The forecast reads the fleet's daily spend, projects the Theil-Sen
+slope forward, and fails the audit when the ceiling is already gone.
+It is linear extrapolation: robust to outliers, blind to your next
+deploy.
+
+`approximately init` wires both halves: `agent-gate.yml` runs the
+quality gate on every push, and `agent-audit.yml` runs the audit
+nightly at 03:00 with `--fix` on. The same composition is available
+to agents through the MCP `audit` tool.

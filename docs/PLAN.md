@@ -3356,3 +3356,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - status --spend-ceiling: the fleet-trend forecast in the ops
        pulse (json + prose).
      - Helper extractions keep xenon at its bar.
+
+344. **v2.95.0 - the audit gets its chapter** (planned):
+     - RECIPES 23: the composed nightly door — four questions, one
+       exit code; --fix quarantine; the forecast's honest caveat;
+       init's two workflows; the MCP audit tool.
+     - Docs-only release.
