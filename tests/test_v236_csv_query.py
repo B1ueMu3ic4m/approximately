@@ -69,7 +69,8 @@ def test_csv_quotes_and_embedded_newlines_survive(tmp_path):
     out = tmp_path / "s.csv"
     export_store(store, out, fmt="csv")
     rows = _rows(out)
-    assert rows[1][12] == "line one\nline two, with comma"
+    assert rows[1][12] == "False"  # budget_breached: no rails
+    assert rows[1][13] == "line one\nline two, with comma"
 
 
 def test_csv_caps_free_text(tmp_path):
@@ -81,8 +82,8 @@ def test_csv_caps_free_text(tmp_path):
     out = tmp_path / "s.csv"
     export_store(store, out, fmt="csv")
     rows = list(csv.reader(out.read_text(encoding="utf-8").splitlines()))
-    assert len(rows[1][12]) == 240
-    assert rows[1][12].endswith("…")
+    assert len(rows[1][13]) == 240
+    assert rows[1][13].endswith("…")
 
 
 def test_csv_via_cli_door(tmp_path, capsys):

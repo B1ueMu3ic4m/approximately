@@ -236,6 +236,7 @@ def tool_scorecard(traces: Iterable[Trace]) -> List[dict]:
             row = per.setdefault(step.tool, {
                 "trace_ids": set(), "steps": 0, "errors": 0,
                 "tokens": 0, "failed_ids": set(),
+                "breached_ids": set(),
                 "latencies": [], "token_samples": [],
             })
             row["trace_ids"].add(trace.id)
@@ -248,6 +249,8 @@ def tool_scorecard(traces: Iterable[Trace]) -> List[dict]:
                 row["token_samples"].append(float(step.tokens))
             if failed:
                 row["failed_ids"].add(trace.id)
+            if stamped_breach(trace.meta):
+                row["breached_ids"].add(trace.id)
     rows = []
     for name, row in per.items():
         touched = len(row["trace_ids"])
@@ -261,6 +264,7 @@ def tool_scorecard(traces: Iterable[Trace]) -> List[dict]:
             "errors": row["errors"],
             "tokens": row["tokens"],
             "failed_traces": failed_n,
+            "breached_traces": len(row["breached_ids"]),
             "failure_rate": round(failed_n / touched, 3) if touched
                             else 0.0,
             "p95_ms": round(p95_ms, 1) if p95_ms is not None else None,

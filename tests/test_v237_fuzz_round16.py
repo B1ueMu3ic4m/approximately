@@ -53,7 +53,7 @@ def test_csv_formula_injection_gets_quoted(tmp_path):
         rows = list(csv.reader(fh))
     originals = {"=cmd|' /C calc'!A0", "+1+1", "-2+3", "@SUM(1)",
                  "\t=tab formula"}
-    got = [r[12] for r in rows[1:] if r[6] == "tool_call"]
+    got = [r[13] for r in rows[1:] if r[6] == "tool_call"]
     assert len(got) == 5
     # export orders by trace id, so match content, not save order
     assert {c[1:] for c in got} == originals
@@ -73,7 +73,7 @@ def test_csv_normal_negative_text_stays_readable(tmp_path):
     export_store(store, out, fmt="csv")
     with out.open(encoding="utf-8", newline="") as fh:
         rows = list(csv.reader(fh))
-    assert rows[1][12] == "'-3 penalty points"
+    assert rows[1][13] == "'-3 penalty points"
 
 
 def test_csv_none_tool_and_agent_are_blank(tmp_path):
