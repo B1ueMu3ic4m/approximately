@@ -13,7 +13,7 @@ import json
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from .ledger import verify_ledger
 from .store import TraceStore
@@ -52,6 +52,8 @@ class DoctorReport:
     chain_checked: int = 0
     chain_locked: int = 0
     chain_failed: List[str] = field(default_factory=list)
+    quarantined: List[str] = field(default_factory=list)
+    corrupt_detail: Dict[str, str] = field(default_factory=dict)
 
     @property
     def healthy(self) -> bool:
@@ -68,6 +70,7 @@ class DoctorReport:
             "healthy": self.healthy,
             "records": self.records,
             "corrupt": self.corrupt,
+            "quarantined": self.quarantined,
             "id_mismatch": self.id_mismatch,
             "ledger_present": self.ledger_present,
             "ledger_intact": self.ledger_intact,
@@ -177,8 +180,9 @@ def _check_records(directory: Path, report: DoctorReport) -> None:
             payload = json.loads(path.read_text(encoding="utf-8"))
             trace = Trace.from_dict(payload)
         except (json.JSONDecodeError, AttributeError, KeyError,
-                TypeError, ValueError):
+                TypeError, ValueError) as exc:
             report.corrupt.append(path.name)
+            report.corrupt_detail[path.name] = f"{type(exc).__name__}: {exc}"
             continue
         report.records += 1
         if trace.id != path.stem:
@@ -373,6 +377,50 @@ def _check_chains(directory: Path, report: DoctorReport) -> None:
             report.chain_locked += 1
         else:
             report.chain_failed.append(path.name)
+
+
+QUARANTINE_DIR = ".quarantine"
+
+
+def quarantine_corrupt(store: Path, report: DoctorReport) -> List[str]:
+    """Move unreadable record files into ``<store>/.quarantine/``.
+
+    Housekeeping for evidence that cannot be parsed: the bytes are
+    preserved (never unlinked), a jsonl manifest records what moved,
+    when, and why, and the store stops re-reporting the same poison
+    on every scan.  Files that already vanished are skipped; a name
+    clash in quarantine is suffixed, never overwritten.
+    """
+    import time as _time
+
+    moved: List[str] = []
+    if not report.corrupt:
+        return moved
+    qdir = Path(store) / QUARANTINE_DIR
+    qdir.mkdir(exist_ok=True)
+    manifest = qdir / "manifest.jsonl"
+    for name in report.corrupt:
+        src = Path(store) / name
+        if not src.is_file():
+            continue
+        dest = qdir / name
+        n = 0
+        while dest.exists():
+            n += 1
+            dest = qdir / f"{name}.{n}"
+        try:
+            src.rename(dest)
+        except OSError:
+            continue
+        moved.append(name)
+        line = json.dumps({
+            "file": name,
+            "error": report.corrupt_detail.get(name, "unknown"),
+            "moved_at": _time.time(),
+        }, ensure_ascii=False)
+        with manifest.open("a", encoding="utf-8") as fh:
+            fh.write(line + "\n")
+    return moved
 
 
 def fix_hygiene(store: Path, report: DoctorReport) -> List[str]:

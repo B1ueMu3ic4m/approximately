@@ -1448,7 +1448,7 @@ def _fleet_survey(args: argparse.Namespace) -> int:
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
-    from .doctor import doctor, fix_hygiene
+    from .doctor import doctor, fix_hygiene, quarantine_corrupt
 
     report = doctor(Path(args.store),
                     Path(args.digest_dir) if args.digest_dir else None,
@@ -1466,6 +1466,13 @@ def cmd_doctor(args: argparse.Namespace) -> int:
                              if n not in removed]
         # human-readable note on stderr keeps --json stdout parseable
         print(f"removed {len(removed)} hygiene artifact(s)",
+              file=sys.stderr)
+        moved = quarantine_corrupt(Path(args.store), report)
+        report.corrupt = [n for n in report.corrupt
+                          if n not in moved]
+        report.quarantined = moved
+        print(f"quarantined {len(moved)} corrupt record(s) into "
+              f"{Path(args.store) / '.quarantine'}",
               file=sys.stderr)
     if getattr(args, "json", False):
         print(json.dumps(report.to_dict(), indent=2))
