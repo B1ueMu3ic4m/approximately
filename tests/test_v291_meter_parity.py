@@ -31,8 +31,7 @@ def _noisy(tmp_path):
 
 
 def test_result_meter_per_tool_isolates_families(tmp_path):
-    store, trace = _noisy(tmp_path)
-    pooled = detect_result_anomalies(trace)
+    _, trace = _noisy(tmp_path)
     scoped = detect_result_anomalies(trace, per_tool=True)
     # pooled, the 20k wall towers over everything; scoped to the
     # fetch family, it still towers — but the tool attribution is
