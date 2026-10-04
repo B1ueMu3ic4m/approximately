@@ -3459,3 +3459,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        payload prices the obvious fix (truncate the worst step to
        2,000 chars -> suggest_save_tokens); prose names the step.
      - _truncation_suggestion: one typed helper.
+
+360. **v2.111.0 - the night's doors get their rows** (planned):
+     - README capability table: spend forecast, reliability
+       budget, nightly audit rows (anchors asserted — the silent
+       replace lesson applied).
+     - Docs-only release.
