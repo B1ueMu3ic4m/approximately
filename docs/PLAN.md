@@ -3471,3 +3471,7 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        what-if), failure_budget_gate (365-day window).
      - Seed-math honesty: a 5-sample wall is z=3.37 < 3.5 — the
        gate seeds 9 uniform + 1 wall.
+
+362. **v2.113.0 - budget_sim's agent parity** (planned):
+     - MCP budget_sim gains `agent` (schema + handler + artifact);
+       agent-without-token-ceiling refused like the CLI door.

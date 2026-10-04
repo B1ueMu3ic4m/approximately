@@ -318,6 +318,10 @@
             "type": "integer",
             "description": "hypothetical token ceiling"
           },
+          "agent": {
+            "type": "string",
+            "description": "simulate per-agent rails: only this participant's steps charge"
+          },
           "usd": {
             "type": "number",
             "description": "hypothetical dollar ceiling; needs prices"

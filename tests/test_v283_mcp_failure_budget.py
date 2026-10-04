@@ -14,6 +14,7 @@ from approximately.mcp_server import (
     ServerContext,
     _tool_failure_budget,
 )
+from approximately.recorder import Recorder
 from approximately.store import TraceStore
 
 
@@ -74,8 +75,6 @@ def test_tool_refusals(tmp_path):
 
 
 def test_status_payload_carries_the_budget(tmp_path):
-    from approximately.recorder import Recorder
-
     store = TraceStore(tmp_path / "s")
     with Recorder("calm", model="m/1", store=store) as rec:
         rec.respond("done", success=True)
@@ -112,3 +111,30 @@ def test_cli_flag_round_trips(tmp_path, capsys):
     payload = json.loads(capsys.readouterr().out)
     assert rc == 0
     assert payload["failure_budget"]["burn_fraction"] == 0.6
+
+
+def test_budget_sim_agent_parity(tmp_path):
+    from approximately.mcp_server import _tool_budget_sim
+
+    store = TraceStore(tmp_path / "s")
+    with Recorder("team run", model="m/1", store=store,
+                  save=False) as rec:
+        rec.tool("search", agent="researcher", tokens=1_000)
+        rec.tool("book", agent="booker", tokens=100)
+        rec.tool("search", agent="researcher", tokens=5_000)
+        rec.respond("done", success=True)
+    store.save(rec.trace)
+    ctx = ServerContext(str(store.directory))
+
+    payload = _tool_budget_sim(ctx, {
+        "store": str(store.directory), "trace": rec.trace.id,
+        "tokens": 1_050, "agent": "researcher"})
+    assert payload["trip_step"] == 2
+
+    try:
+        _tool_budget_sim(ctx, {"store": str(store.directory),
+                               "trace": rec.trace.id,
+                               "agent": "researcher"})
+        raise AssertionError("no refusal for agent-without-tokens")
+    except KeyError as exc:
+        assert "token ceiling" in str(exc)
