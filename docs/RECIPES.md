@@ -551,3 +551,35 @@ approximately context <trace> --composition --truncate-results 2000
 A run whose context is 80% tool results has a truncation problem,
 not a context-length problem — and the second command prices the
 fix before you write the rule.
+
+## 25. The reliability budget chapter: mistakes as a burn rate
+
+Money has a budget (chapter 22); reliability gets the same
+accounting. The question is not "what is the failure rate?" — it is
+"how many failed runs may this window hold, and when do we run
+out?"
+
+```bash
+approximately fleet --trend --digest-dir d --failure-budget 50
+#   failure budget: 31/50 failed runs (62% burned) — exhausted in
+#   ~12 day(s) at this burn
+```
+
+The digest history carries each store's exact failed-run count per
+day; the budget reads the window's burn against your allowance,
+projects the Theil-Sen slope forward, and names the exhaustion
+date. Exit 1 when already gone — the same pipeline-native verdict
+the spend forecast uses.
+
+In the nightly audit it becomes a gate:
+
+```bash
+approximately audit --store .agents-store \
+  --digest-dir d --failure-budget 50 --fix
+```
+
+An exhausted budget fails the audit even when every other gate is
+green: the fleet can be healthy by every per-run measure and still
+be spending its mistakes too fast. The same numbers are answerable
+by agents through the MCP `failure_budget` tool, and `status
+--failure-budget` puts the burn fraction in the ops pulse.
