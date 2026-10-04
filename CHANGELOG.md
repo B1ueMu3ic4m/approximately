@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.106.0
+
+- the security ledger learns the week's lessons: quarantine's evidence-preservation guarantee (bytes kept, poison not immortalized, `clean --keep-breached`), and the lie-by-subtraction defenses (negative digest failures clamped, unpriced models counted — a budget you cannot compute does not hold). ARCHITECTURE's module map names forecast.py. docs-only.
+
 ## v2.105.0
 
 - fuzz 22 points the hostile probes at the night's new surfaces and finds two real holes, both closed: a poisoned trace whose step.result is a NUMBER crashed the result meter and the composition walk (len() on an int — the meters now skip data lies instead of crashing), and a digest row with NEGATIVE failures made the reliability budget grow as the fleet burned (untrusted input now clamps at zero). zero-allowance and huge-count semantics pinned.
