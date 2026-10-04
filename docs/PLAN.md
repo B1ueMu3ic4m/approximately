@@ -3425,3 +3425,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - `drift --baseline-days N`: time-based split by the trace's
        own created_at (overrides --baseline-ratio); one-sided
        windows exit 1 with the reason in the message.
+
+354. **v2.105.0 - fuzz 22: the meters under hostile input** (planned):
+     - Poison result types (numbers) crashed the result meter and
+       composition; non-string results are now data lies the meters
+       skip.
+     - failure_budget clamps digest failures at zero (a negative
+       count grew the budget).
+     - Zero-allowance and huge-count semantics pinned; 8 tests.

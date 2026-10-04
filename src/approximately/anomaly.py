@@ -291,9 +291,11 @@ class TraceResultAnomaly:
 
 def _result_steps(trace: Trace) -> List:
     """Tool-call steps whose result text is non-empty: the candidates
-    for the context-composition meter."""
+    for the context-composition meter.  Non-string results are data
+    lies — the meters skip them instead of crashing on len()."""
     return [s for s in trace.steps
-            if s.kind == TOOL_CALL and s.result]
+            if s.kind == TOOL_CALL and isinstance(s.result, str)
+            and s.result]
 
 
 def detect_result_anomalies(trace: Trace,
