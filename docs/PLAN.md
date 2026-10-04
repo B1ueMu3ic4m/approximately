@@ -3420,3 +3420,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        contributors, total); >=2 kinds required — a single kind is
        not a composition story.
      - Best-effort contract held (poison args stringify).
+
+353. **v2.104.0 - drift splits by the calendar** (planned):
+     - `drift --baseline-days N`: time-based split by the trace's
+       own created_at (overrides --baseline-ratio); one-sided
+       windows exit 1 with the reason in the message.

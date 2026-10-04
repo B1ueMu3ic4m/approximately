@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.104.0
+
+- drift splits by the calendar: `drift --baseline-days N` splits one store's history at a real date — baseline = traces older than N days by their own created_at, current = the rest — because "this week versus the previous month" is the question ops asks and a count-ratio split answers a different one. the count split stays the default; a one-sided window exits cleanly with the reason named.
+
 ## v2.103.0
 
 - the composition view reaches the postmortem: report.html renders a Context composition card — tokens by step kind, shares, each kind's worst contributor — beside the other analysis cards. best-effort contract: nothing measurable or a single kind (a respond-only run is 100% response and 0% insight) gets no card; poison args stringify instead of crashing.

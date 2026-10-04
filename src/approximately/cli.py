@@ -602,11 +602,21 @@ def cmd_drift(args: argparse.Namespace) -> int:
 
     store = TraceStore(args.store)
     traces = sorted(store.list_traces(), key=lambda t: t.created_at)
-    split_at = int(len(traces) * args.baseline_ratio)
-    baseline, current = traces[:split_at], traces[split_at:]
+    baseline_days = getattr(args, "baseline_days", None)
+    if baseline_days is not None:
+        import time as _time
+
+        cutoff = _time.time() - float(baseline_days) * 86400
+        baseline = [t for t in traces if (t.created_at or 0) < cutoff]
+        current = [t for t in traces if (t.created_at or 0) >= cutoff]
+        split_name = (f"baseline = older than {baseline_days}d, "
+                      f"current = the rest")
+    else:
+        split_at = int(len(traces) * args.baseline_ratio)
+        baseline, current = traces[:split_at], traces[split_at:]
+        split_name = "baseline = oldest, current = newest"
     if not baseline or not current:
-        print("need traces in both windows "
-              "(baseline = oldest, current = newest)")
+        print(f"need traces in both windows ({split_name})")
         return 1
     from .drift import report_payload
 
@@ -3512,6 +3522,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="share of oldest traces used as baseline (default 0.5)")
     p.add_argument("--json", action="store_true",
                    help="emit the same payload as the MCP drift tool")
+    p.add_argument("--baseline-days", type=int, metavar="N",
+                   help="split by time instead of count: baseline = "
+                        "traces older than N days, current = the rest "
+                        "(overrides --baseline-ratio)")
     p.set_defaults(func=cmd_drift)
 
     p = sub.add_parser("diff", parents=[common],
