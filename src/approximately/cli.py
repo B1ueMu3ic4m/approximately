@@ -1469,47 +1469,73 @@ def _fleet_compact(args: argparse.Namespace) -> int:
     return 0
 
 
-def _fleet_trend(args: argparse.Namespace) -> int:
-    from .fleet import (
-        agent_trend_days,
-        render_trend,
-        summarize_agent_trend,
-        summarize_trend,
-        trend_days,
-    )
+def _agent_failure_budget(args: argparse.Namespace,
+                          agent_days: list) -> Optional[dict]:
+    """The agent's failed-run accounting, when an allowance is set.
+
+    The agent rows speak failed_traces; the budget speaks failures —
+    a rename, not a reinterpretation."""
+    allowance = getattr(args, "failure_budget", None)
+    if allowance is None:
+        return None
+    from .forecast import failure_budget
+
+    budget_rows = [dict(d, failures=d["failed_traces"])
+                   for d in agent_days]
+    result = failure_budget(budget_rows, allowance=int(allowance))
+    if result is None:  # pragma: no cover - refusal returns a dict
+        return {}
+    return result
+
+
+def _agent_trend_report(args: argparse.Namespace, agent: str) -> int:
+    """The per-agent trend door: budget line, day table, verdict."""
+    from .fleet import agent_trend_days, summarize_agent_trend
     from .report import TREND_LABELS, render_sparkline
 
-    agent = getattr(args, "agent", None)
-    days = trend_days(Path(args.digest_dir))
-    if agent:
-        agent_days = agent_trend_days(Path(args.digest_dir), agent)
-        agent_summary = summarize_agent_trend(agent_days)
-        verdict, slope = agent_summary["verdict"], agent_summary["slope"]
-        spark = render_sparkline(
-            [d["failed_traces"] / d["traces"] * 100
-             for d in agent_days if d["traces"]],
-            width=180, height=34)
-        _, trend_label = TREND_LABELS[verdict]
-        if getattr(args, "json", False):
-            print(json.dumps({"agent": agent, "days": agent_days,
-                              "verdict": verdict, "slope": slope},
-                             indent=2))
-            return 0
-        print(f"agent trend - {agent} - {len(agent_days)} day(s)")
-        for d in agent_days:
-            rate = f"{d['failed_traces'] / d['traces']:.0%}" \
-                if d["traces"] else "-"
-            print(f"  {d['day']}: {d['steps']:>5} steps, "
-                  f"{d['errors']:>3} errors, "
-                  f"{d['failed_traces']:>3}/{d['traces']:<3} failed "
-                  f"({rate})")
-        print(f"  sparkline: {spark}")
-        print(f"  verdict: {trend_label} (slope {slope})")
-        if getattr(args, "fail_on_worsening", False) \
-                and verdict == "worsening":
-            print(f"agent trend is worsening: {agent}", file=sys.stderr)
-            return 1
+    agent_days = agent_trend_days(Path(args.digest_dir), agent)
+    agent_summary = summarize_agent_trend(agent_days)
+    agent_budget = _agent_failure_budget(args, agent_days)
+    agent_summary["failure_budget"] = agent_budget
+    verdict, slope = (agent_summary["verdict"],
+                      agent_summary["slope"])
+    spark = render_sparkline(
+        [d["failed_traces"] / d["traces"] * 100
+         for d in agent_days if d["traces"]],
+        width=180, height=34)
+    _, trend_label = TREND_LABELS[verdict]
+    if getattr(args, "json", False):
+        print(json.dumps({"agent": agent, "days": agent_days,
+                          "verdict": verdict, "slope": slope,
+                          "failure_budget": agent_budget},
+                         indent=2))
         return 0
+    print(f"agent trend - {agent} - {len(agent_days)} day(s)")
+    if agent_budget:
+        _print_budget_line(agent_budget)
+    for d in agent_days:
+        rate = f"{d['failed_traces'] / d['traces']:.0%}" \
+            if d["traces"] else "-"
+        print(f"  {d['day']}: {d['steps']:>5} steps, "
+              f"{d['errors']:>3} errors, "
+              f"{d['failed_traces']:>3}/{d['traces']:<3} failed "
+              f"({rate})")
+    print(f"  sparkline: {spark}")
+    print(f"  verdict: {trend_label} (slope {slope})")
+    if getattr(args, "fail_on_worsening", False) \
+            and verdict == "worsening":
+        print(f"agent trend is worsening: {agent}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _fleet_trend(args: argparse.Namespace) -> int:
+    from .fleet import render_trend, summarize_trend, trend_days
+
+    agent = getattr(args, "agent", None)
+    if agent:
+        return _agent_trend_report(args, agent)
+    days = trend_days(Path(args.digest_dir))
     summary = summarize_trend(days)
     ceiling = getattr(args, "spend_ceiling", None)
     forecast = None
@@ -1524,7 +1550,8 @@ def _fleet_trend(args: argparse.Namespace) -> int:
     if allowance is not None:
         from .forecast import failure_budget
 
-        budget = failure_budget(summary["days"], allowance=int(allowance))
+        budget = failure_budget(summary["days"],
+                                allowance=int(allowance))
         summary["failure_budget"] = budget
     if getattr(args, "json", False):
         print(json.dumps(summary, indent=2))
@@ -1548,6 +1575,7 @@ def _fleet_trend(args: argparse.Namespace) -> int:
               file=sys.stderr)
         return 1
     return 0
+
 
 
 def _print_budget_line(budget: dict) -> None:
