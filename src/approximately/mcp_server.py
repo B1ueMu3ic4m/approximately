@@ -549,7 +549,11 @@ _TOOLS: List[Dict[str, Any]] = [
             "properties": {
                 "trace": {"type": "string"},
                 "store": {"type": "string"},
-                "budget": {"type": "number",
+                "composition": {"type": "boolean",
+"description": "what fills the run's context: tokens by step kind"},
+"truncate_results": {"type": "integer",
+"description": "with composition: what-if — count results as if truncated to N chars"},
+"budget": {"type": "number",
                            "description": "context-token budget "
                                           "(default 4000)"},
             },
@@ -1542,6 +1546,13 @@ def _tool_context(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     trace = store.load(str(args["trace"]))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
+    if args.get("composition") or args.get("truncate_results") \
+            is not None:
+        from .context import composition
+
+        return composition(trace,
+                           truncate_results=args.get(
+                               "truncate_results"))
     budget = int(args["budget"]) if args.get("budget") else 4000
     fc = forecast(trace, budget=max(1, budget),
                   facts=default_facts(trace))

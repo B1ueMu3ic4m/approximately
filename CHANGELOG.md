@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.101.0
+
+- the truncation what-if, and agents get the composition view: `context --composition --truncate-results N` counts tool results as if cut at N characters and reports the savings (baseline = the same walk without the cut — saved accumulates result-only deltas, so tokens_before is exactly total + saved), and the MCP context tool carries both knobs. sizing a truncation rule stops being a guess.
+
 ## v2.100.0
 
 - what fills the window: `context <trace> --composition` breaks a run's context down by step kind — estimated tokens, share, each kind's worst contributor — sorted by share. the answer to "why is my window full?" when the answer is not the model: a run whose context is 80% tool results has a truncation problem, not a context-length problem. result-less steps contribute nothing and say so.

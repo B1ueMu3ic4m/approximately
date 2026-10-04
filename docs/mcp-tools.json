@@ -589,6 +589,14 @@
           "store": {
             "type": "string"
           },
+          "composition": {
+            "type": "boolean",
+            "description": "what fills the run's context: tokens by step kind"
+          },
+          "truncate_results": {
+            "type": "integer",
+            "description": "with composition: what-if — count results as if truncated to N chars"
+          },
           "budget": {
             "type": "number",
             "description": "context-token budget (default 4000)"

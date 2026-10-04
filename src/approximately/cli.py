@@ -273,10 +273,23 @@ def cmd_context(args: argparse.Namespace) -> int:
 
     store = TraceStore(args.store)
     trace = _load_trace(args.trace, store)
-    if getattr(args, "composition", False):
+    if getattr(args, "composition", False) or getattr(
+            args, "truncate_results", None) is not None:
         from .context import composition
 
-        payload = composition(trace)
+        payload = composition(
+            trace,
+            truncate_results=getattr(args, "truncate_results",
+                                     None))
+        if payload.get("tokens_saved") is not None:
+            before, after = (payload["tokens_before"],
+                             payload["tokens_after"])
+            pct = (before - after) / before * 100 if before else 0
+            print(f"truncating tool results at "
+                  f"{payload['truncated_at_chars']:,} chars: "
+                  f"{before:,} -> {after:,} tokens "
+                  f"({payload['tokens_saved']:,} saved, "
+                  f"{pct:.0f}%)")
         if getattr(args, "json", False):
             print(json.dumps(payload, indent=2))
             return 0
@@ -3322,6 +3335,10 @@ def build_parser() -> argparse.ArgumentParser:
                                    "(default: one fact per tool result)")
     p.add_argument("--json", action="store_true",
                    help="emit the same payload as the MCP context tool")
+    p.add_argument("--truncate-results", type=int, metavar="N",
+                   help="with --composition: what-if — count tool "
+                        "results as if truncated to N characters, "
+                        "and report the savings")
     p.add_argument("--composition", action="store_true",
                    help="what fills this run's context: estimated "
                         "tokens by step kind, with each kind's worst "

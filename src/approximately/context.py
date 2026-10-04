@@ -60,7 +60,8 @@ def full_context_tokens(trace: "Trace") -> int:
     return total + estimate_tokens(trace.task)
 
 
-def composition(trace: "Trace") -> dict:
+def composition(trace: "Trace",
+                truncate_results: Optional[int] = None) -> dict:
     """What fills this run's context, by step kind.
 
     Each entry carries the estimated tokens the kind contributes
@@ -71,11 +72,19 @@ def composition(trace: "Trace") -> dict:
     """
     rows: Dict[str, int] = {}
     worst: Dict[str, Any] = {}
+    saved = 0
     for step in trace.steps:
         kind = step.kind
         size = 0
+        full = 0
         if step.result:
-            size += estimate_tokens(step.result) + 8
+            full = estimate_tokens(step.result) + 8
+            size = full
+            if truncate_results is not None \
+                    and len(step.result) > truncate_results:
+                size = estimate_tokens(
+                    step.result[:truncate_results]) + 8
+                saved += full - size
         if step.thought:
             size += estimate_tokens(step.thought)
         if step.args:
@@ -97,8 +106,17 @@ def composition(trace: "Trace") -> dict:
         "worst_step": worst[kind]["index"] if kind in worst else None,
         "worst_tokens": worst[kind]["tokens"] if kind in worst else 0,
     } for kind, tokens in sorted(rows.items(), key=lambda kv: -kv[1])]
-    return {"trace_id": trace.id, "total_tokens": total,
-            "parts": parts}
+    out = {"trace_id": trace.id, "total_tokens": total,
+           "parts": parts}
+    if truncate_results is not None:
+        # saved accumulated result-only deltas during the walk, so
+        # the pre-truncation baseline is exactly total + saved
+        out["truncated_at_chars"] = truncate_results
+        out["tokens_before"] = total + saved
+        out["tokens_after"] = total
+        out["tokens_saved"] = saved
+        out["saved"] = saved
+    return out
 
 
 # Context item classes, in eviction priority order (first = evicted first).
