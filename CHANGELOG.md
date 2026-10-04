@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.110.0
+
+- the composition answer comes with a price: when one kind owns the window (>50%) and it is tool results, the payload carries `suggest_truncate_chars` (2,000) and `suggest_save_tokens` — priced from the worst step's actual result — and the prose names the step and the savings. the suggestion logic lives in `_truncation_suggestion`, one typed helper.
+
 ## v2.109.0
 
 - the banner's numbers age too: 1,800+ tests (was 1,600+) across the 22-check CI matrix (was "15-job" — the count split test-matrix jobs from the whole). the changelog chain also learned a guard: entries whose insert-anchor is missing now assert loudly instead of silently writing nothing (v2.107's entry went missing that way; v2.108's merge healed it).
