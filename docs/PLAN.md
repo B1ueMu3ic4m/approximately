@@ -3413,3 +3413,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - RECIPES 24: three rulers, one robust ruler; --results; the
        composition + truncation what-if pair.
      - Docs-only release.
+
+352. **v2.103.0 - the composition view reaches the postmortem**
+      (planned):
+     - report.html: Context composition card (kinds, shares, worst
+       contributors, total); >=2 kinds required — a single kind is
+       not a composition story.
+     - Best-effort contract held (poison args stringify).
