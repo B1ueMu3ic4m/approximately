@@ -109,7 +109,7 @@ def test_clean_run_has_no_card(tmp_path):
     store = TraceStore(tmp_path / "s")
     with Recorder("calm", model="m/1", store=store,
                   save=False) as rec:
-        for i in range(6):
+        for _ in range(6):
             rec.tool("t", {}, result="x" * 100)
         rec.respond("done", success=True)
     html = render_html(rec.trace, attribute(rec.trace))
