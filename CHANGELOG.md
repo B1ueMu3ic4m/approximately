@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.102.0
+
+- the meters get their chapter: RECIPES 24 — the three rulers (latency, tokens, result length), the Result bloat card, and composition + the truncation what-if with the truncation-problem-vs-context-length-problem punchline. docs-only.
+
 ## v2.101.0
 
 - the truncation what-if, and agents get the composition view: `context --composition --truncate-results N` counts tool results as if cut at N characters and reports the savings (baseline = the same walk without the cut — saved accumulates result-only deltas, so tokens_before is exactly total + saved), and the MCP context tool carries both knobs. sizing a truncation rule stops being a guess.

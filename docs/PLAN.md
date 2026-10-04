@@ -3408,3 +3408,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        saved; saved is result-only).
      - `context --truncate-results N` CLI; MCP context tool gains
        composition + truncate_results (docs/mcp-tools.json synced).
+
+351. **v2.102.0 - the meters get their chapter** (planned):
+     - RECIPES 24: three rulers, one robust ruler; --results; the
+       composition + truncation what-if pair.
+     - Docs-only release.

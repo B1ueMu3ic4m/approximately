@@ -518,3 +518,36 @@ deploy.
 quality gate on every push, and `agent-audit.yml` runs the audit
 nightly at 03:00 with `--fix` on. The same composition is available
 to agents through the MCP `audit` tool.
+
+## 24. The meters chapter: three rulers and a window
+
+Every anomaly family in approximately is the same robust ruler —
+median/MAD modified z-score, threshold 3.5 — applied to a different
+measurement. Three rulers ship:
+
+```bash
+approximately anomalies <trace>              # latency: the stall
+approximately anomalies <trace> --tokens     # tokens: the retry loop's receipt
+approximately anomalies <trace> --results    # result length: the window eater
+```
+
+`--results` answers a question the other two cannot: a tool that
+dumps a 40k-character wall into the context can be cheap in tokens
+and fast — and still eat the window. The postmortem renders the
+Result bloat card; `--all` runs any meter fleet-wide (exit 1 on
+findings, 0 on silence).
+
+Composition closes the loop from "this step is big" to "this is
+why the window is full":
+
+```bash
+approximately context <trace> --composition
+#   tool_call       12,400 ( 91.2%), worst step #3 (11,050)
+approximately context <trace> --composition --truncate-results 2000
+#   truncating tool results at 2,000 chars: 13,600 -> 6,100 tokens
+#   (7,500 saved, 55%)
+```
+
+A run whose context is 80% tool results has a truncation problem,
+not a context-length problem — and the second command prices the
+fix before you write the rule.
