@@ -932,6 +932,25 @@ def _status_spend(traces: list, prices: Any) -> tuple:
     return spend, unpriced
 
 
+def _payload_forecasts(payload: dict, trend: Optional[dict],
+                       spend_ceiling: Any,
+                       failure_allowance: Any) -> None:
+    """Attach the spend/reliability projections when asked.
+
+    Both read the summarized day-rows — the raw trend_days entries
+    carry no est_spend/failures (the lesson, kept as a comment)."""
+    if trend is None:
+        return
+    from .forecast import failure_budget, forecast_spend
+
+    if spend_ceiling is not None:
+        payload["spend_forecast"] = forecast_spend(
+            trend["days"], ceiling=float(spend_ceiling))
+    if failure_allowance is not None:
+        payload["failure_budget"] = failure_budget(
+            trend["days"], allowance=int(failure_allowance))
+
+
 def _digest_trend(digest_dir: Any) -> Optional[dict]:
     """The fleet trend summary, when a digest directory is in play."""
     if not digest_dir or not Path(digest_dir).is_dir():
@@ -944,7 +963,8 @@ def _digest_trend(digest_dir: Any) -> Optional[dict]:
 def _status_payload(store: Any, traces: list, digest_dir: Any,
                     since: Any = None,
                     prices: Any = None,
-                    spend_ceiling: Any = None) -> dict:
+                    spend_ceiling: Any = None,
+                    failure_allowance: Any = None) -> dict:
     """Build the status overview data (shared by text and JSON)."""
     import time as _time
 
@@ -1027,11 +1047,8 @@ def _status_payload(store: Any, traces: list, digest_dir: Any,
         },
         "triage_coverage": coverage,
     }
-    if spend_ceiling is not None and trend:
-        from .forecast import forecast_spend
-
-        payload["spend_forecast"] = forecast_spend(
-            trend["days"], ceiling=float(spend_ceiling))
+    _payload_forecasts(payload, trend, spend_ceiling,
+                       failure_allowance)
     return payload
 
 
@@ -1047,6 +1064,20 @@ def _write_token_line(buf: Any, payload: dict) -> None:
                 buf.write(f" ({payload['unpriced_tokens']:,} tokens "
                           "unpriced)")
         buf.write("\n")
+
+
+def _write_budget_line(buf: Any, budget: Any) -> None:
+    """The failure-budget line — silent when no allowance was asked."""
+    if not (budget and budget.get("usable")):
+        return
+    state = ("EXHAUSTED" if budget.get("exhausted")
+             else f"{budget['burn_fraction']:.0%} burned")
+    line = (f"  failure budget: {budget['burned']}/"
+            f"{budget['allowance']} failed runs ({state})")
+    left = budget.get("days_to_exhaustion")
+    if left and not budget.get("exhausted"):
+        line += f" — exhausted in ~{left} day(s) at this burn"
+    buf.write(line + "\n")
 
 
 def _write_forecast_line(buf: Any, forecast: Any) -> None:
@@ -1086,7 +1117,9 @@ def _render_status(args: argparse.Namespace) -> str:
                               prices=_load_prices(
                                   getattr(args, "prices", None)),
                               spend_ceiling=getattr(
-                                  args, "spend_ceiling", None))
+                                  args, "spend_ceiling", None),
+                              failure_allowance=getattr(
+                                  args, "failure_budget", None))
     if getattr(args, "json", False):
         return json.dumps(payload, indent=2)
     buf = _io.StringIO()
@@ -1115,6 +1148,7 @@ def _render_status(args: argparse.Namespace) -> str:
                   f"z={worst.get('robust_z'):+.1f})\n")
     _write_breach_line(buf, payload)
     _write_forecast_line(buf, payload.get("spend_forecast"))
+    _write_budget_line(buf, payload.get("failure_budget"))
     last = payload["last_failure"]
     if last is not None:
         buf.write(f"  last failure: {last['id']} chain={last['chain']} "
@@ -1179,7 +1213,9 @@ def cmd_status(args: argparse.Namespace) -> int:
                               prices=_load_prices(
                                   getattr(args, "prices", None)),
                               spend_ceiling=getattr(
-                                  args, "spend_ceiling", None))
+                                  args, "spend_ceiling", None),
+                              failure_allowance=getattr(
+                                  args, "failure_budget", None))
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2))
     else:
@@ -3371,6 +3407,10 @@ def build_parser() -> argparse.ArgumentParser:
                         "forward and surface days until the ceiling "
                         "(linear extrapolation of the Theil-Sen "
                         "slope)")
+    p.add_argument("--failure-budget", type=int, metavar="N",
+                   help="with --digest-dir: the reliability allowance "
+                        "in failed runs; surfaces burn fraction and "
+                        "days to exhaustion")
     p.set_defaults(func=cmd_status)
 
     p = sub.add_parser("rotate", parents=[common],

@@ -261,6 +261,30 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "failure_budget",
+        "description": "How much of the reliability allowance is "
+                       "spent, and when it runs out: burned failed "
+                       "runs across the digest window against the "
+                       "allowance, burn fraction, and the "
+                       "days-to-exhaustion projection (Theil-Sen "
+                       "slope over daily failures — robust to "
+                       "outliers, blind to your next deploy). "
+                       "Mirrors `fleet --trend --failure-budget`.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "digest_dir": {"type": "string"},
+                "allowance": {"type": "integer",
+                              "description": "maximum failed runs "
+                                             "the window may hold"},
+                "horizon_days": {"type": "integer",
+                                 "description": "projection length "
+                                                "(default 14)"},
+            },
+            "required": ["digest_dir", "allowance"],
+        },
+    },
+    {
         "name": "budget_sim",
         "description": "Replay a recorded run against rails it did "
                        "not have: which step a hypothetical token/"
@@ -1281,6 +1305,29 @@ def _tool_budget_sim(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                     prices=prices)
 
 
+def _tool_failure_budget(ctx: ServerContext,
+                         args: Dict[str, Any]) -> dict:
+    from .fleet import summarize_trend, trend_days
+    from .forecast import failure_budget
+
+    digest_dir = Path(str(args["digest_dir"]))
+    if not digest_dir.is_dir():
+        raise KeyError(f"no such digest directory: {digest_dir}")
+    allowance = args.get("allowance")
+    if (not isinstance(allowance, int) or isinstance(allowance, bool)
+            or allowance < 1):
+        raise KeyError("allowance must be a positive integer: a "
+                       "budget of zero or less holds nothing")
+    horizon = args.get("horizon_days")
+    if horizon is not None and (not isinstance(horizon, int)
+                                or isinstance(horizon, bool)
+                                or horizon < 1):
+        raise KeyError("horizon_days must be a positive integer")
+    rows = summarize_trend(trend_days(digest_dir))["days"]
+    return failure_budget(rows, allowance=allowance,
+                          horizon_days=horizon or 14)
+
+
 def _tool_spend_forecast(ctx: ServerContext,
                          args: Dict[str, Any]) -> dict:
     from .fleet import summarize_trend, trend_days
@@ -1877,6 +1924,7 @@ _HANDLERS = {
     "bisect": _tool_bisect,
     "doctor": _tool_doctor,
     "audit": _tool_audit,
+    "failure_budget": _tool_failure_budget,
     "budget_sim": _tool_budget_sim,
     "spend_forecast": _tool_spend_forecast,
     "spool_once": _tool_spool_once,
