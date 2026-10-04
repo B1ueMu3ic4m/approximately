@@ -3395,3 +3395,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        _should_alert/_alert_reasons lost their or-chains
        (_THRESHOLDS table, positional signature kept).
      - _card_findings extracted from _store_card.
+
+349. **v2.100.0 - what fills the window** (planned):
+     - context.composition(trace): estimated tokens by step kind,
+       share, worst contributor per kind; result-less steps are
+       free and excluded.
+     - `context <trace> --composition` door: prose table + json.
