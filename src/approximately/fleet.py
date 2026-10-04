@@ -79,6 +79,8 @@ class StoreSummary:
     worst_anomaly: Optional[dict] = None
     token_anomalies: int = 0
     worst_token_anomaly: Optional[dict] = None
+    result_anomalies: int = 0
+    worst_result_anomaly: Optional[dict] = None
     annotations_confirmed: int = 0
     total_tokens: int = 0
     est_spend: Optional[float] = None
@@ -173,6 +175,9 @@ def webhook_payload(summaries: List[StoreSummary]) -> dict:
                 "token_anomalies": getattr(s, "token_anomalies", 0),
                 "worst_token_anomaly":
                     getattr(s, "worst_token_anomaly", None),
+                "result_anomalies": getattr(s, "result_anomalies", 0),
+                "worst_result_anomaly":
+                    getattr(s, "worst_result_anomaly", None),
                 "total_tokens": getattr(s, "total_tokens", 0),
                 "est_spend": getattr(s, "est_spend", None),
                 "spend_unpriced_tokens":
@@ -297,10 +302,15 @@ def survey(stores: List[Path], top_agents: int = 3,
         verdict, slope = _verdict(rows)
         health = store.annotations_health()
         notes = store.annotations()
-        from .anomaly import detect_fleet_anomalies, detect_fleet_token_anomalies
+        from .anomaly import (
+            detect_fleet_anomalies,
+            detect_fleet_result_anomalies,
+            detect_fleet_token_anomalies,
+        )
 
         anomalies = detect_fleet_anomalies(traces)
         token_flags = detect_fleet_token_anomalies(traces)
+        result_flags = detect_fleet_result_anomalies(traces)
         summaries.append(StoreSummary(
             name=Path(path).name or str(path),
             path=str(path),
@@ -331,6 +341,14 @@ def survey(stores: List[Path], top_agents: int = 3,
                 "tokens": token_flags[0].tokens,
                 "median_tokens": token_flags[0].median_tokens,
                 "robust_z": token_flags[0].robust_z,
+            },
+            result_anomalies=len(result_flags),
+            worst_result_anomaly=None if not result_flags else {
+                "trace_id": result_flags[0].trace_id,
+                "tool": result_flags[0].tool,
+                "result_chars": result_flags[0].result_chars,
+                "median_chars": result_flags[0].median_chars,
+                "robust_z": result_flags[0].robust_z,
             },
             total_tokens=total_tokens,
             budget_breaches=_budget_breaches(traces),
@@ -387,34 +405,7 @@ def _store_card(s: StoreSummary) -> str:
                   is not None else "-") + "</td></tr>"
         for r in s.top_agents
     ) or "<tr><td>no named agents recorded</td></tr>"
-    anomalies = getattr(s, "fleet_anomalies", 0) or 0
-    worst = getattr(s, "worst_anomaly", None)
-    anomaly_html = ""
-    if anomalies and worst:
-        slow_cls = "bad" if anomalies >= 3 else "ok"
-        anomaly_html = (
-            f'<div class="row"><span class="rate {slow_cls}">'
-            f'{anomalies}</span><span class="badge {slow_cls}">'
-            "slow outlier(s)</span></div>"
-            "<h3>Slowest step</h3><table>"
-            f"<tr><td class='mono'>{esc(worst['tool'])}</td>"
-            f"<td>{worst['latency_ms']}ms</td>"
-            f"<td>family median {worst['median_ms']:.0f}ms · "
-            f"z={worst['robust_z']}</td></tr></table>")
-    token_flags = getattr(s, "token_anomalies", 0) or 0
-    worst_tok = getattr(s, "worst_token_anomaly", None)
-    if token_flags and worst_tok:
-        tok_cls = "bad" if token_flags >= 3 else "ok"
-        anomaly_html += (
-            f'<div class="row"><span class="rate {tok_cls}">'
-            f'{token_flags}</span><span class="badge {tok_cls}">'
-            "token burn(s)</span></div>"
-            "<h3>Hardest-working step</h3><table>"
-            f"<tr><td class='mono'>{esc(worst_tok['tool'])}</td>"
-            f"<td>{worst_tok['tokens']} tok</td>"
-            f"<td>family median {worst_tok['median_tokens']:.0f} · "
-            f"z={worst_tok['robust_z']}</td></tr></table>")
-    anomaly_html += _breach_html(s)
+    anomaly_html = _card_findings(s, esc)
     sub = (f'{esc(s.path)} · {s.traces} traces · ledger: '
            f'{ledger_note} · notes: {getattr(s, "annotations", 0)} '
            f'({getattr(s, "annotations_confirmed", 0)} confirmed)')
@@ -441,6 +432,55 @@ def _store_card(s: StoreSummary) -> str:
     )
 
 
+def _card_findings(s: StoreSummary, esc: Any) -> str:
+    """The store card's finding rows: slow outliers, token burns,
+    result bloat, budget breaches — each with its worst example."""
+    import html as _html
+
+    parts = ""
+    anomalies = getattr(s, "fleet_anomalies", 0) or 0
+    worst = getattr(s, "worst_anomaly", None)
+    if anomalies and worst:
+        slow_cls = "bad" if anomalies >= 3 else "ok"
+        parts += (
+            f'<div class="row"><span class="rate {slow_cls}">'
+            f'{anomalies}</span><span class="badge {slow_cls}">'
+            "slow outlier(s)</span></div>"
+            "<h3>Slowest step</h3><table>"
+            f"<tr><td class='mono'>{_html.escape(worst['tool'])}</td>"
+            f"<td>{worst['latency_ms']}ms</td>"
+            f"<td>family median {worst['median_ms']:.0f}ms · "
+            f"z={worst['robust_z']}</td></tr></table>")
+    token_flags = getattr(s, "token_anomalies", 0) or 0
+    worst_tok = getattr(s, "worst_token_anomaly", None)
+    if token_flags and worst_tok:
+        tok_cls = "bad" if token_flags >= 3 else "ok"
+        parts += (
+            f'<div class="row"><span class="rate {tok_cls}">'
+            f'{token_flags}</span><span class="badge {tok_cls}">'
+            "token burn(s)</span></div>"
+            "<h3>Hardest-working step</h3><table>"
+            f"<tr><td class='mono'>{_html.escape(worst_tok['tool'])}</td>"
+            f"<td>{worst_tok['tokens']} tok</td>"
+            f"<td>family median {worst_tok['median_tokens']:.0f} · "
+            f"z={worst_tok['robust_z']}</td></tr></table>")
+    result_flags = getattr(s, "result_anomalies", 0) or 0
+    worst_res = getattr(s, "worst_result_anomaly", None)
+    if result_flags and worst_res:
+        res_cls = "bad" if result_flags >= 3 else "ok"
+        parts += (
+            f'<div class="row"><span class="rate {res_cls}">'
+            f'{result_flags}</span><span class="badge {res_cls}">'
+            "result bloat(s)</span></div>"
+            "<h3>Longest result</h3><table>"
+            f"<tr><td class='mono'>{_html.escape(worst_res['tool'])}</td>"
+            f"<td>{worst_res['result_chars']:,} chars</td>"
+            f"<td>family median {worst_res['median_chars']:,.0f} · "
+            f"z={worst_res['robust_z']}</td></tr></table>")
+    parts += _breach_html(s)
+    return parts
+
+
 def _breach_html(s: StoreSummary) -> str:
     """The budget-breach card row — empty when the store is clean."""
     breaches = getattr(s, "budget_breaches", 0) or 0
@@ -458,27 +498,61 @@ def _breach_html(s: StoreSummary) -> str:
             f"runs{who}</span></div>")
 
 
+_CURVE_SPECS: tuple = (
+    ("anomaly_trend", "slowness", "fleet_anomalies",
+     " flagged step(s)", False),
+    ("token_trend", "token burn", "token_anomalies",
+     " flagged step(s)", False),
+    ("result_trend", "result bloat", "result_anomalies", "", False),
+    ("breach_trend", "budget breaches", "budget_breaches", "", False),
+    ("spend_trend", "spend", "est_spend", "", True),
+)
+
+
+def _curve_bits(summary: dict, esc: Any) -> str:
+    """One badge + sparkline per daily series that has a verdict."""
+    bits = []
+    for key, label, series_key, unit, money in _CURVE_SPECS:
+        trend = summary.get(key)
+        if not trend:
+            continue
+        cls, t_label = TREND_LABELS[trend["verdict"]]
+        fmt = (lambda v: f"${v:,.2f}") if money else (lambda v: v)
+        bits.append(
+            '<div class="row"><span class="badge ' + cls + '">'
+            f'{esc(t_label)}</span>'
+            f'<span class="sub">{esc(label)}: latest '
+            f'{fmt(trend["latest"])}{unit}, slope '
+            f'{fmt(trend["slope"])}/day</span></div>')
+        bits.append('<div class="row">'
+                    + render_sparkline(
+                        [r.get(series_key, 0) for r in summary["days"]],
+                        width=420, height=40)
+                    + "</div>")
+    return "".join(bits)
+
+
 def _trend_section(summary: dict) -> str:
     """HTML block for the digest-history trend (render_fleet_html)."""
     import html as _html
 
     esc = _html.escape
-    # day rows carry `traces`/`failure_rate` (trace-weighted across
-    # stores) — a r.get("total") read here matched nothing, so the
-    # rate curve silently never rendered
+    # day rows carry `failure_rate` (trace-weighted across stores) —
+    # a r.get("total") read here matched nothing, so the rate curve
+    # silently never rendered
     rates = [r["failure_rate"] * 100 for r in summary["days"]
              if r.get("traces")]
     spark = render_sparkline(rates, width=420, height=70) if rates \
         else "<p>(no snapshots with traces yet)</p>"
     badge_cls, trend_label = TREND_LABELS[summary["verdict"]]
-    anomaly_trend = summary.get("anomaly_trend")
-    token_trend = summary.get("token_trend")
-    breach_trend = summary.get("breach_trend")
-    if anomaly_trend or token_trend or breach_trend:
+    has_series = any(summary.get(key) for key, _l, _s, _u, _m
+                     in _CURVE_SPECS)
+    if has_series:
         rows = (f"<tr><td>{esc(r['day'])}</td>"
                 f"<td>{r['traces']}</td>"
                 f"<td>{r.get('fleet_anomalies', 0)}</td>"
                 f"<td>{r.get('token_anomalies', 0)}</td>"
+                f"<td>{r.get('result_anomalies', 0)}</td>"
                 f"<td>{r.get('budget_breaches', 0)}</td>"
                 f"<td>{r['failure_rate']:.0%}</td></tr>"
                 for r in summary["days"])
@@ -489,73 +563,16 @@ def _trend_section(summary: dict) -> str:
                        f'{summary["slope"]:+.4f}/day · '
                        f'{summary["snapshots"]} snapshot(s) over '
                        f'{len(summary["days"])} day(s)</span></div>'),
-                      spark]
-        if anomaly_trend:
-            a_cls, a_label = TREND_LABELS[anomaly_trend["verdict"]]
-            trend_bits.append(
-                '<div class="row"><span class="badge ' + a_cls + '">'
-                f'{esc(a_label)}</span>'
-                '<span class="sub">slowness: latest '
-                f'{anomaly_trend["latest"]} flagged step(s), slope '
-                f'{anomaly_trend["slope"]:+.4f}/day</span></div>')
-            trend_bits.append('<div class="row">'
-                              + render_sparkline(
-                                  [r["fleet_anomalies"]
-                                   for r in summary["days"]],
-                                  width=420, height=40)
-                              + "</div>")
-        if token_trend:
-            t_cls, t_label = TREND_LABELS[token_trend["verdict"]]
-            trend_bits.append(
-                '<div class="row"><span class="badge ' + t_cls + '">'
-                f'{esc(t_label)}</span>'
-                '<span class="sub">token burn: latest '
-                f'{token_trend["latest"]} flagged step(s), slope '
-                f'{token_trend["slope"]:+.4f}/day</span></div>')
-            trend_bits.append('<div class="row">'
-                              + render_sparkline(
-                                  [r["token_anomalies"]
-                                   for r in summary["days"]],
-                                  width=420, height=40)
-                              + "</div>")
-        breach_trend = summary.get("breach_trend")
-        if breach_trend:
-            b_cls, b_label = TREND_LABELS[breach_trend["verdict"]]
-            trend_bits.append(
-                '<div class="row"><span class="badge ' + b_cls + '">'
-                f'{esc(b_label)}</span>'
-                '<span class="sub">budget breaches: latest '
-                f'{breach_trend["latest"]}, slope '
-                f'{breach_trend["slope"]:+.4f}/day</span></div>')
-            trend_bits.append('<div class="row">'
-                              + render_sparkline(
-                                  [r.get("budget_breaches", 0)
-                                   for r in summary["days"]],
-                                  width=420, height=40)
-                              + "</div>")
-        spend_trend = summary.get("spend_trend")
-        if spend_trend:
-            s_cls, s_label = TREND_LABELS[spend_trend["verdict"]]
-            trend_bits.append(
-                '<div class="row"><span class="badge ' + s_cls + '">'
-                f'{esc(s_label)}</span>'
-                '<span class="sub">spend: latest '
-                f'${spend_trend["latest"]:,.2f}, slope '
-                f'${spend_trend["slope"]:+.2f}/day</span></div>')
-            trend_bits.append('<div class="row">'
-                              + render_sparkline(
-                                  [r.get("est_spend") or 0.0
-                                   for r in summary["days"]],
-                                  width=420, height=40)
-                              + "</div>")
-        return (
-            '<div class="store"><h2>Fleet trend (digest history)</h2>'
-            + "".join(trend_bits) +
-            "<table><tr><th>day</th><th>traces</th>"
-            "<th>slow outliers</th><th>token burn</th>"
-            "<th>budget breaches</th>"
-            "<th>failure rate</th></tr>"
-            + "".join(rows) + "</table></div>")
+                      spark,
+                      _curve_bits(summary, esc),
+                      '<table><tr><th>day</th><th>traces</th>'
+                      "<th>slow outliers</th><th>token burn</th>"
+                      "<th>result bloat</th><th>budget breaches</th>"
+                      "<th>failure rate</th></tr>"
+                      + "".join(rows) + "</table></div>"]
+        return ('<div class="store"><h2>'
+                "Fleet trend (digest history)</h2>"
+                + "".join(trend_bits))
     rows_html = "".join(
         f"<tr><td>{esc(r['day'])}</td>"
         f"<td>{r['traces']}</td>"
@@ -563,15 +580,16 @@ def _trend_section(summary: dict) -> str:
         for r in summary["days"])
     return (
         '<div class="store"><h2>Fleet trend (digest history)</h2>'
-        f'<div class="row"><span class="badge {badge_cls}">'
+        '<div class="row"><span class="badge ' + badge_cls + '">'
         f'{esc(trend_label)}</span>'
-        f'<span class="sub">slope {summary["slope"]:+.4f}/day · '
+        '<span class="sub">slope '
+        f'{summary["slope"]:+.4f}/day · '
         f'{summary["snapshots"]} snapshot(s) over '
         f'{len(summary["days"])} day(s)</span></div>'
-        f"{spark}"
-        f"<table><tr><th>day</th><th>traces</th>"
-        "<th>failure rate</th></tr>" + rows_html + "</table></div>")
-
+        + f"{spark}"
+        + "<table><tr><th>day</th><th>traces</th>"
+        "<th>failure rate</th></tr>" + rows_html
+        + "</table></div>")
 
 def render_fleet_html(summaries: List[StoreSummary],
                       trend_summary: Optional[dict] = None) -> str:
@@ -749,6 +767,7 @@ def _trend_row(entry: dict) -> dict:
     spend = sum(s.get("est_spend") or 0 for s in stores)
     breaches = sum(s.get("budget_breaches", 0) for s in stores)
     failures = sum(s.get("failures", 0) for s in stores)
+    result_flags = sum(s.get("result_anomalies", 0) for s in stores)
     return {
         "day": entry["day"],
         "budget_breaches": breaches,
@@ -761,6 +780,7 @@ def _trend_row(entry: dict) -> dict:
         "top_modes": sorted(modes.items(), key=lambda kv: -kv[1])[:3],
         "fleet_anomalies": anomalies,
         "token_anomalies": token_flags,
+        "result_anomalies": result_flags,
         "est_spend": round(spend, 2),
     }
 
@@ -795,6 +815,13 @@ def summarize_trend(days: List[dict]) -> dict:
         spend_verdict = {"verdict": s_verdict,
                          "slope": round(s_slope, 4),
                          "latest": spend_series[-1]}
+    result_series = [r.get("result_anomalies", 0) for r in rows]
+    result_verdict = None
+    if len(result_series) >= 2 and any(result_series):
+        re_verdict, re_slope = trend_verdict(result_series)
+        result_verdict = {"verdict": re_verdict,
+                          "slope": round(re_slope, 4),
+                          "latest": result_series[-1]}
     breach_series = [r.get("budget_breaches", 0) for r in rows]
     breach_verdict = None
     if len(breach_series) >= 2 and any(breach_series):
@@ -807,7 +834,8 @@ def summarize_trend(days: List[dict]) -> dict:
             "anomaly_trend": anomaly_verdict,
             "token_trend": token_verdict,
             "spend_trend": spend_verdict,
-            "breach_trend": breach_verdict}
+            "breach_trend": breach_verdict,
+            "result_trend": result_verdict}
 
 
 AGENT_TREND_KEYS = ("steps", "tool_calls", "errors",
@@ -901,71 +929,78 @@ def render_trend(summary: dict) -> str:
 
 
 def _alert_reasons(summaries: list, threshold: Optional[float],
-                   alert_anomalies: Optional[int],
-                   alert_tokens: Optional[int],
-                   alert_spend: Optional[float],
-                   alert_budget_breaches: Optional[int] = None
-                   ) -> frozenset:
+                   alert_anomalies: Optional[int] = None,
+                   alert_tokens: Optional[int] = None,
+                   alert_spend: Optional[float] = None,
+                   alert_budget_breaches: Optional[int] = None,
+                   alert_results: Optional[int] = None) -> frozenset:
     """Per-store alert reasons — the dedup key for cooldown.
 
     A frozenset of ``name:reason`` strings; an unchanged set inside
     the cooldown window is the same alarm still ringing, not a new
     one."""
     reasons = set()
+    named = {"fleet_anomalies": (alert_anomalies, "anomalies"),
+             "token_anomalies": (alert_tokens, "tokens"),
+             "budget_breaches": (alert_budget_breaches,
+                                 "budget-breaches"),
+             "result_anomalies": (alert_results, "result-bloat")}
     for s in summaries:
         if s.worsening:
             reasons.add(f"{s.name}:worsening")
         if threshold is not None and s.failure_rate >= threshold:
             reasons.add(f"{s.name}:failure-rate")
-        if alert_anomalies is not None and \
-                getattr(s, "fleet_anomalies", 0) >= alert_anomalies:
-            reasons.add(f"{s.name}:anomalies")
-        if alert_tokens is not None and \
-                getattr(s, "token_anomalies", 0) >= alert_tokens:
-            reasons.add(f"{s.name}:tokens")
-        if alert_spend is not None and \
-                getattr(s, "est_spend", None) is not None and \
-                s.est_spend > alert_spend:
+        for attr, (limit, reason) in named.items():
+            if limit is not None and getattr(s, attr, 0) >= limit:
+                reasons.add(f"{s.name}:{reason}")
+        if alert_spend is not None \
+                and getattr(s, "est_spend", None) is not None \
+                and s.est_spend > alert_spend:
             reasons.add(f"{s.name}:spend")
-        if alert_budget_breaches is not None and \
-                getattr(s, "budget_breaches", 0) >= alert_budget_breaches:
-            reasons.add(f"{s.name}:budget-breaches")
     return frozenset(reasons)
+
+
+_THRESHOLDS: tuple = (
+    ("fleet_anomalies", "alert_anomalies", "anomalies"),
+    ("token_anomalies", "alert_tokens", "tokens"),
+    ("budget_breaches", "alert_budget_breaches", "budget-breaches"),
+    ("result_anomalies", "alert_results", "result-bloat"),
+)
 
 
 def _should_alert(summaries: list, threshold: Optional[float],
                   alert_anomalies: Optional[int] = None,
                   alert_tokens: Optional[int] = None,
                   alert_spend: Optional[float] = None,
-                  alert_budget_breaches: Optional[int] = None) -> bool:
+                  alert_budget_breaches: Optional[int] = None,
+                  alert_results: Optional[int] = None) -> bool:
     """Quiet-by-default alerting: post only on signal, not on schedule.
 
-    No thresholds: every cycle posts (the schedule is the signal).
-    With ``alert_worse_than``: only when a store's trend is worsening
-    or its failure rate is at/above the threshold. With
-    ``alert_anomalies``/``alert_tokens``/``alert_spend``: also when a
-    store carries at least that many fleet latency / token-burn
-    outliers, or its estimated spend crosses the budget (needs
-    prices in play — unpriced stores never trip the spend gate).
-    ``alert_budget_breaches``: when at least that many runs carry the
-    live rails' stamped breach.  A healthy fleet must not page anyone.
+    No thresholds at all: every cycle posts (the schedule is the
+    signal).  Otherwise a store pages when its trend is worsening,
+    its failure rate is at/above ``threshold``, its spend crosses
+    ``alert_spend`` (needs prices in play — unpriced stores never
+    trip it), or any named counter meets its limit.  A healthy fleet
+    must not page anyone.
     """
-    if threshold is None and alert_anomalies is None \
-            and alert_tokens is None and alert_spend is None \
-            and alert_budget_breaches is None:
+    named = {"fleet_anomalies": alert_anomalies,
+             "token_anomalies": alert_tokens,
+             "budget_breaches": alert_budget_breaches,
+             "result_anomalies": alert_results}
+    if threshold is None and all(v is None for v in named.values()) \
+            and alert_spend is None:
         return True
-    return any(
-        s.worsening
-        or (threshold is not None and s.failure_rate >= threshold)
-        or (alert_anomalies is not None
-            and getattr(s, "fleet_anomalies", 0) >= alert_anomalies)
-        or (alert_tokens is not None
-            and getattr(s, "token_anomalies", 0) >= alert_tokens)
-        or (alert_spend is not None
-            and (getattr(s, "est_spend", None) or 0) >= alert_spend)
-        or (alert_budget_breaches is not None
-            and getattr(s, "budget_breaches", 0) >= alert_budget_breaches)
-        for s in summaries)
+    for s in summaries:
+        if s.worsening or (threshold is not None
+                           and s.failure_rate >= threshold):
+            return True
+        for attr, limit in named.items():
+            if limit is not None and getattr(s, attr, 0) >= limit:
+                return True
+        if alert_spend is not None \
+                and (getattr(s, "est_spend", None) or 0) >= alert_spend:
+            return True
+    return False
 
 
 def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
@@ -979,6 +1014,7 @@ def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
                 alert_tokens: Optional[int] = None,
                 alert_spend: Optional[float] = None,
                 alert_budget_breaches: Optional[int] = None,
+                alert_results: Optional[int] = None,
                 prices: Optional[dict] = None,
                 alert_cooldown: float = 0.0,
                 clock: Any = time.monotonic) -> int:
@@ -1014,7 +1050,8 @@ def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
         if webhook_url and _should_alert(summaries, alert_worse_than,
                                          alert_anomalies,
                                          alert_tokens, alert_spend,
-                                         alert_budget_breaches):
+                                         alert_budget_breaches,
+                                         alert_results):
             # cooldown: the SAME alarm ringing every cycle is an
             # alarm storm, not signal.  Re-pages happen when the
             # reason set GROWS (a new store degraded, a new gate
@@ -1022,7 +1059,8 @@ def watch_fleet(stores: List[Path], digest_dir: Path, interval: float,
             reasons = _alert_reasons(summaries, alert_worse_than,
                                      alert_anomalies, alert_tokens,
                                      alert_spend,
-                                     alert_budget_breaches)
+                                     alert_budget_breaches,
+                                     alert_results)
             now = clock()
             grown = bool(reasons - (last_reasons or frozenset()))
             lapsed = (last_alert_at is None
