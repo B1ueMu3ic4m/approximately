@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.112.0
+
+- the perf wall grows to 26: the night's three surfaces earn their budgets like every wave before them — the result-bloat fleet meter over 2k traces, the composition walk + truncation what-if on a 500-step run, and the reliability budget projecting a 365-day digest window. (First seed math failed its own threshold — a 5-sample z of 3.37 sits under 3.5; the gate now seeds 9 uniform + 1 wall, z≈6.7.)
+
 ## v2.111.0
 
 - the night's doors get their rows: the README capability table gains the spend forecast, the reliability budget, and the nightly audit — three shipped doors that had no row. docs-only; anchors asserted.

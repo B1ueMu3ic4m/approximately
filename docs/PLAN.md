@@ -3465,3 +3465,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        budget, nightly audit rows (anchors asserted — the silent
        replace lesson applied).
      - Docs-only release.
+
+361. **v2.112.0 - the perf wall grows to 26** (planned):
+     - result_meter_gate (2k traces), composition_gate (500 steps +
+       what-if), failure_budget_gate (365-day window).
+     - Seed-math honesty: a 5-sample wall is z=3.37 < 3.5 — the
+       gate seeds 9 uniform + 1 wall.
