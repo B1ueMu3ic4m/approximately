@@ -3446,3 +3446,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - tool_scorecard.result_chars: summed result length per tool
        across the store — the fleet-wide ranking of window-eaters.
      - README: Result bloat row.
+
+358. **v2.109.0 - the banner's numbers age too** (planned):
+     - README: 1,800+ tests / 22-check matrix (was 1,600+ /
+       "15-job" — matrix jobs vs whole-pipeline checks conflated).
+     - Process note: v2.107's CHANGELOG entry was lost to a
+       silent no-op replace; the heal commit restored the chain.
