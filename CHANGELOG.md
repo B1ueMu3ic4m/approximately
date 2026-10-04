@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.103.0
+
+- the composition view reaches the postmortem: report.html renders a Context composition card — tokens by step kind, shares, each kind's worst contributor — beside the other analysis cards. best-effort contract: nothing measurable or a single kind (a respond-only run is 100% response and 0% insight) gets no card; poison args stringify instead of crashing.
+
 ## v2.102.0
 
 - the meters get their chapter: RECIPES 24 — the three rulers (latency, tokens, result length), the Result bloat card, and composition + the truncation what-if with the truncation-problem-vs-context-length-problem punchline. docs-only.
