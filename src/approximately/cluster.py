@@ -237,12 +237,15 @@ def tool_scorecard(traces: Iterable[Trace]) -> List[dict]:
                 "trace_ids": set(), "steps": 0, "errors": 0,
                 "tokens": 0, "failed_ids": set(),
                 "breached_ids": set(),
+                "result_chars": 0,
                 "latencies": [], "token_samples": [],
             })
             row["trace_ids"].add(trace.id)
             row["steps"] += 1
             row["errors"] += int(bool(step.error))
             row["tokens"] += step.tokens or 0
+            if isinstance(step.result, str):
+                row["result_chars"] += len(step.result)
             if step.latency_ms:
                 row["latencies"].append(float(step.latency_ms))
             if step.tokens:
@@ -263,6 +266,7 @@ def tool_scorecard(traces: Iterable[Trace]) -> List[dict]:
             "steps": row["steps"],
             "errors": row["errors"],
             "tokens": row["tokens"],
+            "result_chars": row["result_chars"],
             "failed_traces": failed_n,
             "breached_traces": len(row["breached_ids"]),
             "failure_rate": round(failed_n / touched, 3) if touched
