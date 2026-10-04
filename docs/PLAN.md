@@ -3475,3 +3475,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
 362. **v2.113.0 - budget_sim's agent parity** (planned):
      - MCP budget_sim gains `agent` (schema + handler + artifact);
        agent-without-token-ceiling refused like the CLI door.
+
+363. **v2.114.0 - the reliability budget gets its chapter**
+      (planned):
+     - RECIPES 25: mistakes as a burn rate; the audit gate; the
+       three answering surfaces.
+     - Docs-only release.

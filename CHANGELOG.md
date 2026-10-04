@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.114.0
+
+- the reliability budget gets its chapter: RECIPES 25 — mistakes as a burn rate, the exhaustion date, the audit gate, and the three surfaces that answer the allowance question. docs-only.
+
 ## v2.113.0
 
 - budget_sim's agent parity: the MCP tool takes `agent` (only that participant's steps charge; agent-without-token-ceiling refused, same as the CLI). docs/mcp-tools.json synced.
