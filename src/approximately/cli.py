@@ -1652,13 +1652,21 @@ def cmd_fleet(args: argparse.Namespace) -> int:
 def cmd_anomalies(args: argparse.Namespace) -> int:
     from .anomaly import (
         detect_fleet_anomalies,
+        detect_fleet_result_anomalies,
         detect_fleet_token_anomalies,
         detect_latency_anomalies,
+        detect_result_anomalies,
         detect_token_anomalies,
         summarize_anomalies,
+        summarize_result_anomalies,
         summarize_token_anomalies,
     )
 
+    if getattr(args, "results", False):
+        return _anomalies_report(
+            args, TraceStore(args.store),
+            detect_fleet_result_anomalies, detect_result_anomalies,
+            summarize_result_anomalies)
     meter = (detect_fleet_token_anomalies, detect_token_anomalies,
              summarize_token_anomalies) \
         if getattr(args, "tokens", False) else \
@@ -1712,6 +1720,9 @@ def _anomaly_row(a: Any, tokens: bool, trace: bool = True) -> dict:
     if tokens:
         row.update({"tokens": a.tokens,
                     "median_tokens": a.median_tokens})
+    elif hasattr(a, "result_chars"):
+        row.update({"result_chars": a.result_chars,
+                    "median_chars": a.median_chars})
     else:
         row.update({"latency_ms": a.latency_ms,
                     "median_ms": a.median_ms})
@@ -1726,6 +1737,11 @@ def _anomaly_line(a: Any) -> str:
         return (f"  {trace_id}step {a.step_index} {a.tool} "
                 f"{a.tokens} tokens "
                 f"(family median {a.median_tokens:.0f}, "
+                f"z={a.robust_z:+.1f})")
+    if hasattr(a, "result_chars"):
+        return (f"  {trace_id}step {a.step_index} {a.tool} "
+                f"{a.result_chars:,} chars "
+                f"(family median {a.median_chars:,.0f}, "
                 f"z={a.robust_z:+.1f})")
     return (f"  {trace_id}step {a.step_index} {a.tool} "
             f"{a.latency_ms}ms "
@@ -3702,6 +3718,11 @@ def build_parser() -> argparse.ArgumentParser:
                    help="meter on tokens instead of milliseconds — "
                         "token burn is the receipt a retry loop "
                         "leaves behind")
+    p.add_argument("--results", action="store_true",
+                   help="meter on result character length — a tool "
+                        "dumping a 40k-char wall into the context is "
+                        "a composition problem no token count "
+                        "isolates")
     p.add_argument("--per-model", action="store_true",
                    help="with --tokens --all: split each tool family "
                         "by the trace's model (a gpt-4o and a mini "

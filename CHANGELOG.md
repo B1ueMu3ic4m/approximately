@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.98.0
+
+- the third meter: latency and tokens had robust-z detectors, but the size of what a tool DUMPS INTO THE CONTEXT did not — a 40k-character wall can be cheap in tokens and fast, and still eat the window. `anomalies --results` meters tool-result character length (modified z-score, min-samples honest no-op), the postmortem renders a Result bloat card, and the fleet view carries trace ids. also: the digest-compaction pins were midnight-fragile (now-minus-k*60 crossing 00:00 split day 0 in two); they now anchor at noon.
+
 ## v2.97.0
 
 - the reliability budget becomes standing: `failure_budget` joins the MCP surface (40 tools — allowance validation mirroring the CLI: positive int, refusal on a budget of zero that holds nothing) and `status --failure-budget` surfaces burn fraction and exhaustion in the ops pulse, json and prose. both projections read the summarized day-rows via one helper, the entries-vs-rows lesson finally living in one place.
