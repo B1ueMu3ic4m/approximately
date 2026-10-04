@@ -3378,3 +3378,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - `status --failure-budget`: payload + prose line.
      - Both projections read summarized rows through
        _payload_forecasts — one home for the entries-vs-rows rule.
+
+347. **v2.98.0 - the third meter: result bloat** (planned):
+     - anomaly.py gains the result-length family (per-trace + fleet
+       + summarize), same modified z-score ruler.
+     - `anomalies --results` door (verdict convention: findings
+       exit 1); report.html renders the Result bloat card.
+     - The digest-compaction pins anchored at noon — they split
+       day 0 in two whenever the suite ran just after midnight.

@@ -37,13 +37,19 @@ def _digest_dir(tmp_path, days=3, per_day=5):
     summaries = survey([store.directory])
     now = time.time()
     for d in range(days):
-        stamp = datetime.datetime.fromtimestamp(
-            now - d * 86400).strftime("%Y%m%d")
+        # noon of each day: snapshots land well inside their own
+        # date no matter what wall-clock hour the test runs at (a
+        # now-minus-k*60 line crossing midnight used to split day 0
+        # in two whenever the suite ran just after 00:00)
+        day_noon = datetime.datetime.fromtimestamp(
+            now - d * 86400).replace(hour=12, minute=0, second=0,
+                                     microsecond=0)
+        stamp = day_noon.strftime("%Y%m%d")
         path = digest / f"digest-{stamp}.jsonl"
         with path.open("a", encoding="utf-8") as fh:
             for k in range(per_day):
                 snap = digest_snapshot(summaries)
-                snap["ts"] = now - d * 86400 - k * 60
+                snap["ts"] = day_noon.timestamp() + k
                 fh.write(json.dumps(snap, sort_keys=True) + "\n")
     return digest, store.directory
 

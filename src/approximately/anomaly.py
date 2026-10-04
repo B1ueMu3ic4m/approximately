@@ -260,6 +260,108 @@ class TraceTokenAnomaly:
         return "burn" if self.robust_z > 0 else "frugal"
 
 
+@dataclass
+class ResultAnomaly:
+    step_index: int
+    tool: str
+    result_chars: int
+    median_chars: float
+    robust_z: float
+
+    @property
+    def direction(self) -> str:
+        return "bloat" if self.robust_z > 0 else "concise"
+
+
+@dataclass
+class TraceResultAnomaly:
+    """A fleet-mode result-length finding: it carries its trace."""
+
+    trace_id: str
+    step_index: int
+    tool: str
+    result_chars: int
+    median_chars: float
+    robust_z: float
+
+    @property
+    def direction(self) -> str:
+        return "bloat" if self.robust_z > 0 else "concise"
+
+
+def _result_steps(trace: Trace) -> List:
+    """Tool-call steps whose result text is non-empty: the candidates
+    for the context-composition meter."""
+    return [s for s in trace.steps
+            if s.kind == TOOL_CALL and s.result]
+
+
+def detect_result_anomalies(trace: Trace,
+                            threshold: float = MODIFIED_Z_THRESHOLD,
+                            min_samples: int = 5
+                            ) -> List[ResultAnomaly]:
+    """Flag tool results whose character length is a robust outlier.
+
+    The third meter (after latency and tokens): a tool that dumps a
+    40k-character wall into the context is a context-composition
+    problem no token count isolates — the tokens may be cheap while
+    the window fills.  Same modified z-score ruler; only tool-call
+    steps with non-empty results are measured."""
+    metered = _result_steps(trace)
+    if len(metered) < min_samples:
+        return []
+    values = [float(len(s.result)) for s in metered]
+    med = _median(values)
+    mad = _scale(values, med)
+    if mad == 0:
+        return []  # identical lengths: no scale
+    anomalies = []
+    for step, value in zip(metered, values):
+        z = _CONSISTENCY * (value - med) / mad
+        if abs(z) > threshold:
+            anomalies.append(ResultAnomaly(
+                step_index=step.index,
+                tool=step.tool or "?",
+                result_chars=len(step.result),
+                median_chars=med,
+                robust_z=round(z, 2),
+            ))
+    anomalies.sort(key=lambda a: -abs(a.robust_z))
+    return anomalies
+
+
+def detect_fleet_result_anomalies(traces: list,
+                                  threshold: float
+                                  = MODIFIED_Z_THRESHOLD
+                                  ) -> List[TraceResultAnomaly]:
+    """Result-length outliers across the whole store (fleet view)."""
+    out: List[TraceResultAnomaly] = []
+    for trace in traces:
+        for a in detect_result_anomalies(trace, threshold=threshold):
+            out.append(TraceResultAnomaly(
+                trace_id=trace.id,
+                step_index=a.step_index,
+                tool=a.tool,
+                result_chars=a.result_chars,
+                median_chars=a.median_chars,
+                robust_z=a.robust_z,
+            ))
+    out.sort(key=lambda a: -abs(a.robust_z))
+    return out
+
+
+def summarize_result_anomalies(anomalies: List[ResultAnomaly]) -> str:
+    """One line for the anomalies door."""
+    if not anomalies:
+        return "no result-length outliers"
+    worst = anomalies[0]
+    return (f"{len(anomalies)} result-length outlier(s); worst: "
+            f"step #{worst.step_index} {worst.tool} "
+            f"{worst.result_chars:,} chars "
+            f"(median {worst.median_chars:,.0f}, "
+            f"z={worst.robust_z:+.1f}, {worst.direction})")
+
+
 def _metered_steps(trace: Trace) -> List:
     """Tool-call steps that carry a positive token count."""
     return [s for s in trace.steps
