@@ -18,8 +18,9 @@ Core ideas (see docs/PLAN.md §2.6):
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from .trace import TOOL_CALL, Trace
 
@@ -57,6 +58,47 @@ def full_context_tokens(trace: "Trace") -> int:
     total = sum(estimate_tokens(s.result) + 8
                 for s in trace.steps if s.result)
     return total + estimate_tokens(trace.task)
+
+
+def composition(trace: "Trace") -> dict:
+    """What fills this run's context, by step kind.
+
+    Each entry carries the estimated tokens the kind contributes
+    (results at full weight, thoughts/args at their rendered size),
+    its share of the total, and the single worst contributor — the
+    step to truncate first.  The answer to "why is my window full?"
+    when the answer is not the model.
+    """
+    rows: Dict[str, int] = {}
+    worst: Dict[str, Any] = {}
+    for step in trace.steps:
+        kind = step.kind
+        size = 0
+        if step.result:
+            size += estimate_tokens(step.result) + 8
+        if step.thought:
+            size += estimate_tokens(step.thought)
+        if step.args:
+            size += estimate_tokens(json.dumps(step.args,
+                                               default=str))
+        if kind == "tool_call" and not (step.result or step.args):
+            continue
+        rows[kind] = rows.get(kind, 0) + size
+        worst_for_kind = worst.setdefault(kind,
+                                          {"index": step.index,
+                                           "tokens": 0})
+        if size > worst_for_kind["tokens"]:
+            worst[kind] = {"index": step.index, "tokens": size}
+    total = sum(rows.values())
+    parts = [{
+        "kind": kind,
+        "tokens": tokens,
+        "share": round(tokens / total, 4) if total else 0.0,
+        "worst_step": worst[kind]["index"] if kind in worst else None,
+        "worst_tokens": worst[kind]["tokens"] if kind in worst else 0,
+    } for kind, tokens in sorted(rows.items(), key=lambda kv: -kv[1])]
+    return {"trace_id": trace.id, "total_tokens": total,
+            "parts": parts}
 
 
 # Context item classes, in eviction priority order (first = evicted first).

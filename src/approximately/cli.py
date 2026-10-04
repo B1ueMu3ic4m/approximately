@@ -273,6 +273,23 @@ def cmd_context(args: argparse.Namespace) -> int:
 
     store = TraceStore(args.store)
     trace = _load_trace(args.trace, store)
+    if getattr(args, "composition", False):
+        from .context import composition
+
+        payload = composition(trace)
+        if getattr(args, "json", False):
+            print(json.dumps(payload, indent=2))
+            return 0
+        print(f"context composition of {payload['trace_id']} — "
+              f"{payload['total_tokens']:,} tokens in full")
+        for part in payload["parts"]:
+            worst = ""
+            if part["worst_step"] is not None:
+                worst = (f", worst step #{part['worst_step']} "
+                         f"({part['worst_tokens']:,})")
+            print(f"  {part['kind']:<14} {part['tokens']:>8,} "
+                  f"({part['share']:>5.1%}){worst}")
+        return 0
     facts = default_facts(trace) if not args.facts else json.loads(
         Path(args.facts).read_text(encoding="utf-8")
     )
@@ -3305,6 +3322,10 @@ def build_parser() -> argparse.ArgumentParser:
                                    "(default: one fact per tool result)")
     p.add_argument("--json", action="store_true",
                    help="emit the same payload as the MCP context tool")
+    p.add_argument("--composition", action="store_true",
+                   help="what fills this run's context: estimated "
+                        "tokens by step kind, with each kind's worst "
+                        "contributor")
     p.set_defaults(func=cmd_context)
 
     p = sub.add_parser("new", help="scaffold an instrumented agent project")

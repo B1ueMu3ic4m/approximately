@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.100.0
+
+- what fills the window: `context <trace> --composition` breaks a run's context down by step kind — estimated tokens, share, each kind's worst contributor — sorted by share. the answer to "why is my window full?" when the answer is not the model: a run whose context is 80% tool results has a truncation problem, not a context-length problem. result-less steps contribute nothing and say so.
+
 ## v2.99.0
 
 - result bloat goes fleet-wide: the third meter mirrors the token family across every fleet surface — StoreSummary count + worst finding, webhook payload, digest day-rows with the result-bloat trend curve and day-table column, the store card's "Longest result" row, and `fleet --alert-results N` with the usual cooldown dedup. the four near-identical trend-curve blocks collapsed into one table-driven renderer and the alert machinery lost its copy-paste chains: same verdicts, one definition each.
