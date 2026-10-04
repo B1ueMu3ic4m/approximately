@@ -759,6 +759,10 @@
             "type": "boolean",
             "description": "baseline each tool family separately"
           },
+          "results": {
+            "type": "boolean",
+            "description": "meter on result character length — a tool dumping a wall into the context is a composition problem"
+          },
           "tokens": {
             "type": "boolean",
             "description": "meter on tokens instead of milliseconds — burn flags the receipt a retry loop leaves"

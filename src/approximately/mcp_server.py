@@ -710,6 +710,11 @@ _TOOLS: List[Dict[str, Any]] = [
                 "per_tool": {"type": "boolean",
                              "description": "baseline each tool "
                                             "family separately"},
+                "results": {"type": "boolean",
+                            "description": "meter on result character "
+                                           "length — a tool dumping a "
+                                           "wall into the context is "
+                                           "a composition problem"},
                 "tokens": {"type": "boolean",
                            "description": "meter on tokens instead "
                                           "of milliseconds — burn "
@@ -1622,6 +1627,8 @@ def _tool_anomalies(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                  else MODIFIED_Z_THRESHOLD)
     if args.get("tokens"):
         return _token_anomalies(store, args, threshold)
+    if args.get("results"):
+        return _result_anomalies(store, args, threshold)
     if args.get("fleet"):
         from .anomaly import detect_fleet_anomalies
 
@@ -1657,6 +1664,53 @@ def _tool_anomalies(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                            "z": round(a.robust_z, 3),
                            "median_ms": a.median_ms}
                           for a in anomalies]}
+
+
+def _result_anomalies(store: Any, args: Dict[str, Any],
+                      threshold: float) -> dict:
+    """The anomalies tool metered on result character length."""
+    from .anomaly import (
+        detect_fleet_result_anomalies,
+        detect_result_anomalies,
+        summarize_result_anomalies,
+    )
+
+    if args.get("fleet"):
+        store_traces = store.list_traces()
+        fleet = detect_fleet_result_anomalies(store_traces,
+                                              threshold=threshold)
+        return {"fleet": True,
+                "results": True,
+                "traces": len(store_traces),
+                "count": len(fleet),
+                "anomalies": [{"trace_id": a.trace_id,
+                               "step_index": a.step_index,
+                               "tool": a.tool,
+                               "result_chars": a.result_chars,
+                               "median_chars": a.median_chars,
+                               "robust_z": a.robust_z,
+                               "direction": a.direction}
+                              for a in fleet],
+                "summary": summarize_result_anomalies([]) if not fleet
+                else f"{len(fleet)} fleet result-bloat outlier(s)",
+                "isError": bool(fleet)}
+    trace = store.load(str(args["trace"]))
+    if trace is None:
+        raise KeyError(f"no trace {args['trace']!r} in store")
+    anomalies = detect_result_anomalies(trace, threshold=threshold)
+    return {"fleet": False,
+            "results": True,
+            "trace_id": trace.id,
+            "count": len(anomalies),
+            "anomalies": [{"step_index": a.step_index,
+                           "tool": a.tool,
+                           "result_chars": a.result_chars,
+                           "median_chars": a.median_chars,
+                           "robust_z": a.robust_z,
+                           "direction": a.direction}
+                          for a in anomalies],
+            "summary": summarize_result_anomalies(anomalies),
+            "isError": bool(anomalies)}
 
 
 def _token_anomalies(store: Any, args: Dict[str, Any],
