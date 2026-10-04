@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.105.0
+
+- fuzz 22 points the hostile probes at the night's new surfaces and finds two real holes, both closed: a poisoned trace whose step.result is a NUMBER crashed the result meter and the composition walk (len() on an int — the meters now skip data lies instead of crashing), and a digest row with NEGATIVE failures made the reliability budget grow as the fleet burned (untrusted input now clamps at zero). zero-allowance and huge-count semantics pinned.
+
 ## v2.104.0
 
 - drift splits by the calendar: `drift --baseline-days N` splits one store's history at a real date — baseline = traces older than N days by their own created_at, current = the rest — because "this week versus the previous month" is the question ops asks and a count-ratio split answers a different one. the count split stays the default; a one-sided window exits cleanly with the reason named.

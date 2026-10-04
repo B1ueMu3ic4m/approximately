@@ -74,7 +74,9 @@ def failure_budget(days: List[dict], allowance: int,
     Theil-Sen slope projected forward — same honesty label as the
     spend forecast.  Refuses to guess on an empty window.
     """
-    burned = sum(int(r.get("failures") or 0) for r in days)
+    # digest rows are untrusted input: a negative failure count
+    # would make the budget grow as the fleet burns
+    burned = sum(max(0, int(r.get("failures") or 0)) for r in days)
     remaining = max(0, allowance - burned)
     out: Dict[str, Any] = {
         "usable": bool(days),
@@ -91,7 +93,7 @@ def failure_budget(days: List[dict], allowance: int,
         out["usable"] = False
         out["reason"] = "need at least two days of history"
         return out
-    series = [int(r.get("failures") or 0) for r in days]
+    series = [max(0, int(r.get("failures") or 0)) for r in days]
     verdict, daily_slope = trend_verdict(series)
     out["verdict"] = verdict
     out["daily_slope"] = round(daily_slope, 4)

@@ -77,7 +77,7 @@ def composition(trace: "Trace",
         kind = step.kind
         size = 0
         full = 0
-        if step.result:
+        if isinstance(step.result, str) and step.result:
             full = estimate_tokens(step.result) + 8
             size = full
             if truncate_results is not None \
@@ -85,7 +85,7 @@ def composition(trace: "Trace",
                 size = estimate_tokens(
                     step.result[:truncate_results]) + 8
                 saved += full - size
-        if step.thought:
+        if isinstance(step.thought, str) and step.thought:
             size += estimate_tokens(step.thought)
         if step.args:
             size += estimate_tokens(json.dumps(step.args,
