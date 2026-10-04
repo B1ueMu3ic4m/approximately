@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.111.0
+
+- the night's doors get their rows: the README capability table gains the spend forecast, the reliability budget, and the nightly audit — three shipped doors that had no row. docs-only; anchors asserted.
+
 ## v2.110.0
 
 - the composition answer comes with a price: when one kind owns the window (>50%) and it is tool results, the payload carries `suggest_truncate_chars` (2,000) and `suggest_save_tokens` — priced from the worst step's actual result — and the prose names the step and the savings. the suggestion logic lives in `_truncation_suggestion`, one typed helper.
