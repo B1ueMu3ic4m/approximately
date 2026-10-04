@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from .trace import TOOL_CALL, Trace
 
@@ -58,6 +58,32 @@ def full_context_tokens(trace: "Trace") -> int:
     total = sum(estimate_tokens(s.result) + 8
                 for s in trace.steps if s.result)
     return total + estimate_tokens(trace.task)
+
+
+def _truncation_suggestion(trace: "Trace",
+                           parts: List[Dict[str, Any]]
+                           ) -> Optional[Tuple[int, int]]:
+    """When tool results own the window, price the obvious fix:
+    truncating the worst step to 2,000 characters."""
+    if not parts:
+        return None
+    top = parts[0]
+    if top.get("kind") != "tool_call":
+        return None
+    share = top.get("share")
+    if not isinstance(share, float) or share <= 0.5:
+        return None
+    worst_step = top.get("worst_step")
+    if worst_step is None:
+        return None
+    step = next((s for s in trace.steps if s.index == worst_step),
+                None)
+    if step is None or not isinstance(step.result, str) \
+            or len(step.result) <= 2_000:
+        return None
+    saved = (estimate_tokens(step.result)
+             - estimate_tokens(step.result[:2_000]))
+    return 2_000, max(0, saved)
 
 
 def composition(trace: "Trace",
@@ -108,6 +134,12 @@ def composition(trace: "Trace",
     } for kind, tokens in sorted(rows.items(), key=lambda kv: -kv[1])]
     out = {"trace_id": trace.id, "total_tokens": total,
            "parts": parts}
+    if truncate_results is None:
+        suggestion = _truncation_suggestion(trace, parts)
+        if suggestion is not None:
+            chars, saved = suggestion
+            out["suggest_truncate_chars"] = chars
+            out["suggest_save_tokens"] = saved
     if truncate_results is not None:
         # saved accumulated result-only deltas during the walk, so
         # the pre-truncation baseline is exactly total + saved

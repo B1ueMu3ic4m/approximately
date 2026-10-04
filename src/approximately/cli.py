@@ -295,6 +295,11 @@ def cmd_context(args: argparse.Namespace) -> int:
             return 0
         print(f"context composition of {payload['trace_id']} — "
               f"{payload['total_tokens']:,} tokens in full")
+        if payload.get("suggest_save_tokens"):
+            print(f"  hint: step #{payload['parts'][0]['worst_step']} "
+                  f"holds the window — truncating it to 2,000 chars "
+                  f"saves ~{payload['suggest_save_tokens']:,} tokens "
+                  f"(see --truncate-results)")
         for part in payload["parts"]:
             worst = ""
             if part["worst_step"] is not None:

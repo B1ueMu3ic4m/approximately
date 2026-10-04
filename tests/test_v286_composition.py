@@ -75,3 +75,21 @@ def test_cli_door_prose_and_json(tmp_path, capsys):
     payload = json.loads(capsys.readouterr().out)
     assert rc == 0
     assert payload["parts"][0]["kind"] == "tool_call"
+
+
+def test_dominant_tool_results_get_a_priced_hint(tmp_path, capsys):
+    store, trace = _mixed_run(tmp_path)
+    payload = composition(trace)
+    assert payload["suggest_truncate_chars"] == 2_000
+    assert payload["suggest_save_tokens"] > 0
+
+    import argparse
+
+    from approximately.cli import cmd_context
+
+    args = argparse.Namespace(store=str(store.directory),
+                              trace=trace.id, composition=True,
+                              truncate_results=None, json=True,
+                              facts=None, budget=None)
+    rc = cmd_context(args)
+    assert rc == 0
