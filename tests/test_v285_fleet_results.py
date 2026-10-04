@@ -107,3 +107,11 @@ def test_digest_rows_carry_the_count(tmp_path):
     payload = json.loads(line)
     assert any(s.get("result_anomalies", 0) >= 1
                for s in payload["stores"])
+
+
+def test_tool_scorecard_ranks_the_dumper(tmp_path):
+    store = _noisy(tmp_path)
+    from approximately.cluster import tool_scorecard
+    rows = {r["tool"]: r for r in tool_scorecard(store.list_traces())}
+    assert rows["dump"]["result_chars"] == 20_000
+    assert rows["t"]["result_chars"] == 200  # one "t" call per run

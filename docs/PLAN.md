@@ -3441,3 +3441,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        honesty).
      - ARCHITECTURE: forecast.py in the module map.
      - Docs-only release.
+
+357. **v2.108.0 - who dumps the most into contexts** (planned):
+     - tool_scorecard.result_chars: summed result length per tool
+       across the store — the fleet-wide ranking of window-eaters.
+     - README: Result bloat row.

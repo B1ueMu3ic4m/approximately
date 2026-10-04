@@ -3,6 +3,14 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.108.0
+
+- fleet-wide, who dumps the most into contexts: the tool scorecard gains a `result_chars` column — summed across every call of that tool in the store, so the ranking names the windows-eater directly instead of per-step outliers. README gains the Result bloat row.
+
+## v2.107.0
+
+- the meters meet parity: the MCP `anomalies` tool meters results (`results: true`, single-trace and fleet), and the CLI's `--per-tool` works for the result meter — every meter now carries every option the family shares. docs/mcp-tools.json synced.
+
 ## v2.106.0
 
 - the security ledger learns the week's lessons: quarantine's evidence-preservation guarantee (bytes kept, poison not immortalized, `clean --keep-breached`), and the lie-by-subtraction defenses (negative digest failures clamped, unpriced models counted — a budget you cannot compute does not hold). ARCHITECTURE's module map names forecast.py. docs-only.
