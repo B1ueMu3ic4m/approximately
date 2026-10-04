@@ -159,6 +159,7 @@ def webhook_payload(summaries: List[StoreSummary]) -> dict:
                 "name": s.name,
                 "path": s.path,
                 "traces": s.traces,
+                "failures": s.failed,
                 "failure_rate": round(s.failure_rate, 4),
                 "trend_verdict": s.trend_verdict,
                 "trend_slope": round(s.trend_slope, 4),
@@ -747,12 +748,14 @@ def _trend_row(entry: dict) -> dict:
     token_flags = sum(s.get("token_anomalies", 0) for s in stores)
     spend = sum(s.get("est_spend") or 0 for s in stores)
     breaches = sum(s.get("budget_breaches", 0) for s in stores)
+    failures = sum(s.get("failures", 0) for s in stores)
     return {
         "day": entry["day"],
         "budget_breaches": breaches,
         "snapshots": entry["snapshots"],
         "stores": len(stores),
         "traces": traces,
+        "failures": failures,
         "failure_rate": round(weighted / traces, 4) if traces else 0.0,
         "worsening": snap.get("worsening") or [],
         "top_modes": sorted(modes.items(), key=lambda kv: -kv[1])[:3],
