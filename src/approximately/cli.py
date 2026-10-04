@@ -1435,12 +1435,21 @@ def _fleet_trend(args: argparse.Namespace) -> int:
         forecast = forecast_spend(summary["days"],
                                   ceiling=float(ceiling))
         summary["spend_forecast"] = forecast
+    allowance = getattr(args, "failure_budget", None)
+    budget = None
+    if allowance is not None:
+        from .forecast import failure_budget
+
+        budget = failure_budget(summary["days"], allowance=int(allowance))
+        summary["failure_budget"] = budget
     if getattr(args, "json", False):
         print(json.dumps(summary, indent=2))
     else:
         print(render_trend(summary))
         if forecast:
             _print_spend_forecast(forecast)
+        if budget:
+            _print_budget_line(budget)
     if getattr(args, "fail_on_worsening", False) \
             and summary["verdict"] == "worsening":
         print("fleet trend is worsening", file=sys.stderr)
@@ -1449,7 +1458,29 @@ def _fleet_trend(args: argparse.Namespace) -> int:
         print(f"spend ceiling ${ceiling:,.2f} already exceeded",
               file=sys.stderr)
         return 1
+    if budget and budget.get("exhausted"):
+        print(f"failure budget exhausted: {budget['burned']}/"
+              f"{budget['allowance']} failed runs in window",
+              file=sys.stderr)
+        return 1
     return 0
+
+
+def _print_budget_line(budget: dict) -> None:
+    """Prose for the failure-budget report."""
+    if not budget.get("usable"):
+        print(f"  failure budget: refuses to guess "
+              f"({budget.get('reason')})")
+        return
+    line = (f"  failure budget: {budget['burned']}/"
+            f"{budget['allowance']} failed runs "
+            f"({budget['burn_fraction']:.0%} burned)")
+    left = budget.get("days_to_exhaustion")
+    if left == 0 or budget.get("exhausted"):
+        line += " — EXHAUSTED"
+    elif left is not None:
+        line += f" — exhausted in ~{left} day(s) at this burn"
+    print(line)
 
 
 def _print_spend_forecast(forecast: dict) -> None:
@@ -2279,15 +2310,22 @@ def _audit_digest(args: argparse.Namespace, report: dict) -> None:
             args, "fail_on_worsening", False):
         report["ok"] = False
     ceiling = getattr(args, "spend_ceiling", None)
-    if ceiling is None:
-        return
-    # the forecast reads the summarized day-rows — the raw
-    # trend_days entries carry no est_spend (third time this
-    # lesson has been learned; now it is a comment)
-    fc = forecast_spend(trend["days"], ceiling=float(ceiling))
-    report["forecast"] = fc
-    if fc.get("days_to_ceiling") == 0:
-        report["ok"] = False
+    if ceiling is not None:
+        # the forecast reads the summarized day-rows — the raw
+        # trend_days entries carry no est_spend (third time this
+        # lesson has been learned; now it is a comment)
+        fc = forecast_spend(trend["days"], ceiling=float(ceiling))
+        report["forecast"] = fc
+        if fc.get("days_to_ceiling") == 0:
+            report["ok"] = False
+    allowance = getattr(args, "failure_budget", None)
+    if allowance is not None:
+        from .forecast import failure_budget
+
+        fb = failure_budget(trend["days"], allowance=int(allowance))
+        report["failure_budget"] = fb
+        if fb.get("exhausted"):
+            report["ok"] = False
 
 
 def _print_audit(report: dict, trace_count: int) -> None:
@@ -2313,6 +2351,13 @@ def _print_audit(report: dict, trace_count: int) -> None:
             else:
                 line = "  forecast:  CEILING ALREADY EXCEEDED"
             print(line)
+    if "failure_budget" in report:
+        fb = report["failure_budget"]
+        if fb.get("usable"):
+            state = ("EXHAUSTED" if fb.get("exhausted")
+                     else f"{fb['burn_fraction']:.0%} burned")
+            print(f"  rel. budget: {fb['burned']}/"
+                  f"{fb['allowance']} failed ({state})")
     print("  verdict:   "
           + ("quiet" if report["ok"] else "FINDINGS - see above"))
 
@@ -3549,6 +3594,11 @@ def build_parser() -> argparse.ArgumentParser:
                         "already exceeded; linear extrapolation of the "
                         "Theil-Sen slope — it cannot see your next "
                         "deploy)")
+    p.add_argument("--failure-budget", type=int, metavar="N",
+                   help="with --trend: the reliability allowance in "
+                        "failed runs for the window; reports burn "
+                        "fraction and days to exhaustion (exit 1 when "
+                        "already exhausted)")
     p.add_argument("--top-agents", type=int, default=3, metavar="N",
                    help="busiest named agents kept per store in "
                         "digest snapshots and dashboards (default 3; "
@@ -3701,6 +3751,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--spend-ceiling", type=float, metavar="USD",
                    help="audit fails when the spend forecast says "
                         "the ceiling is already exceeded")
+    p.add_argument("--failure-budget", type=int, metavar="N",
+                   help="audit fails when the reliability allowance "
+                        "(failed runs in the window) is exhausted")
     p.add_argument("--deep", action="store_true",
                    help="recompute every record's integrity chain")
     p.add_argument("--fix", action="store_true",

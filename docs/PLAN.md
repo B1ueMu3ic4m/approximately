@@ -3362,3 +3362,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        exit code; --fix quarantine; the forecast's honest caveat;
        init's two workflows; the MCP audit tool.
      - Docs-only release.
+
+345. **v2.96.0 - the reliability budget** (planned):
+     - forecast.failure_budget(days, allowance): burn fraction,
+       exhaustion projection, refusal on <2 days; failures counted
+       exactly via the new payload/digest field.
+     - fleet --trend --failure-budget + audit --failure-budget
+       (exhausted exits 1); prose + json both report.
+     - The parallel-loading candidate died in measurement before it
+       could become code.

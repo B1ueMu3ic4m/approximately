@@ -61,3 +61,53 @@ def forecast_spend(days: List[dict],
         "projection": projection,
         "days_to_ceiling": days_to_ceiling,
     }
+
+
+def failure_budget(days: List[dict], allowance: int,
+                   horizon_days: int = 14) -> Dict[str, Any]:
+    """How much of the reliability allowance is spent, and when it runs out.
+
+    ``days`` is the trend_days shape; ``allowance`` is the maximum
+    number of failed runs the window may hold (the SRE error budget,
+    in runs rather than nines).  Burned is the exact failed-run count
+    across the window; with a rising burn the exhaustion date is the
+    Theil-Sen slope projected forward — same honesty label as the
+    spend forecast.  Refuses to guess on an empty window.
+    """
+    burned = sum(int(r.get("failures") or 0) for r in days)
+    remaining = max(0, allowance - burned)
+    out: Dict[str, Any] = {
+        "usable": bool(days),
+        "allowance": allowance,
+        "burned": burned,
+        "remaining": remaining,
+        "burn_fraction": round(burned / allowance, 4)
+        if allowance > 0 else None,
+        "exhausted": burned >= allowance,
+        "days_to_exhaustion": None,
+        "projection": [],
+    }
+    if len(days) < 2:
+        out["usable"] = False
+        out["reason"] = "need at least two days of history"
+        return out
+    series = [int(r.get("failures") or 0) for r in days]
+    verdict, daily_slope = trend_verdict(series)
+    out["verdict"] = verdict
+    out["daily_slope"] = round(daily_slope, 4)
+    last_day = datetime.date.fromisoformat(str(days[-1]["day"]))
+    cumulative = float(burned)
+    for offset in range(1, horizon_days + 1):
+        cumulative = max(0.0, cumulative + daily_slope)
+        out["projection"].append({
+            "day": (last_day + datetime.timedelta(days=offset))
+            .isoformat(),
+            "burned": round(cumulative),
+            "remaining": max(0, allowance - round(cumulative)),
+        })
+        if (out["days_to_exhaustion"] is None
+                and round(cumulative) >= allowance):
+            out["days_to_exhaustion"] = offset
+    if burned >= allowance:
+        out["days_to_exhaustion"] = 0
+    return out
