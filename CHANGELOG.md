@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.109.0
+
+- the banner's numbers age too: 1,800+ tests (was 1,600+) across the 22-check CI matrix (was "15-job" — the count split test-matrix jobs from the whole). the changelog chain also learned a guard: entries whose insert-anchor is missing now assert loudly instead of silently writing nothing (v2.107's entry went missing that way; v2.108's merge healed it).
+
 ## v2.108.0
 
 - fleet-wide, who dumps the most into contexts: the tool scorecard gains a `result_chars` column — summed across every call of that tool in the store, so the ranking names the windows-eater directly instead of per-step outliers. README gains the Result bloat row.
