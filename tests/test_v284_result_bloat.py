@@ -46,7 +46,7 @@ def test_uniform_results_have_no_scale(tmp_path):
     store = TraceStore(tmp_path / "s")
     with Recorder("uniform", model="m/1", store=store,
                   save=False) as rec:
-        for i in range(6):
+        for _ in range(6):
             rec.tool("t", {}, result="same")
         rec.respond("done", success=True)
     assert detect_result_anomalies(rec.trace) == []
@@ -99,7 +99,7 @@ def test_anomalies_door_json(tmp_path, capsys):
 
 
 def test_report_renders_the_bloat_card(tmp_path):
-    store, trace = _noisy_store(tmp_path)
+    _, trace = _noisy_store(tmp_path)
     html = render_html(trace, attribute(trace))
     assert "Result bloat" in html
     assert "20,000 chars" in html

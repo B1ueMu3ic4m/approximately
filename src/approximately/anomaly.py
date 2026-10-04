@@ -337,15 +337,17 @@ def detect_fleet_result_anomalies(traces: list,
     """Result-length outliers across the whole store (fleet view)."""
     out: List[TraceResultAnomaly] = []
     for trace in traces:
-        for a in detect_result_anomalies(trace, threshold=threshold):
-            out.append(TraceResultAnomaly(
+        out.extend(
+            TraceResultAnomaly(
                 trace_id=trace.id,
                 step_index=a.step_index,
                 tool=a.tool,
                 result_chars=a.result_chars,
                 median_chars=a.median_chars,
                 robust_z=a.robust_z,
-            ))
+            )
+            for a in detect_result_anomalies(trace,
+                                             threshold=threshold))
     out.sort(key=lambda a: -abs(a.robust_z))
     return out
 
