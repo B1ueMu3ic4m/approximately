@@ -300,6 +300,10 @@ _TOOLS: List[Dict[str, Any]] = [
                 "tokens": {"type": "integer",
                            "description": "hypothetical token "
                                           "ceiling"},
+                "agent": {"type": "string",
+                          "description": "simulate per-agent rails: "
+                                         "only this participant's "
+                                         "steps charge"},
                 "usd": {"type": "number",
                         "description": "hypothetical dollar ceiling; "
                                        "needs prices"},
@@ -1299,6 +1303,10 @@ def _tool_budget_sim(ctx: ServerContext, args: Dict[str, Any]) -> dict:
         raise KeyError("usd ceiling needs prices: a budget you "
                        "cannot compute does not hold")
     tokens = args.get("tokens")
+    agent = args.get("agent")
+    if agent is not None and tokens is None:
+        raise KeyError("an agent-scoped simulation needs a token "
+                       "ceiling (per_agent rails are token-only)")
     if tokens is None and args.get("usd") is None:
         raise KeyError("pass tokens and/or usd: a simulation with "
                        "no ceiling proves nothing")
@@ -1311,7 +1319,7 @@ def _tool_budget_sim(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     except ValueError as exc:
         raise KeyError(str(exc)) from exc
     return simulate(trace, tokens=tokens, usd=args.get("usd"),
-                    prices=prices)
+                    prices=prices, agent=agent)
 
 
 def _tool_failure_budget(ctx: ServerContext,
