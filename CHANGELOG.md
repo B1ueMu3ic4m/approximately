@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.115.0
+
+- the per-agent failure budget: `fleet --trend --agent NAME --failure-budget N` — the agent's own failed-run accounting against an allowance, read from the digest's agent day-rows (a rename from failed_traces, not a reinterpretation). the per-agent story closes: rails, sizing, accounting. the agent trend door became its own function.
+
 ## v2.114.0
 
 - the reliability budget gets its chapter: RECIPES 25 — mistakes as a burn rate, the exhaustion date, the audit gate, and the three surfaces that answer the allowance question. docs-only.

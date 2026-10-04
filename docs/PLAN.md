@@ -3481,3 +3481,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - RECIPES 25: mistakes as a burn rate; the audit gate; the
        three answering surfaces.
      - Docs-only release.
+
+365. **v2.115.0 - the per-agent failure budget** (planned):
+     - fleet --trend --agent X --failure-budget N: the agent's
+       failed_traces series against an allowance (json + prose).
+     - The agent trend door extracted to _agent_trend_report.
