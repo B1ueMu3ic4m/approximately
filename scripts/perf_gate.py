@@ -39,7 +39,8 @@ def main() -> int:
             + spool_gate() + survey_spend_gate() + ci_gate()
             + doctor_deep_gate() + clean_gate() + csv_export_gate()
             + evidence_gate() + compare_gate() + budget_gate()
-            + junit_gate() + quarantine_gate())
+            + junit_gate() + quarantine_gate() + result_meter_gate()
+            + composition_gate() + failure_budget_gate())
 
 def fleet_anomaly_gate(budget_s: float = 2.0) -> int:
     """Per-tool fleet baselines over a 10k-trace store.
@@ -611,6 +612,100 @@ def quarantine_gate(budget_s: float = 5.0) -> int:
           + ("PASS" if elapsed <= budget_s else "FAIL"))
     if elapsed > budget_s:
         print("FAIL: quarantine slowed past budget", file=sys.stderr)
+        return 1
+    return 0
+
+
+def result_meter_gate(budget_s: float = 5.0) -> int:
+    """The result-bloat meter (v2.98) over a 2k-trace store.
+
+    Same robust ruler as latency/tokens on result character
+    lengths; a fleet scan must stay linear in traces x steps."""
+    import tempfile
+
+    from approximately.anomaly import detect_fleet_result_anomalies
+    from approximately.recorder import Recorder
+    from approximately.store import TraceStore
+
+    with tempfile.TemporaryDirectory() as tmp:
+        store = TraceStore(Path(tmp) / "s")
+        for i in range(2_000):
+            rec = Recorder(f"run {i}", save=False)
+            for j in range(9):
+                rec.tool("list", {"j": j}, result="x" * 200)
+            rec.tool("dump", {}, result="y" * (20_000 if i % 50 == 0
+                                               else 300))
+            rec.respond("done", success=True)
+            store.save(rec.trace)
+        traces = store.list_traces()
+        start = time.perf_counter()
+        flags = detect_fleet_result_anomalies(traces)
+    elapsed = time.perf_counter() - start
+    if not flags:
+        print("FAIL: result meter found nothing", file=sys.stderr)
+        return 1
+    print(f"perf-gate[result-meter]: fleet meter over 2k traces in "
+          f"{elapsed * 1000:.0f}ms (budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: result meter slowed past budget", file=sys.stderr)
+        return 1
+    return 0
+
+
+def composition_gate(budget_s: float = 5.0) -> int:
+    """The composition walk + truncation what-if (v2.100/101) on a
+    500-step run: two passes, still trivial next to recording."""
+
+    from approximately.context import composition
+    from approximately.recorder import Recorder
+
+    rec = Recorder("long run", save=False)
+    for i in range(500):
+        rec.tool("t", {"i": i}, result="x" * (300 if i % 25 else 4_000))
+    rec.respond("done", success=True)
+    start = time.perf_counter()
+    plain = composition(rec.trace)
+    whatif = composition(rec.trace, truncate_results=1_000)
+    elapsed = time.perf_counter() - start
+    if whatif["tokens_saved"] <= 0 or plain["total_tokens"] <= 0:
+        print("FAIL: composition gate produced no accounting",
+              file=sys.stderr)
+        return 1
+    print(f"perf-gate[composition]: 500-step composition + what-if "
+          f"in {elapsed * 1000:.0f}ms (budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: composition slowed past budget", file=sys.stderr)
+        return 1
+    return 0
+
+
+def failure_budget_gate(budget_s: float = 5.0) -> int:
+    """The reliability budget (v2.96) over a 365-day digest window.
+
+    The nightly audit projects a year of history; the Theil-Sen
+    slope must not make that walk expensive."""
+    import datetime
+
+    from approximately.forecast import failure_budget
+    base = datetime.date(2025, 1, 1)
+    days = [{"day": (base + datetime.timedelta(days=i)).isoformat(),
+             "failures": (i * 7) % 13, "est_spend": 1.0}
+            for i in range(365)]
+    start = time.perf_counter()
+    fb = failure_budget(days, allowance=1_000, horizon_days=30)
+    elapsed = time.perf_counter() - start
+    if not fb["usable"]:
+        print("FAIL: failure budget refused a year of history",
+              file=sys.stderr)
+        return 1
+    print(f"perf-gate[failure-budget]: 365-day window in "
+          f"{elapsed * 1000:.0f}ms (budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: failure budget slowed past budget",
+              file=sys.stderr)
         return 1
     return 0
 
