@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.99.0
+
+- result bloat goes fleet-wide: the third meter mirrors the token family across every fleet surface — StoreSummary count + worst finding, webhook payload, digest day-rows with the result-bloat trend curve and day-table column, the store card's "Longest result" row, and `fleet --alert-results N` with the usual cooldown dedup. the four near-identical trend-curve blocks collapsed into one table-driven renderer and the alert machinery lost its copy-paste chains: same verdicts, one definition each.
+
 ## v2.98.0
 
 - the third meter: latency and tokens had robust-z detectors, but the size of what a tool DUMPS INTO THE CONTEXT did not — a 40k-character wall can be cheap in tokens and fast, and still eat the window. `anomalies --results` meters tool-result character length (modified z-score, min-samples honest no-op), the postmortem renders a Result bloat card, and the fleet view carries trace ids. also: the digest-compaction pins were midnight-fragile (now-minus-k*60 crossing 00:00 split day 0 in two); they now anchor at noon.

@@ -1385,6 +1385,9 @@ def _fleet_watch(args: argparse.Namespace, stores: list) -> int:
                                    if getattr(
                                        args, "alert_budget_breaches",
                                        None) is not None else None),
+            alert_results=(int(args.alert_results) if
+                           getattr(args, "alert_results", None)
+                           else None),
             prices=_fleet_prices(args),
             alert_cooldown=float(getattr(args, "alert_cooldown", 0.0)
                                  or 0.0) * 60.0)
@@ -3615,6 +3618,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="also alert when a store carries at least N "
                         "runs stamped as budget breaches by the live "
                         "rails (use 1 to page on the first)")
+    p.add_argument("--alert-results", type=int, metavar="N",
+                   help="also alert when a store carries at least N "
+                        "fleet result-bloat outliers (the third "
+                        "meter)")
     p.add_argument("--compact-digests", action="store_true",
                    help="collapse each day's snapshot history to "
                         "its last line (the trend reader only ever "

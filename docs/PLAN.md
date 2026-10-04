@@ -3386,3 +3386,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        exit 1); report.html renders the Result bloat card.
      - The digest-compaction pins anchored at noon — they split
        day 0 in two whenever the suite ran just after midnight.
+
+348. **v2.99.0 - result bloat goes fleet-wide** (planned):
+     - StoreSummary.result_anomalies + worst; payload, digest rows,
+       the result_trend curve + day column, card row, and
+       fleet --alert-results N (cooldown dedup unchanged).
+     - _CURVE_SPECS table replaces four copy-pasted curve blocks;
+       _should_alert/_alert_reasons lost their or-chains
+       (_THRESHOLDS table, positional signature kept).
+     - _card_findings extracted from _store_card.
