@@ -3371,3 +3371,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        (exhausted exits 1); prose + json both report.
      - The parallel-loading candidate died in measurement before it
        could become code.
+
+346. **v2.97.0 - the reliability budget becomes standing** (planned):
+     - MCP `failure_budget` tool (40 tools); allowance validation
+       mirrors the CLI.
+     - `status --failure-budget`: payload + prose line.
+     - Both projections read summarized rows through
+       _payload_forecasts — one home for the entries-vs-rows rule.

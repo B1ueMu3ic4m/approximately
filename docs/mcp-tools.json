@@ -1,5 +1,5 @@
 {
-  "count": 39,
+  "count": 40,
   "tools": [
     {
       "name": "list_traces",
@@ -276,6 +276,30 @@
             "description": "repair while auditing: hygiene removed, corrupt records quarantined"
           }
         }
+      }
+    },
+    {
+      "name": "failure_budget",
+      "description": "How much of the reliability allowance is spent, and when it runs out: burned failed runs across the digest window against the allowance, burn fraction, and the days-to-exhaustion projection (Theil-Sen slope over daily failures — robust to outliers, blind to your next deploy). Mirrors `fleet --trend --failure-budget`.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "digest_dir": {
+            "type": "string"
+          },
+          "allowance": {
+            "type": "integer",
+            "description": "maximum failed runs the window may hold"
+          },
+          "horizon_days": {
+            "type": "integer",
+            "description": "projection length (default 14)"
+          }
+        },
+        "required": [
+          "digest_dir",
+          "allowance"
+        ]
       }
     },
     {

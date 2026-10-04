@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.97.0
+
+- the reliability budget becomes standing: `failure_budget` joins the MCP surface (40 tools — allowance validation mirroring the CLI: positive int, refusal on a budget of zero that holds nothing) and `status --failure-budget` surfaces burn fraction and exhaustion in the ops pulse, json and prose. both projections read the summarized day-rows via one helper, the entries-vs-rows lesson finally living in one place.
+
 ## v2.96.0
 
 - the reliability budget: money got a forecast in v2.87, reliability gets the same accounting — `fleet --trend --failure-budget N` treats the window's failed runs as a burn against an allowance (burn fraction, exhaustion date from the Theil-Sen slope, exit 1 when already gone) and `audit --failure-budget` fails the nightly door on an exhausted budget. digest payloads now carry the exact `failures` count per store and per day. the parallel-loading idea died in measurement (threads under the GIL: 987ms vs 983ms sequential on a 10k store — no real win, no code).
