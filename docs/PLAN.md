@@ -3401,3 +3401,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        share, worst contributor per kind; result-less steps are
        free and excluded.
      - `context <trace> --composition` door: prose table + json.
+
+350. **v2.101.0 - the truncation what-if** (planned):
+     - composition(truncate_results=N): what-if walk with the
+       baseline accounting kept honest (tokens_before = total +
+       saved; saved is result-only).
+     - `context --truncate-results N` CLI; MCP context tool gains
+       composition + truncate_results (docs/mcp-tools.json synced).
