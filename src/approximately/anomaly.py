@@ -300,7 +300,8 @@ def _result_steps(trace: Trace) -> List:
 
 def detect_result_anomalies(trace: Trace,
                             threshold: float = MODIFIED_Z_THRESHOLD,
-                            min_samples: int = 5
+                            min_samples: int = 5,
+                            per_tool: bool = False
                             ) -> List[ResultAnomaly]:
     """Flag tool results whose character length is a robust outlier.
 
@@ -312,22 +313,38 @@ def detect_result_anomalies(trace: Trace,
     metered = _result_steps(trace)
     if len(metered) < min_samples:
         return []
-    values = [float(len(s.result)) for s in metered]
-    med = _median(values)
-    mad = _scale(values, med)
-    if mad == 0:
-        return []  # identical lengths: no scale
-    anomalies = []
-    for step, value in zip(metered, values):
-        z = _CONSISTENCY * (value - med) / mad
-        if abs(z) > threshold:
-            anomalies.append(ResultAnomaly(
-                step_index=step.index,
-                tool=step.tool or "?",
-                result_chars=len(step.result),
-                median_chars=med,
-                robust_z=round(z, 2),
-            ))
+
+    def flags(steps: list, vals: list, med: float, mad: float
+              ) -> List[ResultAnomaly]:
+        if mad == 0:
+            return []  # identical lengths: no scale
+        out = []
+        for step, value in zip(steps, vals):
+            z = _CONSISTENCY * (value - med) / mad
+            if abs(z) > threshold:
+                out.append(ResultAnomaly(
+                    step_index=step.index,
+                    tool=step.tool or "?",
+                    result_chars=int(value),
+                    median_chars=med,
+                    robust_z=round(z, 2),
+                ))
+        return out
+
+    if not per_tool:
+        values = [float(len(s.result)) for s in metered]
+        found = flags(metered, values, _median(values),
+                      _scale(values, _median(values)))
+        found.sort(key=lambda a: -abs(a.robust_z))
+        return found
+    by_tool: dict = {}
+    for step in metered:
+        by_tool.setdefault(step.tool or "?", []).append(step)
+    anomalies: List[ResultAnomaly] = []
+    for _tool, steps in sorted(by_tool.items()):
+        values = [float(len(s.result)) for s in steps]
+        med = _median(values)
+        anomalies.extend(flags(steps, values, med, _scale(values, med)))
     anomalies.sort(key=lambda a: -abs(a.robust_z))
     return anomalies
 

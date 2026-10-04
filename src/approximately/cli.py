@@ -1746,7 +1746,9 @@ def _anomalies_report(args: argparse.Namespace, store: Any,
     trace = _load_trace(args.trace, store)
     anomalies = trace_fn(trace, threshold=args.threshold,
                          per_tool=bool(getattr(args, "per_tool",
-                                               False)))
+                                               False))
+                         if "per_tool" in
+                         trace_fn.__code__.co_varnames else False)
     if getattr(args, "json", False):
         rows = [_anomaly_row(a, tokens=hasattr(a, "tokens"), trace=False)
                 for a in anomalies]
