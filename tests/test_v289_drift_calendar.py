@@ -46,7 +46,7 @@ def _store_spanning_months(tmp_path):
 
 
 def test_baseline_days_splits_by_time(tmp_path, capsys):
-    store, ids = _store_spanning_months(tmp_path)
+    store, _ids = _store_spanning_months(tmp_path)
     rc = main(["drift", "--store", str(store.directory),
                "--baseline-days", "30", "--json"])
     payload = json.loads(capsys.readouterr().out)
@@ -59,7 +59,7 @@ def test_baseline_days_splits_by_time(tmp_path, capsys):
 
 
 def test_baseline_days_missing_side_exits_clean(tmp_path, capsys):
-    store, _ = _store_spanning_months(tmp_path)
+    store, _ids = _store_spanning_months(tmp_path)
     rc = main(["drift", "--store", str(store.directory),
                "--baseline-days", "400", "--json"])
     out = capsys.readouterr().out
@@ -70,7 +70,7 @@ def test_baseline_days_missing_side_exits_clean(tmp_path, capsys):
 
 
 def test_count_split_still_the_default(tmp_path, capsys):
-    store, _ = _store_spanning_months(tmp_path)
+    store, _ids = _store_spanning_months(tmp_path)
     rc = main(["drift", "--store", str(store.directory), "--json"])
     out = capsys.readouterr().out
     assert rc == 0
