@@ -7,13 +7,12 @@ characters were cut there, how many tokens does the window save?
 The MCP context tool gains the same two knobs.
 """
 
-import json
 
 from approximately.cli import main
 from approximately.context import composition
 from approximately.mcp_server import (
-    ServerContext,
     _TOOLS,
+    ServerContext,
     _tool_context,
 )
 from approximately.recorder import Recorder
