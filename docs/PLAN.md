@@ -3433,3 +3433,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - failure_budget clamps digest failures at zero (a negative
        count grew the budget).
      - Zero-allowance and huge-count semantics pinned; 8 tests.
+
+355. **v2.106.0 - the security ledger learns the week's lessons**
+      (planned):
+     - SECURITY.md: quarantine's evidence-preservation row; the
+       lie-by-subtraction row (negative failures clamped, unpriced
+       honesty).
+     - ARCHITECTURE: forecast.py in the module map.
+     - Docs-only release.
