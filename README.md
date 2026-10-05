@@ -11,7 +11,7 @@
 <b>Free & open source · Zero dependencies · MIT · Python 3.9+ · pip install approximately</b>
 </p>
 
-> **v2** — a production-stable toolkit: 43 MCP tools (+resources), 7 framework
+> **v2** — a production-stable toolkit: 44 MCP tools (+resources), 7 framework
 > adapters, MAST attribution with a gated quality floor, tamper-evident evidence,
 > pipeline quality gates (`ci`), fleet monitoring with quiet alerting, and
 > 1,800+ tests across a 22-check CI matrix.  Semver with teeth: major for big or
@@ -165,6 +165,7 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 🛟 Reliability budget | The other budget: failed runs against an allowance — burn fraction, exhaustion date, `audit --failure-budget` fails the nightly door when the window's mistakes are spent | `approximately fleet --trend --digest-dir d --failure-budget 20` |
 | 🌙 Nightly audit | Doctor (optionally repairing: corrupt records quarantined, bytes preserved) + the quality gate + trend and forecast, in one report with one exit code — what the 3am cron runs instead of four commands and a script | `approximately audit --store .agents-store --digest-dir d --fix` |
 | 💸 Live budget rails | Token and dollar ceilings enforced DURING the run — the `ci` gate settles accounts after, a Budget stops the burn mid-episode: stamp the breach, warn once, or raise; unpriced models never silently count as $0, and the exit stamp is signature-covered | `Recorder(task, model, budget=Budget(tokens=50_000, usd=2.0, prices=prices, on_exceed="raise"))` |
+| 🎓 Letter grades | Scorecards become verdicts — per-agent (or per-tool) A through F on reliability, discipline and budget with a weighted composite; under 2 traces grades n/a, never a guess | `approximately grade` |
 | 💰 Price catalog | Model rates live with the store (`prices.json`) — `prices set gpt-x 0.5` once, then every spend door prices honestly without a `--prices` flag; explicit files still win, corrupt catalogs refuse, and retention never eats the table | `approximately prices set gpt-x 0.5` |
 | 🗂️ Triage queue | Failed runs ranked by postmortem value — novel failure modes first, then burn, blast radius, recency; every row shows its score parts so the order can be argued with, and already-annotated failures don't come back | `approximately triage --since-days 7` |
 | 🖇️ Secret redaction | Traces get shared, and tool results carry credentials — write a sanitized share-copy (eight builtin secret shapes + your own patterns), fresh id and fresh chain, the original byte-identical, per-pattern hit report included | `approximately redact <trace>` |

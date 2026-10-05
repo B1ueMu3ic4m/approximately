@@ -1032,6 +1032,26 @@ def cmd_prices(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_grade(args: argparse.Namespace) -> int:
+    """Letter grades for agents or tools, from evidence on file."""
+    from .grade import grade_store, render_grades
+
+    kind = "tool" if getattr(args, "tool", None) else "agent"
+    subject = getattr(args, "tool", None) or getattr(args, "agent",
+                                                     None)
+    try:
+        rows, kind = grade_store(TraceStore(args.store), kind=kind,
+                                 subject=subject)
+    except KeyError as exc:
+        print(f"error: {exc.args[0]}", file=sys.stderr)
+        return 2
+    if getattr(args, "json", False):
+        print(json.dumps({"kind": kind, "grades": rows}, indent=2))
+        return 0
+    print(render_grades(rows, kind=kind))
+    return 0
+
+
 def _fleet_and_coverage(traces: list, annotations: list, stats: Any) -> tuple:
     """Fleet latency outliers + triage coverage, for the glance."""
     from .anomaly import detect_fleet_anomalies
@@ -3618,6 +3638,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true",
                    help="machine-readable catalog")
     p.set_defaults(func=cmd_prices)
+
+    p = sub.add_parser("grade", parents=[common],
+                       help="letter grades for agents or tools, "
+                            "from evidence on file")
+    p.add_argument("--agent", metavar="NAME",
+                   help="grade only this agent (default: all agents)")
+    p.add_argument("--tool", metavar="NAME",
+                   help="grade tools instead, only this one")
+    p.add_argument("--json", action="store_true",
+                   help="machine-readable grades")
+    p.set_defaults(func=cmd_grade)
 
     p = sub.add_parser("status", parents=[common],
                        help="one-glance ops overview: health, last "
