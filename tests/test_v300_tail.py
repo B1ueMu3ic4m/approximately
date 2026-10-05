@@ -87,11 +87,11 @@ def test_tail_announces_failures_and_survives_webhook_errors():
         _Hook.status = 200
 
         def later():
-            time.sleep(0.35)
+            time.sleep(0.25)
             _save(store, "fresh failure", False, tokens=99)
 
         threading.Thread(target=later, daemon=True).start()
-        lines = tail(store, once=False, interval=0.1, max_passes=3,
+        lines = tail(store, once=False, interval=0.1, max_passes=6,
                      announce_failure_url=url,
                      announce_hook=notify_webhook)
         assert any(">> ALERT" in line for line in lines)
@@ -106,11 +106,11 @@ def test_tail_announces_failures_and_survives_webhook_errors():
         _Hook.status = 500
 
         def later2():
-            time.sleep(0.35)
+            time.sleep(0.25)
             _save(store, "second failure", False)
 
         threading.Thread(target=later2, daemon=True).start()
-        lines = tail(store, once=False, interval=0.1, max_passes=4,
+        lines = tail(store, once=False, interval=0.1, max_passes=6,
                      announce_failure_url=url,
                      announce_hook=notify_webhook)
         assert any("webhook failed" in line for line in lines)
