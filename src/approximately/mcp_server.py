@@ -978,6 +978,31 @@ _TOOLS: List[Dict[str, Any]] = [
             "required": ["trace"],
         },
     },
+    {
+        "name": "triage",
+        "description": "Rank the store's failed runs by postmortem "
+                       "value so the morning queue reads top-down: "
+                       "novelty of the failure mode dominates, then "
+                       "tokens burned, agent breadth and recency. "
+                       "Every row carries its score parts; already-"
+                       "annotated failures are marked (or skipped).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "limit": {"type": "number",
+                          "description": "at most N rows (default "
+                                         "20)"},
+                "since_days": {"type": "number",
+                               "description": "window to the last D "
+                                              "days"},
+                "unannotated_only": {"type": "boolean",
+                                     "description": "skip failures "
+                                                    "with a human "
+                                                    "annotation"},
+            },
+        },
+    },
 ]
 
 
@@ -1928,6 +1953,21 @@ def _tool_redact(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     return report
 
 
+def _tool_triage(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .triage import triage_store
+
+    store = _store(ctx, args)
+    since = args.get("since_days")
+    rows = triage_store(store,
+                        since_days=int(since) if since else None,
+                        unannotated_only=bool(
+                            args.get("unannotated_only")))
+    raw = args.get("limit")
+    limit = int(raw) if raw is not None else 20
+    return {"total": len(rows),
+            "queue": [r.to_dict() for r in rows[:limit]]}
+
+
 def _tool_annotate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     store = _store(ctx, args)
     if args.get("from_anomalies"):
@@ -2091,6 +2131,7 @@ _HANDLERS = {
     "export_transcripts": _tool_export_transcripts,
     "scan_tool": _tool_scan_tool,
     "redact": _tool_redact,
+    "triage": _tool_triage,
 }
 
 

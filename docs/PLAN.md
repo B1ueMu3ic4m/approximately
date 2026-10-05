@@ -3496,3 +3496,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        refusals (unknown trace/pattern, bad regex) exit 2.
      - MCP redact (tool 41) + docs/mcp-tools.json regenerated;
        three pinned tool-count tests bumped 40 -> 41.
+
+367. **v2.117.0 - the triage queue** (planned):
+     - approximately/triage.py: novelty 1/(1+same-mode predecessors)
+       via attributor, cost/blast/recency normalized in-window;
+       transparent weights 2.0/1.0/1.0/0.5; TriageRow carries parts.
+     - CLI triage: --limit/--since-days/--unannotated-only/--json;
+       prose render_queue with window accounting; empty window is
+       exit 0 ("nothing to triage").
+     - MCP triage (tool 42; limit=0 honored) + artifact regen;
+       three pinned tool-count tests 41 -> 42.
