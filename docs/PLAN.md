@@ -3506,3 +3506,16 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        exit 0 ("nothing to triage").
      - MCP triage (tool 42; limit=0 honored) + artifact regen;
        three pinned tool-count tests 41 -> 42.
+
+368. **v2.118.0 - the price catalog** (planned):
+     - approximately/prices.py: catalog CRUD on <store>/prices.json,
+       validate_table (finite, non-negative, bool-is-not-a-rate),
+       resolve_prices (explicit --prices wins, catalog next, None
+       last); corrupt catalog refuses instead of $0.
+     - CLI prices door (list/set/unset/--json, exit 2 refusals);
+       7 _load_prices/_fleet_prices call sites collapsed into
+       _resolve_cli_prices; fleet catalog only with exactly one
+       store (no silent multi-store blend).
+     - clean() spares STORE_ARTIFACTS (prices.json, stats.json) in
+       both the age pass and the max_traces pass - the audit find.
+     - MCP prices (tool 43) + artifact regen; pins 42 -> 43.

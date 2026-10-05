@@ -1,5 +1,5 @@
 {
-  "count": 42,
+  "count": 43,
   "tools": [
     {
       "name": "list_traces",
@@ -1068,6 +1068,34 @@
           "unannotated_only": {
             "type": "boolean",
             "description": "skip failures with a human annotation"
+          }
+        }
+      }
+    },
+    {
+      "name": "prices",
+      "description": "Manage the store's price catalog (<store>/prices.json, model -> $/1k tokens). Spend-aware doors fall back to it when no explicit --prices file is given; explicit always wins. list (default), set (model + rate), unset (model).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              "list",
+              "set",
+              "unset"
+            ],
+            "description": "default list"
+          },
+          "model": {
+            "type": "string"
+          },
+          "rate": {
+            "type": "number",
+            "description": "$/1k tokens, finite, non-negative (set only)"
           }
         }
       }
