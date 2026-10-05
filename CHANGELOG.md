@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.121.0
+
+- snapshot & restore: `approximately snapshot OUT.zip` packs the whole store losslessly — every trace, the annotation and ledger sidecars, the price catalog, even quarantined bytes — with a sha256 manifest inside the archive; `restore --into DIR` recomputes every hash before extracting and refuses on mismatch, missing or unlisted members, and existing files (unless `--force`). The roundtrip caught a real cross-cutting bug: `list_traces` globbed every root `*.json`, so the price catalog parsed as a degenerate empty-task trace and polluted every fleet surface — a `trace_files()` helper now gates all seven trace-facing globs (list/clean×2/latest/remaining/doctor×3). MCP parity (46 tools) and docs/mcp-tools.json synced.
+
 ## v2.120.0
 
 - the handoff brief: `approximately handoff TRACE` composes one markdown page for the next engineer (or agent) — what failed with the MAST attribution and suggested fixes, whether the hash chain is trustworthy, the token/cost burn at the store's price catalog, the annotation trail, and the full record path. `--redact` renders the page from a sanitized view (builtin secret shapes scrubbed from every free-text line), so it is safe to paste before it exists. `--out` writes a file, `--json` wraps the markdown. MCP parity (45 tools) and docs/mcp-tools.json synced.

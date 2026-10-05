@@ -31,6 +31,17 @@ def stamped_breach(meta: object) -> bool:
             and meta["budget"].get("exceeded") is True)
 
 
+def trace_files(directory: "Path") -> List["Path"]:
+    """Root-level trace candidates, oldest-mtime last: every
+    ``*.json`` in the store that is not furniture (the price
+    catalog, the stats snapshot). The one glob every trace-facing
+    pass should use — a degenerate empty-task trace parsed out of
+    ``prices.json`` once polluted every fleet surface."""
+    return [p for p in sorted(Path(directory).glob("*.json"),
+                              key=lambda p: p.stat().st_mtime)
+            if p.name not in STORE_ARTIFACTS]
+
+
 def _replace_bounded(tmp: Path, path: Path,
                      attempts: int = 100, pause_s: float = 0.01) -> None:
     """``os.replace`` with a bounded retry for Windows sharing clashes.
@@ -232,8 +243,7 @@ class TraceStore:
 
         cutoff = (time.time() - since_days * 86400) if since_days else None
         out = []
-        for path in sorted(self.directory.glob("*.json"),
-                           key=lambda p: p.stat().st_mtime):
+        for path in trace_files(self.directory):
             try:
                 trace = Trace.from_json(path.read_text(encoding="utf-8"))
             except Exception as exc:
