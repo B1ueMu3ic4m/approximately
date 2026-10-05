@@ -682,7 +682,7 @@ def cmd_query(args: argparse.Namespace) -> int:
     except QueryError as exc:
         raise SystemExit(f"error: {exc}") from exc
     if getattr(args, "stats", False):
-        prices = _load_prices(getattr(args, "prices", None))
+        prices = _resolve_cli_prices(args)
         return _print_query_stats(found, stats_json=bool(args.json),
                                   prices=prices)
     if getattr(args, "json", None):
@@ -986,6 +986,52 @@ def cmd_triage(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_prices(args: argparse.Namespace) -> int:
+    """Manage the store's price catalog (model -> $/1k tokens)."""
+    from .prices import load_catalog, set_rate, unset_rate
+
+    store = getattr(args, "store", ".")
+    op = getattr(args, "prices_op", None)
+    if op == "set":
+        try:
+            rate = float(args.rate)
+        except ValueError:
+            print(f"error: rate must be a number, got {args.rate!r}",
+                  file=sys.stderr)
+            return 2
+        try:
+            table = set_rate(store, args.model, rate)
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+    elif op == "unset":
+        try:
+            table = unset_rate(store, args.model)
+        except KeyError as exc:
+            print(f"error: {exc.args[0]}", file=sys.stderr)
+            return 2
+    else:
+        try:
+            table = load_catalog(store) or {}
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+    if getattr(args, "json", False):
+        print(json.dumps({"store": str(store), "prices": table},
+                         indent=2, sort_keys=True))
+        return 0
+    if not table:
+        print(f"no rates on file for {store} — set one with "
+              "`approximately prices set MODEL RATE` (rate is "
+              "$/1k tokens); spend doors then pick it up without "
+              "--prices")
+        return 0
+    print(f"price catalog for {store} ($/1k tokens):")
+    for model in sorted(table):
+        print(f"  {model:<28} {table[model]:.6g}")
+    return 0
+
+
 def _fleet_and_coverage(traces: list, annotations: list, stats: Any) -> tuple:
     """Fleet latency outliers + triage coverage, for the glance."""
     from .anomaly import detect_fleet_anomalies
@@ -1220,8 +1266,7 @@ def _render_status(args: argparse.Namespace) -> str:
     payload = _status_payload(store, traces,
                               getattr(args, "digest_dir", None),
                               since=getattr(args, "since", None),
-                              prices=_load_prices(
-                                  getattr(args, "prices", None)),
+                              prices=_resolve_cli_prices(args),
                               spend_ceiling=getattr(
                                   args, "spend_ceiling", None),
                               failure_allowance=getattr(
@@ -1316,8 +1361,7 @@ def cmd_status(args: argparse.Namespace) -> int:
     payload = _status_payload(store, traces,
                               getattr(args, "digest_dir", None),
                               since=getattr(args, "since", None),
-                              prices=_load_prices(
-                                  getattr(args, "prices", None)),
+                              prices=_resolve_cli_prices(args),
                               spend_ceiling=getattr(
                                   args, "spend_ceiling", None),
                               failure_allowance=getattr(
@@ -1682,24 +1726,21 @@ def _print_spend_forecast(forecast: dict) -> None:
 
 
 def _fleet_prices(args: argparse.Namespace) -> Any:
-    path = getattr(args, "prices", None)
-    if not path:
-        return None
-    import json as _json
+    """Fleet pricing: explicit --prices wins; with exactly one store,
+    its catalog applies; with several, no silent per-store blend."""
+    from .prices import resolve_prices
 
+    path = getattr(args, "prices", None)
+    stores = list(getattr(args, "stores", []) or [])
     try:
-        with open(path, "r", encoding="utf-8") as fh:
-            table = _json.load(fh)
-    except (OSError, ValueError) as exc:
-        print(f"error: prices file: {exc}", file=sys.stderr)
+        if path:
+            return resolve_prices(".", path)
+        if len(stores) == 1:
+            return resolve_prices(stores[0], None)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
         raise SystemExit(2) from None
-    if not isinstance(table, dict) or not all(
-            isinstance(v, (int, float)) and v >= 0
-            for v in table.values()):
-        print("error: prices file must map model -> non-negative "
-              "number", file=sys.stderr)
-        raise SystemExit(2)
-    return table
+    return None
 
 
 def _fleet_survey(args: argparse.Namespace) -> int:
@@ -2005,22 +2046,18 @@ def cmd_clean(args: argparse.Namespace) -> int:
     return 0
 
 
-def _load_prices(path: Optional[str]) -> Optional[dict]:
-    if not path:
-        return None
+def _resolve_cli_prices(args: argparse.Namespace) -> Optional[dict]:
+    """The spend doors' price resolution: explicit --prices file
+    wins, else the store's catalog (prices.json), else None.
+    Refusals (unreadable file, corrupt table) exit 2."""
+    from .prices import resolve_prices
+
     try:
-        with open(path, "r", encoding="utf-8") as fh:
-            table = json.load(fh)
-    except (OSError, json.JSONDecodeError) as exc:
-        print(f"error: prices file: {exc}", file=sys.stderr)
+        return resolve_prices(getattr(args, "store", None) or ".",
+                              getattr(args, "prices", None))
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
         raise SystemExit(2) from None
-    if not isinstance(table, dict) or not all(
-            isinstance(v, (int, float)) and v >= 0
-            for v in table.values()):
-        print("error: prices file must map model -> non-negative "
-              "number", file=sys.stderr)
-        raise SystemExit(2)
-    return table
 
 
 def _spend_by_model(args: argparse.Namespace, traces: list,
@@ -2154,7 +2191,7 @@ def cmd_stats(args: argparse.Namespace) -> int:
         return 0
     total_tokens = sum(step.tokens for trace in traces
                        for step in trace.steps)
-    prices = _load_prices(getattr(args, "prices", None))
+    prices = _resolve_cli_prices(args)
     if prices:
         code, spent = _spend_by_model(args, traces, prices)
         return _budget_gate(args, total_tokens, code, priced_total=spent)
@@ -2405,7 +2442,7 @@ def cmd_ci(args: argparse.Namespace) -> int:
     if not traces:
         reason = f"store {args.store} is empty: no runs to gate"
         return _ci_refuse(fmt, reason)
-    prices = _load_prices(getattr(args, "prices", None))
+    prices = _resolve_cli_prices(args)
     if getattr(args, "max_spend", None) is not None and not prices:
         reason = "--max-spend needs --prices"
         return _ci_refuse(fmt, reason)
@@ -2468,7 +2505,7 @@ def cmd_audit(args: argparse.Namespace) -> int:
                         "ledger_intact": doc.ledger_intact}
     report["ok"] = report["ok"] and doc.healthy
 
-    prices = _load_prices(getattr(args, "prices", None))
+    prices = _resolve_cli_prices(args)
     if getattr(args, "max_spend", None) is not None and not prices:
         print("error: --max-spend needs --prices", file=sys.stderr)
         return 2
@@ -2565,7 +2602,7 @@ def cmd_budget(args: argparse.Namespace) -> int:
         print(f"error: no trace {args.trace!r} in {args.store}",
               file=sys.stderr)
         return 2
-    prices = _load_prices(getattr(args, "prices", None))
+    prices = _resolve_cli_prices(args)
     if getattr(args, "usd", None) is not None and not prices:
         print("error: --usd needs --prices", file=sys.stderr)
         return 2
@@ -2796,7 +2833,7 @@ def cmd_compare(args: argparse.Namespace) -> int:
                 return 2
             print(f"error: {reason}", file=sys.stderr)
             return 2
-    prices = _load_prices(getattr(args, "prices", None))
+    prices = _resolve_cli_prices(args)
     new_modes = sorted(set(cand["modes"]) - set(base["modes"]))
     gone_modes = sorted(set(base["modes"]) - set(cand["modes"]))
     spend_a = _compare_spend(base, prices)
@@ -3568,6 +3605,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true",
                    help="machine-readable queue")
     p.set_defaults(func=cmd_triage)
+
+    p = sub.add_parser("prices", parents=[common],
+                       help="manage the store's price catalog "
+                            "(model -> $/1k tokens)")
+    p.add_argument("prices_op", nargs="?", choices=["set", "unset"],
+                   help="omit to list the catalog")
+    p.add_argument("model", nargs="?", metavar="MODEL",
+                   help="the model the rate applies to")
+    p.add_argument("rate", nargs="?", metavar="RATE",
+                   help="$ per 1k tokens (set only)")
+    p.add_argument("--json", action="store_true",
+                   help="machine-readable catalog")
+    p.set_defaults(func=cmd_prices)
 
     p = sub.add_parser("status", parents=[common],
                        help="one-glance ops overview: health, last "

@@ -1003,6 +1003,28 @@ _TOOLS: List[Dict[str, Any]] = [
             },
         },
     },
+    {
+        "name": "prices",
+        "description": "Manage the store's price catalog "
+                       "(<store>/prices.json, model -> $/1k tokens). "
+                       "Spend-aware doors fall back to it when no "
+                       "explicit --prices file is given; explicit "
+                       "always wins. list (default), set (model + "
+                       "rate), unset (model).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "op": {"type": "string",
+                       "enum": ["list", "set", "unset"],
+                       "description": "default list"},
+                "model": {"type": "string"},
+                "rate": {"type": "number",
+                         "description": "$/1k tokens, finite, "
+                                        "non-negative (set only)"},
+            },
+        },
+    },
 ]
 
 
@@ -1968,6 +1990,32 @@ def _tool_triage(ctx: ServerContext, args: Dict[str, Any]) -> dict:
             "queue": [r.to_dict() for r in rows[:limit]]}
 
 
+def _tool_prices(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .prices import load_catalog, set_rate, unset_rate
+
+    store = str(args.get("store") or ctx.store)
+    op = str(args.get("op") or "list")
+    if op == "set":
+        rate = args.get("rate")
+        if rate is None or args.get("model") is None:
+            raise KeyError("prices set needs model and rate")
+        try:
+            table = set_rate(store, str(args["model"]), float(rate))
+        except (TypeError, ValueError) as exc:
+            raise KeyError(f"prices refused: {exc}") from exc
+    elif op == "unset":
+        try:
+            table = unset_rate(store, str(args["model"]))
+        except KeyError as exc:
+            raise KeyError(exc.args[0]) from exc
+    else:
+        try:
+            table = load_catalog(store) or {}
+        except ValueError as exc:
+            raise KeyError(f"price catalog: {exc}") from exc
+    return {"store": store, "prices": table}
+
+
 def _tool_annotate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     store = _store(ctx, args)
     if args.get("from_anomalies"):
@@ -2132,6 +2180,7 @@ _HANDLERS = {
     "scan_tool": _tool_scan_tool,
     "redact": _tool_redact,
     "triage": _tool_triage,
+    "prices": _tool_prices,
 }
 
 

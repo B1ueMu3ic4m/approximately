@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 from typing import List, Optional
 
+from .prices import STORE_ARTIFACTS
 from .trace import Trace
 
 
@@ -261,10 +262,14 @@ class TraceStore:
         matter their age — housekeeping must not destroy breach
         evidence before the postmortem reads it.  Unreadable files
         are never kept by this guard: a poison file is not evidence.
+        Root-level store artifacts (the price catalog, the stats
+        snapshot) are furniture, not traces: they never age out.
         """
         cutoff = time.time() - keep_days * 86400
         removed = 0
         for path in self.directory.glob("*.json"):
+            if path.name in STORE_ARTIFACTS:
+                continue
             if path.stat().st_mtime >= cutoff:
                 continue
             if keep_breached and self._is_breached(path):
@@ -275,6 +280,8 @@ class TraceStore:
         if max_traces is not None:
             remaining = []
             for path in self.directory.glob("*.json"):
+                if path.name in STORE_ARTIFACTS:
+                    continue
                 try:
                     remaining.append((path.stat().st_mtime, path.name,
                                       path))

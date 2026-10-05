@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.118.0
+
+- the price catalog: `approximately prices set/unset/list` keeps model rates in `<store>/prices.json`, and every spend door (budget, status, ci, audit, compare, fleet) falls back to it when no explicit `--prices` file is given — explicit always wins, corrupt catalogs refuse rather than silently $0. Retention stops eating the furniture: `clean` once globbed every root `*.json`, so the catalog (and stats.json) would have aged out with the traces. MCP parity (43 tools) and docs/mcp-tools.json synced; `_load_prices`/`_fleet_prices` duplication collapsed into one resolution chain.
+
 ## v2.117.0
 
 - the triage queue: `approximately triage` ranks the store's failed runs by postmortem value — novelty of the failure mode dominates (2.0), tokens burned, agent breadth and recency nudge (1.0/1.0/0.5); every row carries its score parts, annotated failures are marked or skipped (`--unannotated-only`), windowed with `--since-days`. `unattributed` failures keep their queue spot — they are exactly the ones needing eyes. MCP parity (42 tools) and docs/mcp-tools.json synced.
