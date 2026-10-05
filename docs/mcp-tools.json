@@ -268,6 +268,14 @@
           "max_budget_breaches": {
             "type": "integer"
           },
+          "grade_floor": {
+            "type": "string",
+            "description": "fail the audit when any agent grades below this letter (n/a never fails)"
+          },
+          "triage_top": {
+            "type": "number",
+            "description": "attach the top-N triage queue (advice only)"
+          },
           "deep": {
             "type": "boolean"
           },
