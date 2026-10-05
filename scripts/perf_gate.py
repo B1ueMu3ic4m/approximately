@@ -43,7 +43,7 @@ def main() -> int:
             + composition_gate() + failure_budget_gate()
             + tail_gate())
 
-def fleet_anomaly_gate(budget_s: float = 2.0) -> int:
+def fleet_anomaly_gate(budget_s: float = 10.0) -> int:
     """Per-tool fleet baselines over a 10k-trace store.
 
     The fleet anomaly scan (v1.41) must stay linear in traces x steps:
@@ -84,7 +84,7 @@ def fleet_anomaly_gate(budget_s: float = 2.0) -> int:
     return 0
 
 
-def import_gate(budget_s: float = 5.0) -> int:
+def import_gate(budget_s: float = 15.0) -> int:
     """Ingest 500 mixed-shape transcripts (tool calls, tool errors,
     multi-turn) into a fresh store. Parallel-safe and deterministic —
     this gate pins the ingest path so it stays linear as the batch
@@ -182,7 +182,7 @@ def doctor_gate(budget_s: float = 5.0) -> int:
     return 0
 
 
-def export_gate(budget_s: float = 2.0) -> int:
+def export_gate(budget_s: float = 10.0) -> int:
     """Export 500 traces as OpenAI chat JSONL. The inverse of the
     ingest gate: tool-call steps, observations and metadata must all
     serialize within budget, with every trace accounted for."""
@@ -249,7 +249,7 @@ def attribution_gate(args) -> int:
     return 0
 
 
-def agent_wave_gate(budget_s: float = 5.0) -> int:
+def agent_wave_gate(budget_s: float = 15.0) -> int:
     """Scorecard + markdown + fleet render on a 10k-step trace.
 
     The agent wave (v0.50) walks every step per agent and renders
@@ -279,7 +279,7 @@ def agent_wave_gate(budget_s: float = 5.0) -> int:
 
 
 
-def query_gate(budget_s: float = 2.0) -> int:
+def query_gate(budget_s: float = 15.0) -> int:
     """Expression filter over a 10k-trace store, heavy field twice.
 
     ``mode`` mentions used to re-run the detector suite per mention;
@@ -320,7 +320,7 @@ def query_gate(budget_s: float = 2.0) -> int:
 
 
 
-def similar_gate(budget_s: float = 2.0) -> int:
+def similar_gate(budget_s: float = 15.0) -> int:
     """Nearest-neighbour ranking over a 2000-trace store.
 
     rank_similar skips the quadratic DP below the top-N threshold
@@ -360,7 +360,7 @@ def similar_gate(budget_s: float = 2.0) -> int:
 
 
 
-def spool_gate(budget_s: float = 8.0) -> int:
+def spool_gate(budget_s: float = 30.0) -> int:
     """Ingest 200 mixed spool files (transcripts + OTLP envelopes)
     in one pass.  The watch loop runs this forever, so the pass
     must stay cheap; the budget is runner-noise headroom like the
@@ -412,7 +412,7 @@ def spool_gate(budget_s: float = 8.0) -> int:
     return 0
 
 
-def survey_spend_gate(budget_s: float = 8.0) -> int:
+def survey_spend_gate(budget_s: float = 20.0) -> int:
     """Fleet survey with prices over a 10k-trace store.
 
     The money rollup (v2.13) walks every step of every trace per
@@ -459,7 +459,7 @@ def survey_spend_gate(budget_s: float = 8.0) -> int:
 
 
 
-def ci_gate(budget_s: float = 10.0) -> int:
+def ci_gate(budget_s: float = 30.0) -> int:
     """The quality-gate door (v2.23) over a 10k-trace store.
 
     cmd_ci walks traces three times (durations, tokens, stats) and
@@ -750,7 +750,7 @@ def tail_gate(budget_s: float = 5.0) -> int:
     return 0
 
 
-def doctor_deep_gate(budget_s: float = 10.0) -> int:
+def doctor_deep_gate(budget_s: float = 30.0) -> int:
     """doctor --deep over 10k traces: every step of every record
     re-hashed.  Deep is opt-in because it is the expensive pass;
     this gate pins that expense to linear-and-bounded (local:
@@ -788,7 +788,7 @@ def doctor_deep_gate(budget_s: float = 10.0) -> int:
     return 0
 
 
-def clean_gate(budget_s: float = 4.0) -> int:
+def clean_gate(budget_s: float = 15.0) -> int:
     """Retention by count over a 10k-file store: the mtime sort
     must stay n log n, not degrade into per-file rescans."""
     import tempfile
@@ -859,7 +859,7 @@ def csv_export_gate(budget_s: float = 10.0) -> int:
     return 0
 
 
-def evidence_gate(budget_s: float = 8.0) -> int:
+def evidence_gate(budget_s: float = 20.0) -> int:
     """Evidence pack over a 2k-step trace: attribute + render_html +
     verify + zip must stay linear in steps (the postmortem is the
     big member; local: well under a second)."""
@@ -899,7 +899,7 @@ def evidence_gate(budget_s: float = 8.0) -> int:
     return 0
 
 
-def compare_gate(budget_s: float = 8.0) -> int:
+def compare_gate(budget_s: float = 20.0) -> int:
     """compare over two 2k-trace stores: two attribution passes and
     two scorecards; the deploy gate runs this per push."""
     import argparse as _argparse

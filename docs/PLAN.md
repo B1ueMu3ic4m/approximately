@@ -3629,3 +3629,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        90ms-local budget; the fail-fast cascade then cancelled
        every waiting job behind it (the macos-3.12 "capacity"
        mystery was this, not capacity).
+
+382. **v2.129.3 - budgets sized from reality** (planned):
+     - 13 perf budgets lifted so each covers local-cost x100
+       (tonight's loaded Windows runners: 9-40x local). A
+       regression still trips; a busy runner does not.
