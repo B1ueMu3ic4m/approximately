@@ -1025,6 +1025,26 @@ _TOOLS: List[Dict[str, Any]] = [
             },
         },
     },
+    {
+        "name": "grade",
+        "description": "Letter grades for agents (or tools) from "
+                       "the store's evidence: reliability (failure "
+                       "rate, weight 0.5), discipline (error share "
+                       "of calls, 0.25), budget (breach stamps, "
+                       "0.25 - any breach is an F). Fewer than 2 "
+                       "traces grades n/a, never a guess.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "kind": {"type": "string",
+                         "enum": ["agent", "tool"],
+                         "description": "default agent"},
+                "subject": {"type": "string",
+                            "description": "grade only this one"},
+            },
+        },
+    },
 ]
 
 
@@ -2016,6 +2036,20 @@ def _tool_prices(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     return {"store": store, "prices": table}
 
 
+def _tool_grade(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .grade import grade_store
+
+    kind = str(args.get("kind") or "agent")
+    if kind not in ("agent", "tool"):
+        raise KeyError("kind must be agent or tool")
+    try:
+        rows, kind = grade_store(_store(ctx, args), kind=kind,
+                                 subject=args.get("subject"))
+    except KeyError as exc:
+        raise KeyError(exc.args[0]) from exc
+    return {"kind": kind, "grades": rows}
+
+
 def _tool_annotate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     store = _store(ctx, args)
     if args.get("from_anomalies"):
@@ -2181,6 +2215,7 @@ _HANDLERS = {
     "redact": _tool_redact,
     "triage": _tool_triage,
     "prices": _tool_prices,
+    "grade": _tool_grade,
 }
 
 

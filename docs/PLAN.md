@@ -3519,3 +3519,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - clean() spares STORE_ARTIFACTS (prices.json, stats.json) in
        both the age pass and the max_traces pass - the audit find.
      - MCP prices (tool 43) + artifact regen; pins 42 -> 43.
+
+369. **v2.119.0 - letter grades** (planned):
+     - approximately/grade.py: grade_card over cluster scorecards;
+       weighted composite (reliability 0.5 / discipline 0.25 /
+       budget 0.25) with renormalization when a component lacks
+       evidence; MIN_TRACES=2 evidence floor -> n/a, not a guess.
+     - CLI grade door (--agent/--tool/--json, exit 2 unknown
+       subject); tool rows take discipline over steps when
+       tool_calls is absent.
+     - MCP grade (tool 44) + artifact regen; pins 43 -> 44.

@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.119.0
+
+- letter grades: `approximately grade` turns the scorecards' per-subject rollups into verdicts — reliability (failure rate, weight 0.5), discipline (error share of calls, 0.25), budget (breach stamps, 0.25; any breach is an F). Evidence floors: fewer than 2 traces grades n/a, never a guess; a missing component renormalizes instead of becoming an F. `--tool` grades tools, `--agent X` narrows. MCP parity (44 tools) and docs/mcp-tools.json synced.
+
 ## v2.118.0
 
 - the price catalog: `approximately prices set/unset/list` keeps model rates in `<store>/prices.json`, and every spend door (budget, status, ci, audit, compare, fleet) falls back to it when no explicit `--prices` file is given — explicit always wins, corrupt catalogs refuse rather than silently $0. Retention stops eating the furniture: `clean` once globbed every root `*.json`, so the catalog (and stats.json) would have aged out with the traces. MCP parity (43 tools) and docs/mcp-tools.json synced; `_load_prices`/`_fleet_prices` duplication collapsed into one resolution chain.
