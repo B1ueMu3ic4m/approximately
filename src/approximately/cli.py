@@ -1052,6 +1052,34 @@ def cmd_grade(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_handoff(args: argparse.Namespace) -> int:
+    """One markdown page for the next engineer (or agent)."""
+    from .handoff import brief
+
+    store = TraceStore(args.store)
+    trace = store.load(str(args.trace))
+    if trace is None:
+        print(f"error: no such trace: {args.trace}", file=sys.stderr)
+        return 2
+    table = None
+    if getattr(args, "redact", False):
+        from .redact import compile_patterns
+
+        table = compile_patterns()
+    page = brief(trace, store, table=table)
+    if getattr(args, "out", None):
+        Path(args.out).write_text(page + "\n", encoding="utf-8")
+        print(f"handoff brief written to {args.out}")
+        return 0
+    if getattr(args, "json", False):
+        print(json.dumps({"trace": trace.id,
+                          "redacted": bool(table),
+                          "markdown": page}, indent=2))
+        return 0
+    print(page)
+    return 0
+
+
 def _fleet_and_coverage(traces: list, annotations: list, stats: Any) -> tuple:
     """Fleet latency outliers + triage coverage, for the glance."""
     from .anomaly import detect_fleet_anomalies
@@ -3649,6 +3677,21 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true",
                    help="machine-readable grades")
     p.set_defaults(func=cmd_grade)
+
+    p = sub.add_parser("handoff", parents=[common],
+                       help="one markdown brief for the next "
+                            "engineer (or agent): what failed, "
+                            "evidence trust, the burn, context")
+    p.add_argument("trace", help="trace id to brief")
+    p.add_argument("--redact", action="store_true",
+                   help="render from a sanitized view (builtin "
+                        "secret patterns scrubbed)")
+    p.add_argument("--out", metavar="PATH",
+                   help="write the brief to a file instead of "
+                        "stdout")
+    p.add_argument("--json", action="store_true",
+                   help="wrap the markdown in a JSON payload")
+    p.set_defaults(func=cmd_handoff)
 
     p = sub.add_parser("status", parents=[common],
                        help="one-glance ops overview: health, last "

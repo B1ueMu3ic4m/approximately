@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.120.0
+
+- the handoff brief: `approximately handoff TRACE` composes one markdown page for the next engineer (or agent) — what failed with the MAST attribution and suggested fixes, whether the hash chain is trustworthy, the token/cost burn at the store's price catalog, the annotation trail, and the full record path. `--redact` renders the page from a sanitized view (builtin secret shapes scrubbed from every free-text line), so it is safe to paste before it exists. `--out` writes a file, `--json` wraps the markdown. MCP parity (45 tools) and docs/mcp-tools.json synced.
+
 ## v2.119.0
 
 - letter grades: `approximately grade` turns the scorecards' per-subject rollups into verdicts — reliability (failure rate, weight 0.5), discipline (error share of calls, 0.25), budget (breach stamps, 0.25; any breach is an F). Evidence floors: fewer than 2 traces grades n/a, never a guess; a missing component renormalizes instead of becoming an F. `--tool` grades tools, `--agent X` narrows. MCP parity (44 tools) and docs/mcp-tools.json synced.

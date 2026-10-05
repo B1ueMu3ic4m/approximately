@@ -114,14 +114,14 @@ def render_grades(rows: List[Dict[str, Any]],
     """Prose table: one row per subject, components spelled out."""
     if not rows:
         return f"nothing to grade: no {kind} evidence in the window"
-    lines = [f"{kind} grades (component letters: reliability / "
-             "discipline / budget):"]
+    lines = [(f"{kind} grades (component letters: reliability / "
+              "discipline / budget):")]
     for r in rows:
         def fmt(letter: Optional[str]) -> str:
             return letter if letter is not None else "n/a"
 
         lines.append(
-            f"  {r['grade']:<3} {str(r['subject']):<24.24} "
+            f"  {r['grade']:<3} {r['subject']!s:<24.24} "
             f"[{fmt(r['reliability'])}/{fmt(r['discipline'])}/"
             f"{fmt(r['budget'])}] over {r['traces']} traces")
     return "\n".join(lines)

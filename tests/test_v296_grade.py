@@ -14,8 +14,7 @@ import json
 import pytest
 
 from approximately.cli import cmd_grade
-from approximately.grade import (grade_card, grade_cards,
-                                 grade_store, render_grades)
+from approximately.grade import grade_card, grade_cards, grade_store, render_grades
 from approximately.mcp_server import ServerContext, _tool_grade
 from approximately.store import TraceStore
 from approximately.trace import Step, Trace
