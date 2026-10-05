@@ -583,3 +583,41 @@ green: the fleet can be healthy by every per-run measure and still
 be spending its mistakes too fast. The same numbers are answerable
 by agents through the MCP `failure_budget` tool, and `status
 --failure-budget` puts the burn fraction in the ops pulse.
+
+## 26. The operations night chapter: the on-call loop
+
+Everything the toolkit earned in the v2.116-124 nights composes
+into one on-call loop — the shift is a loop, not a pile of
+commands:
+
+```bash
+# the console: arrivals the moment they land, failures announced
+approximately tail --webhook https://ops.example/hook
+
+# the morning queue: failures ranked by postmortem value —
+# novelty first, then burn, blast radius, recency
+approximately triage --since-days 1 --unannotated-only
+
+# the report card: which agent (or tool) is drifting
+approximately grade
+approximately grade --tool
+
+# the brief: one page for whoever picks up the case
+approximately handoff <trace> --redact
+
+# the ledger: rates live with the store; the tail and the brief
+# both price honestly without a --prices flag
+approximately prices set gpt-x 0.5
+
+# the backup: the whole store moves, tamper-evidently
+approximately snapshot night.zip
+approximately restore night.zip --into restored/
+```
+
+The loop's contract: the tail tells you *when*, the triage queue
+tells you *what first*, the grade tells you *which agent is
+drifting*, the handoff tells you *why*, and the snapshot makes the
+whole night leave the machine safely. Each door is one command, and
+each is answerable by agents through the MCP surface (`tail`,
+`triage`, `grade`, `handoff`, `snapshot`, `prices`).
+
