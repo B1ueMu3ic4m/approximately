@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from .attributor import attribute
-from .trace import Trace
+from .trace import Trace, coerce_epoch
 
 # Score weights: novelty first — a brand-new failure mode outranks
 # the tenth recurrence of a known one. The rest are tie-breakers
@@ -122,13 +122,13 @@ def triage(
         ))
     max_tokens = max((r.tokens for r in rows), default=0) or 1
     max_agents = max((len(r.agents) for r in rows), default=0) or 1
-    times = [t.created_at or 0.0 for t in failures]
+    times = [coerce_epoch(t.created_at) for t in failures]
     t_min, t_max = min(times), max(times)
     span = (t_max - t_min) or 1.0
-    for row, t in zip(rows, failures):
+    for row, created in zip(rows, times):
         row.cost_norm = row.tokens / max_tokens
         row.blast_norm = len(row.agents) / max_agents
-        row.recency_norm = ((t.created_at or 0.0) - t_min) / span
+        row.recency_norm = (created - t_min) / span
         row.score = (W_NOVELTY * row.novelty
                      + W_COST * row.cost_norm
                      + W_BLAST * row.blast_norm

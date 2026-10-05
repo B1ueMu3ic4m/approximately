@@ -127,8 +127,11 @@ def brief(trace: Trace, store: Any,
     except ValueError:
         prices = None  # corrupt catalog: the burn shows unpriced
     cost = _fmt_cost(trace, prices)
+    from .trace import coerce_epoch
+
     when = time.strftime("%Y-%m-%d %H:%M:%S",
-                         time.localtime(trace.created_at or 0))
+                         time.localtime(
+                             coerce_epoch(trace.created_at)))
     outcome = ("success" if trace.success else
                "FAILED" if trace.success is False else "unknown")
     facts = [f"trace `{trace.id}`", f"model `{trace.model}`",
