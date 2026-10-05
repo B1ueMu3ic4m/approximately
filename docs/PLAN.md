@@ -3579,3 +3579,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        prose); scheme-gated URL, exit 2.
      - MCP tail (tool 47): stateless latest-arrivals snapshot;
        artifact regen; pins 46 -> 47.
+
+374. **v2.124.0 - the perf wall grows to 27** (planned):
+     - tail_gate: once-pass over a 2k-trace store under 1s (local
+       ~90ms), header-line assertion so a pass that silently scans
+       nothing still fails.
