@@ -3486,3 +3486,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - fleet --trend --agent X --failure-budget N: the agent's
        failed_traces series against an allowance (json + prose).
      - The agent trend door extracted to _agent_trend_report.
+
+366. **v2.116.0 - the redaction door** (planned):
+     - approximately/redact.py: 8 curated secret shapes +
+       custom name=regex patterns; share-copy with a fresh id and
+       fresh chain (the original file stays byte-identical);
+       provenance in meta["redacted"] (source, hits, patterns).
+     - CLI redact: --pattern/--only/--replacement/--out/--json;
+       refusals (unknown trace/pattern, bad regex) exit 2.
+     - MCP redact (tool 41) + docs/mcp-tools.json regenerated;
+       three pinned tool-count tests bumped 40 -> 41.

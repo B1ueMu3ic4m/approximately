@@ -925,6 +925,48 @@ def cmd_annotations(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_redact(args: argparse.Namespace) -> int:
+    """Write a sanitized share-copy; the original stays byte-identical."""
+    from .redact import compile_patterns, redact_trace
+
+    store = TraceStore(args.store)
+    only = [s.strip() for s in (args.only or "").split(",") if s.strip()]
+    try:
+        table = compile_patterns(
+            extra=list(args.pattern) if args.pattern else None,
+            only=only,
+        )
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    trace = store.load(str(args.trace))
+    if trace is None:
+        print(f"error: no such trace: {args.trace}", file=sys.stderr)
+        return 2
+    share, report = redact_trace(trace, table,
+                                 replacement=args.replacement)
+    if args.out:
+        out_path = Path(args.out)
+        from .integrity import load_key, sign
+
+        sign(share, key=load_key())
+        out_path.write_text(share.to_json(), encoding="utf-8")
+        destination = str(out_path)
+    else:
+        destination = str(store.save(share))
+    report["destination"] = destination
+    if args.json:
+        print(json.dumps(report, indent=2))
+        return 0
+    hits = report["hits"]
+    detail = ", ".join(f"{k}x{v}" for k, v in sorted(hits.items()))
+    if not hits:
+        detail = "no secret-pattern hits — copy is a plain copy"
+    print(f"redacted {report['source']} -> {report['share_id']} "
+          f"({detail})\n  {destination}")
+    return 0
+
+
 def _fleet_and_coverage(traces: list, annotations: list, stats: Any) -> tuple:
     """Fleet latency outliers + triage coverage, for the glance."""
     from .anomaly import detect_fleet_anomalies
@@ -3473,6 +3515,27 @@ def build_parser() -> argparse.ArgumentParser:
                         "(e.g. confirmed, false-positive)")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_annotations)
+
+    p = sub.add_parser("redact", parents=[common],
+                       help="write a sanitized share-copy of a trace "
+                            "(original untouched, fresh chain)")
+    p.add_argument("trace", help="trace id (or .json path) to scrub")
+    p.add_argument("--pattern", action="append", default=[],
+                   metavar="NAME=REGEX",
+                   help="extra pattern to run (repeatable; a bare "
+                        "regex becomes custom-N)")
+    p.add_argument("--only", metavar="N1,N2",
+                   help="run only these builtin patterns instead of "
+                        "all of them")
+    p.add_argument("--replacement", metavar="STR",
+                   help="marker format (default [REDACTED:name]; "
+                        "keep {name} to keep the pattern kind)")
+    p.add_argument("--out", metavar="PATH",
+                   help="write a standalone .json share file instead "
+                        "of saving into the store")
+    p.add_argument("--json", action="store_true",
+                   help="machine-readable report")
+    p.set_defaults(func=cmd_redact)
 
     p = sub.add_parser("status", parents=[common],
                        help="one-glance ops overview: health, last "
