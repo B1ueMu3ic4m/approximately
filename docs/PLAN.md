@@ -3599,3 +3599,16 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        advice only - never flips the exit.
      - MCP audit schema + handler parity; docs/mcp-tools.json
        regenerated (schema-only change, count stays 47).
+
+378. **v2.128.0 - the Windows separators, caught and owned**
+      (planned):
+     - snapshot.py: manifest keys and arcnames via as_posix() -
+       zipfile normalizes os.sep inside archives, so Windows
+       verification failed against its own backup (red on four
+       Windows jobs since v2.121.0).
+     - The merge-gate lesson: `cmd | tail; echo $?` reads tail's
+       exit code - six red CIs slipped through as green. The gate
+       now reads the watcher's own exit.
+     - Evidence packs carry brief.md (handoff one-pager, hashed
+       like every member; brief failure shrinks, never fails).
+       perf evidence gate: 3 -> 4 members.

@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.128.0
+
+- the Windows separators, caught and owned: zip member names are POSIX by spec — `snapshot`'s manifest keys used `str(relative_to)`, so on Windows they carried backslashes against an archive zipfile had already normalized, and verification failed against its own backup. Manifest keys and arcnames are now `.as_posix()`, with a consistency regression test (manifest keys == archive names, no backslashes). CI ran this red on four Windows jobs since v2.121.0 — the night's merge gate (`cmd | tail; echo $?`) captured tail's exit code, not the watcher's, so red slipped through as green six times; the gate now reads the watcher's own exit. Also in: the evidence pack carries `brief.md` (the handoff one-pager, hashed like every member; a brief failure shrinks the pack, never fails it) and the perf evidence gate's member count follows.
+
 ## v2.126.0
 
 - the audit door speaks the whole on-call loop: `audit --grade-floor B` fails the nightly door when any agent grades below the floor (`n/a` never fails — insufficient evidence is not a conviction), and `--triage-top N` attaches the morning queue to the report as advice that never flips the exit. Both travel through the MCP `audit` tool (schema + handler); the prose report names the below-floor agents and the queue's top row.
