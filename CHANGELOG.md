@@ -3,6 +3,14 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.129.3
+
+- the perf wall's budgets are now sized from loaded-runner reality, not local weather: thirteen gates lifted so every budget covers local-cost x100 (tonight's loaded Windows runners ran 9-40x local). A regression is 10-100x and still trips; a busy runner no longer does. The rule is written into the gate file: budgets exist for regressions, not weather.
+
+## v2.129.2
+
+- the tail gate's budget widened 1s -> 5s, closing the "runner weather" class for good: on a loaded Windows runner the once-pass clocked 1426ms against a budget sized from a 90ms local run — and the fail-fast cascade then cancelled every queued job behind it, which is also what the macos-3.12 "capacity" cancellations actually were. The gate's docstring now says what it always meant: regressions are 10-100x, runner weather is 2-15x.
+
 ## v2.129.1
 
 - the perf gate's two tightest budgets (csv export, quarantine) widened 5s -> 10s: the same code that ran 22/22 green on the PR runner exceeded them on a loaded Windows runner hours later. Local costs are ~125ms and ~25ms — the budgets were never the constraint, CI variance was, and the gate is for catching regressions, not runner weather.
