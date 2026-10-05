@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.116.0
+
+- the redaction door: `approximately redact TRACE` writes a sanitized share-copy — eight builtin secret shapes (AWS/GCP keys, GitHub/Slack/OpenAI tokens, JWTs, bearer headers, private-key blocks) plus your own `--pattern name=regex`, scrubbed from results, thoughts, errors, task and step args. fresh id, fresh chain, original byte-identical; provenance rides in `meta["redacted"]`. MCP parity (41 tools) and docs/mcp-tools.json synced.
+
 ## v2.115.0
 
 - the per-agent failure budget: `fleet --trend --agent NAME --failure-budget N` — the agent's own failed-run accounting against an allowance, read from the digest's agent day-rows (a rename from failed_traces, not a reinterpretation). the per-agent story closes: rails, sizing, accounting. the agent trend door became its own function.

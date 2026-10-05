@@ -940,6 +940,44 @@ _TOOLS: List[Dict[str, Any]] = [
             "required": ["expression"],
         },
     },
+    {
+        "name": "redact",
+        "description": "Write a sanitized share-copy of a trace: "
+                       "secret-shaped matches scrubbed from results, "
+                       "thoughts, errors, task and step args; fresh "
+                       "id and fresh integrity chain; the original "
+                       "file stays byte-for-byte untouched. Returns "
+                       "the per-pattern hit report.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "trace": {"type": "string",
+                          "description": "trace id to scrub"},
+                "only": {"type": "array",
+                         "items": {"type": "string"},
+                         "description": "run only these builtin "
+                                        "patterns (aws_key, gcp_key, "
+                                        "github_token, openai_key, "
+                                        "slack_token, jwt, bearer, "
+                                        "private_key) instead of all"},
+                "pattern": {"type": "array",
+                            "items": {"type": "string"},
+                            "description": "extra name=regex "
+                                           "patterns to run"},
+                "replacement": {"type": "string",
+                                "description": "marker format "
+                                               "(default "
+                                               "[REDACTED:name])"},
+                "out": {"type": "string",
+                        "description": "write a standalone .json "
+                                       "share file at this path "
+                                       "instead of saving into the "
+                                       "store"},
+            },
+            "required": ["trace"],
+        },
+    },
 ]
 
 
@@ -1863,6 +1901,33 @@ def _tool_status(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                                   if since is not None else None))
 
 
+def _tool_redact(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .redact import compile_patterns, redact_trace
+
+    extra = [str(p) for p in args.get("pattern") or []]
+    only = [str(n) for n in args.get("only") or []]
+    try:
+        table = compile_patterns(extra=extra, only=only)
+    except ValueError as exc:
+        raise KeyError(f"redact refused: {exc}") from exc
+    store = _store(ctx, args)
+    trace = store.load(str(args["trace"]))
+    if trace is None:
+        raise KeyError(f"no trace {args['trace']!r} in store")
+    share, report = redact_trace(
+        trace, table, replacement=args.get("replacement"))
+    if args.get("out"):
+        from .integrity import load_key, sign
+
+        sign(share, key=load_key())
+        Path(str(args["out"])).write_text(share.to_json(),
+                                          encoding="utf-8")
+        report["destination"] = str(args["out"])
+    else:
+        report["destination"] = str(store.save(share))
+    return report
+
+
 def _tool_annotate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     store = _store(ctx, args)
     if args.get("from_anomalies"):
@@ -2025,6 +2090,7 @@ _HANDLERS = {
     "import_transcripts": _tool_import_transcripts,
     "export_transcripts": _tool_export_transcripts,
     "scan_tool": _tool_scan_tool,
+    "redact": _tool_redact,
 }
 
 
