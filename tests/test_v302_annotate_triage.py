@@ -75,7 +75,7 @@ def test_annotated_failures_never_return(tmp_path):
 
 
 def test_cap_and_empty_queue(tmp_path):
-    store = _seed(tmp_path, failures=4)
+    _seed(tmp_path, failures=4)
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
         cmd_annotate(_args(tmp_path, **{"from_triage": True,
