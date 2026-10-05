@@ -2192,7 +2192,9 @@ def _tool_tail(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     store = _store(ctx, args)
     raw = args.get("limit")
     limit = int(raw) if raw is not None else 20
-    traces = list(store.list_traces())
+    from .tail import coerce_epoch_order
+
+    traces = coerce_epoch_order(store.list_traces())
     arrivals = [arrival_payload(t) for t in reversed(traces[-limit:])]
     return {"total": len(traces), "arrivals": arrivals}
 

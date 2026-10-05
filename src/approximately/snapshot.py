@@ -58,7 +58,10 @@ def snapshot(store_dir: Path, out_path: Path) -> dict:
     store_dir = Path(store_dir)
     out_path = Path(out_path)
     members = _member_candidates(store_dir)
-    table = {str(m.relative_to(store_dir)): _sha256(m)
+    # zip member names are POSIX by spec (zipfile normalizes
+    # os.sep on write) - the manifest keys must match or Windows
+    # verification fails against its own archive
+    table = {m.relative_to(store_dir).as_posix(): _sha256(m)
              for m in members}
     manifest = {
         "format": SNAPSHOT_FORMAT,
@@ -70,7 +73,7 @@ def snapshot(store_dir: Path, out_path: Path) -> dict:
     with zipfile.ZipFile(out_path, "w",
                          compression=zipfile.ZIP_DEFLATED) as zf:
         for m in members:
-            zf.write(m, arcname=str(m.relative_to(store_dir)))
+            zf.write(m, arcname=m.relative_to(store_dir).as_posix())
         zf.writestr(MANIFEST_NAME,
                     json.dumps(manifest, indent=2, sort_keys=True))
     return {

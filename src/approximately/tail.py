@@ -17,15 +17,17 @@ from .trace import Trace
 
 
 def scan_pass(store: Any, seen: Set[str]) -> List[Trace]:
-    """Traces that arrived since the last pass, oldest first. A
-    trace unreadable on arrival is skipped loudly by the store and
-    retried next pass — a half-written file is not a missing one."""
+    """Traces that arrived since the last pass, oldest first by
+    the trace's own created_at (file mtimes tie within a clock
+    tick on some filesystems). A trace unreadable on arrival is
+    skipped loudly by the store and retried next pass — a
+    half-written file is not a missing one."""
     arrivals = []
     for trace in store.list_traces():
         if trace.id not in seen:
             seen.add(trace.id)
             arrivals.append(trace)
-    return arrivals
+    return coerce_epoch_order(arrivals)
 
 
 def render_arrival(trace: Trace, alert: bool) -> str:
@@ -101,3 +103,11 @@ def tail(store: Any, once: bool = False, interval: float = 5.0,
             break
         time.sleep(interval)
     return lines
+
+def coerce_epoch_order(traces: List[Trace]) -> List[Trace]:
+    """Traces oldest-first by their own created_at — the arrival
+    clock, immune to filesystem mtime ties."""
+    from .trace import coerce_epoch
+
+    return sorted(traces, key=lambda t: coerce_epoch(t.created_at))
+

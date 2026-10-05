@@ -227,3 +227,21 @@ def test_json_payloads(tmp_path):
             force=False, **{"json": True})) == 0
     payload = json.loads(buf.getvalue())
     assert payload["restored_into"].endswith("r")
+
+
+def test_manifest_keys_match_archive_names(tmp_path):
+    """The Windows lesson: zipfile normalizes os.sep to '/' inside
+    the archive, so manifest keys must be posix too — or Windows
+    verification fails against its own backup."""
+    import zipfile
+
+    src = tmp_path / "store"
+    _seed(src)
+    out = tmp_path / "snap.zip"
+    snapshot(src, out)
+    with zipfile.ZipFile(out) as zf:
+        names = set(zf.namelist()) - {"manifest.json"}
+        manifest = json.loads(zf.read("manifest.json"))
+    assert set(manifest["members"]) == names
+    assert all("\\" not in k for k in manifest["members"])
+

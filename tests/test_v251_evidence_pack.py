@@ -41,7 +41,7 @@ def test_pack_carries_the_complete_case(tmp_path):
     with zipfile.ZipFile(out) as zf:
         names = set(zf.namelist())
     assert names == {"trace.json", "report.html", "annotations.json",
-                     "manifest.json"}
+                     "brief.md", "manifest.json"}
     assert manifest["chain"]["intact"] is True
     assert manifest["verdict"] != ""
     assert manifest["members"]["trace.json"]
