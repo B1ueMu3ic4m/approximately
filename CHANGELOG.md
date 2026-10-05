@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.129.0
+
+- the loop wires itself in: `init`'s agent-audit workflow ships with `--grade-floor F --triage-top 5` (F only trips when an agent fails over half its runs — sparse evidence grades n/a and never trips; the template comments show the raise-to-B path) and `annotate --from-triage` drafts notes from the queue's top unannotated failures — mode, score, novelty, tokens, agents — verdicts left empty for a human, annotated failures never come back.
+
 ## v2.128.0
 
 - the Windows separators, caught and owned: zip member names are POSIX by spec — `snapshot`'s manifest keys used `str(relative_to)`, so on Windows they carried backslashes against an archive zipfile had already normalized, and verification failed against its own backup. Manifest keys and arcnames are now `.as_posix()`, with a consistency regression test (manifest keys == archive names, no backslashes). CI ran this red on four Windows jobs since v2.121.0 — the night's merge gate (`cmd | tail; echo $?`) captured tail's exit code, not the watcher's, so red slipped through as green six times; the gate now reads the watcher's own exit. Also in: the evidence pack carries `brief.md` (the handoff one-pager, hashed like every member; a brief failure shrinks the pack, never fails it) and the perf evidence gate's member count follows.

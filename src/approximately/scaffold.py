@@ -184,8 +184,11 @@ jobs:
             --max-tokens 2000000 \\
             --max-budget-breaches 0 \\
             --min-traces 1 \\
+            --grade-floor F \\
+            --triage-top 5 \\
             --fix
         # add --digest-dir + --spend-ceiling once a watch feeds digests
+        # raise --grade-floor from F toward B as your agents mature
 """.format(store=_STORE_DIR)
 
 _PRICES: Dict[str, Any] = {
