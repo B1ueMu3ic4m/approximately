@@ -3612,3 +3612,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - Evidence packs carry brief.md (handoff one-pager, hashed
        like every member; brief failure shrinks, never fails).
        perf evidence gate: 3 -> 4 members.
+
+379. **v2.129.0 - the loop wires itself in** (planned):
+     - init's agent-audit workflow carries --grade-floor F
+       --triage-top 5; annotate --from-triage drafts from the
+       queue's top unannotated failures. Renumbered from 377:
+       the Windows fix shipped as v2.128.0 first.

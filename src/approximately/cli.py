@@ -857,6 +857,33 @@ def cmd_metrics(args: argparse.Namespace) -> int:
     return 0
 
 
+def _annotate_from_triage(store: Any, args: argparse.Namespace
+                          ) -> None:
+    """Draft notes from the triage queue's top unannotated
+    failures; verdicts stay empty for a human."""
+    from .triage import triage_store
+
+    queue = triage_store(store, unannotated_only=True)
+    drafted = 0
+    for row in queue[:int(args.anomaly_count)]:
+        parts = row.to_dict()["parts"]
+        store.annotate(
+            row.trace_id,
+            f"draft: {row.mode} scored {row.score:.2f} "
+            f"(novelty {parts['novelty']:.2f}, "
+            f"{row.tokens:,} tokens, "
+            f"{len(row.agents) or 1} agent(s))",
+            author="approximately", verdict="")
+        drafted += 1
+    if getattr(args, "json", False):
+        print(json.dumps({"drafted": drafted,
+                          "queue": len(queue)}, indent=2))
+    else:
+        print(f"drafted {drafted} note(s) from a triage queue "
+              f"of {len(queue)} — verdicts left empty for "
+              "human review")
+
+
 def cmd_annotate(args: argparse.Namespace) -> int:
     """Attach an analyst note (append-only sidecar, chain untouched)."""
     store = TraceStore(args.store)
@@ -884,7 +911,11 @@ def cmd_annotate(args: argparse.Namespace) -> int:
                   f"{len(fleet)} fleet anomaly(ies) — verdicts left "
                   "empty for human review")
         return 0
-    if not getattr(args, "from_anomalies", False) and (
+    if getattr(args, "from_triage", False):
+        _annotate_from_triage(store, args)
+        return 0
+    if not getattr(args, "from_anomalies", False) and not getattr(
+            args, "from_triage", False) and (
             not args.trace or not args.note):
         print("error: trace and note are required "
               "(or use --from-anomalies)", file=sys.stderr)
@@ -3760,6 +3791,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="draft triage notes from the store's fleet "
                         "latency anomalies (verdicts left empty for "
                         "human review)")
+    p.add_argument("--from-triage", action="store_true",
+                   help="draft notes from the triage queue's top "
+                        "unannotated failures (verdicts left empty "
+                        "for human review)")
     p.add_argument("--anomaly-count", type=int, default=5,
                    metavar="N",
                    help="draft at most N notes (default 5)")
