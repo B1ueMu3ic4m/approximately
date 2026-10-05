@@ -967,6 +967,25 @@ def cmd_redact(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_triage(args: argparse.Namespace) -> int:
+    """Rank failed runs by postmortem value — the morning queue."""
+    from .triage import render_queue, triage_store
+
+    store = TraceStore(args.store)
+    since = args.since_days if args.since_days else None
+    rows = triage_store(store, since_days=since,
+                        unannotated_only=bool(args.unannotated_only))
+    if args.json:
+        print(json.dumps({
+            "window_days": since,
+            "total": len(rows),
+            "queue": [r.to_dict() for r in rows[:int(args.limit)]],
+        }, indent=2))
+        return 0
+    print(render_queue(rows, limit=int(args.limit)))
+    return 0
+
+
 def _fleet_and_coverage(traces: list, annotations: list, stats: Any) -> tuple:
     """Fleet latency outliers + triage coverage, for the glance."""
     from .anomaly import detect_fleet_anomalies
@@ -3536,6 +3555,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true",
                    help="machine-readable report")
     p.set_defaults(func=cmd_redact)
+
+    p = sub.add_parser("triage", parents=[common],
+                       help="rank failed runs by postmortem value "
+                            "(the morning queue)")
+    p.add_argument("--limit", type=int, default=20, metavar="N",
+                   help="show at most N rows (default 20)")
+    p.add_argument("--since-days", type=int, default=None, metavar="D",
+                   help="window the queue to the last D days")
+    p.add_argument("--unannotated-only", action="store_true",
+                   help="skip failures a human already annotated")
+    p.add_argument("--json", action="store_true",
+                   help="machine-readable queue")
+    p.set_defaults(func=cmd_triage)
 
     p = sub.add_parser("status", parents=[common],
                        help="one-glance ops overview: health, last "

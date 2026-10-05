@@ -1,5 +1,5 @@
 {
-  "count": 41,
+  "count": 42,
   "tools": [
     {
       "name": "list_traces",
@@ -1046,6 +1046,30 @@
         "required": [
           "trace"
         ]
+      }
+    },
+    {
+      "name": "triage",
+      "description": "Rank the store's failed runs by postmortem value so the morning queue reads top-down: novelty of the failure mode dominates, then tokens burned, agent breadth and recency. Every row carries its score parts; already-annotated failures are marked (or skipped).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number",
+            "description": "at most N rows (default 20)"
+          },
+          "since_days": {
+            "type": "number",
+            "description": "window to the last D days"
+          },
+          "unannotated_only": {
+            "type": "boolean",
+            "description": "skip failures with a human annotation"
+          }
+        }
       }
     }
   ]

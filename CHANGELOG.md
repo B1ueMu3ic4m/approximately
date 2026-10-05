@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.117.0
+
+- the triage queue: `approximately triage` ranks the store's failed runs by postmortem value — novelty of the failure mode dominates (2.0), tokens burned, agent breadth and recency nudge (1.0/1.0/0.5); every row carries its score parts, annotated failures are marked or skipped (`--unannotated-only`), windowed with `--since-days`. `unattributed` failures keep their queue spot — they are exactly the ones needing eyes. MCP parity (42 tools) and docs/mcp-tools.json synced.
+
 ## v2.116.0
 
 - the redaction door: `approximately redact TRACE` writes a sanitized share-copy — eight builtin secret shapes (AWS/GCP keys, GitHub/Slack/OpenAI tokens, JWTs, bearer headers, private-key blocks) plus your own `--pattern name=regex`, scrubbed from results, thoughts, errors, task and step args. fresh id, fresh chain, original byte-identical; provenance rides in `meta["redacted"]`. MCP parity (41 tools) and docs/mcp-tools.json synced.
