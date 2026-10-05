@@ -3623,3 +3623,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - csv/quarantine perf budgets 5s -> 10s: the same green code
        exceeded them on a loaded Windows runner; local costs are
        ~25-125ms, the budgets were never the constraint.
+
+381. **v2.129.2 - the cascade, named** (planned):
+     - tail_gate budget 1s -> 5s: loaded-Windows 1426ms against a
+       90ms-local budget; the fail-fast cascade then cancelled
+       every waiting job behind it (the macos-3.12 "capacity"
+       mystery was this, not capacity).

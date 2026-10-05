@@ -711,12 +711,14 @@ def failure_budget_gate(budget_s: float = 5.0) -> int:
     return 0
 
 
-def tail_gate(budget_s: float = 1.0) -> int:
+def tail_gate(budget_s: float = 5.0) -> int:
     """The tail (v2.123) over a 2k-trace store.
 
     Every pass re-scans the store for arrivals — that scan must
-    stay linear and cheap, because the tail runs it forever (local:
-    ~85ms at 2k traces; the budget leaves ~10x for CI variance)."""
+    stay linear and cheap, because the tail runs it forever.
+    Local: ~85-140ms at 2k traces; loaded Windows runners hit
+    ~1.4s, so the budget is 5s — regressions are 10-100x, runner
+    weather is 2-15x, and the gate exists for the former."""
     import tempfile
     from pathlib import Path as _Path
 
