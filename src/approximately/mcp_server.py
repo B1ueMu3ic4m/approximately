@@ -1094,6 +1094,24 @@ _TOOLS: List[Dict[str, Any]] = [
             },
         },
     },
+    {
+        "name": "tail",
+        "description": "The latest arrivals in the store, newest "
+                       "first, failed runs flagged — a stateless "
+                       "poll a client can diff between calls. The "
+                       "streaming shape with signed failure "
+                       "announcements lives in the CLI "
+                       "(`approximately tail`).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "limit": {"type": "number",
+                          "description": "at most N arrivals "
+                                         "(default 20)"},
+            },
+        },
+    },
 ]
 
 
@@ -2135,6 +2153,17 @@ def _tool_snapshot(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     return snapshot(store.directory, Path(str(path)))
 
 
+def _tool_tail(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .tail import arrival_payload
+
+    store = _store(ctx, args)
+    raw = args.get("limit")
+    limit = int(raw) if raw is not None else 20
+    traces = list(store.list_traces())
+    arrivals = [arrival_payload(t) for t in reversed(traces[-limit:])]
+    return {"total": len(traces), "arrivals": arrivals}
+
+
 def _tool_annotate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     store = _store(ctx, args)
     if args.get("from_anomalies"):
@@ -2303,6 +2332,7 @@ _HANDLERS = {
     "grade": _tool_grade,
     "handoff": _tool_handoff,
     "snapshot": _tool_snapshot,
+    "tail": _tool_tail,
 }
 
 
