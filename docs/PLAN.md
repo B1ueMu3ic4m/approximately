@@ -3584,3 +3584,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - tail_gate: once-pass over a 2k-trace store under 1s (local
        ~90ms), header-line assertion so a pass that silently scans
        nothing still fails.
+
+375. **v2.125.0 - RECIPES 26: the operations night** (planned):
+     - The on-call loop as one chapter: tail (when), triage
+       (what first), grade (which agent), handoff (why), snapshot
+       (leaves safely), prices (honest burn throughout).
+     - Docs-only release.

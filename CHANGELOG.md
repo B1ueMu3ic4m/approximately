@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.125.0
+
+- RECIPES 26: the operations night — the on-call loop as one chapter. The tail tells you when, the triage queue tells you what first, the grade tells you which agent is drifting, the handoff tells you why, and the snapshot makes the night leave the machine safely. Docs-only.
+
 ## v2.124.0
 
 - the perf wall grows to 27: the tail earns its budget like every surface before it — a once-pass over a 2k-trace store (local: ~90ms; the 1s gate leaves ~10x for CI variance), and the pass must keep its header line. The wall now covers 27 doors, every one of them a budget a regression can fail.
