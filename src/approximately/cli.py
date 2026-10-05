@@ -1114,6 +1114,47 @@ def cmd_restore(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_tail(args: argparse.Namespace) -> int:
+    """One line per arrival; failed arrivals flagged (and announced)."""
+    from .tail import arrival_payload, tail
+
+    store = TraceStore(args.store)
+    url = getattr(args, "webhook", None)
+    if url:
+        import urllib.parse
+
+        if urllib.parse.urlparse(url).scheme.lower() not in \
+                ("http", "https"):
+            print("error: webhook URL must be http(s)",
+                  file=sys.stderr)
+            return 2
+    if getattr(args, "json", False):
+        if not getattr(args, "once", False):
+            print("error: --json is a one-pass shape; add --once "
+                  "(the streaming form is prose)", file=sys.stderr)
+            return 2
+        traces = list(store.list_traces())
+        from .tail import arrival_payload
+
+        print(json.dumps({
+            "existing": len(traces),
+            "arrivals": [arrival_payload(t)
+                         for t in reversed(traces)],
+        }, indent=2))
+        return 0
+    hook = None
+    if url:
+        from .fleet import notify_webhook
+
+        hook = notify_webhook
+    for line in tail(store, once=bool(args.once),
+                     interval=float(args.interval),
+                     max_passes=args.max_passes,
+                     announce_failure_url=url, announce_hook=hook):
+        print(line, flush=True)
+    return 0
+
+
 def _fleet_and_coverage(traces: list, annotations: list, stats: Any) -> tuple:
     """Fleet latency outliers + triage coverage, for the glance."""
     from .anomaly import detect_fleet_anomalies
@@ -3747,6 +3788,25 @@ def build_parser() -> argparse.ArgumentParser:
                         "--into (default: refuse)")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_restore)
+
+    p = sub.add_parser("tail", parents=[common],
+                       help="one line per arrival; failed arrivals "
+                            "flagged, optionally announced over the "
+                            "signed webhook")
+    p.add_argument("--interval", type=float, default=5.0,
+                   metavar="S", help="seconds between passes "
+                                     "(default 5)")
+    p.add_argument("--once", action="store_true",
+                   help="single pass and exit (the cron-able shape)")
+    p.add_argument("--max-passes", type=int, default=None,
+                   metavar="N",
+                   help="exit after N polling passes (testing)")
+    p.add_argument("--webhook", metavar="URL",
+                   help="announce each FAILED arrival (HMAC-signed "
+                        "when APPROXIMATELY_SIGNING_KEY is set)")
+    p.add_argument("--json", action="store_true",
+                   help="one-pass JSON (requires --once)")
+    p.set_defaults(func=cmd_tail)
 
     p = sub.add_parser("status", parents=[common],
                        help="one-glance ops overview: health, last "

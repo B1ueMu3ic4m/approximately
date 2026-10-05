@@ -1,5 +1,5 @@
 {
-  "count": 46,
+  "count": 47,
   "tools": [
     {
       "name": "list_traces",
@@ -1174,6 +1174,22 @@
           "force": {
             "type": "boolean",
             "description": "restore: overwrite existing files"
+          }
+        }
+      }
+    },
+    {
+      "name": "tail",
+      "description": "The latest arrivals in the store, newest first, failed runs flagged \u2014 a stateless poll a client can diff between calls. The streaming shape with signed failure announcements lives in the CLI (`approximately tail`).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number",
+            "description": "at most N arrivals (default 20)"
           }
         }
       }

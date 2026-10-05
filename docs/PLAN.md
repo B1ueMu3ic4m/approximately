@@ -3567,3 +3567,15 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        was replaced by a linear-shape pin.
      - Also: snapshot vs empty/unicode stores, prices vs 1e300,
        empty-store snapshot roundtrip (0 members, no crash).
+
+373. **v2.123.0 - the tail** (planned):
+     - approximately/tail.py: scan_pass diffs arrivals against a
+       seen-set seeded from trace_files stems; render_arrival one
+       line per landing (ok / FAIL / ALERT); arrival_payload rides
+       the fleet's signed webhook channel (notify_webhook injected,
+       failures logged, watch never dies).
+     - CLI tail: --interval/--once/--max-passes/--webhook/--json
+       (json is one-pass only, stateless snapshot; streaming is
+       prose); scheme-gated URL, exit 2.
+     - MCP tail (tool 47): stateless latest-arrivals snapshot;
+       artifact regen; pins 46 -> 47.
