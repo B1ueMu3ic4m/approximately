@@ -40,7 +40,8 @@ def main() -> int:
             + doctor_deep_gate() + clean_gate() + csv_export_gate()
             + evidence_gate() + compare_gate() + budget_gate()
             + junit_gate() + quarantine_gate() + result_meter_gate()
-            + composition_gate() + failure_budget_gate())
+            + composition_gate() + failure_budget_gate()
+            + tail_gate())
 
 def fleet_anomaly_gate(budget_s: float = 2.0) -> int:
     """Per-tool fleet baselines over a 10k-trace store.
@@ -706,6 +707,43 @@ def failure_budget_gate(budget_s: float = 5.0) -> int:
     if elapsed > budget_s:
         print("FAIL: failure budget slowed past budget",
               file=sys.stderr)
+        return 1
+    return 0
+
+
+def tail_gate(budget_s: float = 1.0) -> int:
+    """The tail (v2.123) over a 2k-trace store.
+
+    Every pass re-scans the store for arrivals — that scan must
+    stay linear and cheap, because the tail runs it forever (local:
+    ~85ms at 2k traces; the budget leaves ~10x for CI variance)."""
+    import tempfile
+    from pathlib import Path as _Path
+
+    from approximately.store import TraceStore
+    from approximately.tail import tail
+    from approximately.trace import Step, Trace
+
+    with tempfile.TemporaryDirectory() as tmp:
+        store = TraceStore(_Path(tmp) / "s")
+        for i in range(2_000):
+            t = Trace(task=f"run {i}", model="m")
+            t.add(Step(kind="tool_call", tool="sh", result="ok",
+                       tokens=10))
+            t.success = True
+            store.save(t)
+        start = time.perf_counter()
+        lines = tail(store, once=True)
+        elapsed = time.perf_counter() - start
+    if len(lines) < 1 or "already on file" not in lines[0]:
+        print("FAIL: tail pass lost its header line",
+              file=sys.stderr)
+        return 1
+    print(f"perf-gate[tail]: once-pass over 2k traces in "
+          f"{elapsed * 1000:.0f}ms (budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: tail scan slowed past budget", file=sys.stderr)
         return 1
     return 0
 

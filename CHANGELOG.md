@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.124.0
+
+- the perf wall grows to 27: the tail earns its budget like every surface before it — a once-pass over a 2k-trace store (local: ~90ms; the 1s gate leaves ~10x for CI variance), and the pass must keep its header line. The wall now covers 27 doors, every one of them a budget a regression can fail.
+
 ## v2.123.0
 
 - the tail: `approximately tail` watches store arrivals — one line per landing (id, steps, token burn, task), `!! FAIL` for failures, `>> ALERT` plus an HMAC-signed webhook announcement (the fleet's channel, per-run payload) when a failed run lands. A webhook that 500s retries with bounded backoff, logs, and never kills the watch. `--once` is the cron-able single pass; `--json --once` is a stateless snapshot aligned with the MCP door (47 tools, docs/mcp-tools.json synced).
