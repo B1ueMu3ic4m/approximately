@@ -883,7 +883,7 @@ def evidence_gate(budget_s: float = 8.0) -> int:
         manifest = build_evidence_pack(store, rec.trace.id, out)
         pack_bytes = out.stat().st_size   # tmpdir dies with the block
     elapsed = time.perf_counter() - start
-    if len(manifest["members"]) != 3 or pack_bytes <= 0:
+    if len(manifest["members"]) != 4 or pack_bytes <= 0:
         print("FAIL: evidence gate packed the wrong members",
               file=sys.stderr)
         return 1

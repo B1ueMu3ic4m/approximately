@@ -19,6 +19,19 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 
+def _handoff_brief(trace: Any, store: Any) -> Optional[str]:
+    """The one-page markdown brief, when the handoff door can
+    render one — a pack carries its own executive summary. A brief
+    failure (poison step, foreign record) shrinks the pack instead
+    of failing it."""
+    try:
+        from .handoff import brief
+
+        return brief(trace, store)
+    except Exception:
+        return None
+
+
 def build_evidence_pack(store: Any, trace_id: str, output: Path,
                         key: Optional[bytes] = None) -> Dict[str, Any]:
     """Write the evidence pack for *trace_id*; returns the manifest.
@@ -63,15 +76,20 @@ def build_evidence_pack(store: Any, trace_id: str, output: Path,
     with zipfile.ZipFile(output, "w",
                          compression=zipfile.ZIP_DEFLATED) as zf:
         hashed = {}
-        for name, data in (
-                ("trace.json", json.dumps(trace.to_dict(),
-                                          default=str,
-                                          indent=2) + "\n"),
-                ("report.html", render_html(trace, report,
-                                            store=store)),
-                ("annotations.json", json.dumps(annotations,
-                                                default=str,
-                                                indent=2) + "\n")):
+        brief = _handoff_brief(trace, store)
+        members = [
+            ("trace.json", json.dumps(trace.to_dict(),
+                                      default=str,
+                                      indent=2) + "\n"),
+            ("report.html", render_html(trace, report,
+                                        store=store)),
+            ("annotations.json", json.dumps(annotations,
+                                            default=str,
+                                            indent=2) + "\n"),
+        ]
+        if brief is not None:
+            members.append(("brief.md", brief + "\n"))
+        for name, data in members:
             payload = data.encode("utf-8")
             zf.writestr(name, payload)
             hashed[name] = hashlib.sha256(payload).hexdigest()

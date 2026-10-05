@@ -43,6 +43,7 @@ def test_tool_builds_the_same_pack(tmp_path):
     with zipfile.ZipFile(out) as zf:
         assert set(zf.namelist()) == {"trace.json", "report.html",
                                       "annotations.json",
+                                      "brief.md",
                                       "manifest.json"}
 
 
