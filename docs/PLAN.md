@@ -3618,3 +3618,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        --triage-top 5; annotate --from-triage drafts from the
        queue's top unannotated failures. Renumbered from 377:
        the Windows fix shipped as v2.128.0 first.
+
+380. **v2.129.1 - runner weather is not a regression** (planned):
+     - csv/quarantine perf budgets 5s -> 10s: the same green code
+       exceeded them on a loaded Windows runner; local costs are
+       ~25-125ms, the budgets were never the constraint.
