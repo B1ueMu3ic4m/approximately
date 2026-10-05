@@ -579,7 +579,7 @@ def junit_gate(budget_s: float = 10.0) -> int:
     return 0
 
 
-def quarantine_gate(budget_s: float = 5.0) -> int:
+def quarantine_gate(budget_s: float = 10.0) -> int:
     """doctor + quarantine (v2.75) over a store with poison in it.
 
     The scan must read every record once; the quarantine move must
@@ -820,7 +820,7 @@ def clean_gate(budget_s: float = 4.0) -> int:
     return 0
 
 
-def csv_export_gate(budget_s: float = 5.0) -> int:
+def csv_export_gate(budget_s: float = 10.0) -> int:
     """CSV export of 1k traces (one row per step): the quoting and
     formula-injection defense must stay linear per cell."""
     import tempfile

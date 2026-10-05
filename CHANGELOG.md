@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.129.1
+
+- the perf gate's two tightest budgets (csv export, quarantine) widened 5s -> 10s: the same code that ran 22/22 green on the PR runner exceeded them on a loaded Windows runner hours later. Local costs are ~125ms and ~25ms — the budgets were never the constraint, CI variance was, and the gate is for catching regressions, not runner weather.
+
 ## v2.129.0
 
 - the loop wires itself in: `init`'s agent-audit workflow ships with `--grade-floor F --triage-top 5` (F only trips when an agent fails over half its runs — sparse evidence grades n/a and never trips; the template comments show the raise-to-B path) and `annotate --from-triage` drafts notes from the queue's top unannotated failures — mode, score, novelty, tokens, agents — verdicts left empty for a human, annotated failures never come back.
