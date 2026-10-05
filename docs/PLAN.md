@@ -3540,3 +3540,17 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        MCP handoff (tool 45) + artifact regen; pins 44 -> 45.
      - Composes the night's earlier work: redact scrubs the page,
        prices prices the burn, integrity vouches for the evidence.
+
+371. **v2.121.0 - snapshot & restore** (planned):
+     - approximately/snapshot.py: member selection (traces,
+       sidecars, catalog, quarantine; never locks/tmps), sha256
+       manifest inside the zip, verify_snapshot lists offenders,
+       restore refuses on mismatch/missing/extra/clash (--force
+       overrides).
+     - The roundtrip audit find: list_traces globbed every root
+       *.json -> prices.json became a degenerate trace on every
+       fleet surface. store.trace_files() now gates 7 globs
+       (store x2 already done, cli latest+remaining, doctor x3).
+     - CLI snapshot/restore doors (--json, exit 2 refusals);
+       MCP snapshot create/restore (tool 46) + artifact regen;
+       pins 45 -> 46.

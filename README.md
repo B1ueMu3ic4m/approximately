@@ -11,7 +11,7 @@
 <b>Free & open source · Zero dependencies · MIT · Python 3.9+ · pip install approximately</b>
 </p>
 
-> **v2** — a production-stable toolkit: 45 MCP tools (+resources), 7 framework
+> **v2** — a production-stable toolkit: 46 MCP tools (+resources), 7 framework
 > adapters, MAST attribution with a gated quality floor, tamper-evident evidence,
 > pipeline quality gates (`ci`), fleet monitoring with quiet alerting, and
 > 1,800+ tests across a 22-check CI matrix.  Semver with teeth: major for big or
@@ -165,6 +165,7 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 🛟 Reliability budget | The other budget: failed runs against an allowance — burn fraction, exhaustion date, `audit --failure-budget` fails the nightly door when the window's mistakes are spent | `approximately fleet --trend --digest-dir d --failure-budget 20` |
 | 🌙 Nightly audit | Doctor (optionally repairing: corrupt records quarantined, bytes preserved) + the quality gate + trend and forecast, in one report with one exit code — what the 3am cron runs instead of four commands and a script | `approximately audit --store .agents-store --digest-dir d --fix` |
 | 💸 Live budget rails | Token and dollar ceilings enforced DURING the run — the `ci` gate settles accounts after, a Budget stops the burn mid-episode: stamp the breach, warn once, or raise; unpriced models never silently count as $0, and the exit stamp is signature-covered | `Recorder(task, model, budget=Budget(tokens=50_000, usd=2.0, prices=prices, on_exceed="raise"))` |
+| 📦 Store snapshot | Lossless, tamper-evident whole-store backup: sha256 manifest inside the zip, restore recomputes every hash and refuses a doctored archive — sidecars, catalog and quarantined bytes ride along | `approximately snapshot OUT.zip` / `restore SNAP.zip --into DIR` |
 | 📄 Handoff brief | One markdown page for the next engineer (or agent): what failed and why, whether the chain is trustworthy, the token/cost burn, the annotation trail, and the record path — with `--redact` it is safe to paste before it exists | `approximately handoff <trace> --redact` |
 | 🎓 Letter grades | Scorecards become verdicts — per-agent (or per-tool) A through F on reliability, discipline and budget with a weighted composite; under 2 traces grades n/a, never a guess | `approximately grade` |
 | 💰 Price catalog | Model rates live with the store (`prices.json`) — `prices set gpt-x 0.5` once, then every spend door prices honestly without a `--prices` flag; explicit files still win, corrupt catalogs refuse, and retention never eats the table | `approximately prices set gpt-x 0.5` |

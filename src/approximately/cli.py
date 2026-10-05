@@ -16,15 +16,16 @@ from .fleet import _budget_breaches
 from .regress import render_regression
 from .replayer import replay
 from .report import render_html
-from .store import TraceStore
+from .store import TraceStore, trace_files
 from .taxonomy import CATEGORY_NAMES, all_modes
 from .trace import Trace
 
 
 def _load_trace(spec: str, store: TraceStore) -> Trace:
     if spec == "latest":
-        files = sorted(store.directory.glob("*.json"),
-                       key=lambda p: p.stat().st_mtime)
+        from .store import trace_files
+
+        files = trace_files(store.directory)
         if not files:
             raise SystemExit(f"error: the store {store.directory} is empty")
         spec = files[-1].stem
@@ -1080,6 +1081,39 @@ def cmd_handoff(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_snapshot(args: argparse.Namespace) -> int:
+    """Zip the whole store with a sha256 manifest (lossless)."""
+    from .snapshot import snapshot
+
+    report = snapshot(Path(args.store), Path(args.snapshot))
+    if getattr(args, "json", False):
+        print(json.dumps(report, indent=2))
+        return 0
+    print(f"snapshot: {report['members']} members from "
+          f"{report['store']}\n  -> {report['snapshot']}")
+    return 0
+
+
+def cmd_restore(args: argparse.Namespace) -> int:
+    """Verify every member hash, then extract into --into."""
+    from .snapshot import restore
+
+    try:
+        report = restore(Path(args.snapshot), Path(args.into),
+                         force=bool(args.force))
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    if getattr(args, "json", False):
+        print(json.dumps(report, indent=2))
+        return 0
+    print(f"restored {report['members']} members from "
+          f"{report['snapshot']}"
+          f"{' (overwritten)' if args.force else ''}\n"
+          f"  -> {report['restored_into']}")
+    return 0
+
+
 def _fleet_and_coverage(traces: list, annotations: list, stats: Any) -> tuple:
     """Fleet latency outliers + triage coverage, for the glance."""
     from .anomaly import detect_fleet_anomalies
@@ -2073,7 +2107,7 @@ def cmd_clean(args: argparse.Namespace) -> int:
                           dry_run=bool(getattr(args, "dry_run", False)),
                           max_traces=max_traces,
                           keep_breached=keep_breached)
-    remaining = len(list(store.directory.glob("*.json")))
+    remaining = len(list(trace_files(store.directory)))
     if getattr(args, "json", False):
         print(json.dumps({"removed": removed,
                           "keep_days": args.keep_days,
@@ -3692,6 +3726,27 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true",
                    help="wrap the markdown in a JSON payload")
     p.set_defaults(func=cmd_handoff)
+
+    p = sub.add_parser("snapshot", parents=[common],
+                       help="zip the whole store with a sha256 "
+                            "manifest (lossless, tamper-evident)")
+    p.add_argument("snapshot", metavar="OUT.zip",
+                   help="the archive to write")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_snapshot)
+
+    p = sub.add_parser("restore", parents=[common],
+                       help="verify a snapshot's manifest, then "
+                            "extract it into --into")
+    p.add_argument("snapshot", metavar="SNAP.zip",
+                   help="the archive to restore")
+    p.add_argument("--into", required=True, metavar="DIR",
+                   help="target directory (created as needed)")
+    p.add_argument("--force", action="store_true",
+                   help="overwrite files that already exist in "
+                        "--into (default: refuse)")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_restore)
 
     p = sub.add_parser("status", parents=[common],
                        help="one-glance ops overview: health, last "

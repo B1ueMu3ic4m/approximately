@@ -1,5 +1,5 @@
 {
-  "count": 45,
+  "count": 46,
   "tools": [
     {
       "name": "list_traces",
@@ -1144,6 +1144,38 @@
         "required": [
           "trace"
         ]
+      }
+    },
+    {
+      "name": "snapshot",
+      "description": "Lossless, tamper-evident store backup: snapshot zips every trace, the annotation and ledger sidecars, the price catalog and quarantined bytes with a sha256 manifest inside the archive; restore recomputes every hash before extracting and refuses on any mismatch or existing file (unless force).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              "create",
+              "restore"
+            ],
+            "description": "default create"
+          },
+          "path": {
+            "type": "string",
+            "description": "the archive (created or restored)"
+          },
+          "into": {
+            "type": "string",
+            "description": "restore target directory"
+          },
+          "force": {
+            "type": "boolean",
+            "description": "restore: overwrite existing files"
+          }
+        }
       }
     }
   ]

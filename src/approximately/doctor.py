@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from .ledger import verify_ledger
-from .store import TraceStore
+from .store import TraceStore, trace_files
 from .trace import Trace
 
 _STALE_LOCK_SECONDS = 3600.0
@@ -175,7 +175,7 @@ class DoctorReport:
 
 
 def _check_records(directory: Path, report: DoctorReport) -> None:
-    for path in sorted(directory.glob("*.json")):
+    for path in trace_files(directory):
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
             trace = Trace.from_dict(payload)
@@ -338,7 +338,7 @@ def doctor(store: Path, digest_dir: Optional[Path] = None,
     health = TraceStore(store).annotations_health()
     report.annotation_lines = health["total"]
     report.annotation_corrupt = health["corrupt"]
-    known = {p.stem for p in Path(store).glob("*.json")}
+    known = {p.stem for p in trace_files(Path(store))}
     report.annotation_orphans = sorted({
         str(a.get("trace_id"))
         for a in TraceStore(store).annotations()
@@ -360,7 +360,7 @@ def _check_chains(directory: Path, report: DoctorReport) -> None:
     """
     from .integrity import verify
 
-    for path in sorted(directory.glob("*.json")):
+    for path in trace_files(directory):
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
             trace = Trace.from_dict(payload)

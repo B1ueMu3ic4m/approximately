@@ -1066,6 +1066,34 @@ _TOOLS: List[Dict[str, Any]] = [
             "required": ["trace"],
         },
     },
+    {
+        "name": "snapshot",
+        "description": "Lossless, tamper-evident store backup: "
+                       "snapshot zips every trace, the annotation "
+                       "and ledger sidecars, the price catalog and "
+                       "quarantined bytes with a sha256 manifest "
+                       "inside the archive; restore recomputes "
+                       "every hash before extracting and refuses "
+                       "on any mismatch or existing file (unless "
+                       "force).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "op": {"type": "string",
+                       "enum": ["create", "restore"],
+                       "description": "default create"},
+                "path": {"type": "string",
+                         "description": "the archive (created or "
+                                        "restored)"},
+                "into": {"type": "string",
+                         "description": "restore target directory"},
+                "force": {"type": "boolean",
+                          "description": "restore: overwrite "
+                                         "existing files"},
+            },
+        },
+    },
 ]
 
 
@@ -2087,6 +2115,26 @@ def _tool_handoff(ctx: ServerContext, args: Dict[str, Any]) -> dict:
             "markdown": brief(trace, store, table=table)}
 
 
+def _tool_snapshot(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .snapshot import restore, snapshot
+
+    store = _store(ctx, args)
+    op = str(args.get("op") or "create")
+    path = args.get("path")
+    if not path:
+        raise KeyError("snapshot needs the archive path")
+    if op == "restore":
+        into = args.get("into")
+        if not into:
+            raise KeyError("snapshot restore needs into")
+        try:
+            return restore(Path(str(path)), Path(str(into)),
+                           force=bool(args.get("force")))
+        except ValueError as exc:
+            raise KeyError(str(exc)) from exc
+    return snapshot(store.directory, Path(str(path)))
+
+
 def _tool_annotate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     store = _store(ctx, args)
     if args.get("from_anomalies"):
@@ -2254,6 +2302,7 @@ _HANDLERS = {
     "prices": _tool_prices,
     "grade": _tool_grade,
     "handoff": _tool_handoff,
+    "snapshot": _tool_snapshot,
 }
 
 
