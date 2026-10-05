@@ -1,5 +1,5 @@
 {
-  "count": 44,
+  "count": 45,
   "tools": [
     {
       "name": "list_traces",
@@ -1122,6 +1122,28 @@
             "description": "grade only this one"
           }
         }
+      }
+    },
+    {
+      "name": "handoff",
+      "description": "One markdown brief for the next engineer (or agent): what failed and the attribution, whether the hash chain is trustworthy, the token/cost burn at the store's price catalog, annotations on file, and the full record path. redact=true scrubs builtin secret shapes from every free-text line.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "trace": {
+            "type": "string"
+          },
+          "redact": {
+            "type": "boolean",
+            "description": "sanitize the brief (builtin patterns)"
+          }
+        },
+        "required": [
+          "trace"
+        ]
       }
     }
   ]

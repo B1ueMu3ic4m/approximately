@@ -1045,6 +1045,27 @@ _TOOLS: List[Dict[str, Any]] = [
             },
         },
     },
+    {
+        "name": "handoff",
+        "description": "One markdown brief for the next engineer "
+                       "(or agent): what failed and the attribution, "
+                       "whether the hash chain is trustworthy, the "
+                       "token/cost burn at the store's price "
+                       "catalog, annotations on file, and the full "
+                       "record path. redact=true scrubs builtin "
+                       "secret shapes from every free-text line.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "trace": {"type": "string"},
+                "redact": {"type": "boolean",
+                           "description": "sanitize the brief "
+                                          "(builtin patterns)"},
+            },
+            "required": ["trace"],
+        },
+    },
 ]
 
 
@@ -2050,6 +2071,22 @@ def _tool_grade(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     return {"kind": kind, "grades": rows}
 
 
+def _tool_handoff(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .handoff import brief
+
+    store = _store(ctx, args)
+    trace = store.load(str(args["trace"]))
+    if trace is None:
+        raise KeyError(f"no trace {args['trace']!r} in store")
+    table = None
+    if args.get("redact"):
+        from .redact import compile_patterns
+
+        table = compile_patterns()
+    return {"trace": trace.id, "redacted": bool(table),
+            "markdown": brief(trace, store, table=table)}
+
+
 def _tool_annotate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     store = _store(ctx, args)
     if args.get("from_anomalies"):
@@ -2216,6 +2253,7 @@ _HANDLERS = {
     "triage": _tool_triage,
     "prices": _tool_prices,
     "grade": _tool_grade,
+    "handoff": _tool_handoff,
 }
 
 

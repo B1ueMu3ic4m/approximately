@@ -3529,3 +3529,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        subject); tool rows take discipline over steps when
        tool_calls is absent.
      - MCP grade (tool 44) + artifact regen; pins 43 -> 44.
+
+370. **v2.120.0 - the handoff brief** (planned):
+     - approximately/handoff.py: brief() composes the page from
+       attribution + integrity verdict + prices catalog cost +
+       annotations; every free-text line passes through the
+       scrubber when a pattern table is given; corrupt catalog
+       shows unpriced, never fatal.
+     - CLI handoff (--redact/--out/--json, exit 2 unknown trace);
+       MCP handoff (tool 45) + artifact regen; pins 44 -> 45.
+     - Composes the night's earlier work: redact scrubs the page,
+       prices prices the burn, integrity vouches for the evidence.
