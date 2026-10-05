@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.126.0
+
+- the audit door speaks the whole on-call loop: `audit --grade-floor B` fails the nightly door when any agent grades below the floor (`n/a` never fails — insufficient evidence is not a conviction), and `--triage-top N` attaches the morning queue to the report as advice that never flips the exit. Both travel through the MCP `audit` tool (schema + handler); the prose report names the below-floor agents and the queue's top row.
+
 ## v2.125.0
 
 - RECIPES 26: the operations night — the on-call loop as one chapter. The tail tells you when, the triage queue tells you what first, the grade tells you which agent is drifting, the handoff tells you why, and the snapshot makes the night leave the machine safely. Docs-only.

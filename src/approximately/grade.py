@@ -106,6 +106,21 @@ def grade_card(card: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def below_floor(rows: List[Dict[str, Any]],
+                floor: str) -> List[Dict[str, Any]]:
+    """Graded rows strictly below the floor letter. ``n/a`` never
+    fails — insufficient evidence is not a conviction; an unknown
+    floor letter raises ValueError (refusal, not a typo-passed
+    gate)."""
+    if floor not in _GRADE_POINTS:
+        raise ValueError(f"grade floor must be one of "
+                         f"{sorted(_GRADE_POINTS)}, got {floor!r}")
+    floor_points = _GRADE_POINTS[floor]
+    return [r for r in rows
+            if r["grade"] in _GRADE_POINTS
+            and _GRADE_POINTS[r["grade"]] < floor_points]
+
+
 def grade_cards(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Grade every row, best composite first (ungraded last)."""
     rows = [grade_card(c) for c in cards]

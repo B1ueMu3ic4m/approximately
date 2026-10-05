@@ -3590,3 +3590,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        (what first), grade (which agent), handoff (why), snapshot
        (leaves safely), prices (honest burn throughout).
      - Docs-only release.
+
+376. **v2.126.0 - the audit speaks grades and triage** (planned):
+     - audit --grade-floor LETTER: below_floor() helper (n/a never
+       fails, unknown floor is an exit-2 refusal), report.grades,
+       prose names the below-floor agents.
+     - audit --triage-top N: report.triage (TriageRow dicts),
+       advice only - never flips the exit.
+     - MCP audit schema + handler parity; docs/mcp-tools.json
+       regenerated (schema-only change, count stays 47).
