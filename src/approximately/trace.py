@@ -27,6 +27,16 @@ MESSAGE = "message"
 STEP_KINDS = (PLAN, TOOL_CALL, OBSERVATION, RESPONSE, ERROR, MESSAGE)
 
 
+def coerce_epoch(value: Any) -> float:
+    """``created_at`` as a float the math can use — 0.0 when a
+    foreign record carries a string or None. Hand-edited and
+    imported traces must never crash a fleet surface; a zeroed
+    timestamp sorts oldest and says so."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return 0.0
+    return float(value)
+
+
 @dataclass
 class Step:
     """One recorded action or event inside an agent run."""

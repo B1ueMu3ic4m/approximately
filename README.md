@@ -14,7 +14,7 @@
 > **v2** — a production-stable toolkit: 46 MCP tools (+resources), 7 framework
 > adapters, MAST attribution with a gated quality floor, tamper-evident evidence,
 > pipeline quality gates (`ci`), fleet monitoring with quiet alerting, and
-> 1,800+ tests across a 22-check CI matrix.  Semver with teeth: major for big or
+> 1,900+ tests across a 22-check CI matrix.  Semver with teeth: major for big or
 > breaking updates, minor for features, patch for fixes.
 
 ---

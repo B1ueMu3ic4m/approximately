@@ -42,7 +42,9 @@ def _letter_errors(errors: int, calls: int) -> Optional[str]:
 
 
 def _letter_budget(breached: int) -> str:
-    return "A" if breached == 0 else "F"
+    # a negative breach count is hand-edited nonsense: no evidence
+    # of a breach is not a breach
+    return "A" if breached <= 0 else "F"
 
 
 def _composite(parts: List[Tuple[str, float]]) -> str:
@@ -80,11 +82,14 @@ def grade_card(card: Dict[str, Any]) -> Dict[str, Any]:
             "discipline": None,
             "budget": None,
         }
-    reliability = _letter_rate(card.get("failure_rate", 0.0))
+    reliability = _letter_rate(max(0.0,
+                                   card.get("failure_rate", 0.0)))
     # agent cards count tool_calls; tool cards only have steps
     # (every step a tool row owns is a call it served)
-    calls = card.get("tool_calls") or card.get("steps") or 0
-    discipline = _letter_errors(card.get("errors", 0), calls)
+    calls = max(0, card.get("tool_calls")
+                or card.get("steps") or 0)
+    discipline = _letter_errors(max(0, card.get("errors", 0)),
+                                calls)
     budget = _letter_budget(card.get("breached_traces", 0))
     parts = [(reliability, W_RELIABILITY),
              (budget, W_BUDGET)]

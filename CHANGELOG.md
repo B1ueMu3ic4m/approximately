@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v2.122.0
+
+- fuzz 23, aimed at the night's six new surfaces — and it drew blood twice: a string `created_at` (hand-edited or foreign-imported) crashed triage's min/max and handoff's `localtime` (`coerce_epoch` now gates both, zeroing poison instead of dying), and a negative `breached_traces` card graded F for a breach it never had (degenerate negatives clamp at zero — no evidence of a breach is not a breach). Also pinned: redact's pattern-shape boundary joins the query DSL's in SECURITY.md (compile-time syntax only, builtins linear by construction), snapshot roundtrips empty and unicode-named stores, and `prices` takes 1e300 without blinking. SECURITY.md redaction row added.
+
 ## v2.121.0
 
 - snapshot & restore: `approximately snapshot OUT.zip` packs the whole store losslessly — every trace, the annotation and ledger sidecars, the price catalog, even quarantined bytes — with a sha256 manifest inside the archive; `restore --into DIR` recomputes every hash before extracting and refuses on mismatch, missing or unlisted members, and existing files (unless `--force`). The roundtrip caught a real cross-cutting bug: `list_traces` globbed every root `*.json`, so the price catalog parsed as a degenerate empty-task trace and polluted every fleet surface — a `trace_files()` helper now gates all seven trace-facing globs (list/clean×2/latest/remaining/doctor×3). MCP parity (46 tools) and docs/mcp-tools.json synced.

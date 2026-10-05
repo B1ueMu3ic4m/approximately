@@ -3554,3 +3554,16 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - CLI snapshot/restore doors (--json, exit 2 refusals);
        MCP snapshot create/restore (tool 46) + artifact regen;
        pins 45 -> 46.
+
+372. **v2.122.0 - fuzz 23: the night's surfaces under fire**
+      (planned):
+     - Found: string created_at crashed triage (min/max TypeError)
+       and handoff (localtime) - trace.coerce_epoch() gates both;
+       negative breached_traces graded F - grade clamps degenerate
+       negatives at zero.
+     - Boundary pinned: redact custom-pattern ReDoS is the
+       operator's (SECURITY.md row, same stance as the query DSL);
+       a live-fire catastrophic-pattern test hung the suite and
+       was replaced by a linear-shape pin.
+     - Also: snapshot vs empty/unicode stores, prices vs 1e300,
+       empty-store snapshot roundtrip (0 members, no crash).
