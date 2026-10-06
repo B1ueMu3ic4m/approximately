@@ -3725,3 +3725,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        (2020-W53) bucket correctly; PEP 562 edges held (AttributeError,
        __dir__, dunder probes, copy/pickle).
      - Boundary tests only; no behavior change.
+
+395. **v3.12.0 - fuzz 25: cross-door chains** (planned):
+     - Poisoned chains: redact->handoff->evidence (null byte task,
+       secret-bearing errors), prices->budget (1e300), meta shapes
+       ->triage (string breach stamps), tail->snapshot.
+     - Chain contract: each door's output is the next door's
+       untrusted input - no crash, no silent lie.
