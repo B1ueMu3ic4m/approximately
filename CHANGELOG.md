@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.5.0
+
+- the help tour: `approximately help` prints seven topics, `approximately help operate` prints that topic's doors with one-liners — 60 doors stopped being a flat wall of text. The tour is data held to completeness by the suite: every registered door appears exactly once, every tour entry is a real door, so help cannot rot behind the CLI (it caught its first missing door — itself — the moment it was written).
+
 ## v3.4.0
 
 - the retrospective half of the audit: `audit --week-compare` appends this ISO week vs last over the digest's day-rows — failures, volume and spend with honest WoW deltas (a comparison of nothing reports `usable: false`, never a division-by-zero verdict). The projection doors say where the fleet is heading; this says what just changed. MCP `audit` carries the same section. One minor for the batch.

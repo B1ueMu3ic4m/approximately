@@ -3679,3 +3679,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - audit --week-compare: report["week"] + prose WoW line;
        MCP audit parity.
      - Tests anchor to the ISO Monday (weekday-independent).
+
+388. **v3.5.0 - the help tour** (planned):
+     - approximately/helptour.py: 7 topics, every door exactly
+       once (completeness test holds TOUR to the registered
+       set - both directions).
+     - CLI help [topic]; unknown topic exits 2 naming the topics.
