@@ -41,7 +41,7 @@ def main() -> int:
             + evidence_gate() + compare_gate() + budget_gate()
             + junit_gate() + quarantine_gate() + result_meter_gate()
             + composition_gate() + failure_budget_gate()
-            + tail_gate() + startup_gate())
+            + tail_gate() + startup_gate() + complexity_gate())
 
 def fleet_anomaly_gate(budget_s: float = 10.0) -> int:
     """Per-tool fleet baselines over a 10k-trace store.
@@ -813,6 +813,34 @@ def startup_gate(budget_s: float = 5.0) -> int:
           + ("PASS" if elapsed <= budget_s else "FAIL"))
     if elapsed > budget_s:
         print("FAIL: startup slowed past budget", file=sys.stderr)
+        return 1
+    return 0
+
+
+def complexity_gate(baseline: int = 87) -> int:
+    """C+-and-worse block count vs the recorded baseline.
+
+    v3 inherited 87 C blocks and none worse; the gate does not ask
+    for a heroic refactor — it asks that the count never grows. A
+    new C block must retire an old one. The budget is the audit."""
+    import subprocess as _sp
+    import sys as _sys
+
+    r = _sp.run([_sys.executable, "-m", "radon", "cc", "-s",
+                 "src/approximately"], capture_output=True,
+                text=True, check=False)
+    if r.returncode != 0:
+        print("FAIL: complexity gate: radon failed", file=sys.stderr)
+        return 1
+    total = sum(1 for line in r.stdout.splitlines()
+                if " - C " in line or " - D " in line
+                or " - E " in line or " - F " in line)
+    verdict = "PASS" if total <= baseline else "FAIL"
+    print(f"perf-gate[complexity]: {total} C+ blocks "
+          f"(baseline {baseline}) - {verdict}")
+    if total > baseline:
+        print("FAIL: complexity grew past the recorded baseline - "
+              "a new C block must retire an old one", file=sys.stderr)
         return 1
     return 0
 
