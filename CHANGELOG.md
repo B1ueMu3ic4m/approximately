@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.10.0
+
+- ARCHITECTURE gains its operations-loop section: how tail/triage/grade/handoff/redact/snapshot/prices/helptour compose the analysis layer rather than duplicating it (trace_files as the one shared glob, POSIX manifest keys, the refuse-don't-$0 catalog). Docs-only.
+
 ## v3.9.0
 
 - the lazy-package batch: `approximately/__init__.py` was quietly undoing the lazy-door batch — it eager-imported the attributor, the report renderer and the replay engine, so `python -m approximately --version` still paid for detector tables on the way to a number. PEP 562 lazy exports now resolve every public name on first touch (and cache); package import drops ~100ms -> ~36ms, cold `--version` -> ~66ms. `fleet --week-compare` brings the retrospective to the dashboard door (json + prose), and CI gains a dependency-audit step (pip-audit) beside bandit.
