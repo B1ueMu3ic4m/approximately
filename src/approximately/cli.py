@@ -1146,6 +1146,22 @@ def cmd_restore(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_help(args: argparse.Namespace) -> int:
+    """The guided tour: topics first, then a topic's doors."""
+    from .helptour import render_index, render_topic
+
+    topic = getattr(args, "topic", None)
+    if topic:
+        try:
+            print(render_topic(topic))
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        return 0
+    print(render_index())
+    return 0
+
+
 def cmd_tail(args: argparse.Namespace) -> int:
     """One line per arrival; failed arrivals flagged (and announced)."""
     from .tail import arrival_payload, tail
@@ -3961,6 +3977,14 @@ def build_parser() -> argparse.ArgumentParser:
                         "--into (default: refuse)")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_restore)
+
+    p = sub.add_parser("help", parents=[common],
+                       help="the guided tour: topics, then a "
+                            "topic's doors")
+    p.add_argument("topic", nargs="?", metavar="TOPIC",
+                   help="record / understand / operate / measure / "
+                        "gate / integrate / regress")
+    p.set_defaults(func=cmd_help)
 
     p = sub.add_parser("tail", parents=[common],
                        help="one line per arrival; failed arrivals "
