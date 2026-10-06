@@ -3719,3 +3719,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        analysis layer (trace_files shared glob, POSIX manifest
        keys, refuse-don't-$0 catalog, tour completeness).
      - Docs-only release.
+
+394. **v3.11.0 - the boundary batch** (planned):
+     - ISO cross-year weeks (2026-12-29 = 2027-W01) and leap week
+       (2020-W53) bucket correctly; PEP 562 edges held (AttributeError,
+       __dir__, dunder probes, copy/pickle).
+     - Boundary tests only; no behavior change.
