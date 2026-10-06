@@ -31,7 +31,7 @@ def _mixed_trace(directory):
     rec.respond("done", success=True)
     latencies = [1800, 2100, 1900, 2200, 2000,       # searches
                  28000, 30000, 29000, 31000, 90000]  # deploys
-    for step, ms in zip(rec.trace.steps, latencies):
+    for step, ms in zip(rec.trace.steps, latencies, strict=False):
         step.latency_ms = ms
     store.save(rec.trace)
     return rec.trace, store
@@ -65,7 +65,7 @@ def test_rare_tools_fall_back_to_pooled_scale(tmp_path):
     rec.tool("exotic", {"x": 1}, result="ok")
     rec.respond("done", success=True)
     for step, ms in zip(rec.trace.steps,
-                        [100, 110, 100, 120, 100, 110, 5000]):
+                        [100, 110, 100, 120, 100, 110, 5000], strict=False):
         step.latency_ms = ms
     store.save(rec.trace)
     per_tool = detect_latency_anomalies(rec.trace, per_tool=True)

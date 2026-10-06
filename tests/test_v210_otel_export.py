@@ -7,6 +7,7 @@ same store always exports the same document, everywhere.
 """
 
 import argparse
+import itertools
 import json
 
 from approximately.cli import cmd_export
@@ -102,7 +103,7 @@ def test_derived_timeline_is_monotonic(tmp_path):
     times = [(int(s["startTimeUnixNano"]), int(s["endTimeUnixNano"]))
              for s in spans]
     # children run back-to-back; the root (first) encloses them all
-    for (_, end), (start, _) in zip(times[1:], times[2:]):
+    for (_, end), (start, _) in itertools.pairwise(times[1:]):
         assert end == start
     root_start, root_end = times[0]
     assert root_start == times[1][0]

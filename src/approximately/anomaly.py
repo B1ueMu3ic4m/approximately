@@ -195,7 +195,7 @@ def detect_latency_anomalies(trace: Trace, threshold: float
 def _flagged(timed: list, values: list, med: float, mad: float,
              threshold: float) -> List[LatencyAnomaly]:
     anomalies = []
-    for step, value in zip(timed, values):
+    for step, value in zip(timed, values, strict=True):
         z = _CONSISTENCY * (value - med) / mad
         if abs(z) > threshold:
             anomalies.append(LatencyAnomaly(
@@ -319,7 +319,7 @@ def detect_result_anomalies(trace: Trace,
         if mad == 0:
             return []  # identical lengths: no scale
         out = []
-        for step, value in zip(steps, vals):
+        for step, value in zip(steps, vals, strict=True):
             z = _CONSISTENCY * (value - med) / mad
             if abs(z) > threshold:
                 out.append(ResultAnomaly(
@@ -439,7 +439,7 @@ def _flagged_tokens(metered: list, values: list, med: float,
                     mad: float,
                     threshold: float) -> List[TokenAnomaly]:
     anomalies = []
-    for step, value in zip(metered, values):
+    for step, value in zip(metered, values, strict=True):
         z = _CONSISTENCY * (value - med) / mad
         if abs(z) > threshold:
             anomalies.append(TokenAnomaly(

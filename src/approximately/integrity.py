@@ -251,7 +251,7 @@ def _tamper_result(block: dict, actual: List[str],
                    expected: List[str]) -> VerificationResult:
     """Localize the first divergent step of a broken chain."""
     first_bad = next(
-        (i for i, (a, e) in enumerate(zip(actual, expected)) if a != e),
+        (i for i, (a, e) in enumerate(zip(actual, expected, strict=False)) if a != e),
         min(len(actual), len(expected)),
     )
     return VerificationResult(

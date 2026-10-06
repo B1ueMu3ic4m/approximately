@@ -12,7 +12,7 @@ from approximately.store import TraceStore
 
 def _populate(path, runs, ages_days):
     store = TraceStore(path)
-    for (success, tools), age in zip(runs, ages_days):
+    for (success, tools), age in zip(runs, ages_days, strict=True):
         rec = Recorder(f"task {age}", store=store, save=False)
         for tool in tools:
             rec.tool(tool, {}, result="ok")

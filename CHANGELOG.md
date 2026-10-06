@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.0.0
+
+- the milestone major: the postmortem toolkit (v2) is now the operations-loop platform — live budget rails, the composed nightly audit, 47 MCP tools, and the on-call cycle (tail, triage, grade, handoff, snapshot, prices). The real contract change: Python 3.9 is dropped (EOL since 2025-10) — floor is 3.10, CI matrix and classifiers follow. And the versioning standard is written down at last ([VERSIONING.md](docs/VERSIONING.md)): majors are capability milestones that carry a real contract change — both, together; minors are per feature batch, never per commit; the 129-minor minor-of-v2 was number-pumping and it stops here.
+
 ## v2.129.3
 
 - the perf wall's budgets are now sized from loaded-runner reality, not local weather: thirteen gates lifted so every budget covers local-cost x100 (tonight's loaded Windows runners ran 9-40x local). A regression is 10-100x and still trips; a busy runner no longer does. The rule is written into the gate file: budgets exist for regressions, not weather.

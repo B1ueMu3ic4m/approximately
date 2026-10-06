@@ -400,7 +400,7 @@ def _stem_match(a: str, b: str) -> bool:
     if a == b:
         return True
     shared = 0
-    for x, y in zip(a, b):
+    for x, y in zip(a, b, strict=False):
         if x != y:
             break
         shared += 1

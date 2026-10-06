@@ -55,7 +55,7 @@ def test_payload_and_rows_carry_exact_failures(tmp_path):
 def test_failure_budget_burn_and_exhaustion():
     from approximately.forecast import failure_budget
     days = [{"day": f"2026-10-0{d}", "failures": f}
-            for d, f in zip(range(1, 5), [2, 3, 5, 6])]
+            for d, f in zip(range(1, 5), [2, 3, 5, 6], strict=True)]
     fb = failure_budget(days, allowance=20)
     assert fb["usable"] is True
     assert fb["burned"] == 16
@@ -75,7 +75,7 @@ def test_failure_budget_refuses_one_day():
 def test_failure_budget_never_exhausted_when_improving():
     from approximately.forecast import failure_budget
     days = [{"day": f"2026-10-0{d}", "failures": f}
-            for d, f in zip(range(1, 5), [9, 7, 5, 3])]
+            for d, f in zip(range(1, 5), [9, 7, 5, 3], strict=True)]
     fb = failure_budget(days, allowance=30)
     assert fb["days_to_exhaustion"] is None
     assert all(p["remaining"] >= 0 for p in fb["projection"])

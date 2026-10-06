@@ -3634,3 +3634,17 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - 13 perf budgets lifted so each covers local-cost x100
        (tonight's loaded Windows runners: 9-40x local). A
        regression still trips; a busy runner does not.
+
+383. **v3.0.0 - the milestone major, and the number-pumping stops**
+      (planned):
+     - VERSIONING.md: major = capability milestone AND a real
+       contract change (both together); minor = per feature batch,
+       never per commit; patch = fixes/docs.
+     - The contract change: Python 3.9 dropped (EOL 2025-10).
+       Floor 3.10: pyproject requires-python, classifiers, ruff
+       target py310, mypy python_version 3.10 (retires the
+       recurring unsupported-version warning), CI matrix 13 -> 12
+       jobs (22 -> 21 checks).
+     - The milestone: v2's postmortem toolkit became v3's
+       operations-loop platform (47 MCP tools, live rails, the
+       on-call cycle).

@@ -66,15 +66,15 @@ def test_crewai_register_and_event_dispatch(monkeypatch):
                                   "CrewKickoffCompleted"}
 
     handlers = [h for _, h in registered]
-    tool_done = next(h for (et, _), h in zip(registered, handlers)
+    tool_done = next(h for (et, _), h in zip(registered, handlers, strict=True)
                      if et.__name__ == "ToolUsageFinished")
     tool_done(source=None, payload={"name": "web_search",
                                     "output": "3 results"})
-    tool_err = next(h for (et, _), h in zip(registered, handlers)
+    tool_err = next(h for (et, _), h in zip(registered, handlers, strict=True)
                     if et.__name__ == "ToolUsageError")
     tool_err(source=None, payload={"name": "web_search",
                                    "error": "timeout"})
-    kick = next(h for (et, _), h in zip(registered, handlers)
+    kick = next(h for (et, _), h in zip(registered, handlers, strict=True)
                 if et.__name__ == "CrewKickoffCompleted")
     kick(source=None, payload=None)
 

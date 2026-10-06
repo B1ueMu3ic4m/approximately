@@ -86,7 +86,7 @@ def test_roundtrip_identity_and_stability(tmp_path):
     rows_b = sorted(out2.read_text(encoding="utf-8").splitlines())
     diff = "\n".join(
         f"{len(a)} vs {len(b)}: {a[-120:]!r} | {b[-120:]!r}"
-        for a, b in zip(rows_a, rows_b) if a != b)[:2000]
+        for a, b in zip(rows_a, rows_b, strict=True) if a != b)[:2000]
     assert rows_a == rows_b, diff
     assert out.read_bytes() == out2.read_bytes()
 

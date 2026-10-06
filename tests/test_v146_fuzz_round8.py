@@ -73,7 +73,7 @@ def _trace_with_latencies(directory, latencies, tools):
     for tool in tools:
         rec.tool(tool, {}, result="ok")
     rec.respond("done", success=True)
-    for step, ms in zip(rec.trace.steps, latencies):
+    for step, ms in zip(rec.trace.steps, latencies, strict=False):
         step.latency_ms = ms
     store.save(rec.trace)
     return rec.trace, store

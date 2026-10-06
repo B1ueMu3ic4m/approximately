@@ -94,7 +94,7 @@ def test_watch_renders_the_result_curve(tmp_path):
     # rows, not trend_days entries)
     days = [{"day": f"2026-10-0{d}", "snapshots": 1,
              "last": {"stores": [{"result_anomalies": n}]}}
-            for d, n in zip(range(1, 4), [1, 3, 6])]
+            for d, n in zip(range(1, 4), [1, 3, 6], strict=True)]
     html = _trend_section(summarize_trend(days))
     assert "result bloat:" in html
     assert "result bloat" in html  # day-table column

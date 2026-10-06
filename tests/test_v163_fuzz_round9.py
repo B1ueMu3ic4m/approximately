@@ -69,7 +69,7 @@ def _latency_traces(tmp_path, count, latencies, tool="search"):
         for _j, _ms in enumerate(latencies):
             rec.tool(f"{tool}{_j}", {}, result="ok")
         rec.respond("done", success=True)
-        for step, ms in zip(rec.trace.steps, latencies):
+        for step, ms in zip(rec.trace.steps, latencies, strict=False):
             step.latency_ms = ms
         store.save(rec.trace)
     return list(store.list_traces())
