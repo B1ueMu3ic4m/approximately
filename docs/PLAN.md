@@ -3705,3 +3705,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        (all inherited, none worse); a new C block must retire an
        old one. The audit the wall did not have: perf measures
        speed, this measures shape.
+
+392. **v3.9.0 - the lazy-package batch** (planned):
+     - __init__.py PEP 562 lazy exports (the eager imports were
+       undoing v3.2.0's door laziness for every `import
+       approximately`): package import ~100 -> ~36ms, cold
+       --version ~66ms; names resolve on first touch and cache.
+     - fleet --week-compare (json + prose, needs --digest-dir).
+     - CI dependency-audit step (pip-audit) beside bandit.

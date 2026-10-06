@@ -62,6 +62,10 @@ jobs:
         run: pip install -e . bandit
       - name: Bandit (no findings expected)
         run: bandit -r src -q
+      - name: Dependency audit (pip-audit)
+        run: |
+          pip install pip-audit
+          pip-audit --skip-editable --desc off || true
       - name: Secret scan
         run: |
           ! grep -rInE '(api[_-]?key|secret|token|password)["'"'"' ]*[:=]["'"'"' ]*[A-Za-z0-9+/]{16,}' src .github pyproject.toml | grep -v PYPI_API_TOKEN

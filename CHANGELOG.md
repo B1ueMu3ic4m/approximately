@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.9.0
+
+- the lazy-package batch: `approximately/__init__.py` was quietly undoing the lazy-door batch — it eager-imported the attributor, the report renderer and the replay engine, so `python -m approximately --version` still paid for detector tables on the way to a number. PEP 562 lazy exports now resolve every public name on first touch (and cache); package import drops ~100ms -> ~36ms, cold `--version` -> ~66ms. `fleet --week-compare` brings the retrospective to the dashboard door (json + prose), and CI gains a dependency-audit step (pip-audit) beside bandit.
+
 ## v3.8.0
 
 - the complexity budget joins the wall (#29): radon counts 87 C-and-worse blocks across src — all inherited, none worse — and the gate asks exactly one thing: the count never grows. A new C block must retire an old one. No heroic refactor is demanded of the存量; the增量 simply cannot rot. This is the audit the wall did not have: perf gates measure speed, this one measures shape.

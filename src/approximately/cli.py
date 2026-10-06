@@ -1926,12 +1926,22 @@ def _fleet_survey(args: argparse.Namespace) -> int:
         from .fleet import summarize_trend, trend_days
 
         trend_summary = summarize_trend(trend_days(Path(digest_dir)))
+    week = None
+    if getattr(args, "week_compare", False) and trend_summary:
+        from .fleet import week_compare
+
+        week = week_compare(trend_summary["days"])
     if getattr(args, "json", False):
         from .fleet import webhook_payload
 
-        print(json.dumps(webhook_payload(summaries), indent=2))
+        payload = webhook_payload(summaries)
+        if week is not None:
+            payload["week"] = week
+        print(json.dumps(payload, indent=2))
         return 0
     _print_fleet(summaries)
+    if week is not None:
+        print(_print_week(week))
     if args.fleet_html:
         out = Path(args.fleet_html)
         out.write_text(render_fleet_html(summaries,
@@ -4210,6 +4220,9 @@ def build_parser() -> argparse.ArgumentParser:
                                         "dashboard to this path")
     p.add_argument("--json", action="store_true",
                    help="emit machine-readable fleet JSON instead of text")
+    p.add_argument("--week-compare", action="store_true",
+                   help="with --digest-dir: append this ISO week vs "
+                        "last to the output")
     p.add_argument("--fail-on-worsening", action="store_true",
                    help="exit 1 when any store's failure-rate trend is "
                         "worsening (CI gate)")
