@@ -34,12 +34,12 @@ def test_iso_cross_year_weeks_bucket_together():
 def test_lazy_export_edges():
     # unknown attributes are AttributeError, not ImportError
     with pytest.raises(AttributeError, match="has no attribute"):
-        approximately.nope
+        approximately.__getattribute__("nope")
     # __dir__ reports the full __all__
     assert set(approximately.__all__) <= set(dir(approximately))
     # dunder lookups never import anything
     with pytest.raises(AttributeError):
-        approximately.__sphinx_does_not_exist__
+        approximately.__getattribute__("__sphinx_does_not_exist__")
 
 
 def test_lazy_exports_survive_copy_and_pickle():
