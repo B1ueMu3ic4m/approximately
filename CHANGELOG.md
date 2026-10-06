@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.12.0
+
+- fuzz 25, the cross-door chains: redact feeds handoff feeds evidence; the price catalog feeds budget; meta shapes feed triage; tail feeds snapshot. Poisoned upstream stores produce clean downstream briefs, honest unusable comparisons, and intact snapshots — a `\x00` in the task, a 1e300 rate, string-typed breach stamps all survive the whole pipeline. Chain contract pinned: each door's output is the next door's untrusted input.
+
 ## v3.11.0
 
 - the boundary batch: `week_compare`'s ISO buckets survive the turn of the year (2026-12-29 is 2027-W01 — same bucket as 2027-01-04) and leap weeks (2020-W53); the PEP 562 lazy exports hold their edges (unknown attributes are AttributeError, `__dir__` reports `__all__`, dunder probes import nothing, cached names survive copy/pickle). Boundary tests, no behavior change.
