@@ -17,7 +17,7 @@ def _trace(task, latencies):
     for i, _ in enumerate(latencies):
         rec.tool("deploy", {"i": i}, result="ok")
     rec.respond("done", success=True)
-    for step, ms in zip(rec.trace.steps, latencies):
+    for step, ms in zip(rec.trace.steps, latencies, strict=False):
         step.latency_ms = ms
     return rec.trace
 

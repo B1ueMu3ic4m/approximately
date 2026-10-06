@@ -67,7 +67,7 @@ def test_max_latency_degenerate_traces(tmp_path):
         for _ in latencies:
             rec.tool("deploy", {}, result="ok")
         rec.respond("done", success=True)
-        for step, ms in zip(rec.trace.steps, latencies):
+        for step, ms in zip(rec.trace.steps, latencies, strict=False):
             step.latency_ms = ms
         store.save(rec.trace)
         assert isinstance(select(store.list_traces(),

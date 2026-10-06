@@ -30,7 +30,7 @@ def _slow_trace(directory):
         rec.tool("deploy", {"env": "prod"}, result="ok")
     rec.respond("done", success=True)
     # the Recorder auto-times; stamp the window by hand for the test
-    for step, ms in zip(rec.trace.steps, (5, 6, 5, 6, 9000)):
+    for step, ms in zip(rec.trace.steps, (5, 6, 5, 6, 9000), strict=False):
         step.latency_ms = ms
     store.save(rec.trace)
     return rec.trace, store

@@ -618,7 +618,7 @@ def import_paths(patterns: List[str], store: TraceStore,
                 as pool:
             for path, result in zip(
                     paths,
-                    pool.map(import_one, paths)):
+                    pool.map(import_one, paths), strict=True):
                 files += 1
                 _merge(per_file, result, str(path), totals, total_ids)
     else:

@@ -69,7 +69,7 @@ class ReplayDiff:
 def compare(a: ReplayDiff, b: ReplayDiff) -> str:
     """Summarize an A/B replay: original executor *a* vs patched executor *b*."""
     flips = []
-    for sa, sb in zip(a.steps, b.steps):
+    for sa, sb in zip(a.steps, b.steps, strict=False):
         if sa.match != sb.match:
             state = "now matches" if sb.match else "now diverges"
             flips.append(f"  step #{sa.index} ({sb.tool or sb.kind}): {state}")

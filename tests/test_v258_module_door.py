@@ -21,7 +21,7 @@ def test_module_form_prints_the_version():
          "--version"],
         capture_output=True, text=True, timeout=60, env=env)
     assert r.returncode == 0
-    assert "2." in r.stdout
+    assert r.stdout.startswith("approximately ")  # version-agnostic
 
 
 def test_module_form_runs_a_real_door():

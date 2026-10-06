@@ -125,7 +125,7 @@ def triage(
     times = [coerce_epoch(t.created_at) for t in failures]
     t_min, t_max = min(times), max(times)
     span = (t_max - t_min) or 1.0
-    for row, created in zip(rows, times):
+    for row, created in zip(rows, times, strict=True):
         row.cost_norm = row.tokens / max_tokens
         row.blast_norm = len(row.agents) / max_agents
         row.recency_norm = (created - t_min) / span

@@ -105,7 +105,7 @@ def repetition_cycle(rng, i):
               f"result and decide."),
              f"latency unchanged after iteration {turn}."),
         ]
-        for t, (thought, obs) in zip(tools, variants):
+        for t, (thought, obs) in zip(tools, variants, strict=False):
             steps.append(_turn(len(steps), t, {"turn": turn},
                                thought, obs))
     steps.append(_turn(

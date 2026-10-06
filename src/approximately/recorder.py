@@ -190,7 +190,7 @@ def agentstep(fn: F) -> F:
             return fn(*args, **kwargs)
         call_args: Dict[str, Any] = {}
         try:
-            call_args.update(dict(zip(fn.__code__.co_varnames, args)))
+            call_args.update(dict(zip(fn.__code__.co_varnames, args, strict=False)))
         except Exception:
             call_args["*args"] = [str(a) for a in args]
         call_args.update(kwargs)

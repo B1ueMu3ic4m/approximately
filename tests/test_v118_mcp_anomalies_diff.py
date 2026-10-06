@@ -29,7 +29,7 @@ def _store(tmp_path):
         tools.append(slow.tool("probe", {"i": i}, result="ok"))
     slow.respond("done", success=True)
     # Recorder times steps itself; tests stamp latencies post hoc
-    for step, ms in zip(tools, baseline):
+    for step, ms in zip(tools, baseline, strict=True):
         step.latency_ms = ms
     store.save(slow.trace)
     return store

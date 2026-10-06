@@ -126,7 +126,7 @@ def _emit_call_block(steps: list, i: int, total: int,
         messages.append(_tool_result(obs.tool or block[used].tool,
                                      ids[used], obs.result, obs.error))
         used += 1
-    for call, call_id in zip(block[used:], ids[used:]):
+    for call, call_id in zip(block[used:], ids[used:], strict=False):
         messages.append(_tool_result(call.tool, call_id,
                                      call.error or call.result,
                                      call.error))

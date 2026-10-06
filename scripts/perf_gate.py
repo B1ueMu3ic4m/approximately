@@ -62,7 +62,7 @@ def fleet_anomaly_gate(budget_s: float = 10.0) -> int:
         rec.respond("done", success=True)
         search_ms = 5000 if i % 500 == 0 else 100 + i % 50
         for step, ms in zip(rec.trace.steps,
-                            (search_ms, 2000 + i % 500)):
+                            (search_ms, 2000 + i % 500), strict=False):
             step.latency_ms = ms
         traces.append(rec.trace)
 
