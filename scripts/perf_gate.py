@@ -792,8 +792,9 @@ def startup_gate(budget_s: float = 5.0) -> int:
     """Cold start: `--version` must answer, in format, in budget.
 
     59 doors import one cli module; a careless top-level import can
-    quietly make every door pay at startup (local: ~100ms; the
-    budget is regressions-not-weather, like the rest of the wall)."""
+    quietly make every door pay at startup (local: ~100ms eager,
+    ~80ms after the lazy-door batch; the budget is
+    regressions-not-weather, like the rest of the wall)."""
     import subprocess
     import sys as _sys
 

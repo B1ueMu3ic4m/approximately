@@ -3657,3 +3657,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - docs-consistency tests: README tool count == _TOOLS, every
        cited door is registered, VERSIONING.md linked and real.
      - One minor for the whole batch, per VERSIONING.md.
+
+385. **v3.2.0 - the lazy-startup batch** (planned):
+     - cli.py's heavy top-level imports moved door-local
+       (attributor/fleet/demo/replayer/report/regress/taxonomy);
+       cold --version ~100ms -> ~80ms; _ci_gate_rows gained its
+       own fleet import (F821 caught in passing).
+     - startup gate #28 docstring records both numbers.
