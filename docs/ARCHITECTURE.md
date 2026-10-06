@@ -219,6 +219,36 @@ TraceStore ──► exporter.py ──► foreign JSONL
 - **`demo*.py`** — scripted failing agents powering the 30-second tour
   and the doc artifacts (`scripts/make_docs_artifacts.py`).
 
+## The operations loop (v3)
+
+v3's addition is the on-call cycle, and it composes the analysis
+layer rather than duplicating it:
+
+- **`tail.py`** watches store arrivals against a seen-set seeded
+  from `trace_files` (the one glob every trace-facing pass shares —
+  furniture like `prices.json` must never parse as a degenerate
+  trace). Failed arrivals announce through the fleet's HMAC-signed
+  webhook channel; a webhook failure logs and never kills the watch.
+- **`triage.py`** ranks failures by postmortem value (novelty of the
+  failure mode via the attributor, then burn, blast, recency —
+  weights in the module header, parts on every row).
+- **`grade.py`** turns cluster scorecards into letter grades
+  (reliability 0.5 / discipline 0.25 / budget 0.25, evidence floors,
+  renormalizing weights).
+- **`handoff.py`** composes the one-page brief; `redact.py` scrubs
+  the free-text surfaces; both render from a sanitized view.
+- **`snapshot.py`** is the lossless store backup: sha256 manifest
+  inside the zip (keys POSIX by spec — the Windows lesson), restore
+  verifies before extracting.
+- **`prices.py`** keeps model rates with the store; every spend door
+  resolves explicit `--prices` first, catalog second, none last —
+  and a corrupt catalog refuses rather than silently $0.
+- **`helptour.py`** is the guided tour over the doors, held to
+  completeness by the suite (every door exactly once, both
+  directions).
+- **`week_compare`** (fleet) is the retrospective half of the
+  audit: this ISO week vs last over the digest's day-rows.
+
 ## Invariants worth keeping
 
 1. **Zero dependencies** in the core; extras stay optional and lazy.

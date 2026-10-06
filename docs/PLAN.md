@@ -3713,3 +3713,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        --version ~66ms; names resolve on first touch and cache.
      - fleet --week-compare (json + prose, needs --digest-dir).
      - CI dependency-audit step (pip-audit) beside bandit.
+
+393. **v3.10.0 - ARCHITECTURE: the operations loop** (planned):
+     - The v3 section: how the on-call modules compose the
+       analysis layer (trace_files shared glob, POSIX manifest
+       keys, refuse-don't-$0 catalog, tour completeness).
+     - Docs-only release.
