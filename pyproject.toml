@@ -30,7 +30,7 @@ dependencies = []
 [project.optional-dependencies]
 llm = ["openai>=1.0"]
 exact-tokens = ["tiktoken>=0.5"]
-dev = ["pytest>=7.0", "mypy"]
+dev = ["pytest>=7.0", "mypy", "radon>=6.0"]
 
 [project.scripts]
 approximately = "approximately.cli:main"
