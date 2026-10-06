@@ -800,15 +800,22 @@ def week_compare(rows: List[dict],
     prev_key = (ref - _dt.timedelta(days=7)).isocalendar()[:2]
 
     def bucket(key: tuple) -> dict:
-        rows_w = [r for r in rows
-                  if _dt.date.fromisoformat(str(r["day"]))
-                  .isocalendar()[:2] == key]
+        good = []
+        for r in rows:
+            try:
+                day = _dt.date.fromisoformat(str(r["day"]))
+            except (TypeError, ValueError, KeyError):
+                continue  # digest rows are untrusted input: a bad
+                # or missing day label drops out of the buckets
+            if day.isocalendar()[:2] == key:
+                good.append(r)
+
         return {
-            "days": len(rows_w),
-            "failures": sum(r.get("failures", 0) for r in rows_w),
-            "traces": sum(r.get("traces", 0) for r in rows_w),
+            "days": len(good),
+            "failures": sum(r.get("failures", 0) for r in good),
+            "traces": sum(r.get("traces", 0) for r in good),
             "est_spend": round(sum(r.get("est_spend", 0.0)
-                                   for r in rows_w), 4),
+                                   for r in good), 4),
         }
 
     cur, prev = bucket(cur_key), bucket(prev_key)

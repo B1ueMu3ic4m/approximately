@@ -3685,3 +3685,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        once (completeness test holds TOUR to the registered
        set - both directions).
      - CLI help [topic]; unknown topic exits 2 naming the topics.
+
+389. **v3.6.0 - fuzz 24: the v3 surfaces under fire** (planned):
+     - Found: week_compare crashed on unparseable day labels
+       (unguarded fromisoformat against untrusted digest rows) -
+       buckets now skip TypeError/ValueError/KeyError days.
+     - Hardened: price model names refuse control characters.
+     - Pinned: duplicate-day mirrors, one-week comparisons are
+       unusable, empty-store resources, all-n/a floors,
+       unattributed evidence grades (None, not a crash).
