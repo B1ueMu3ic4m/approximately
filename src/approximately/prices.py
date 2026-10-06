@@ -34,7 +34,8 @@ def validate_table(table: object) -> Dict[str, float]:
         raise ValueError("price table must map model -> number")
     out: Dict[str, float] = {}
     for model, rate in table.items():
-        if not isinstance(model, str) or not model:
+        if (not isinstance(model, str) or not model
+                or any(c in model for c in "\n\r\t")):
             raise ValueError(f"price table: bad model name {model!r}")
         if isinstance(rate, bool) or not isinstance(rate, (int, float)):
             raise ValueError(f"price table: {model} rate must be a "
