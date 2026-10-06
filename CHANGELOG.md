@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.11.0
+
+- the boundary batch: `week_compare`'s ISO buckets survive the turn of the year (2026-12-29 is 2027-W01 — same bucket as 2027-01-04) and leap weeks (2020-W53); the PEP 562 lazy exports hold their edges (unknown attributes are AttributeError, `__dir__` reports `__all__`, dunder probes import nothing, cached names survive copy/pickle). Boundary tests, no behavior change.
+
 ## v3.10.0
 
 - ARCHITECTURE gains its operations-loop section: how tail/triage/grade/handoff/redact/snapshot/prices/helptour compose the analysis layer rather than duplicating it (trace_files as the one shared glob, POSIX manifest keys, the refuse-don't-$0 catalog). Docs-only.
