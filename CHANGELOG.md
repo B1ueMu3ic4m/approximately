@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.3.0
+
+- the browsable ops surface: `grades`, `triage` and `prices.json` join the MCP resources beside the traces — an agent (or a human with a resource browser) reads the operations state without a tool call, and a corrupt price catalog surfaces honestly as a resource instead of a silent absence. The evidence pack's manifest now carries the failed run's primary agent's current letter grade: a reviewer sees pattern-vs-fluke before opening the timeline (a 40% failure rate grades F with the reliability weight — that is the point).
+
 ## v3.2.0
 
 - the lazy-startup batch: every heavy import (attributor, fleet, demo, replayer, report, regress, taxonomy) moved from the cli module's top level into the doors that use them — cold `--version` drops ~100ms -> ~80ms and every non-attributing door stops paying for the attributor's detector tables on the way to doing something else. The startup gate (#28) holds the line. This is why the gate exists: the wall measures, the batch optimizes, neither trusts the other.
