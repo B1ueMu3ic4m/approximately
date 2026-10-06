@@ -2388,6 +2388,43 @@ def _error(request_id: Any, code: int, message: str) -> dict:
             "error": {"code": code, "message": message}}
 
 
+def _read_grades_resource(store: Any) -> tuple:
+    from .grade import grade_store
+
+    try:
+        rows, kind = grade_store(store)
+    except KeyError:
+        rows, kind = [], "agent"
+    text = json.dumps({"kind": kind, "grades": rows and [
+        r.to_dict() if hasattr(r, "to_dict") else r for r in rows]},
+        ensure_ascii=False, indent=2)
+    return text, "application/json"
+
+
+def _read_triage_resource(store: Any) -> tuple:
+    from .triage import triage_store
+
+    rows = triage_store(store)
+    text = json.dumps({"total": len(rows),
+                       "queue": [r.to_dict() for r in rows[:20]]},
+                      ensure_ascii=False, indent=2)
+    return text, "application/json"
+
+
+def _read_prices_resource(store: Any) -> tuple:
+    from .prices import load_catalog
+
+    try:
+        table = load_catalog(store.directory) or {}
+    except ValueError as exc:
+        text = json.dumps({"corrupt": True, "detail": str(exc)},
+                          ensure_ascii=False, indent=2)
+    else:
+        text = json.dumps({"prices": table}, ensure_ascii=False,
+                          sort_keys=True, indent=2)
+    return text, "application/json"
+
+
 def _resources(ctx: ServerContext) -> List[dict]:
     """Store contents as MCP resources: one entry per trace plus the
     annotation sidecar, so clients can browse a store without
@@ -2404,6 +2441,24 @@ def _resources(ctx: ServerContext) -> List[dict]:
         "description": "store health snapshot: trace count, failure "
                        "rate, top failure modes",
     }]
+    out.extend([{
+        "uri": f"approximately://{store.directory}/grades",
+        "name": "grades",
+        "mimeType": "application/json",
+        "description": "letter grades per agent (or n/a when the "
+                       "evidence is thin)",
+    }, {
+        "uri": f"approximately://{store.directory}/triage",
+        "name": "triage",
+        "mimeType": "application/json",
+        "description": "failed runs ranked by postmortem value",
+    }, {
+        "uri": f"approximately://{store.directory}/prices.json",
+        "name": "prices",
+        "mimeType": "application/json",
+        "description": "model -> $/1k catalog; corrupt catalogs "
+                       "surface here",
+    }])
     out.extend({
         "uri": f"approximately://{store.directory}/traces/{trace.id}",
         "name": trace.task[:60] or trace.id,
@@ -2431,6 +2486,12 @@ def _resources_read(msg: Dict[str, Any], ctx: Any,
                        for r in rows)
         text = body
         mime = "application/x-ndjson"
+    elif rest == f"{store.directory}/grades":
+        text, mime = _read_grades_resource(store)
+    elif rest == f"{store.directory}/triage":
+        text, mime = _read_triage_resource(store)
+    elif rest == f"{store.directory}/prices.json":
+        text, mime = _read_prices_resource(store)
     elif rest == f"{store.directory}/stats.json":
         from .cluster import store_stats
 

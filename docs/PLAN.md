@@ -3664,3 +3664,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        cold --version ~100ms -> ~80ms; _ci_gate_rows gained its
        own fleet import (F821 caught in passing).
      - startup gate #28 docstring records both numbers.
+
+386. **v3.3.0 - the browsable ops surface** (planned):
+     - MCP resources: /grades, /triage, /prices.json served beside
+       the traces; corrupt catalog surfaces as a resource finding.
+     - Evidence manifest carries agent_grade (primary agent's
+       current letter; n/a passes through; errors never fail the
+       pack).
+     - One minor for the batch.

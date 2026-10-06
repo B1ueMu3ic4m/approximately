@@ -32,6 +32,29 @@ def _handoff_brief(trace: Any, store: Any) -> Optional[str]:
         return None
 
 
+def _agent_grade(trace: Any, store: Any) -> Optional[dict]:
+    """The failed run's primary agent's current letter grade — a
+    reviewer sees at a glance whether this case is a pattern or a
+    fluke. n/a grades pass through honestly; an error never fails
+    the pack."""
+    try:
+        from .cluster import agent_scorecard
+        from .grade import grade_card
+
+        cards = agent_scorecard(store.list_traces())
+        agents = [s.agent for s in trace.steps if s.agent]
+        if not agents:
+            return None
+        card = next((c for c in cards
+                     if c.get("agent") == agents[0]), None)
+        if card is None:
+            return None
+        row = grade_card(card)
+        return {"agent": row["subject"], "grade": row["grade"]}
+    except Exception:
+        return None
+
+
 def build_evidence_pack(store: Any, trace_id: str, output: Path,
                         key: Optional[bytes] = None) -> Dict[str, Any]:
     """Write the evidence pack for *trace_id*; returns the manifest.
@@ -55,12 +78,14 @@ def build_evidence_pack(store: Any, trace_id: str, output: Path,
     except Exception:
         annotations = []
 
+    agent_grade = _agent_grade(trace, store)
     manifest: Dict[str, Any] = {
         "pack_version": 1,
         "trace_id": trace.id,
         "task": trace.task,
         "created_at": trace.created_at,
         "verdict": report.primary_mode.id,
+        "agent_grade": agent_grade,
         "chain": {
             "signed": chain.signed,
             "intact": chain.intact,
