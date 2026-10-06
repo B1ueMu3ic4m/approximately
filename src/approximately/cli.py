@@ -10,14 +10,7 @@ from pathlib import Path
 from typing import Any, List, Optional
 
 from . import __version__
-from .attributor import attribute
-from .demo import run_demo
-from .fleet import _budget_breaches
-from .regress import render_regression
-from .replayer import replay
-from .report import render_html
 from .store import TraceStore, trace_files
-from .taxonomy import CATEGORY_NAMES, all_modes
 from .trace import Trace
 
 
@@ -74,6 +67,8 @@ def _print_report(report: Any, judge_note: str = "",
 
 
 def cmd_demo(args: argparse.Namespace) -> int:
+    from .demo import run_demo
+
     if args.scenario == "multi-agent":
         from .demo_multiagent import run_demo as run_multiagent
         trace, report, path = run_multiagent()
@@ -125,7 +120,7 @@ def cmd_demo(args: argparse.Namespace) -> int:
 
 
 def cmd_replay(args: argparse.Namespace) -> int:
-    from .replayer import compare
+    from .replayer import compare, replay
 
     store = TraceStore(args.store)
     trace = _load_trace(args.trace, store)
@@ -163,6 +158,9 @@ def cmd_replay(args: argparse.Namespace) -> int:
 
 
 def cmd_test(args: argparse.Namespace) -> int:
+    from .attributor import attribute
+    from .regress import render_regression
+
     store = TraceStore(args.store)
     trace = _load_trace(args.trace, store)
     report = attribute(trace)
@@ -211,8 +209,9 @@ def _report_judge_cache(args: argparse.Namespace, payload: dict) -> None:
 
 
 def cmd_report(args: argparse.Namespace) -> int:
+    from .attributor import attribute
     from .cluster import trend
-    from .report import render_index_html
+    from .report import render_html, render_index_html
 
     store = TraceStore(args.store)
     if args.all:
@@ -323,6 +322,8 @@ def cmd_context(args: argparse.Namespace) -> int:
 
 
 def cmd_taxonomy(args: argparse.Namespace) -> int:
+    from .taxonomy import CATEGORY_NAMES, all_modes
+
     if getattr(args, "json", False):
         print(json.dumps([{
             "id": m.id, "name": m.name, "category": m.category,
@@ -2442,6 +2443,8 @@ def _ci_spend(traces: list, prices: dict) -> tuple:
 
 def _ci_gate_rows(traces: list, stats: Any, prices: Optional[dict],
                   args: argparse.Namespace) -> list:
+    from .fleet import _budget_breaches
+
     """One row per enabled ceiling; each row carries its measured
     value, the ceiling, and the pass/fail verdict."""
     rows = []
@@ -3157,6 +3160,7 @@ def cmd_compare(args: argparse.Namespace) -> int:
 
 
 def cmd_attribute(args: argparse.Namespace) -> int:
+    from .attributor import attribute
     from .sarif import to_sarif
 
     store = TraceStore(args.store)

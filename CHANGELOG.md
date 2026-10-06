@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.2.0
+
+- the lazy-startup batch: every heavy import (attributor, fleet, demo, replayer, report, regress, taxonomy) moved from the cli module's top level into the doors that use them — cold `--version` drops ~100ms -> ~80ms and every non-attributing door stops paying for the attributor's detector tables on the way to doing something else. The startup gate (#28) holds the line. This is why the gate exists: the wall measures, the batch optimizes, neither trusts the other.
+
 ## v3.1.0
 
 - the self-audit batch (v3's first feature batch, one minor for the lot): (1) a price catalog on file that cannot be parsed is now an audit FINDING with a diagnosis, not a bare exit-2 — the 3am door reports the broken table (and still refuses loudly when `--max-spend` was actually asked for); (2) the startup gate joins the perf wall (#28: cold `--version` must answer in format under 5s — 59 doors import one cli module); (3) the README's advertised numbers are now tested against the code (tool count, every cited door exists, the VERSIONING link).
