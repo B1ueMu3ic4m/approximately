@@ -3699,3 +3699,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - The eight commands of an operations night, the audit that
        composes them, the MCP resource surface, VERSIONING.md.
      - Docs-only release.
+
+391. **v3.8.0 - the complexity budget joins the wall** (planned):
+     - complexity_gate #29: radon C+ block count vs baseline 87
+       (all inherited, none worse); a new C block must retire an
+       old one. The audit the wall did not have: perf measures
+       speed, this measures shape.

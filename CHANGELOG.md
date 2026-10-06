@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.8.0
+
+- the complexity budget joins the wall (#29): radon counts 87 C-and-worse blocks across src — all inherited, none worse — and the gate asks exactly one thing: the count never grows. A new C block must retire an old one. No heroic refactor is demanded of the存量; the增量 simply cannot rot. This is the audit the wall did not have: perf gates measure speed, this one measures shape.
+
 ## v3.7.0
 
 - TUTORIAL 13: the on-call loop gets its chapter — the eight commands of an operations night, the audit that composes them into one exit code, the MCP browsing surface, and where VERSIONING.md lives. Docs-only.
