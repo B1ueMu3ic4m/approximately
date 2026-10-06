@@ -2678,6 +2678,23 @@ def _audit_triage(store: Any, args: argparse.Namespace,
     report["triage"] = [r.to_dict() for r in queue]
 
 
+def _audit_prices(store: Any, report: dict) -> None:
+    """A price catalog on file that cannot be parsed is a finding:
+    spend doors would refuse it, so the nightly audit says so
+    before the 3am budget gate trips on a broken table."""
+    from .prices import load_catalog
+
+    try:
+        table = load_catalog(store.directory)
+    except ValueError as exc:
+        report["prices_catalog"] = {"corrupt": True, "detail": str(exc)}
+        report["ok"] = False
+        return
+    if table:
+        report["prices_catalog"] = {"corrupt": False,
+                                    "models": len(table)}
+
+
 def cmd_audit(args: argparse.Namespace) -> int:
     """The composed nightly door: doctor, the quality gate, and the
     trend+spend forecast in one report with one exit code — the
@@ -2707,7 +2724,12 @@ def cmd_audit(args: argparse.Namespace) -> int:
                         "ledger_intact": doc.ledger_intact}
     report["ok"] = report["ok"] and doc.healthy
 
-    prices = _resolve_cli_prices(args)
+    try:
+        prices = _resolve_cli_prices(args)
+    except SystemExit:
+        if getattr(args, "max_spend", None) is not None:
+            raise  # a spend gate was asked for and cannot compute
+        prices = None  # the corrupt catalog becomes the finding
     if getattr(args, "max_spend", None) is not None and not prices:
         print("error: --max-spend needs --prices", file=sys.stderr)
         return 2
@@ -2720,6 +2742,7 @@ def cmd_audit(args: argparse.Namespace) -> int:
     if rc:
         return rc
     _audit_triage(store, args, report)
+    _audit_prices(store, report)
     _audit_digest(args, report)
 
     if getattr(args, "json", False):
@@ -2810,6 +2833,13 @@ def _print_audit(report: dict, trace_count: int) -> None:
         else:
             print(f"  grades:    all at or above floor "
                   f"{report['grades']['floor']}")
+    if "prices_catalog" in report:
+        pc = report["prices_catalog"]
+        if pc.get("corrupt"):
+            print(f"  prices:    CATALOG CORRUPT - {pc['detail']}")
+        else:
+            print(f"  prices:    catalog on file "
+                  f"({pc['models']} model(s))")
     if "triage" in report:
         queue = report["triage"]
         if queue:

@@ -3648,3 +3648,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - The milestone: v2's postmortem toolkit became v3's
        operations-loop platform (47 MCP tools, live rails, the
        on-call cycle).
+
+384. **v3.1.0 - the self-audit batch** (planned):
+     - audit prices-catalog health: corrupt catalog is a finding
+       (prose + json + MCP), not a bare refusal; --max-spend with
+       a corrupt catalog still refuses with exit 2.
+     - startup_gate #28: cold --version under 5s (local ~100ms).
+     - docs-consistency tests: README tool count == _TOOLS, every
+       cited door is registered, VERSIONING.md linked and real.
+     - One minor for the whole batch, per VERSIONING.md.
