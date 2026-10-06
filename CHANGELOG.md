@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.7.0
+
+- TUTORIAL 13: the on-call loop gets its chapter — the eight commands of an operations night, the audit that composes them into one exit code, the MCP browsing surface, and where VERSIONING.md lives. Docs-only.
+
 ## v3.6.0
 
 - fuzz 24, aimed at the v3 surfaces — and it caught one real crash: `week_compare` died on a digest row whose day label did not parse (`date.fromisoformat` unguarded) — and the fleet module's own contract says digest files are untrusted input. The buckets now skip unparseable or missing day labels (TypeError/ValueError/KeyError), mirroring instead of crashing; a one-week-populated comparison honestly reports `usable: false`. Also hardened: price-catalog model names now refuse control characters (a newline key broke the prose table), and the fuzz pins duplicate-day mirrors, empty-store resources, all-n/a floors, and unattributed evidence grades. `validate_table`'s bool-is-not-a-rate guard re-tested.
