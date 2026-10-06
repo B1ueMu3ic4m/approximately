@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.1.0
+
+- the self-audit batch (v3's first feature batch, one minor for the lot): (1) a price catalog on file that cannot be parsed is now an audit FINDING with a diagnosis, not a bare exit-2 — the 3am door reports the broken table (and still refuses loudly when `--max-spend` was actually asked for); (2) the startup gate joins the perf wall (#28: cold `--version` must answer in format under 5s — 59 doors import one cli module); (3) the README's advertised numbers are now tested against the code (tool count, every cited door exists, the VERSIONING link).
+
 ## v3.0.0
 
 - the milestone major: the postmortem toolkit (v2) is now the operations-loop platform — live budget rails, the composed nightly audit, 47 MCP tools, and the on-call cycle (tail, triage, grade, handoff, snapshot, prices). The real contract change: Python 3.9 is dropped (EOL since 2025-10) — floor is 3.10, CI matrix and classifiers follow. And the versioning standard is written down at last ([VERSIONING.md](docs/VERSIONING.md)): majors are capability milestones that carry a real contract change — both, together; minors are per feature batch, never per commit; the 129-minor minor-of-v2 was number-pumping and it stops here.

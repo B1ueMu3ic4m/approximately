@@ -1490,6 +1490,18 @@ def _tool_audit(ctx: ServerContext, args: Dict[str, Any]) -> dict:
 
         queue = triage_store(store)[:max(0, int(triage_top))]
         report["triage"] = [r.to_dict() for r in queue]
+    from .prices import load_catalog
+
+    try:
+        table = load_catalog(store.directory)
+    except ValueError as exc:
+        report["prices_catalog"] = {"corrupt": True,
+                                    "detail": str(exc)}
+        report["ok"] = False
+    else:
+        if table:
+            report["prices_catalog"] = {"corrupt": False,
+                                        "models": len(table)}
     return report
 
 

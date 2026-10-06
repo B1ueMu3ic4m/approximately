@@ -41,7 +41,7 @@ def main() -> int:
             + evidence_gate() + compare_gate() + budget_gate()
             + junit_gate() + quarantine_gate() + result_meter_gate()
             + composition_gate() + failure_budget_gate()
-            + tail_gate())
+            + tail_gate() + startup_gate())
 
 def fleet_anomaly_gate(budget_s: float = 10.0) -> int:
     """Per-tool fleet baselines over a 10k-trace store.
@@ -784,6 +784,34 @@ def doctor_deep_gate(budget_s: float = 30.0) -> int:
           + ("PASS" if elapsed <= budget_s else "FAIL"))
     if elapsed > budget_s:
         print("FAIL: deep doctor slowed past budget", file=sys.stderr)
+        return 1
+    return 0
+
+
+def startup_gate(budget_s: float = 5.0) -> int:
+    """Cold start: `--version` must answer, in format, in budget.
+
+    59 doors import one cli module; a careless top-level import can
+    quietly make every door pay at startup (local: ~100ms; the
+    budget is regressions-not-weather, like the rest of the wall)."""
+    import subprocess
+    import sys as _sys
+
+    start = time.perf_counter()
+    r = subprocess.run(
+        [_sys.executable, "-m", "approximately", "--version"],
+        capture_output=True, text=True, timeout=budget_s * 2,
+        check=False)  # the returncode IS the finding
+    elapsed = time.perf_counter() - start
+    if r.returncode != 0 or not r.stdout.startswith("approximately "):
+        print("FAIL: startup gate: --version misanswered",
+              file=sys.stderr)
+        return 1
+    print(f"perf-gate[startup]: cold --version in "
+          f"{elapsed * 1000:.0f}ms (budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: startup slowed past budget", file=sys.stderr)
         return 1
     return 0
 
