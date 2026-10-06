@@ -3672,3 +3672,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        current letter; n/a passes through; errors never fail the
        pack).
      - One minor for the batch.
+
+387. **v3.4.0 - the retrospective half** (planned):
+     - fleet.week_compare over summarize_trend rows (ISO-week
+       buckets, this vs last, deltas honest about zero bases).
+     - audit --week-compare: report["week"] + prose WoW line;
+       MCP audit parity.
+     - Tests anchor to the ISO Monday (weekday-independent).

@@ -2786,6 +2786,10 @@ def _audit_digest(args: argparse.Namespace, report: dict) -> None:
         report["failure_budget"] = fb
         if fb.get("exhausted"):
             report["ok"] = False
+    if getattr(args, "week_compare", False):
+        from .fleet import week_compare
+
+        report["week"] = week_compare(trend["days"])
 
 
 def _print_forecast(fc: dict) -> str:
@@ -2810,6 +2814,25 @@ def _print_reliability_budget(fb: dict) -> str:
             f"{fb['allowance']} failed ({state})")
 
 
+def _print_week(week: dict) -> str:
+    """The week-over-week line: deltas that are honest about an
+    unusable comparison."""
+    if not week.get("usable"):
+        return "  week:      (comparison unusable - a week has no rows)"
+    d = week["deltas"]
+
+    def pct(v: "float | None") -> str:
+        return "n/a" if v is None else f"{v:+.0%}"
+
+    cur, prev = week["this_week"], week["last_week"]
+    return (f"  week:      {cur['failures']} failures "
+            f"({pct(d['failures'])} WoW), "
+            f"${cur['est_spend']:,.2f} "
+            f"({pct(d['est_spend'])} WoW) over "
+            f"{cur['traces']:,} traces "
+            f"(last week: {prev['failures']})")
+
+
 def _print_audit(report: dict, trace_count: int) -> None:
     """Prose for the audit report — each component on its own line."""
     print(f"  audit over {trace_count} traces ({report['store']})")
@@ -2826,6 +2849,8 @@ def _print_audit(report: dict, trace_count: int) -> None:
         print(_print_forecast(report["forecast"]))
     if "failure_budget" in report:
         print(_print_reliability_budget(report["failure_budget"]))
+    if "week" in report:
+        print(_print_week(report["week"]))
     if "grades" in report:
         below = report["grades"]["below"]
         if below:
@@ -4419,6 +4444,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="model -> blended $/1k JSON table")
     p.add_argument("--since", type=int, metavar="DAYS",
                    help="audit only runs from the last N days")
+    p.add_argument("--week-compare", action="store_true",
+                   help="append this ISO week vs last to the audit "
+                        "report (needs --digest-dir)")
     p.add_argument("--grade-floor", metavar="LETTER",
                    help="fail the audit when any agent grades "
                         "below this (n/a never fails)")

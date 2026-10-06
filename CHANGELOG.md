@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.4.0
+
+- the retrospective half of the audit: `audit --week-compare` appends this ISO week vs last over the digest's day-rows — failures, volume and spend with honest WoW deltas (a comparison of nothing reports `usable: false`, never a division-by-zero verdict). The projection doors say where the fleet is heading; this says what just changed. MCP `audit` carries the same section. One minor for the batch.
+
 ## v3.3.0
 
 - the browsable ops surface: `grades`, `triage` and `prices.json` join the MCP resources beside the traces — an agent (or a human with a resource browser) reads the operations state without a tool call, and a corrupt price catalog surfaces honestly as a resource instead of a silent absence. The evidence pack's manifest now carries the failed run's primary agent's current letter grade: a reviewer sees pattern-vs-fluke before opening the timeline (a 40% failure rate grades F with the reliability weight — that is the point).
