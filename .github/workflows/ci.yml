@@ -122,7 +122,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install
-        run: pip install -e .
+        run: pip install -e ".[dev]"
       - name: Attribution floors (gold corpus, package CLI)
         run: approximately bench-gate docs/mast-bench-multi.jsonl --floors docs/bench-floors.json --label "gold corpus"
       - name: Attribution floors (synthetic fixture, shim script)
