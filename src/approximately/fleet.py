@@ -785,6 +785,51 @@ def _trend_row(entry: dict) -> dict:
     }
 
 
+def week_compare(rows: List[dict],
+                 today: Optional[datetime.date] = None) -> dict:
+    """This ISO week vs last, over summarize_trend day-rows.
+
+    Retrospective, not a forecast: the deltas say what changed, the
+    projection door says where it is heading. usable=False when
+    either week has no rows — a comparison of nothing is not a
+    comparison."""
+    import datetime as _dt
+
+    ref = today or _dt.date.today()
+    cur_key = ref.isocalendar()[:2]
+    prev_key = (ref - _dt.timedelta(days=7)).isocalendar()[:2]
+
+    def bucket(key: tuple) -> dict:
+        rows_w = [r for r in rows
+                  if _dt.date.fromisoformat(str(r["day"]))
+                  .isocalendar()[:2] == key]
+        return {
+            "days": len(rows_w),
+            "failures": sum(r.get("failures", 0) for r in rows_w),
+            "traces": sum(r.get("traces", 0) for r in rows_w),
+            "est_spend": round(sum(r.get("est_spend", 0.0)
+                                   for r in rows_w), 4),
+        }
+
+    cur, prev = bucket(cur_key), bucket(prev_key)
+
+    def delta(a: float, b: float) -> Optional[float]:
+        if not b:
+            return None
+        return round((a - b) / b, 4)
+
+    return {
+        "usable": cur["days"] > 0 and prev["days"] > 0,
+        "this_week": cur,
+        "last_week": prev,
+        "deltas": {
+            "failures": delta(cur["failures"], prev["failures"]),
+            "traces": delta(cur["traces"], prev["traces"]),
+            "est_spend": delta(cur["est_spend"], prev["est_spend"]),
+        },
+    }
+
+
 def summarize_trend(days: List[dict]) -> dict:
     """Fleet-level per-day series for the trend report.
 

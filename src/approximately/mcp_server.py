@@ -252,6 +252,11 @@ _TOOLS: List[Dict[str, Any]] = [
                 "max_failure_rate": {"type": "number"},
                 "max_tokens": {"type": "integer"},
                 "max_budget_breaches": {"type": "integer"},
+                "week_compare": {"type": "boolean",
+                                 "description": "append this ISO "
+                                                "week vs last to the "
+                                                "report (needs "
+                                                "digest_dir)"},
                 "grade_floor": {"type": "string",
                                 "description": "fail the audit when "
                                                "any agent grades "
@@ -1466,6 +1471,10 @@ def _tool_audit(ctx: ServerContext, args: Dict[str, Any]) -> dict:
             report["forecast"] = fc
             if fc.get("days_to_ceiling") == 0:
                 report["ok"] = False
+    if args.get("week_compare"):
+        from .fleet import week_compare
+
+        report["week"] = week_compare(trend["days"])
     floor = args.get("grade_floor")
     if floor is not None:
         from .grade import below_floor, grade_store
