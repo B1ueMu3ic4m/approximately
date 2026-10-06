@@ -7,25 +7,13 @@ sampled traces. Approximately makes those approximations safe —
 
 from __future__ import annotations
 
+import importlib
 import pathlib
 import re
 from importlib import metadata as _metadata
+from typing import Any
 
-from .attributor import FailureReport, attribute
-from .context import (
-    ContextForecast,
-    ContextItem,
-    ContextRuntime,
-    ProbeResult,
-    default_facts,
-    forecast,
-)
-from .recorder import Recorder, agentstep, current_recorder
-from .regress import render_regression
-from .replayer import replay
-from .report import render_html
 from .store import TraceStore
-from .taxonomy import all_modes, get_mode
 from .trace import Step, Trace
 
 
@@ -53,6 +41,46 @@ def _dist_version() -> str:
 
 
 __version__ = _dist_version()
+
+# PEP 562 lazy exports: `python -m approximately --version` should
+# not pay for the attributor's detector tables, the HTML renderer
+# and the replay engine on the way to printing a number. Every
+# public name resolves on first touch and caches in globals().
+_LAZY = {
+    "FailureReport": "attributor",
+    "attribute": "attributor",
+    "ContextForecast": "context",
+    "ContextItem": "context",
+    "ContextRuntime": "context",
+    "ProbeResult": "context",
+    "default_facts": "context",
+    "forecast": "context",
+    "Recorder": "recorder",
+    "agentstep": "recorder",
+    "current_recorder": "recorder",
+    "render_regression": "regress",
+    "replay": "replayer",
+    "render_html": "report",
+    "all_modes": "taxonomy",
+    "get_mode": "taxonomy",
+}
+
+
+def __getattr__(name: str) -> Any:
+
+    module = _LAZY.get(name)
+    if module is None:
+        raise AttributeError(
+            f"module {__name__!r} has no attribute {name!r}")
+    value = getattr(importlib.import_module(f".{module}", __name__),
+                    name)
+    globals()[name] = value  # resolve once, then it is plain
+    return value
+
+
+def __dir__() -> list[str]:
+    return sorted(__all__)
+
 
 __all__ = [
     "ContextForecast",
