@@ -3694,3 +3694,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - Pinned: duplicate-day mirrors, one-week comparisons are
        unusable, empty-store resources, all-n/a floors,
        unattributed evidence grades (None, not a crash).
+
+390. **v3.7.0 - TUTORIAL 13: the on-call loop** (planned):
+     - The eight commands of an operations night, the audit that
+       composes them, the MCP resource surface, VERSIONING.md.
+     - Docs-only release.

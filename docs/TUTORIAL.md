@@ -261,3 +261,34 @@ keeps burned runs out of your pipeline, `fleet
 --alert-budget-breaches 1` pages when a store starts burning, and
 `clean --keep-breached` makes sure housekeeping never deletes the
 evidence before the postmortem reads it.
+
+## 13. The on-call loop: the operations night
+
+Everything you have built — a store with signed traces, named
+agents, a CI gate, live budgets, a digest — now runs as a loop:
+
+```bash
+approximately prices set gpt-4o 2.5      # rates live with the store
+approximately tail                       # arrivals, failures flagged
+approximately triage --since-days 1      # the morning queue
+approximately grade                      # which agent is drifting
+approximately handoff <trace> --redact   # the one-page brief
+approximately snapshot night.zip         # the night leaves safely
+```
+
+The nightly audit composes the same loop with a single exit code
+(and `--week-compare` answers "what just changed" next to the
+forecast's "where is this heading"):
+
+```bash
+approximately audit --store .agents-store --digest-dir d \
+  --fix --grade-floor F --triage-top 5 --week-compare
+```
+
+If your agents live inside an MCP client, the whole surface is
+answerable without a shell: 47 tools, and the operations state
+(`grades`, `triage`, `prices`) is browsable as resources.
+
+Version numbers follow [VERSIONING.md](VERSIONING.md): majors are
+capability milestones with a real contract change, minors are one
+feature batch each.
