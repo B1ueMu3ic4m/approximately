@@ -1094,9 +1094,22 @@ def cmd_grade(args: argparse.Namespace) -> int:
 
 def cmd_handoff(args: argparse.Namespace) -> int:
     """One markdown page for the next engineer (or agent)."""
-    from .handoff import brief
+    from .handoff import brief, worklist
 
     store = TraceStore(args.store)
+    if getattr(args, "queue", None) is not None:
+        table = None
+        if getattr(args, "redact", False):
+            from .redact import compile_patterns
+
+            table = compile_patterns()
+        print(worklist(store, limit=int(args.queue), table=table),
+              end="")
+        return 0
+    if not args.trace:
+        print("error: a trace id is required (or use --queue N)",
+              file=sys.stderr)
+        return 2
     trace = store.load(str(args.trace))
     if trace is None:
         print(f"error: no such trace: {args.trace}", file=sys.stderr)
@@ -4121,7 +4134,11 @@ def build_parser() -> argparse.ArgumentParser:
                        help="one markdown brief for the next "
                             "engineer (or agent): what failed, "
                             "evidence trust, the burn, context")
-    p.add_argument("trace", help="trace id to brief")
+    p.add_argument("trace", nargs="?", default=None,
+                   help="trace id to brief (optional with --queue)")
+    p.add_argument("--queue", type=int, metavar="N",
+                   help="the postmortem worklist instead: briefs "
+                        "for the top N unannotated failures")
     p.add_argument("--redact", action="store_true",
                    help="render from a sanitized view (builtin "
                         "secret patterns scrubbed)")
