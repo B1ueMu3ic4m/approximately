@@ -2818,6 +2818,39 @@ def _audit_digest(args: argparse.Namespace, report: dict) -> None:
         report["week"] = week_compare(trend["days"])
 
 
+def cmd_digest(args: argparse.Namespace) -> int:
+    """The shift-start brief: weeks vs weeks, the grades, the triage
+    queue and today's failed arrivals in one markdown page — what
+    the on-call human reads where audit's exit code is for the
+    cron. Empty store or unknown floor is a refusal (exit 2)."""
+    from .digest import build_digest, render_markdown
+
+    store = TraceStore(Path(args.store))
+    if not store.list_traces():
+        print(f"error: store {args.store} is empty: a digest of "
+              "nothing briefs no one", file=sys.stderr)
+        return 2
+    try:
+        payload = build_digest(
+            store,
+            digest_dir=getattr(args, "digest_dir", None),
+            triage_top=getattr(args, "triage_top", 5),
+            grade_floor=getattr(args, "grade_floor", None))
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    if getattr(args, "json", False):
+        print(json.dumps(payload, indent=2))
+        return 0
+    page = render_markdown(payload)
+    out = getattr(args, "out", None)
+    if out and out != "-":
+        Path(out).write_text(page, encoding="utf-8")
+    else:
+        print(page, end="")
+    return 0
+
+
 def _print_forecast(fc: dict) -> str:
     """The spend-forecast line: days left, no-trend, or exceeded."""
     if not fc.get("usable"):
@@ -4493,6 +4526,25 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true",
                    help="emit the audit report as JSON")
     p.set_defaults(func=cmd_audit)
+
+    p = sub.add_parser("digest", parents=[common],
+                       help="shift-start brief: weeks vs weeks, "
+                            "grades, triage and arrivals in one "
+                            "markdown page")
+    p.add_argument("--digest-dir", metavar="DIR",
+                   help="fleet digest dir for the week-over-week "
+                        "section")
+    p.add_argument("--triage-top", type=int, default=5, metavar="N",
+                   help="queue depth in the brief (default 5)")
+    p.add_argument("--grade-floor", metavar="LETTER",
+                   help="flag grades below this letter")
+    p.add_argument("--json", action="store_true",
+                   help="print the structured payload instead of "
+                        "the markdown page")
+    p.add_argument("--out", metavar="PATH",
+                   help="write the markdown page here ('-' = "
+                        "stdout, the default)")
+    p.set_defaults(func=cmd_digest)
 
     p = sub.add_parser("budget", parents=[common],
                        help="replay a recorded run against rails it "

@@ -1126,6 +1126,31 @@ _TOOLS: List[Dict[str, Any]] = [
             },
         },
     },
+    {
+        "name": "digest",
+        "description": "The shift-start brief: this week vs last, "
+                       "the letter grades, the top of the triage "
+                       "queue and today's failed arrivals, in one "
+                       "payload (the CLI renders the markdown "
+                       "page). Sections can be absent and say so — "
+                       "an absent section is a finding.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "digest_dir": {"type": "string",
+                               "description": "fleet digest dir for "
+                                              "the week-over-week "
+                                              "section"},
+                "triage_top": {"type": "number",
+                               "description": "queue depth "
+                                              "(default 5)"},
+                "grade_floor": {"type": "string",
+                                "description": "flag grades below "
+                                               "this letter"},
+            },
+        },
+    },
 ]
 
 
@@ -2341,6 +2366,17 @@ def _tool_export_transcripts(ctx: ServerContext,
                         dedupe=bool(args.get("dedupe")))
 
 
+def _tool_digest(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .digest import build_digest
+
+    store = _store(ctx, args)
+    return build_digest(
+        store,
+        digest_dir=args.get("digest_dir"),
+        triage_top=int(args.get("triage_top", 5)),
+        grade_floor=args.get("grade_floor"))
+
+
 _HANDLERS = {
     "list_traces": _tool_list_traces,
     "attribute": _tool_attribute,
@@ -2389,6 +2425,7 @@ _HANDLERS = {
     "handoff": _tool_handoff,
     "snapshot": _tool_snapshot,
     "tail": _tool_tail,
+    "digest": _tool_digest,
 }
 
 

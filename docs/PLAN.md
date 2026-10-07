@@ -3738,3 +3738,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        budget, the real MCP tool count, GitHub topic grammar,
        README banner parity). The repo's public face cannot
        drift from the code that ships it.
+397. **v3.14.0 - the digest: the shift-start brief** (planned):
+     - audit gives the cron one exit code; digest gives the
+       on-call human one markdown page: weeks vs weeks, the
+       grades, the triage queue, today's failed arrivals.
+       Composes doors, invents no analysis; every section can be
+       absent and says so. MCP tool 48; all count pins moved
+       together (meta, README, VERSIONING, TUTORIAL,
+       mcp-tools.json, spool test).

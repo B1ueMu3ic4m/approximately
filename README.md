@@ -11,7 +11,7 @@
 <b>Free & open source · Zero dependencies · MIT · Python 3.10+ · pip install approximately</b>
 </p>
 
-> **v3** — the operations-loop platform: 47 MCP tools (+resources), 7 framework
+> **v3** — the operations-loop platform: 48 MCP tools (+resources), 7 framework
 > adapters, MAST attribution with a gated quality floor, tamper-evident evidence,
 > pipeline quality gates (`ci`), live budget rails, fleet monitoring with quiet
 > alerting, the on-call loop (tail / triage / grade / handoff / snapshot), and

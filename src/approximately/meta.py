@@ -20,7 +20,7 @@ import re
 ABOUT = (
     "Flight recorder, MAST failure attribution & on-call ops loop for AI "
     "agents: replay, tamper-evident evidence, triage queue, letter grades, "
-    "handoff briefs, fleet tail, price catalog. 47 MCP tools. Zero "
+    "handoff briefs, fleet tail, price catalog. 48 MCP tools. Zero "
     "dependencies, Python 3.10+."
 )
 

@@ -1,4 +1,4 @@
-"""The help tour: 59 doors, seven topics, every door accounted for.
+"""The help tour: seven topics, every door accounted for.
 
 `approximately help` prints the topics; `approximately help
 operations` prints that topic's doors with their one-liners. The
@@ -46,6 +46,7 @@ TOUR: Dict[str, tuple] = {
         ("triage", "failed runs ranked by postmortem value"),
         ("grade", "letter grades for agents and tools"),
         ("handoff", "one markdown brief for the next engineer"),
+        ("digest", "shift-start brief: weeks, grades, triage, arrivals"),
         ("redact", "sanitized share-copy of a trace"),
         ("prices", "the store's price catalog"),
         ("annotate", "attach an analyst note"),
@@ -75,7 +76,7 @@ TOUR: Dict[str, tuple] = {
         ("changelog", "generate CHANGELOG from docs/PLAN.md"),
     ]),
     "integrate": ("move data in and out", [
-        ("mcp", "serve the toolkit over MCP (47 tools)"),
+        ("mcp", "serve the toolkit over MCP (48 tools)"),
         ("export", "export traces to CSV/SARIF"),
         ("import", "import foreign transcripts"),
         ("export-dataset", "labeled benchmark JSONL out"),
