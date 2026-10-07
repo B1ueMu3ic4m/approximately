@@ -151,6 +151,63 @@ def _render_arrivals(payload: dict) -> List[str]:
     return lines
 
 
+def build_fleet_digest(stores: List[Any],
+                       digest_dir: Optional[str] = None,
+                       triage_top: int = 3,
+                       today: Optional[_dt.date] = None) -> dict:
+    """The multi-store brief: one page over a fleet. The week
+    section stays fleet-level (the digest dir's day-rows); every
+    store gets its own grades/triage/arrivals rollup, ranked
+    worst-first so the reader starts where it hurts."""
+    briefs = [build_digest(s, digest_dir=None, triage_top=triage_top,
+                           today=today) for s in stores]
+    for b in briefs:
+        b["store_name"] = Path(b["store"]).name
+    briefs.sort(key=_brief_pain, reverse=True)
+    return {
+        "kind": "fleet_digest",
+        "generated": _dt.datetime.now().isoformat(timespec="seconds"),
+        "week": _week_section(stores[0], digest_dir, today
+                              or _dt.date.today())
+        if digest_dir else None,
+        "stores": briefs,
+    }
+
+
+def _brief_pain(brief: dict) -> tuple:
+    """Sort key, worst first: today's failure rate leads, then owed
+    postmortems, then today's raw failure count."""
+    arrivals = brief.get("arrivals") or {}
+    failed = arrivals.get("failed", 0)
+    total = failed + arrivals.get("ok", 0)
+    rate = failed / total if total else 0.0
+    return (rate, brief.get("briefs_due", 0), failed)
+
+
+def render_fleet_markdown(payload: dict) -> str:
+    """One page, one section per store, worst first; the fleet week
+    leads when a digest dir was given."""
+    lines = [f"# fleet digest — {len(payload['stores'])} store(s)",
+             f"generated {payload['generated']}", ""]
+    week = payload.get("week")
+    if week:
+        lines += ["## this week vs last (fleet)"]
+        lines += _render_week(week)
+        lines.append("")
+    for brief in payload["stores"]:
+        lines.append(f"## {brief['store_name']} — {brief['store']}")
+        grades = brief["grades"]
+        if grades:
+            worst = ", ".join(f"{g['subject']}:{g['grade']}"
+                              for g in grades[:3])
+            lines.append(f"grades: {worst}")
+        lines.append(f"postmortems owed: {brief['briefs_due']}")
+        arr = brief["arrivals"]
+        lines.append(f"today: {arr['failed']} failed / {arr['ok']} ok")
+        lines.append("")
+    return "\n".join(lines) + "\n"
+
+
 def render_markdown(payload: dict) -> str:
     """The human page. Sections render even when empty — the brief
     always names what it does not know."""
