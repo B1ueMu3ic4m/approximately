@@ -2851,6 +2851,53 @@ def cmd_digest(args: argparse.Namespace) -> int:
     return 0
 
 
+def _print_retention_plan(plan: dict, applied: bool) -> None:
+    """The prose plan: policy line, retire rows, kept accounting."""
+    pol = plan["policy"]
+    print(f"retention: successes > {pol['keep_days']}d, failures > "
+          f"{pol['failure_days']}d; guards: "
+          f"{', '.join(pol['guards'])}"
+          + (" (APPLIED)" if applied
+             else " (dry run — use --apply)"))
+    if plan["retire"]:
+        for row in plan["retire"][:20]:
+            print(f"  retire {row['id']}  ({row['why']})")
+        extra = len(plan["retire"]) - 20
+        if extra > 0:
+            print(f"  ... and {extra} more")
+    else:
+        print("  nothing to retire")
+    print("  kept: " + ", ".join(
+        f"{k}={v}" for k, v in plan["kept"].items() if v))
+    if applied:
+        print(f"  removed {plan.get('removed', 0)}")
+
+
+def cmd_retention(args: argparse.Namespace) -> int:
+    """Value-weighted retention: the plan is the default output,
+    ``--apply`` does the deleting. Refusals (exit 2): sub-day
+    windows."""
+    from .retention import apply_plan, retention_plan
+
+    store = TraceStore(Path(args.store))
+    applied = bool(getattr(args, "apply", False))
+    try:
+        plan = retention_plan(
+            store,
+            keep_days=int(getattr(args, "keep_days", 0) or 0),
+            failure_days=getattr(args, "failure_days", None))
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    if applied:
+        plan["removed"] = apply_plan(store, plan)
+    if getattr(args, "json", False):
+        print(json.dumps(plan, indent=2))
+        return 0
+    _print_retention_plan(plan, applied)
+    return 0
+
+
 def _print_forecast(fc: dict) -> str:
     """The spend-forecast line: days left, no-trend, or exceeded."""
     if not fc.get("usable"):
@@ -4545,6 +4592,23 @@ def build_parser() -> argparse.ArgumentParser:
                    help="write the markdown page here ('-' = "
                         "stdout, the default)")
     p.set_defaults(func=cmd_digest)
+
+    p = sub.add_parser("retention", parents=[common],
+                       help="value-weighted retention: successes "
+                            "age out first, failures stay longer, "
+                            "breach evidence and annotated traces "
+                            "never retire (dry run by default)")
+    p.add_argument("--keep-days", type=int, required=True,
+                   metavar="N",
+                   help="successes older than this retire")
+    p.add_argument("--failure-days", type=int, metavar="N",
+                   help="failures get their own clock (default = "
+                        "--keep-days)")
+    p.add_argument("--apply", action="store_true",
+                   help="delete for real (default: print the plan)")
+    p.add_argument("--json", action="store_true",
+                   help="emit the plan as JSON")
+    p.set_defaults(func=cmd_retention)
 
     p = sub.add_parser("budget", parents=[common],
                        help="replay a recorded run against rails it "

@@ -11,7 +11,7 @@ A major is **not** a mood. It is shipped when both of these hold:
 1. **A capability milestone**: the toolkit crossed a boundary in
    what it *is* — not a new door, a new wing. (v2 was the postmortem
    toolkit: record, attribute, replay, gate. v3 is the operations
-   loop: live budget rails, the composed nightly audit, 48 MCP
+   loop: live budget rails, the composed nightly audit, 49 MCP
    tools, and the on-call cycle — tail, triage, grade, handoff,
    snapshot, prices.)
 2. **A real contract change**: something a user can observe break —

@@ -3746,3 +3746,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        absent and says so. MCP tool 48; all count pins moved
        together (meta, README, VERSIONING, TUTORIAL,
        mcp-tools.json, spool test).
+398. **v3.15.0 - value-weighted retention** (planned):
+     - clean deletes by age alone; retention keeps postmortem
+       value: successes age out on keep_days, failures (and
+       unknown outcomes) on failure_days, and two guards veto
+       every retirement - breach evidence and annotated traces -
+       at plan time AND apply time. Plan is the default; --apply
+       deletes. Poison is never touched (doctor's job). MCP tool
+       49 is plan-only; the deleting stays CLI.
