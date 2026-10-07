@@ -3784,3 +3784,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        --redact answer), the signed-announcement channel (and
        the v3.17.0 kept promise), and retention's plan/apply
        double guard. Docs-only patch.
+403. **v3.19.0 - the wall grows with the surface** (planned):
+     - retention_gate #30: plan + apply over an aged 2k store,
+       ages making the retire classification real (1500 past the
+       window, 500 inside theirs); budgets sized local x100 like
+       every other gate. A new door earns its wall budget.
