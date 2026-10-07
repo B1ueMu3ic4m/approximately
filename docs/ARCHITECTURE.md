@@ -252,7 +252,9 @@ layer rather than duplicating it:
   `audit` is the exit code for the cron: weeks vs weeks, the
   grades, the triage queue and today's failed arrivals, in one
   markdown page. It invents no analysis — every section delegates
-  to the door that owns it, and an absent section says so.
+  to the door that owns it, and an absent section says so. With
+  `--stores`, one brief covers a fleet, sections ranked worst-first;
+  the brief is also browsable as an MCP resource.
 - **`retention.py`** keeps what postmortem value says to keep:
   successes age out before failures, and the two guards (breach
   evidence, annotated traces) veto every retirement at plan time

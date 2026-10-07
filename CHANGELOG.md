@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.23.0
+
+- the brief is browsable: `digest` joins `grades`/`triage`/`prices` as an MCP resource (text/markdown) - the page the CLI prints, one read, no tool call.
+
 ## v3.22.0
 
 - the fleet digest: `digest --stores a b c` renders one brief over a fleet - the week section stays fleet-level, every store gets its own rollup, sections rank worst-first so the reader starts where it hurts. `--redact` and `--post` hold at fleet scale.
