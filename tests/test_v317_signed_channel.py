@@ -42,6 +42,11 @@ class _Capture(BaseHTTPRequestHandler):
 
 
 def _server():
+    # class-level capture state must not leak between tests: a
+    # slow runner that outruns the race would otherwise assert on
+    # the previous test's request
+    _Capture.body = None
+    _Capture.headers = None
     srv = HTTPServer(("127.0.0.1", 0), _Capture)
     threading.Thread(target=srv.serve_forever,
                      daemon=True).start()
@@ -63,7 +68,7 @@ def test_tail_announces_signed_when_key_is_set(monkeypatch):
     _save(store, "marker", True)  # the seen-set needs a baseline
 
     def later():
-        time.sleep(0.25)
+        time.sleep(0.3)
         _save(store, "doomed run", False)
 
     srv, url = _server()
@@ -71,8 +76,8 @@ def test_tail_announces_signed_when_key_is_set(monkeypatch):
         threading.Thread(target=later, daemon=True).start()
         args = argparse.Namespace(store=store.directory,
                                   webhook=url, once=False,
-                                  json=False, interval=0.1,
-                                  max_passes=6)
+                                  json=False, interval=0.15,
+                                  max_passes=12)
         assert cmd_tail(args) == 0
         body = _Capture.body
         assert body is not None, "the announcement never landed"
@@ -90,7 +95,7 @@ def test_tail_announces_unsigned_without_key(monkeypatch):
     _save(store, "marker", True)
 
     def later():
-        time.sleep(0.25)
+        time.sleep(0.3)
         _save(store, "doomed run", False)
 
     srv, url = _server()
@@ -98,8 +103,8 @@ def test_tail_announces_unsigned_without_key(monkeypatch):
         threading.Thread(target=later, daemon=True).start()
         args = argparse.Namespace(store=store.directory,
                                   webhook=url, once=False,
-                                  json=False, interval=0.1,
-                                  max_passes=6)
+                                  json=False, interval=0.15,
+                                  max_passes=12)
         assert cmd_tail(args) == 0
         assert _Capture.body is not None
         assert "X-Approximately-Signature" not in _Capture.headers

@@ -1132,6 +1132,10 @@
           "subject": {
             "type": "string",
             "description": "grade only this one"
+          },
+          "trend": {
+            "type": "boolean",
+            "description": "week-over-week letter drift per subject"
           }
         }
       }

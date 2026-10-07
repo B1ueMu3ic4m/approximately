@@ -1067,9 +1067,16 @@ def cmd_prices(args: argparse.Namespace) -> int:
 
 def cmd_grade(args: argparse.Namespace) -> int:
     """Letter grades for agents or tools, from evidence on file."""
-    from .grade import grade_store, render_grades
+    from .grade import grade_store, grade_trend, render_grade_trend, render_grades
 
     kind = "tool" if getattr(args, "tool", None) else "agent"
+    if getattr(args, "trend", False):
+        trend = grade_trend(TraceStore(args.store), kind=kind)
+        if getattr(args, "json", False):
+            print(json.dumps(trend, indent=2))
+        else:
+            print(render_grade_trend(trend))
+        return 0
     subject = getattr(args, "tool", None) or getattr(args, "agent",
                                                      None)
     try:
@@ -4103,6 +4110,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="grade only this agent (default: all agents)")
     p.add_argument("--tool", metavar="NAME",
                    help="grade tools instead, only this one")
+    p.add_argument("--trend", action="store_true",
+                   help="week-over-week letter drift per subject "
+                        "(this week vs last)")
     p.add_argument("--json", action="store_true",
                    help="machine-readable grades")
     p.set_defaults(func=cmd_grade)
