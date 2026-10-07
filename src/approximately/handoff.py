@@ -155,3 +155,29 @@ def brief(trace: Trace, store: Any,
     lines.append(f"*Full record: `{store.directory}/{trace.id}.json` "
                  f"— verify with `approximately verify {trace.id}`*")
     return "\n".join(lines)
+
+
+def worklist(store: Any, limit: int = 5,
+             table: Optional[dict] = None) -> str:
+    """The postmortem worklist: one page of briefs for the top of
+    the triage queue — what ``digest`` counts as owed, rendered as
+    the reading material for working it off. Unannotated failures
+    first (the queue's own order), each brief under its trace id;
+    a trace that fails to render becomes its own one-line entry,
+    never a torn page."""
+    from .triage import triage_store
+
+    rows = triage_store(store, unannotated_only=True)[:max(0,
+                                                          int(limit))]
+    if not rows:
+        return ("postmortem worklist: nothing owed — every failed "
+                "run in the window carries an annotation\n")
+    parts = [f"# postmortem worklist — {len(rows)} brief(s)"]
+    for row in rows:
+        trace = store.load(row.trace_id)
+        if trace is None:
+            parts.append(f"\n## {row.trace_id}\n\nunreadable — "
+                         "left for `doctor --fix`\n")
+            continue
+        parts.append("\n" + brief(trace, store, table=table))
+    return "\n".join(parts) + "\n"

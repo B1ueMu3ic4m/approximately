@@ -3827,3 +3827,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        subject, from the trace's own clock. Thin evidence reads
        thin, never a verdict; gone and new name one-sided
        history. MCP flag; schema-only.
+411. **v3.26.0 - the postmortem worklist** (planned):
+     - handoff --queue N: the digest counts what a shift owes;
+       the worklist is the paying - one page of briefs for the
+       top N unannotated failures in the queue's own order.
+       Poison never enters (triage filters upstream); an empty
+       debt says so; --redact holds. trace id now optional on
+       the handoff door.

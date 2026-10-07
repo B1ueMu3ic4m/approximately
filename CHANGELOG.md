@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.26.0
+
+- the postmortem worklist: `handoff --queue N` renders one page of briefs for the top N unannotated failures in the queue's own order - what the digest counts as owed, made readable. Poison never enters; `--redact` holds.
+
 ## v3.25.0
 
 - `grade --trend`: week-over-week letter drift per subject, from the trace's own clock. Thin evidence reads thin, never a verdict; `gone` and `new` name one-sided history. MCP flag, schema-only.
