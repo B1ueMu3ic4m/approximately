@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.14.0
+
+- the digest: `approximately digest` composes week-over-week, grades, triage and today's failed arrivals into one shift-start markdown page (MCP tool `digest`, `--out`, `--json`). It invents no analysis — sections can be absent and say so; an empty store refuses. The tool count moved 47 -> 48 and every pin moved with it.
+
 ## v3.13.0
 
 - repo metadata as code: `meta.py` pins the GitHub About line and topic list; the suite holds both against the shipped surface (350-char budget, the real MCP tool count, GitHub topic grammar, README banner parity). The repo's public face cannot drift from the code that ships it.
