@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.27.0
+
+- fuzz 27: the widening surface - fleet digest, grade trend, since-days and the worklist over hostile stores. The fence invariant gets its sharpest form: no line may OPEN a code fence; backticks inside a collapsed title are literal text.
+
 ## v3.26.0
 
 - the postmortem worklist: `handoff --queue N` renders one page of briefs for the top N unannotated failures in the queue's own order - what the digest counts as owed, made readable. Poison never enters; `--redact` holds.
