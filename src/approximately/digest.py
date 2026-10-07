@@ -113,8 +113,8 @@ def _render_week(week: Optional[dict]) -> List[str]:
 def _render_grades(payload: dict) -> List[str]:
     grades = payload["grades"]
     if not grades:
-        return ["no grades — fewer than the two traces a "
-                "scorecard needs"]
+        return [("no grades — fewer than the two traces a "
+                 "scorecard needs")]
     lines = []
     for g in grades:
         flag = " BELOW FLOOR" if any(
