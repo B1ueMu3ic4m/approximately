@@ -3841,3 +3841,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        only what triage lets through. The fence invariant gets
        its sharpest form yet: no line may OPEN a code fence -
        backticks inside a collapsed title are literal text.
+413. **v3.27.1 - the worklist ladder** (planned):
+     - the Windows lesson again, in triage form: novelty is
+       assigned in arrival order, so near-identical failures
+       saved inside one clock tick tie and their order rolls the
+       dice. The worklist fixture climbs a real time ladder -
+       arrival order is the invariant, not the save order.
