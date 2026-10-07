@@ -3816,3 +3816,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        say so): Monday mornings read the weekend. The triage
        queue keeps its own clock - a failure outside the window
        never disappears from the queue.
+409. **v3.24.1 - the banner catches up** (planned):
+     - the README v3 banner names what the loop now is (digest
+       with fleet briefs / signed post / redact, retention,
+       browsable brief) and counts honestly: 2,000+ tests, the
+       30-gate wall. Docs-only patch.
