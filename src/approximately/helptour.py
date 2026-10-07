@@ -47,6 +47,7 @@ TOUR: Dict[str, tuple] = {
         ("grade", "letter grades for agents and tools"),
         ("handoff", "one markdown brief for the next engineer"),
         ("digest", "shift-start brief: weeks, grades, triage, arrivals"),
+        ("retention", "value-weighted keep/retire plan; dry run by default"),
         ("redact", "sanitized share-copy of a trace"),
         ("prices", "the store's price catalog"),
         ("annotate", "attach an analyst note"),
@@ -76,7 +77,7 @@ TOUR: Dict[str, tuple] = {
         ("changelog", "generate CHANGELOG from docs/PLAN.md"),
     ]),
     "integrate": ("move data in and out", [
-        ("mcp", "serve the toolkit over MCP (48 tools)"),
+        ("mcp", "serve the toolkit over MCP (49 tools)"),
         ("export", "export traces to CSV/SARIF"),
         ("import", "import foreign transcripts"),
         ("export-dataset", "labeled benchmark JSONL out"),

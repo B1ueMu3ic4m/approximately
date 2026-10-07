@@ -1,5 +1,5 @@
 {
-  "count": 48,
+  "count": 49,
   "tools": [
     {
       "name": "list_traces",
@@ -1228,6 +1228,29 @@
             "description": "flag grades below this letter"
           }
         }
+      }
+    },
+    {
+      "name": "retention",
+      "description": "The value-weighted retention plan: successes age out on keep_days, failures (and unknown-outcome runs) on failure_days; breach evidence and annotated traces never retire. Plan only \u2014 the deleting lives in the CLI (`approximately retention --apply`).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "keep_days": {
+            "type": "number",
+            "description": "successes older than this retire"
+          },
+          "failure_days": {
+            "type": "number",
+            "description": "failures get their own clock (default = keep_days)"
+          }
+        },
+        "required": [
+          "keep_days"
+        ]
       }
     }
   ]

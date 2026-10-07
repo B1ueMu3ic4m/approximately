@@ -1151,6 +1151,30 @@ _TOOLS: List[Dict[str, Any]] = [
             },
         },
     },
+    {
+        "name": "retention",
+        "description": "The value-weighted retention plan: "
+                       "successes age out on keep_days, failures "
+                       "(and unknown-outcome runs) on failure_days; "
+                       "breach evidence and annotated traces never "
+                       "retire. Plan only — the deleting lives in "
+                       "the CLI (`approximately retention "
+                       "--apply`).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "keep_days": {"type": "number",
+                              "description": "successes older than "
+                                             "this retire"},
+                "failure_days": {"type": "number",
+                                 "description": "failures get their "
+                                                "own clock (default = "
+                                                "keep_days)"},
+            },
+            "required": ["keep_days"],
+        },
+    },
 ]
 
 
@@ -2377,6 +2401,19 @@ def _tool_digest(ctx: ServerContext, args: Dict[str, Any]) -> dict:
         grade_floor=args.get("grade_floor"))
 
 
+def _tool_retention(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .retention import retention_plan
+
+    keep = args.get("keep_days")
+    if keep is None:
+        raise KeyError("retention needs keep_days")
+    f_days = args.get("failure_days")
+    return retention_plan(_store(ctx, args), keep_days=int(keep),
+                          failure_days=(int(f_days)
+                                        if f_days is not None
+                                        else None))
+
+
 _HANDLERS = {
     "list_traces": _tool_list_traces,
     "attribute": _tool_attribute,
@@ -2426,6 +2463,7 @@ _HANDLERS = {
     "snapshot": _tool_snapshot,
     "tail": _tool_tail,
     "digest": _tool_digest,
+    "retention": _tool_retention,
 }
 
 

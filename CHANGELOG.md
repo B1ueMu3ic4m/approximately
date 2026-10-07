@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.15.0
+
+- value-weighted retention: `approximately retention` plans what postmortem value says to keep - successes age out first, failures (and unknown outcomes) stay longer, breach evidence and annotated traces never retire, checked at plan time *and* apply time. Dry run by default; `--apply` deletes. The MCP door is plan-only.
+
 ## v3.14.0
 
 - the digest: `approximately digest` composes week-over-week, grades, triage and today's failed arrivals into one shift-start markdown page (MCP tool `digest`, `--out`, `--json`). It invents no analysis — sections can be absent and say so; an empty store refuses. The tool count moved 47 -> 48 and every pin moved with it.
