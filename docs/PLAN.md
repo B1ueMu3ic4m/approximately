@@ -3778,3 +3778,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        holding could ride the shift brief out of the machine.
        --redact scrubs payload and page through the builtin
        patterns; redact_text/redact_value make the scrub public.
+402. **v3.18.1 - the security ledger catches up** (planned):
+     - SECURITY.md gains the three rows the v3.17/v3.18 work
+       earned: digest delivery's exfiltration surface (and the
+       --redact answer), the signed-announcement channel (and
+       the v3.17.0 kept promise), and retention's plan/apply
+       double guard. Docs-only patch.

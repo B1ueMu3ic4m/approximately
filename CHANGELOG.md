@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.18.1
+
+- the security ledger catches up: SECURITY.md rows for digest delivery's exfiltration surface (--redact is the answer), the signed-announcement channel (the v3.17.0 kept promise), and retention's plan/apply double guard. Docs-only patch.
+
 ## v3.18.0
 
 - the digest holds the handoff's redaction rule: `--redact` scrubs the payload and the page through the builtin secret patterns before rendering or posting - a secret an agent was holding can no longer ride the shift brief out of the machine. `redact_text`/`redact_value` are public now.
