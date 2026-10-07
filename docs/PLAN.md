@@ -3796,3 +3796,7 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        Whitespace-collapse is pinned as the anti-injection
        defense: no fence, no header line can be smuggled into
        the shift brief. redact->digest->retention chained.
+405. **v3.21.0 - TUTORIAL 14: the shift brief** (planned):
+     - the digest chapter: reading the page top-down, --post's
+       signed channel, the --redact rule, postmortems owed, and
+       retention's windows and double guard. Docs-only.

@@ -187,6 +187,52 @@ document.  Or let it happen on its own: `approximately spool --dir
 ~/spool` watches a directory (recipe 18), and `doctor --spool`
 tells you when a file needs a human.
 
+
+## 14. The shift brief: digest, retention and the redaction rule
+
+The audit is the cron's door (one exit code). The **digest** is
+yours — one markdown page at shift start:
+
+```bash
+approximately digest --digest-dir d --grade-floor B   --triage-top 5 --out brief.md
+```
+
+The page reads top-down: this week vs last (traces, failures, spend),
+the letter grades with anything below the floor flagged, the triage
+queue with its score parts, and today's failed arrivals. Sections
+that have nothing to say say so — an absent section is a finding,
+never a blank. `--json` gives the same brief to a program.
+
+Two rules keep the brief safe to share:
+
+- `--post URL` delivers the page through the fleet's signed webhook
+  channel (HMAC when `APPROXIMATELY_SIGNING_KEY` is set) — the same
+  channel the tail announces failures on.
+- `--redact` scrubs the page through the builtin secret patterns
+  before rendering or posting. The handoff never shares unscrubbed;
+  neither does the brief.
+
+Postmortems are the loop's currency, so the brief counts what a
+shift still owes: **postmortems owed** — failures in the window no
+human has annotated yet. Work them top-down with `triage
+--unannotated-only`, and close each with `annotate`.
+
+Storage grows; evidence must not rot with it. **retention** keeps
+what postmortem value says to keep:
+
+```bash
+approximately retention --keep-days 14 --failure-days 90  # plan
+approximately retention --keep-days 14 --failure-days 90 --apply
+```
+
+Successes age out after two weeks; failures (and runs whose outcome
+was never recorded) live for ninety days. Two guards veto every
+retirement — breach evidence and annotated traces — checked when the
+plan is printed and again when `--apply` deletes, because a plan is
+a snapshot and the store moves on. Unreadable files are never
+touched here; poison is `doctor --fix`'s job. The MCP door is
+plan-only: deleting stays an explicit act in a shell.
+
 ## Where to go next
 
 - Capabilities overview: [README](../README.md#the-capabilities-at-a-glance)
