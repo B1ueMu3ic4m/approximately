@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.24.1
+
+- the banner catches up: the README v3 block names the loop as it now is (digest with fleet briefs, signed `--post`, `--redact`; value-weighted retention; the browsable brief) and counts honestly - 2,000+ tests, the 30-gate wall. Docs-only patch.
+
 ## v3.24.0
 
 - the arrival window: `digest --since-days N` widens the arrivals section and labels it - Monday mornings read the weekend. The triage queue keeps its own clock.
