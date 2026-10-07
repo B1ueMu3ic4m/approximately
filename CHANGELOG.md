@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.17.0
+
+- the signed batch: `tail --webhook`'s help promised HMAC signing when APPROXIMATELY_SIGNING_KEY is set - nothing read the variable, so announcements travelled unsigned. The promise is kept, `digest --post` delivers the brief through the same signed channel, and the digest counts the postmortems a shift still owes.
+
 ## v3.16.0
 
 - the docs audit: README and tutorial claims held to code - the 14 classified MAST modes behind the banner, the 3 categories, the 7 framework adapters, the tutorial's operations-night commands against the registered doors, ARCHITECTURE's module names against the tree. One drift found and fixed: the ops-loop section predated digest and retention.

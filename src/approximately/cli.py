@@ -1192,9 +1192,15 @@ def cmd_tail(args: argparse.Namespace) -> int:
         return 0
     hook = None
     if url:
-        from .fleet import notify_webhook
+        from functools import partial
 
-        hook = notify_webhook
+        from .fleet import notify_webhook
+        from .integrity import load_key
+
+        # the help promises the fleet's signed channel; this is
+        # where the promise is kept (key file or
+        # APPROXIMATELY_SIGNING_KEY, same as every other poster)
+        hook = partial(notify_webhook, signing_key=load_key())
     for line in tail(store, once=bool(args.once),
                      interval=float(args.interval),
                      max_passes=args.max_passes,
@@ -2839,6 +2845,11 @@ def cmd_digest(args: argparse.Namespace) -> int:
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
+    post = getattr(args, "post", None)
+    if post and getattr(args, "json", False):
+        print("error: --post needs the markdown page (drop --json)",
+              file=sys.stderr)
+        return 2
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2))
         return 0
@@ -2848,6 +2859,24 @@ def cmd_digest(args: argparse.Namespace) -> int:
         Path(out).write_text(page, encoding="utf-8")
     else:
         print(page, end="")
+    if not post:
+        return 0
+    from .fleet import notify_webhook
+    from .integrity import load_key
+
+    try:
+        status = notify_webhook(
+            [], post,
+            signing_key=load_key(),
+            payload={"kind": "ops_digest",
+                     "store": payload["store"],
+                     "generated": payload["generated"],
+                     "markdown": page})
+    except RuntimeError as exc:
+        print(f"error: digest delivery failed: {exc}",
+              file=sys.stderr)
+        return 1
+    print(f"posted: HTTP {status}")
     return 0
 
 
@@ -4591,6 +4620,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--out", metavar="PATH",
                    help="write the markdown page here ('-' = "
                         "stdout, the default)")
+    p.add_argument("--post", metavar="URL",
+                   help="also POST the brief to this URL through "
+                        "the fleet's signed webhook channel "
+                        "(HMAC-signed when APPROXIMATELY_SIGNING_KEY "
+                        "is set)")
     p.set_defaults(func=cmd_digest)
 
     p = sub.add_parser("retention", parents=[common],
