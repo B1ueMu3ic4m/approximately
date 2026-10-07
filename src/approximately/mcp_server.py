@@ -1148,6 +1148,10 @@ _TOOLS: List[Dict[str, Any]] = [
                 "grade_floor": {"type": "string",
                                 "description": "flag grades below "
                                                "this letter"},
+                "redact": {"type": "boolean",
+                           "description": "scrub the payload "
+                                          "through the builtin "
+                                          "secret patterns"},
             },
         },
     },
@@ -2394,11 +2398,16 @@ def _tool_digest(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .digest import build_digest
 
     store = _store(ctx, args)
-    return build_digest(
+    payload = build_digest(
         store,
         digest_dir=args.get("digest_dir"),
         triage_top=int(args.get("triage_top", 5)),
         grade_floor=args.get("grade_floor"))
+    if args.get("redact"):
+        from .redact import redact_value
+
+        payload, _hits = redact_value(payload)
+    return payload
 
 
 def _tool_retention(ctx: ServerContext, args: Dict[str, Any]) -> dict:
