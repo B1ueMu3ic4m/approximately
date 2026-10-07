@@ -126,8 +126,8 @@ def _render_grades(payload: dict) -> List[str]:
 
 def _render_triage(payload: dict) -> List[str]:
     if not payload["triage"]:
-        return ["nothing to triage — no failed traces in the "
-                "window"]
+        return [("nothing to triage — no failed traces in the "
+                 "window")]
     lines = []
     for r in payload["triage"]:
         task = " ".join(str(r.get("task") or "").split())[:48]
@@ -153,7 +153,7 @@ def render_markdown(payload: dict) -> str:
              f"generated {payload['generated']}", "",
              "## this week vs last"]
     lines += _render_week(payload["week"])
-    lines += ["", "## grades"] + _render_grades(payload)
-    lines += ["", "## triage queue"] + _render_triage(payload)
-    lines += ["", "## today's arrivals"] + _render_arrivals(payload)
+    lines += ["", "## grades", *_render_grades(payload)]
+    lines += ["", "## triage queue", *_render_triage(payload)]
+    lines += ["", "## today's arrivals", *_render_arrivals(payload)]
     return "\n".join(lines) + "\n"

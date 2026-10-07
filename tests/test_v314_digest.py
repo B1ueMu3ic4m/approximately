@@ -10,7 +10,6 @@ unknown grade floor is the audit door's refusal shape (exit 2).
 import argparse
 import json
 import tempfile
-from pathlib import Path
 
 import pytest
 
