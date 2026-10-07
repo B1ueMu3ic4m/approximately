@@ -3806,3 +3806,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        arrivals rollup, sections ranked worst-first (today's
        failure rate leads). --redact and --post hold at fleet
        scale.
+407. **v3.23.0 - the brief is browsable** (planned):
+     - digest joins grades/triage/prices as an MCP resource
+       (text/markdown): the page the CLI prints, one read, no
+       tool call. TUTORIAL and ARCHITECTURE say so; the fleet
+       row lands beside it.

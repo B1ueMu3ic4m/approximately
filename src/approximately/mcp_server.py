@@ -2546,6 +2546,13 @@ def _resources(ctx: ServerContext) -> List[dict]:
         "mimeType": "application/json",
         "description": "failed runs ranked by postmortem value",
     }, {
+        "uri": f"approximately://{store.directory}/digest",
+        "name": "digest",
+        "mimeType": "text/markdown",
+        "description": "the shift-start brief: weeks vs weeks, "
+                       "grades, triage queue, today's arrivals - "
+                       "the page the CLI prints, browsable here",
+    }, {
         "uri": f"approximately://{store.directory}/prices.json",
         "name": "prices",
         "mimeType": "application/json",
@@ -2583,6 +2590,11 @@ def _resources_read(msg: Dict[str, Any], ctx: Any,
         text, mime = _read_grades_resource(store)
     elif rest == f"{store.directory}/triage":
         text, mime = _read_triage_resource(store)
+    elif rest == f"{store.directory}/digest":
+        from .digest import build_digest, render_markdown
+
+        text = render_markdown(build_digest(store))
+        mime = "text/markdown"
     elif rest == f"{store.directory}/prices.json":
         text, mime = _read_prices_resource(store)
     elif rest == f"{store.directory}/stats.json":
