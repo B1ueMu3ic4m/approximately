@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.27.1
+
+- the worklist ladder: novelty is assigned in arrival order, so near-identical failures saved inside one clock tick tie and their order rolls the dice on coarse clocks. The fixture climbs a real time ladder now. Test-only patch.
+
 ## v3.27.0
 
 - fuzz 27: the widening surface - fleet digest, grade trend, since-days and the worklist over hostile stores. The fence invariant gets its sharpest form: no line may OPEN a code fence; backticks inside a collapsed title are literal text.

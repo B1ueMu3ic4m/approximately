@@ -11,6 +11,7 @@ import argparse
 import contextlib
 import io
 import tempfile
+import time
 
 from approximately.cli import cmd_handoff
 from approximately.handoff import worklist
@@ -18,21 +19,24 @@ from approximately.store import TraceStore
 from approximately.trace import Step, Trace
 
 
-def _trace(store, task, agent="bot", tokens=5):
+def _trace(store, task, agent="bot", tokens=5, age_days=0.0):
     t = Trace(task=task, model="m")
     t.add(Step(kind="tool_call", tool="sh", result="x", tokens=tokens,
                agent=agent))
     t.success = False
+    if age_days:
+        t.created_at = time.time() - age_days * 86400.0
     store.save(t)
     return t
 
 
 def _store(n=3):
-    # descending tokens make the triage order deterministic:
-    # near-identical failures may tie on Windows' coarse clock
+    # a real time ladder makes the triage order deterministic:
+    # novelty is assigned in arrival order and recency rides the
+    # same clock — coarser clocks (Windows) tie otherwise
     store = TraceStore(tempfile.mkdtemp())
-    traces = [_trace(store, f"failure {i}",
-                     tokens=100 - i * 30) for i in range(n)]
+    traces = [_trace(store, f"failure {i}", tokens=100 - i * 30,
+                     age_days=i * 0.5) for i in range(n)]
     ok = Trace(task="fine", model="m")
     ok.add(Step(kind="tool_call", tool="sh", result="x", tokens=5))
     ok.success = True
