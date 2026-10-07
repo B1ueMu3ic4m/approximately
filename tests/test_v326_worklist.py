@@ -18,9 +18,9 @@ from approximately.store import TraceStore
 from approximately.trace import Step, Trace
 
 
-def _trace(store, task, agent="bot"):
+def _trace(store, task, agent="bot", tokens=5):
     t = Trace(task=task, model="m")
-    t.add(Step(kind="tool_call", tool="sh", result="x", tokens=5,
+    t.add(Step(kind="tool_call", tool="sh", result="x", tokens=tokens,
                agent=agent))
     t.success = False
     store.save(t)
@@ -28,8 +28,11 @@ def _trace(store, task, agent="bot"):
 
 
 def _store(n=3):
+    # descending tokens make the triage order deterministic:
+    # near-identical failures may tie on Windows' coarse clock
     store = TraceStore(tempfile.mkdtemp())
-    traces = [_trace(store, f"failure {i}") for i in range(n)]
+    traces = [_trace(store, f"failure {i}",
+                     tokens=100 - i * 30) for i in range(n)]
     ok = Trace(task="fine", model="m")
     ok.add(Step(kind="tool_call", tool="sh", result="x", tokens=5))
     ok.success = True
