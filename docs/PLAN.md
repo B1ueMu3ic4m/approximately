@@ -3762,3 +3762,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        ARCHITECTURE's module names against the tree. Found and
        fixed one drift: the ops-loop section predated digest and
        retention.
+400. **v3.17.0 - the signed batch** (planned):
+     - the audit that found a real bug: tail --webhook's help
+       promised HMAC signing when APPROXIMATELY_SIGNING_KEY is
+       set, and nothing read the variable - announcements
+       travelled unsigned. The promise is kept (load_key, the
+       same channel as fleet and spool); digest --post delivers
+       the brief signed; the digest counts postmortems owed
+       (failed, unannotated) beside the queue.

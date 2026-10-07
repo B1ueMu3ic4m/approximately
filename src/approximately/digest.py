@@ -75,6 +75,7 @@ def build_digest(store: Any,
     from .triage import triage_store
 
     ref = today or _dt.date.today()
+    queue = triage_store(store)
     payload: Dict[str, Any] = {
         "store": str(store.directory),
         "generated": _dt.datetime.now().isoformat(timespec="seconds"),
@@ -83,7 +84,8 @@ def build_digest(store: Any,
         "grade_kind": "agent",
         "below_floor": [],
         "triage": [r.to_dict() for r in
-                   triage_store(store)[:max(0, int(triage_top))]],
+                   queue[:max(0, int(triage_top))]],
+        "briefs_due": sum(1 for r in queue if not r.annotated),
         "arrivals": _arrival_section(store, ref),
     }
     _grade_section(store, grade_floor, payload)
@@ -133,6 +135,9 @@ def _render_triage(payload: dict) -> List[str]:
         task = " ".join(str(r.get("task") or "").split())[:48]
         lines.append(f"- {r['mode']} {r['trace_id']} "
                      f"score {r['score']} — {task}")
+    owed = payload.get("briefs_due", 0)
+    lines.append(f"- postmortems owed: {owed} failure(s) in the "
+                 "window without an annotation")
     return lines
 
 
