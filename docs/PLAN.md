@@ -3834,3 +3834,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        Poison never enters (triage filters upstream); an empty
        debt says so; --redact holds. trace id now optional on
        the handoff door.
+412. **v3.27.0 - fuzz 27: the widening surface** (planned):
+     - fleet digest ranks poisoned stores without crashing; the
+       trend reads future and ancient clocks; the widened
+       arrival window counts sparse stores; the worklist renders
+       only what triage lets through. The fence invariant gets
+       its sharpest form yet: no line may OPEN a code fence -
+       backticks inside a collapsed title are literal text.
