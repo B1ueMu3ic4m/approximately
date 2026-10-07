@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.19.0
+
+- the wall grows with the surface: `retention_gate` #30 times plan and apply over an aged 2k store (1500 past the window, 500 inside theirs) - the retirement path is budgeted like every other door, local x100.
+
 ## v3.18.1
 
 - the security ledger catches up: SECURITY.md rows for digest delivery's exfiltration surface (--redact is the answer), the signed-announcement channel (the v3.17.0 kept promise), and retention's plan/apply double guard. Docs-only patch.

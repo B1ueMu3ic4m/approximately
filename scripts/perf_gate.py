@@ -41,7 +41,8 @@ def main() -> int:
             + evidence_gate() + compare_gate() + budget_gate()
             + junit_gate() + quarantine_gate() + result_meter_gate()
             + composition_gate() + failure_budget_gate()
-            + tail_gate() + startup_gate() + complexity_gate())
+            + tail_gate() + startup_gate() + complexity_gate()
+            + retention_gate())
 
 def fleet_anomaly_gate(budget_s: float = 10.0) -> int:
     """Per-tool fleet baselines over a 10k-trace store.
@@ -875,6 +876,55 @@ def clean_gate(budget_s: float = 15.0) -> int:
           + ("PASS" if elapsed <= budget_s else "FAIL"))
     if elapsed > budget_s:
         print("FAIL: clean slowed past budget", file=sys.stderr)
+        return 1
+    return 0
+
+
+
+def retention_gate(budget_s: float = 30.0) -> int:
+    """Value-weighted retention over an aged 2k store: the plan
+    must stay one-load-per-file (n, not n*log n or worse), and the
+    apply path must not re-derive the world. Ages make the retire
+    classification real: 1500 successes past the window, 500
+    failures inside theirs."""
+    import tempfile
+    from pathlib import Path as _Path
+
+    from approximately.recorder import Recorder
+    from approximately.retention import apply_plan, retention_plan
+    from approximately.store import TraceStore
+
+    with tempfile.TemporaryDirectory() as tmp:
+        store = TraceStore(_Path(tmp) / "s")
+        old = time.time() - 40 * 86400
+        for i in range(2_000):
+            rec = Recorder(f"run {i}", save=False)
+            rec.tool("deploy", {}, result="ok")
+            rec.respond("done", success=(i % 4 != 0))
+            rec.trace.created_at = old
+            store.save(rec.trace)
+        start = time.perf_counter()
+        plan = retention_plan(store, keep_days=30, failure_days=90)
+        planned = time.perf_counter() - start
+        if len(plan["retire"]) != 1500:
+            print("FAIL: retention gate classified the wrong set "
+                  f"({len(plan['retire'])} retire)",
+                  file=sys.stderr)
+            return 1
+        start = time.perf_counter()
+        removed = apply_plan(store, plan)
+        applied = time.perf_counter() - start
+        elapsed = planned + applied
+        if removed != 1500:
+            print("FAIL: retention gate removed the wrong count",
+                  file=sys.stderr)
+            return 1
+    print(f"perf-gate[retention]: plan {planned * 1000:.0f}ms + "
+          f"apply {applied * 1000:.0f}ms over 2k traces "
+          f"(budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: retention slowed past budget", file=sys.stderr)
         return 1
     return 0
 
