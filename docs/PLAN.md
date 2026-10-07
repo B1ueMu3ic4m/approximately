@@ -3754,3 +3754,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        at plan time AND apply time. Plan is the default; --apply
        deletes. Poison is never touched (doctor's job). MCP tool
        49 is plan-only; the deleting stays CLI.
+399. **v3.16.0 - the docs audit** (planned):
+     - README and tutorial claims become testable facts: the 14
+       classified MAST modes (+ OTHER) behind the banner, the 3
+       categories, the 7 framework adapters, the tutorial's
+       operations-night commands against the registered doors,
+       ARCHITECTURE's module names against the tree. Found and
+       fixed one drift: the ops-loop section predated digest and
+       retention.
