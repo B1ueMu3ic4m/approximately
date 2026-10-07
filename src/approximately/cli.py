@@ -2824,43 +2824,8 @@ def _audit_digest(args: argparse.Namespace, report: dict) -> None:
         report["week"] = week_compare(trend["days"])
 
 
-def cmd_digest(args: argparse.Namespace) -> int:
-    """The shift-start brief: weeks vs weeks, the grades, the triage
-    queue and today's failed arrivals in one markdown page — what
-    the on-call human reads where audit's exit code is for the
-    cron. Empty store or unknown floor is a refusal (exit 2)."""
-    from .digest import build_digest, render_markdown
-
-    store = TraceStore(Path(args.store))
-    if not store.list_traces():
-        print(f"error: store {args.store} is empty: a digest of "
-              "nothing briefs no one", file=sys.stderr)
-        return 2
-    try:
-        payload = build_digest(
-            store,
-            digest_dir=getattr(args, "digest_dir", None),
-            triage_top=getattr(args, "triage_top", 5),
-            grade_floor=getattr(args, "grade_floor", None))
-    except ValueError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 2
-    post = getattr(args, "post", None)
-    if post and getattr(args, "json", False):
-        print("error: --post needs the markdown page (drop --json)",
-              file=sys.stderr)
-        return 2
-    if getattr(args, "json", False):
-        print(json.dumps(payload, indent=2))
-        return 0
-    page = render_markdown(payload)
-    out = getattr(args, "out", None)
-    if out and out != "-":
-        Path(out).write_text(page, encoding="utf-8")
-    else:
-        print(page, end="")
-    if not post:
-        return 0
+def _digest_post(post: str, payload: dict, page: str) -> int:
+    """Deliver the page through the fleet's signed channel."""
     from .fleet import notify_webhook
     from .integrity import load_key
 
@@ -2878,6 +2843,63 @@ def cmd_digest(args: argparse.Namespace) -> int:
         return 1
     print(f"posted: HTTP {status}")
     return 0
+
+
+def _digest_emit(args: argparse.Namespace, payload: dict) -> int:
+    """Scrub, render and deliver: --json prints the payload,
+    otherwise the markdown page goes to --out/stdout and --post."""
+    from .digest import render_markdown
+
+    post = getattr(args, "post", None)
+    if post and getattr(args, "json", False):
+        print("error: --post needs the markdown page (drop --json)",
+              file=sys.stderr)
+        return 2
+    redact = bool(getattr(args, "redact", False))
+    if redact and getattr(args, "json", False):
+        from .redact import redact_value
+
+        payload, _hits = redact_value(payload)
+    if getattr(args, "json", False):
+        print(json.dumps(payload, indent=2))
+        return 0
+    page = render_markdown(payload)
+    if redact:
+        from .redact import redact_text
+
+        page, _hits = redact_text(page)
+    out = getattr(args, "out", None)
+    if out and out != "-":
+        Path(out).write_text(page, encoding="utf-8")
+    else:
+        print(page, end="")
+    if not post:
+        return 0
+    return _digest_post(post, payload, page)
+
+
+def cmd_digest(args: argparse.Namespace) -> int:
+    """The shift-start brief: weeks vs weeks, the grades, the triage
+    queue and today's failed arrivals in one markdown page — what
+    the on-call human reads where audit's exit code is for the
+    cron. Empty store or unknown floor is a refusal (exit 2)."""
+    from .digest import build_digest
+
+    store = TraceStore(Path(args.store))
+    if not store.list_traces():
+        print(f"error: store {args.store} is empty: a digest of "
+              "nothing briefs no one", file=sys.stderr)
+        return 2
+    try:
+        payload = build_digest(
+            store,
+            digest_dir=getattr(args, "digest_dir", None),
+            triage_top=getattr(args, "triage_top", 5),
+            grade_floor=getattr(args, "grade_floor", None))
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    return _digest_emit(args, payload)
 
 
 def _print_retention_plan(plan: dict, applied: bool) -> None:
@@ -4625,6 +4647,10 @@ def build_parser() -> argparse.ArgumentParser:
                         "the fleet's signed webhook channel "
                         "(HMAC-signed when APPROXIMATELY_SIGNING_KEY "
                         "is set)")
+    p.add_argument("--redact", action="store_true",
+                   help="scrub the page through the builtin secret "
+                        "patterns before rendering or posting (the "
+                        "handoff's rule, kept here too)")
     p.set_defaults(func=cmd_digest)
 
     p = sub.add_parser("retention", parents=[common],

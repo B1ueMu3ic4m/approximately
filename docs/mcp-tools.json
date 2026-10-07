@@ -1226,6 +1226,10 @@
           "grade_floor": {
             "type": "string",
             "description": "flag grades below this letter"
+          },
+          "redact": {
+            "type": "boolean",
+            "description": "scrub the payload through the builtin secret patterns"
           }
         }
       }

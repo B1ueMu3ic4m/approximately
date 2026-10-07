@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.18.0
+
+- the digest holds the handoff's redaction rule: `--redact` scrubs the payload and the page through the builtin secret patterns before rendering or posting - a secret an agent was holding can no longer ride the shift brief out of the machine. `redact_text`/`redact_value` are public now.
+
 ## v3.17.0
 
 - the signed batch: `tail --webhook`'s help promised HMAC signing when APPROXIMATELY_SIGNING_KEY is set - nothing read the variable, so announcements travelled unsigned. The promise is kept, `digest --post` delivers the brief through the same signed channel, and the digest counts the postmortems a shift still owes.

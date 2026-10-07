@@ -114,6 +114,30 @@ def _scrub_value(value: Any, table: Dict[str, Pattern[str]],
     return value
 
 
+def redact_text(text: str,
+                table: Optional[Dict[str, Pattern[str]]] = None,
+                fmt: str = REDACTED_FMT) -> Tuple[str, Dict[str, int]]:
+    """Scrub a free-text blob (a rendered page, a message body).
+    Returns the scrubbed text and the per-pattern hit counts, so a
+    caller can *say* what it removed instead of staying silent."""
+    if table is None:
+        table = BUILTIN_PATTERNS
+    hits: Dict[str, int] = {}
+    return _scrub(text, table, hits, fmt), hits
+
+
+def redact_value(value: Any,
+                 table: Optional[Dict[str, Pattern[str]]] = None,
+                 fmt: str = REDACTED_FMT) -> Tuple[Any, Dict[str, int]]:
+    """The recursive shape of :func:`redact_text` — scrub every
+    string in a JSON-ish structure (a digest payload, a webhook
+    body). Keys are never rewritten (see :func:`_scrub_value`)."""
+    if table is None:
+        table = BUILTIN_PATTERNS
+    hits: Dict[str, int] = {}
+    return _scrub_value(value, table, hits, fmt), hits
+
+
 def redact_trace(
     trace: Trace,
     table: Optional[Dict[str, Pattern[str]]] = None,

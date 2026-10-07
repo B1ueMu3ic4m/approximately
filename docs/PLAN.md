@@ -3770,3 +3770,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        same channel as fleet and spool); digest --post delivers
        the brief signed; the digest counts postmortems owed
        (failed, unannotated) beside the queue.
+401. **v3.18.0 - the digest holds the handoff's redaction rule**
+     (planned):
+     - the security sweep found it: the handoff never shares
+       unscrubbed, but the digest named tasks verbatim and
+       --post shipped them to a webhook - a secret an agent was
+       holding could ride the shift brief out of the machine.
+       --redact scrubs payload and page through the builtin
+       patterns; redact_text/redact_value make the scrub public.
