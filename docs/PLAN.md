@@ -3789,3 +3789,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        ages making the retire classification real (1500 past the
        window, 500 inside theirs); budgets sized local x100 like
        every other gate. A new door earns its wall budget.
+404. **v3.20.0 - fuzz 26: poison in the new doors** (planned):
+     - the chain contract for the night's surfaces: digest and
+       retention and redact over hostile stores (null bytes,
+       hostile markdown, negative epochs, unreadable files).
+       Whitespace-collapse is pinned as the anti-injection
+       defense: no fence, no header line can be smuggled into
+       the shift brief. redact->digest->retention chained.

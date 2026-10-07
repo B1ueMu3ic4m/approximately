@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.20.0
+
+- fuzz 26: poison in the new doors - digest, retention and redact over hostile stores. Whitespace-collapse is pinned as the anti-injection defense: no fence and no header line can be smuggled into the shift brief; negative epochs and unreadable files classify and survive; the redact->digest->retention chain runs clean.
+
 ## v3.19.0
 
 - the wall grows with the surface: `retention_gate` #30 times plan and apply over an aged 2k store (1500 past the window, 500 inside theirs) - the retirement path is budgeted like every other door, local x100.
