@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.16.0
+
+- the docs audit: README and tutorial claims held to code - the 14 classified MAST modes behind the banner, the 3 categories, the 7 framework adapters, the tutorial's operations-night commands against the registered doors, ARCHITECTURE's module names against the tree. One drift found and fixed: the ops-loop section predated digest and retention.
+
 ## v3.15.0
 
 - value-weighted retention: `approximately retention` plans what postmortem value says to keep - successes age out first, failures (and unknown outcomes) stay longer, breach evidence and annotated traces never retire, checked at plan time *and* apply time. Dry run by default; `--apply` deletes. The MCP door is plan-only.

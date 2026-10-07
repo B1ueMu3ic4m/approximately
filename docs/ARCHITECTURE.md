@@ -248,6 +248,16 @@ layer rather than duplicating it:
   directions).
 - **`week_compare`** (fleet) is the retrospective half of the
   audit: this ISO week vs last over the digest's day-rows.
+- **`digest.py`** is the shift-start brief for the human where
+  `audit` is the exit code for the cron: weeks vs weeks, the
+  grades, the triage queue and today's failed arrivals, in one
+  markdown page. It invents no analysis — every section delegates
+  to the door that owns it, and an absent section says so.
+- **`retention.py`** keeps what postmortem value says to keep:
+  successes age out before failures, and the two guards (breach
+  evidence, annotated traces) veto every retirement at plan time
+  and again at apply time. The plan is the default; deleting is
+  explicit, and poison is `doctor`'s job, never retention's.
 
 ## Invariants worth keeping
 
