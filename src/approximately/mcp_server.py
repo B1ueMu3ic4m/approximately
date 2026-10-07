@@ -1056,6 +1056,9 @@ _TOOLS: List[Dict[str, Any]] = [
                          "description": "default agent"},
                 "subject": {"type": "string",
                             "description": "grade only this one"},
+                "trend": {"type": "boolean",
+                          "description": "week-over-week letter "
+                                         "drift per subject"},
             },
         },
     },
@@ -2219,6 +2222,10 @@ def _tool_grade(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     kind = str(args.get("kind") or "agent")
     if kind not in ("agent", "tool"):
         raise KeyError("kind must be agent or tool")
+    if args.get("trend"):
+        from .grade import grade_trend
+
+        return grade_trend(_store(ctx, args), kind=kind)
     try:
         rows, kind = grade_store(_store(ctx, args), kind=kind,
                                  subject=args.get("subject"))

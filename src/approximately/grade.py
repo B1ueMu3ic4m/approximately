@@ -166,3 +166,75 @@ def grade_store(store: Any, kind: str = "agent",
         if not cards:
             raise KeyError(f"no {kind} {subject!r} in the window")
     return grade_cards(cards), kind
+
+
+def _week_letters(window: List[Any], key: str, kind: str
+                  ) -> Dict[str, str]:
+    """Subject -> letter for one week's traces."""
+    from .cluster import agent_scorecard, tool_scorecard
+
+    cards = (tool_scorecard(window) if kind == "tool"
+             else agent_scorecard(window))
+    return {c[key]: g["grade"] for c, g in
+            zip(cards, grade_cards(cards), strict=False)}
+
+
+def _drift(cur: Optional[str], prev: Optional[str]) -> str:
+    """Direction for one subject's letter pair; thin evidence is
+    named, never graded."""
+    if cur is None:
+        return "gone"
+    if prev is None:
+        return "new"
+    if "n/a" in (cur, prev):
+        return "thin"
+    d = _GRADE_POINTS[cur] - _GRADE_POINTS[prev]
+    return "improved" if d > 0 else "slipped" if d < 0 else "flat"
+
+
+def grade_trend(store: Any, kind: str = "agent",
+                now: Optional[float] = None) -> Dict[str, Any]:
+    """Week-over-week letter drift per subject: this week's grade
+    vs last week's, from the trace's own clock (last 7 days vs the
+    7 before). ``n/a`` on either side is thin evidence, not a
+    verdict: the row reports both letters and no direction. A
+    subject on file only last week reads ``gone``; only this week,
+    ``new``."""
+    import time
+
+    from .trace import coerce_epoch
+
+    now = now if now is not None else time.time()
+    week = 7 * 86400.0
+    traces = store.list_traces()
+    cur = [t for t in traces
+           if coerce_epoch(t.created_at) > now - week]
+    prev = [t for t in traces
+            if now - week >= coerce_epoch(t.created_at) > now - 2 * week]
+    key = "tool" if kind == "tool" else "agent"
+
+    cur_l = _week_letters(cur, key, kind)
+    prev_l = _week_letters(prev, key, kind)
+    rows = []
+    for subject in sorted(set(cur_l) | set(prev_l)):
+        a, b = cur_l.get(subject), prev_l.get(subject)
+        rows.append({"subject": subject, "now": a, "prev": b,
+                     "direction": _drift(a, b)})
+    return {"kind": kind, "usable": bool(cur or prev),
+            "this_week_traces": len(cur), "last_week_traces": len(prev),
+            "subjects": rows}
+
+
+def render_grade_trend(trend: Dict[str, Any]) -> str:
+    """Prose: one line per subject, drift named; no two-week
+    evidence says so."""
+    if not trend["usable"]:
+        return ("no two-week evidence yet: nothing on file in the "
+                "last fortnight")
+    lines = [(f"grade trend ({trend['kind']}s, this week vs last; "
+             f"{trend['this_week_traces']} vs "
+             f"{trend['last_week_traces']} traces):")]
+    for r in trend["subjects"]:
+        arrow = f"{r['prev']} -> {r['now']}"
+        lines.append(f"  {r['subject']}: {arrow} ({r['direction']})")
+    return "\n".join(lines)

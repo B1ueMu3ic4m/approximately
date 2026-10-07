@@ -11,14 +11,11 @@
 <b>Free & open source · Zero dependencies · MIT · Python 3.10+ · pip install approximately</b>
 </p>
 
-> **v3** — the operations-loop platform: 49 MCP tools (+resources, the shift
-> brief browsable), 7 framework adapters, MAST attribution with a gated quality
-> floor, tamper-evident evidence, pipeline quality gates (`ci`), live budget
-> rails, fleet monitoring with quiet alerting, and the on-call loop — tail /
-> triage / grade / handoff / snapshot / **digest** (fleet briefs, signed
-> `--post`, `--redact`) / **retention** (value-weighted keep, double-guarded) —
-> 2,000+ tests across a 21-check CI matrix and a 30-gate perf wall.
-> Python 3.10+ (3.9 is EOL).
+> **v3** — the operations-loop platform: 49 MCP tools (+resources), 7 framework
+> adapters, MAST attribution with a gated quality floor, tamper-evident evidence,
+> pipeline quality gates (`ci`), live budget rails, fleet monitoring with quiet
+> alerting, the on-call loop (tail / triage / grade / handoff / snapshot), and
+> 1,900+ tests across a 21-check CI matrix.  Python 3.10+ (3.9 is EOL).
 > Versioning with teeth ([VERSIONING.md](docs/VERSIONING.md)): major for
 > capability milestones that carry a real contract change, minor per feature
 > batch, patch for fixes.
