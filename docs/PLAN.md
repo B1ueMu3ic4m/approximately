@@ -3821,3 +3821,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        with fleet briefs / signed post / redact, retention,
        browsable brief) and counts honestly: 2,000+ tests, the
        30-gate wall. Docs-only patch.
+410. **v3.25.0 - grade --trend: the drift, quantified** (planned):
+     - "which agent is drifting" was a status line; grade_trend
+       makes it a number: this week's letter vs last week's per
+       subject, from the trace's own clock. Thin evidence reads
+       thin, never a verdict; gone and new name one-sided
+       history. MCP flag; schema-only.
