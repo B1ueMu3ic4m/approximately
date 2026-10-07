@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.21.0
+
+- TUTORIAL 14: the shift brief - reading the digest page top-down, the signed `--post` channel, the `--redact` rule, postmortems owed, and retention's windows and double guard. Docs-only.
+
 ## v3.20.0
 
 - fuzz 26: poison in the new doors - digest, retention and redact over hostile stores. Whitespace-collapse is pinned as the anti-injection defense: no fence and no header line can be smuggled into the shift brief; negative epochs and unreadable files classify and survive; the redact->digest->retention chain runs clean.
