@@ -3732,3 +3732,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        ->triage (string breach stamps), tail->snapshot.
      - Chain contract: each door's output is the next door's
        untrusted input - no crash, no silent lie.
+396. **v3.13.0 - repo metadata as code** (planned):
+     - meta.py pins the GitHub About line and topic list; the
+       suite holds both against the shipped surface (350-char
+       budget, the real MCP tool count, GitHub topic grammar,
+       README banner parity). The repo's public face cannot
+       drift from the code that ships it.

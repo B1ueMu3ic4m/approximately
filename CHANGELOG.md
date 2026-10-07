@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.13.0
+
+- repo metadata as code: `meta.py` pins the GitHub About line and topic list; the suite holds both against the shipped surface (350-char budget, the real MCP tool count, GitHub topic grammar, README banner parity). The repo's public face cannot drift from the code that ships it.
+
 ## v3.12.0
 
 - fuzz 25, the cross-door chains: redact feeds handoff feeds evidence; the price catalog feeds budget; meta shapes feed triage; tail feeds snapshot. Poisoned upstream stores produce clean downstream briefs, honest unusable comparisons, and intact snapshots — a `\x00` in the task, a 1e300 rate, string-typed breach stamps all survive the whole pipeline. Chain contract pinned: each door's output is the next door's untrusted input.
