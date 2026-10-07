@@ -1145,6 +1145,9 @@ _TOOLS: List[Dict[str, Any]] = [
                 "triage_top": {"type": "number",
                                "description": "queue depth "
                                               "(default 5)"},
+                "since_days": {"type": "number",
+                               "description": "arrival window in "
+                                              "days (default 1)"},
                 "grade_floor": {"type": "string",
                                 "description": "flag grades below "
                                                "this letter"},
@@ -2402,7 +2405,9 @@ def _tool_digest(ctx: ServerContext, args: Dict[str, Any]) -> dict:
         store,
         digest_dir=args.get("digest_dir"),
         triage_top=int(args.get("triage_top", 5)),
-        grade_floor=args.get("grade_floor"))
+        grade_floor=args.get("grade_floor"),
+        since_days=int(args["since_days"])
+        if args.get("since_days") is not None else 1)
     if args.get("redact"):
         from .redact import redact_value
 

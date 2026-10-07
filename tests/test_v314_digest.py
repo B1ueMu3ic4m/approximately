@@ -40,7 +40,10 @@ def test_sections_report_themselves_when_absent():
     payload = build_digest(_store())
     assert payload["grades"] == []
     assert payload["triage"] == []
-    assert payload["arrivals"] == {"failed": 0, "ok": 0, "lines": []}
+    assert payload["arrivals"]["failed"] == 0
+    assert payload["arrivals"]["ok"] == 0
+    assert payload["arrivals"]["lines"] == []
+    assert payload["arrivals"]["window_days"] == 1
     assert payload["week"] is None
     page = render_markdown(payload)
     assert "not usable yet" in page

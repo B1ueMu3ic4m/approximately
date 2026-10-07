@@ -2918,7 +2918,8 @@ def cmd_digest(args: argparse.Namespace) -> int:
             store,
             digest_dir=getattr(args, "digest_dir", None),
             triage_top=getattr(args, "triage_top", 5),
-            grade_floor=getattr(args, "grade_floor", None))
+            grade_floor=getattr(args, "grade_floor", None),
+            since_days=getattr(args, "since_days", None) or 1)
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -4657,6 +4658,9 @@ def build_parser() -> argparse.ArgumentParser:
                         "section")
     p.add_argument("--triage-top", type=int, default=5, metavar="N",
                    help="queue depth in the brief (default 5)")
+    p.add_argument("--since-days", type=int, metavar="D",
+                   help="arrival window in days (default 1: today "
+                        "only; 3 reads the weekend)")
     p.add_argument("--grade-floor", metavar="LETTER",
                    help="flag grades below this letter")
     p.add_argument("--stores", nargs="+", metavar="DIR",

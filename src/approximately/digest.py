@@ -44,16 +44,20 @@ def _grade_section(store: Any, grade_floor: Optional[str],
             for r in below_floor(grades, grade_floor)]
 
 
-def _arrival_section(store: Any, ref: _dt.date) -> dict:
-    """Today's arrivals: counts plus the failed runs' payloads."""
+def _arrival_section(store: Any, ref: _dt.date,
+                     since_days: int = 1) -> dict:
+    """The arrival window: counts plus the failed runs' payloads.
+    One day by default; ``since_days`` widens it (Monday mornings
+    read the weekend)."""
     from .tail import arrival_payload, scan_pass
     from .trace import coerce_epoch
 
-    day_start = _dt.datetime.combine(
-        ref, _dt.time.min).timestamp()
-    arrivals: Dict[str, Any] = {"failed": 0, "ok": 0, "lines": []}
+    window_start = (_dt.datetime.combine(ref, _dt.time.min)
+                    - _dt.timedelta(days=since_days - 1)).timestamp()
+    arrivals: Dict[str, Any] = {"failed": 0, "ok": 0, "lines": [],
+                                "window_days": since_days}
     for trace in scan_pass(store, set()):
-        if coerce_epoch(trace.created_at) < day_start:
+        if coerce_epoch(trace.created_at) < window_start:
             continue
         if trace.success is False:
             arrivals["failed"] += 1
@@ -67,7 +71,8 @@ def build_digest(store: Any,
                  digest_dir: Optional[str] = None,
                  triage_top: int = 5,
                  grade_floor: Optional[str] = None,
-                 today: Optional[_dt.date] = None) -> dict:
+                 today: Optional[_dt.date] = None,
+                 since_days: int = 1) -> dict:
     """The structured shift brief. Raises ValueError on an unknown
     grade floor (the refusal the audit door uses), never on data:
     an empty store yields a brief whose sections say they are
@@ -75,6 +80,7 @@ def build_digest(store: Any,
     from .triage import triage_store
 
     ref = today or _dt.date.today()
+    since_days = max(1, int(since_days))
     queue = triage_store(store)
     payload: Dict[str, Any] = {
         "store": str(store.directory),
@@ -86,7 +92,8 @@ def build_digest(store: Any,
         "triage": [r.to_dict() for r in
                    queue[:max(0, int(triage_top))]],
         "briefs_due": sum(1 for r in queue if not r.annotated),
-        "arrivals": _arrival_section(store, ref),
+        "arrivals": _arrival_section(store, ref,
+                                     since_days=since_days),
     }
     _grade_section(store, grade_floor, payload)
     return payload
@@ -143,7 +150,9 @@ def _render_triage(payload: dict) -> List[str]:
 
 def _render_arrivals(payload: dict) -> List[str]:
     arr = payload["arrivals"]
-    lines = [f"{arr['failed']} failed / {arr['ok']} ok"]
+    label = (f"{arr['failed']} failed / {arr['ok']} ok"
+             f" in the last {arr.get('window_days', 1)} day(s)")
+    lines = [label]
     for a in arr["lines"]:
         t = a["trace"]
         task = " ".join(str(t.get("task") or "").split())[:48]
