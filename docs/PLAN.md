@@ -3811,3 +3811,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        (text/markdown): the page the CLI prints, one read, no
        tool call. TUTORIAL and ARCHITECTURE say so; the fleet
        row lands beside it.
+408. **v3.24.0 - the arrival window** (planned):
+     - digest --since-days N widens the arrivals section (labels
+       say so): Monday mornings read the weekend. The triage
+       queue keeps its own clock - a failure outside the window
+       never disappears from the queue.

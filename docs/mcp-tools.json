@@ -1223,6 +1223,10 @@
             "type": "number",
             "description": "queue depth (default 5)"
           },
+          "since_days": {
+            "type": "number",
+            "description": "arrival window in days (default 1)"
+          },
           "grade_floor": {
             "type": "string",
             "description": "flag grades below this letter"
