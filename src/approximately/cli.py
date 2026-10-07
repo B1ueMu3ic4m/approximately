@@ -2845,11 +2845,23 @@ def _digest_post(post: str, payload: dict, page: str) -> int:
     return 0
 
 
+def _digest_page(payload: dict, redact: bool) -> str:
+    """Render the payload (fleet or single-store) and, when asked,
+    scrub it — the page is what eyes and webhooks see."""
+    from .digest import render_fleet_markdown, render_markdown
+
+    page = (render_fleet_markdown(payload) if payload.get("kind")
+            == "fleet_digest" else render_markdown(payload))
+    if redact:
+        from .redact import redact_text
+
+        page, _hits = redact_text(page)
+    return page
+
+
 def _digest_emit(args: argparse.Namespace, payload: dict) -> int:
     """Scrub, render and deliver: --json prints the payload,
     otherwise the markdown page goes to --out/stdout and --post."""
-    from .digest import render_markdown
-
     post = getattr(args, "post", None)
     if post and getattr(args, "json", False):
         print("error: --post needs the markdown page (drop --json)",
@@ -2863,11 +2875,7 @@ def _digest_emit(args: argparse.Namespace, payload: dict) -> int:
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2))
         return 0
-    page = render_markdown(payload)
-    if redact:
-        from .redact import redact_text
-
-        page, _hits = redact_text(page)
+    page = _digest_page(payload, redact)
     out = getattr(args, "out", None)
     if out and out != "-":
         Path(out).write_text(page, encoding="utf-8")
@@ -2883,8 +2891,23 @@ def cmd_digest(args: argparse.Namespace) -> int:
     queue and today's failed arrivals in one markdown page — what
     the on-call human reads where audit's exit code is for the
     cron. Empty store or unknown floor is a refusal (exit 2)."""
-    from .digest import build_digest
+    from .digest import build_digest, build_fleet_digest
 
+    stores = getattr(args, "stores", None)
+    if stores:
+        paths = [Path(s) for s in stores]
+        empty = [str(s) for s in paths
+                 if not TraceStore(s).list_traces()]
+        if empty:
+            print(f"error: store(s) {', '.join(empty)} empty: a "
+                  "digest of nothing briefs no one",
+                  file=sys.stderr)
+            return 2
+        payload = build_fleet_digest(
+            [TraceStore(s) for s in paths],
+            digest_dir=getattr(args, "digest_dir", None),
+            triage_top=getattr(args, "triage_top", 5))
+        return _digest_emit(args, payload)
     store = TraceStore(Path(args.store))
     if not store.list_traces():
         print(f"error: store {args.store} is empty: a digest of "
@@ -4636,6 +4659,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="queue depth in the brief (default 5)")
     p.add_argument("--grade-floor", metavar="LETTER",
                    help="flag grades below this letter")
+    p.add_argument("--stores", nargs="+", metavar="DIR",
+                   help="fleet mode: one brief over several stores, "
+                        "each a section, worst first (grade-floor "
+                        "does not apply)")
     p.add_argument("--json", action="store_true",
                    help="print the structured payload instead of "
                         "the markdown page")

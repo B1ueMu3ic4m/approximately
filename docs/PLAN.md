@@ -3800,3 +3800,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - the digest chapter: reading the page top-down, --post's
        signed channel, the --redact rule, postmortems owed, and
        retention's windows and double guard. Docs-only.
+406. **v3.22.0 - the fleet digest** (planned):
+     - digest --stores a b c: one brief over a fleet, the week
+       section fleet-level, every store its own grades/owed/
+       arrivals rollup, sections ranked worst-first (today's
+       failure rate leads). --redact and --post hold at fleet
+       scale.

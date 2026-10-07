@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.22.0
+
+- the fleet digest: `digest --stores a b c` renders one brief over a fleet - the week section stays fleet-level, every store gets its own rollup, sections rank worst-first so the reader starts where it hurts. `--redact` and `--post` hold at fleet scale.
+
 ## v3.21.0
 
 - TUTORIAL 14: the shift brief - reading the digest page top-down, the signed `--post` channel, the `--redact` rule, postmortems owed, and retention's windows and double guard. Docs-only.
