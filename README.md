@@ -16,7 +16,8 @@
 > floor, tamper-evident evidence, pipeline quality gates (`ci`), live budget
 > rails, fleet monitoring with quiet alerting, and the on-call loop — tail /
 > triage / grade / handoff / snapshot / **digest** (fleet briefs, signed
-> `--post`, `--redact`) / **retention** (value-weighted keep, double-guarded) —
+> `--post`, `--redact`) / **retention** (value-weighted keep, double-guarded) /
+> **webhook-serve** (the verified receiving end of the signed channel) —
 > 2,000+ tests across a 21-check CI matrix and a 30-gate perf wall.
 > Python 3.10+ (3.9 is EOL).
 > Versioning with teeth ([VERSIONING.md](docs/VERSIONING.md)): major for

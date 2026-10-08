@@ -212,6 +212,14 @@ Two rules keep the brief safe to share:
   before rendering or posting. The handoff never shares unscrubbed;
   neither does the brief.
 
+The channel has a receiving end too: `approximately webhook-serve`
+verifies those signatures against the same key and archives what
+survives into a JSONL log. With a key configured it is verify-only
+(a bad or missing signature gets a 401 and is never archived); with
+no key it archives rows marked `verified: false` — an open tap that
+says so. Point `--post` at it and approximately talks to
+approximately with the same tamper-evidence the traces have.
+
 Postmortems are the loop's currency, so the brief counts what a
 shift still owes: **postmortems owed** — failures in the window no
 human has annotated yet. Work them top-down with `triage
