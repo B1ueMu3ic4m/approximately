@@ -85,17 +85,21 @@ def test_tail_announces_failures_and_survives_webhook_errors():
     srv, url = _server()
     try:
         _Hook.status = 200
+        _Hook.body = None  # class state: never assert on a
+        # previous test's request (the slow-runner lesson)
 
         def later():
-            time.sleep(0.25)
+            time.sleep(0.3)
             _save(store, "fresh failure", False, tokens=99)
 
         threading.Thread(target=later, daemon=True).start()
-        lines = tail(store, once=False, interval=0.1, max_passes=6,
+        lines = tail(store, once=False, interval=0.15, max_passes=12,
                      announce_failure_url=url,
                      announce_hook=notify_webhook)
         assert any(">> ALERT" in line for line in lines)
         assert any("webhook: 200" in line for line in lines)
+        assert _Hook.body is not None, \
+            "the announcement never landed (runner outran the race)"
         body = json.loads(_Hook.body)
         assert body["kind"] == "trace_failure"
         assert body["trace"]["tokens"] == 99
@@ -106,11 +110,11 @@ def test_tail_announces_failures_and_survives_webhook_errors():
         _Hook.status = 500
 
         def later2():
-            time.sleep(0.25)
+            time.sleep(0.3)
             _save(store, "second failure", False)
 
         threading.Thread(target=later2, daemon=True).start()
-        lines = tail(store, once=False, interval=0.1, max_passes=6,
+        lines = tail(store, once=False, interval=0.15, max_passes=12,
                      announce_failure_url=url,
                      announce_hook=notify_webhook)
         assert any("webhook failed" in line for line in lines)

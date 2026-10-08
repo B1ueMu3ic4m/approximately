@@ -48,7 +48,6 @@ TOUR: Dict[str, tuple] = {
         ("handoff", "one markdown brief for the next engineer"),
         ("digest", "shift-start brief: weeks, grades, triage, arrivals"),
         ("retention", "value-weighted keep/retire plan; dry run by default"),
-        ("webhook-serve", "the receiving end of the signed channel: verify and archive"),
         ("redact", "sanitized share-copy of a trace"),
         ("prices", "the store's price catalog"),
         ("annotate", "attach an analyst note"),

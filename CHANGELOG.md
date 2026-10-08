@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.28.1
+
+- the weather audit: the suite scanned for the two runner-weather classes - class-level capture state asserted across tests, and tight sleep windows. v240/v250/v317 already immune; v300 hardened (reset + wider window + a named assertion). Test-only patch.
+
 ## v3.28.0
 
 - webhook-serve: the other end of the signed channel. The zero-dependency receiver verifies `X-Approximately-Signature` against the same `load_key` every poster uses and archives what survives; a configured key makes it verify-only, with no key it marks every row `verified: false` and says so.
