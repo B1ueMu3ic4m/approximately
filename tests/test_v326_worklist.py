@@ -10,7 +10,6 @@ its own one-line entry, never a torn page; an empty debt says so.
 import argparse
 import contextlib
 import io
-import time
 import tempfile
 import time
 

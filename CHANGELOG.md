@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.28.0
+
+- webhook-serve: the other end of the signed channel. The zero-dependency receiver verifies `X-Approximately-Signature` against the same `load_key` every poster uses and archives what survives; a configured key makes it verify-only, with no key it marks every row `verified: false` and says so.
+
 ## v3.27.1
 
 - the worklist ladder: novelty is assigned in arrival order, so near-identical failures saved inside one clock tick tie and their order rolls the dice on coarse clocks. The fixture climbs a real time ladder now. Test-only patch.
