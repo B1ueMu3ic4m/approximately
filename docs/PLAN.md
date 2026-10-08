@@ -3856,3 +3856,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        configured key makes it verify-only (401, never archived);
        with no key it archives rows marked verified=false and
        says so. Hostile bodies are refused without crashing.
+415. **v3.28.1 - the weather audit** (planned):
+     - the suite audited for the two runner-weather classes:
+       class-level capture state asserted across tests (the
+       v3.17 lesson - a slow runner outruns the race and reads
+       the previous test's request), and tight sleep windows.
+       v240/v250/v317 already immune (fresh handler types,
+       per-test resets, widened windows); v300 hardened. Audit:
+       no other sites. Test-only patch.
