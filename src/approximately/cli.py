@@ -1310,6 +1310,20 @@ def _digest_trend(digest_dir: Any) -> Optional[dict]:
     return summarize_trend(trend_days(Path(digest_dir)))
 
 
+def _status_grade_trend(store: Any) -> dict:
+    """The one-glance drift summary: who slipped, improved, arrived
+    or left, week over week. A trend that cannot compute (thin
+    evidence everywhere) stays usable=False and says nothing."""
+    from .grade import grade_trend
+
+    trend = grade_trend(store)
+    drift = {"usable": trend["usable"]}
+    for direction in ("slipped", "improved", "new", "gone"):
+        drift[direction] = [r["subject"] for r in trend["subjects"]
+                            if r["direction"] == direction]
+    return drift
+
+
 def _status_payload(store: Any, traces: list, digest_dir: Any,
                     since: Any = None,
                     prices: Any = None,
@@ -1364,6 +1378,7 @@ def _status_payload(store: Any, traces: list, digest_dir: Any,
 
     payload = {
         "store": str(store.directory),
+        "grade_trend": _status_grade_trend(store),
         "traces": stats.traces,
         "failures": stats.failures,
         "failure_rate": round(stats.failure_rate, 4),
@@ -1455,6 +1470,37 @@ def _write_breach_line(buf: Any, payload: dict) -> None:
                   f"run(s) the live rails stopped\n")
 
 
+def _write_queue_lines(buf: Any, payload: dict) -> None:
+    """Modes, annotations, triage coverage — the queue's vitals."""
+    if payload["top_modes"]:
+        top = ", ".join(f"{m} x{c}"
+                        for m, c in payload["top_modes"].items())
+        buf.write(f"  top modes: {top}\n")
+    buf.write(f"  annotations: {payload['annotations']} "
+              f"({payload['annotations_confirmed']} confirmed)\n")
+    coverage = payload.get("triage_coverage") or {}
+    if coverage.get("ratio") is not None and coverage["ratio"] < 1:
+        buf.write(f"  triage coverage: "
+                  f"{coverage['annotated_failures']}/"
+                  f"{coverage['failures']} failures annotated "
+                  f"({coverage['ratio']:.0%})\n")
+
+
+def _write_drift_line(buf: Any, payload: dict) -> None:
+    """The drift line, only when this week actually moved: flat
+    weeks are not news."""
+    drift = payload.get("grade_trend") or {}
+    if drift.get("usable") and (drift.get("slipped")
+                                or drift.get("improved")):
+        parts = []
+        if drift.get("slipped"):
+            parts.append(f"slipped: {', '.join(drift['slipped'])}")
+        if drift.get("improved"):
+            parts.append(f"improved: {', '.join(drift['improved'])}")
+        buf.write(f"  grade drift (this week vs last): "
+                  f"{'; '.join(parts)}\n")
+
+
 def _render_status(args: argparse.Namespace) -> str:
     """One status frame — shared by the one-shot and watch modes."""
     import io as _io
@@ -1476,18 +1522,8 @@ def _render_status(args: argparse.Namespace) -> str:
     _write_token_line(buf, payload)
     buf.write(f"{payload['store']}: {payload['traces']} traces, "
               f"{payload['failures']} failed ({rate})\n")
-    if payload["top_modes"]:
-        top = ", ".join(f"{m} x{c}"
-                        for m, c in payload["top_modes"].items())
-        buf.write(f"  top modes: {top}\n")
-    buf.write(f"  annotations: {payload['annotations']} "
-              f"({payload['annotations_confirmed']} confirmed)\n")
-    coverage = payload.get("triage_coverage") or {}
-    if coverage.get("ratio") is not None and coverage["ratio"] < 1:
-        buf.write(f"  triage coverage: "
-                  f"{coverage['annotated_failures']}/"
-                  f"{coverage['failures']} failures annotated "
-                  f"({coverage['ratio']:.0%})\n")
+    _write_queue_lines(buf, payload)
+    _write_drift_line(buf, payload)
     fleet = payload.get("fleet_anomalies") or {}
     if fleet.get("count"):
         worst = fleet.get("worst") or {}
@@ -2801,7 +2837,11 @@ def cmd_audit(args: argparse.Namespace) -> int:
     _audit_prices(store, report)
     _audit_digest(args, report)
 
-    if getattr(args, "json", False):
+    fmt = getattr(args, "format", None) or (
+        "json" if getattr(args, "json", False) else "text")
+    if fmt == "junit":
+        print(_audit_junit(report))
+    elif fmt == "json":
         print(json.dumps(report, indent=2))
     else:
         _print_audit(report, len(traces))
@@ -2818,9 +2858,11 @@ def _audit_digest(args: argparse.Namespace, report: dict) -> None:
 
     trend = summarize_trend(trend_days(Path(digest_dir)))
     report["trend"] = {"verdict": trend["verdict"],
-                       "slope": trend["slope"]}
-    if trend["verdict"] == "worsening" and getattr(
-            args, "fail_on_worsening", False):
+                       "slope": trend["slope"],
+                       "fail_on_worsening": bool(getattr(
+                           args, "fail_on_worsening", False))}
+    if trend["verdict"] == "worsening" and \
+            report["trend"]["fail_on_worsening"]:
         report["ok"] = False
     ceiling = getattr(args, "spend_ceiling", None)
     if ceiling is not None:
@@ -2843,6 +2885,96 @@ def _audit_digest(args: argparse.Namespace, report: dict) -> None:
         from .fleet import week_compare
 
         report["week"] = week_compare(trend["days"])
+
+
+def _gate_checks(report: dict) -> list:
+    """One check per quality-gate row."""
+    return [(row["gate"], bool(row["ok"]),
+             (f"{row['gate']}: measured {row.get('value')} "
+              f"vs ceiling {row.get('ceiling')}"))
+            for row in (report.get("gate") or {}).get("gates", [])]
+
+
+def _grade_check(report: dict) -> Optional[tuple]:
+    """The grade-floor check, when a floor was asked for."""
+    grades = report.get("grades") or {}
+    if grades.get("floor") is None:
+        return None
+    below = grades.get("below") or []
+    names = (", ".join(f"{b['subject']}={b['grade']}"
+                       for b in below) or "none")
+    return ("grade-floor", not below, f"below floor: {names}")
+
+
+def _finding_checks(report: dict) -> list:
+    """The singleton sections: grade floor, prices, trend."""
+    checks: list = []
+    grade = _grade_check(report)
+    if grade is not None:
+        checks.append(grade)
+    prices = report.get("prices_catalog") or {}
+    if prices:
+        checks.append(("prices-catalog", not prices.get("corrupt"),
+                       str(prices)))
+    trend = report.get("trend") or {}
+    if trend:
+        worsening = trend.get("verdict") == "worsening"
+        checks.append(("trend", not (worsening and trend.get(
+            "fail_on_worsening")),
+            f"trend verdict: {trend.get('verdict')}"))
+    return checks
+
+
+def _budget_checks(report: dict) -> list:
+    """The forward-looking sections: spend ceiling, failure budget."""
+    checks: list = []
+    fc = report.get("forecast") or {}
+    if fc:
+        exceeded = fc.get("days_to_ceiling") == 0
+        checks.append(("spend-ceiling", not exceeded,
+                      f"days_to_ceiling={fc.get('days_to_ceiling')}"))
+    fb = report.get("failure_budget") or {}
+    if fb:
+        checks.append(("failure-budget", not fb.get("exhausted"),
+                       (f"burned {fb.get('burned')} of "
+                        f"{fb.get('allowance')}")))
+    return checks
+
+
+def _audit_checks(report: dict) -> list:
+    """(name, ok, message) per verdict-flipping audit section —
+    derived from the report alone, the audit's own flip points."""
+    doctor = report.get("doctor") or {}
+    doctor_check = ("doctor", bool(doctor.get("healthy")),
+                    (f"doctor: corrupt={doctor.get('corrupt')} "
+                     f"quarantined={doctor.get('quarantined')} "
+                     f"chain_failed={doctor.get('chain_failed')}"))
+    return ([doctor_check, *_gate_checks(report),
+             *_finding_checks(report), *_budget_checks(report)])
+
+
+def _audit_junit(report: dict) -> str:
+    """JUnit XML for the audit's findings: one testcase per section
+    that can flip the verdict, a <failure> per finding — the same
+    native rendering the ci door gives its gate rows."""
+    import xml.etree.ElementTree as ET  # nosec B405 - build-only
+
+    checks = _audit_checks(report)
+    failures = sum(1 for _n, ok, _m in checks if not ok)
+    suites = ET.Element("testsuites", {"name": "approximately-audit"})
+    suite = ET.SubElement(suites, "testsuite", {
+        "name": f"audit ({report.get('store', '.')})",
+        "tests": str(len(checks)), "failures": str(failures)})
+    for name, ok, msg in checks:
+        tc = ET.SubElement(suite, "testcase",
+                           {"name": name,
+                            "classname": "approximately.audit"})
+        if not ok:
+            ET.SubElement(tc, "failure",
+                          {"message": msg,
+                           "type": "audit-finding"}).text = msg
+    return (ET.tostring(suites, encoding="utf-8",
+                        xml_declaration=True).decode("utf-8"))
 
 
 def cmd_webhook_serve(args: argparse.Namespace) -> int:
@@ -4705,6 +4837,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--triage-top", type=int, metavar="N",
                    help="attach the top-N triage queue to the "
                         "report (advice, never an exit verdict)")
+    p.add_argument("--format", choices=["text", "json", "junit"],
+                   help="report shape (default text; junit renders "
+                        "each finding as a failing testcase)")
     p.add_argument("--json", action="store_true",
                    help="emit the audit report as JSON")
     p.set_defaults(func=cmd_audit)
