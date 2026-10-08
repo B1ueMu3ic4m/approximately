@@ -3881,3 +3881,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        testcase (doctor, every gate row, grade floor, prices,
        trend, spend ceiling, failure budget) - the ci door's
        native rendering, for the composed report.
+419. **v3.30.0 - fuzz 28: poison at the receiver** (planned):
+     - the receiver trusts the network, so it gets the hostile
+         pass: every malformed signature shape refuses, refusal
+         never archives, and an archived row is a faithful record
+         of what arrived (open-tap rows keep verified=false).
+         Degenerate stores ride through the fleet digest, the
+         MCP digest and the trend (zero tokens, one-sided
+         history, future clocks).
