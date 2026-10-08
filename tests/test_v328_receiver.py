@@ -162,7 +162,7 @@ def test_oversized_body_gets_413_before_the_read():
     from approximately.receiver import serve
 
     archive = Path(tempfile.mkdtemp()) / "log.jsonl"
-    server, state = serve(archive, port=0, key=None, max_bytes=64)
+    server, _state = serve(archive, port=0, key=None, max_bytes=64)
     try:
         host, port = server.server_address[:2]
         conn = HTTPConnection(host, int(port), timeout=5)

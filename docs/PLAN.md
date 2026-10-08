@@ -3894,3 +3894,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        (webhook-serve: verify-only with a key, an open tap that
        labels itself without) and the README banner names it.
        Docs-only patch.
+422. **v3.31.0 - the bounded receiver** (planned):
+     - webhook-serve refuses bodies larger than --max-bytes
+       (default 1 MiB) with 413 BEFORE the read - a hostile
+       Content-Length cannot buy a hostile read. Refusals never
+       archive; normal traffic continues. SECURITY row extended.
