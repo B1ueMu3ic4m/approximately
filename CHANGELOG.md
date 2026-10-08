@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.28.2
+
+- restore the receiver: v3.28.1's stacked-branch rebuild used a whole-tree restore from a pre-R1 tip, and the squash merge silently shipped a tree without the receiver. v3.28.0 the tag was always intact; main was not. R1's five files come back byte-for-byte, and the rebuild procedure now restores only the round's changed paths.
+
 ## v3.28.1
 
 - the weather audit: the suite scanned for the two runner-weather classes - class-level capture state asserted across tests, and tight sleep windows. v240/v250/v317 already immune; v300 hardened (reset + wider window + a named assertion). Test-only patch.
