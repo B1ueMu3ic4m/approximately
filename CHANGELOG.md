@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.30.0
+
+- fuzz 28: poison at the receiver - every malformed signature shape refuses and never archives; archived rows record what arrived, not what was true. Degenerate stores ride through the fleet digest, the MCP digest and the trend.
+
 ## v3.29.0
 
 - the glance and the ledger: `status` shows the week-over-week grade drift beside its coverage line (and in JSON); `audit --format junit` renders every verdict-flipping section as a failing testcase - the ci door's native rendering, for the composed report.
