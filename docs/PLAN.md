@@ -3905,3 +3905,7 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        bookkeeping - the archive holds exactly the accepted 40,
        /health counts 40/60, and the server still serves a
        verified post at the end. Test-only patch.
+424. **v3.32.0 - the worklist speaks both shapes** (planned):
+     - the audit caught it: handoff --queue ignored --out and
+       --json - the worklist rendered to stdout only, unlike
+       every other markdown door. Both shapes work now.
