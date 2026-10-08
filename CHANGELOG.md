@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.31.0
+
+- the bounded receiver: webhook-serve refuses bodies larger than `--max-bytes` (default 1 MiB) with 413 before the read - a hostile Content-Length cannot buy a hostile read. Refusals never archive; normal traffic continues.
+
 ## v3.30.1
 
 - the loop, documented both ways: TUTORIAL's shift-brief chapter gains webhook-serve (the verified receiving end) and the README banner names it. Docs-only patch.

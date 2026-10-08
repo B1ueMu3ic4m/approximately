@@ -2991,7 +2991,9 @@ def cmd_webhook_serve(args: argparse.Namespace) -> int:
     key = load_key(getattr(args, "key_file", None))
     archive = Path(getattr(args, "log",
                            "") or Path(args.store) / "webhook-log.jsonl")
-    server, _state = serve(archive, port=port, key=key)
+    server, _state = serve(archive, port=port, key=key,
+                           max_bytes=int(getattr(
+                               args, "max_bytes", 1_048_576)))
     host, bound = server.server_address[:2]
     host = str(host)
     mode = ("verify-only" if key else
@@ -4891,6 +4893,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--log", metavar="PATH",
                    help="archive path (default <store>/"
                         "webhook-log.jsonl)")
+    p.add_argument("--max-bytes", type=int, default=1_048_576,
+                   metavar="N",
+                   help="refuse bodies larger than this (default "
+                        "1 MiB)")
     p.set_defaults(func=cmd_webhook_serve)
 
     p = sub.add_parser("retention", parents=[common],

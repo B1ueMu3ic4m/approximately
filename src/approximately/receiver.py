@@ -31,15 +31,21 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Optional, Tuple
 
+DEFAULT_MAX_BYTES = 1_048_576  # 1 MiB: alerts are small; a
 
+
+# megabyte body is an attack, not an announcement
 class ReceiverState:
     """What the server needs between requests: the verifying key
-    (None = accept-and-mark-unverified) and the archive path."""
+    (None = accept-and-mark-unverified), the archive path, and the
+    request-size bound."""
 
     def __init__(self, archive: Path,
-                 key: Optional[bytes] = None):
+                 key: Optional[bytes] = None,
+                 max_bytes: int = DEFAULT_MAX_BYTES):
         self.archive = archive
         self.key = key
+        self.max_bytes = max(1, int(max_bytes))
         self.received = 0
         self.refused = 0
 
@@ -76,6 +82,13 @@ def make_handler(state: ReceiverState) -> type:
 
         def do_POST(self) -> None:
             length = int(self.headers.get("Content-Length", 0) or 0)
+            if length > state.max_bytes:
+                # refused BEFORE the read: a hostile Content-Length
+                # must not buy a hostile read
+                state.refused += 1
+                self._reply(413, {"error": f"body exceeds "
+                                           f"{state.max_bytes} bytes"})
+                return
             body = self.rfile.read(length) if length else b""
             verified, verdict = state.verify(
                 body, self.headers.get("X-Approximately-Signature"))
@@ -118,11 +131,12 @@ def make_handler(state: ReceiverState) -> type:
 
 
 def serve(archive: Path, port: int = 0,
-          key: Optional[bytes] = None) -> Tuple[ThreadingHTTPServer,
-                                               ReceiverState]:
+          key: Optional[bytes] = None,
+          max_bytes: int = DEFAULT_MAX_BYTES
+          ) -> Tuple[ThreadingHTTPServer, ReceiverState]:
     """Bind the receiver; returns the server (call shutdown() from
     the controlling thread) and its state."""
-    state = ReceiverState(archive, key=key)
+    state = ReceiverState(archive, key=key, max_bytes=max_bytes)
     server = ThreadingHTTPServer(("127.0.0.1", port),
                                  make_handler(state))
     thread = __import__("threading").Thread(
