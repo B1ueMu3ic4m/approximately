@@ -1093,9 +1093,31 @@ def cmd_grade(args: argparse.Namespace) -> int:
     return 0
 
 
+def _worklist_page(store: Any, limit: int,
+                   table: Optional[dict]) -> str:
+    """The queue rendered as one markdown page."""
+    from .handoff import worklist
+
+    return worklist(store, limit=limit, table=table)
+
+
+def _emit_markdown(page: str, out: Optional[str], json_mode: bool,
+                   **payload: Any) -> int:
+    """The shared markdown emit: --json wraps the page, --out
+    writes it, stdout prints it."""
+    if json_mode:
+        print(json.dumps({**payload, "markdown": page}, indent=2))
+        return 0
+    if out and out != "-":
+        Path(out).write_text(page, encoding="utf-8")
+    else:
+        print(page, end="")
+    return 0
+
+
 def cmd_handoff(args: argparse.Namespace) -> int:
     """One markdown page for the next engineer (or agent)."""
-    from .handoff import brief, worklist
+    from .handoff import brief
 
     store = TraceStore(args.store)
     if getattr(args, "queue", None) is not None:
@@ -1104,9 +1126,10 @@ def cmd_handoff(args: argparse.Namespace) -> int:
             from .redact import compile_patterns
 
             table = compile_patterns()
-        print(worklist(store, limit=int(args.queue), table=table),
-              end="")
-        return 0
+        return _emit_markdown(
+            _worklist_page(store, int(args.queue), table),
+            worklist=True, out=getattr(args, "out", None),
+            json_mode=bool(getattr(args, "json", False)))
     if not args.trace:
         print("error: a trace id is required (or use --queue N)",
               file=sys.stderr)

@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.32.0
+
+- the worklist speaks both shapes: `handoff --queue` honors `--out` and `--json` now - the audit caught it rendering to stdout only, unlike every other markdown door.
+
 ## v3.31.1
 
 - the receiver soak: 100 mixed posts (valid, forged, hostile, oversized) through one live receiver with exact bookkeeping - the archive holds exactly the accepted 40, /health counts 40/60, and the server still serves at the end. Test-only patch.

@@ -10,6 +10,7 @@ its own one-line entry, never a torn page; an empty debt says so.
 import argparse
 import contextlib
 import io
+import json
 import tempfile
 import time
 
@@ -98,3 +99,20 @@ def test_redaction_holds_on_the_worklist():
     clean = worklist(store, limit=1, table=compile_patterns())
     assert "AKIAIOSFODNN7EXAMPLE" not in clean
     assert "[REDACTED:aws_key]" in clean
+
+
+def test_queue_honors_out_and_json(tmp_path, capsys):
+    store, _ = _store(2)
+    out = tmp_path / "worklist.md"
+    args = argparse.Namespace(store=store.directory, trace=None,
+                              queue=2, redact=False,
+                              out=str(out), json=False)
+    assert cmd_handoff(args) == 0
+    assert out.read_text(encoding="utf-8").startswith(
+        "# postmortem worklist")
+    args.out = None
+    args.json = True
+    assert cmd_handoff(args) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["worklist"] is True
+    assert "# postmortem worklist" in payload["markdown"]
