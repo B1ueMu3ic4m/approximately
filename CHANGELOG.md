@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.30.1
+
+- the loop, documented both ways: TUTORIAL's shift-brief chapter gains webhook-serve (the verified receiving end) and the README banner names it. Docs-only patch.
+
 ## v3.30.0
 
 - fuzz 28: poison at the receiver - every malformed signature shape refuses and never archives; archived rows record what arrived, not what was true. Degenerate stores ride through the fleet digest, the MCP digest and the trend.

@@ -3889,3 +3889,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          Degenerate stores ride through the fleet digest, the
          MCP digest and the trend (zero tokens, one-sided
          history, future clocks).
+420. **v3.30.1 - the loop, documented both ways** (planned):
+     - TUTORIAL's shift-brief chapter gains the receiving end
+       (webhook-serve: verify-only with a key, an open tap that
+       labels itself without) and the README banner names it.
+       Docs-only patch.
