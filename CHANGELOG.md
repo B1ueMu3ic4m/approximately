@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.31.1
+
+- the receiver soak: 100 mixed posts (valid, forged, hostile, oversized) through one live receiver with exact bookkeeping - the archive holds exactly the accepted 40, /health counts 40/60, and the server still serves at the end. Test-only patch.
+
 ## v3.31.0
 
 - the bounded receiver: webhook-serve refuses bodies larger than `--max-bytes` (default 1 MiB) with 413 before the read - a hostile Content-Length cannot buy a hostile read. Refusals never archive; normal traffic continues.

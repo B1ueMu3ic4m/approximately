@@ -3899,3 +3899,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        (default 1 MiB) with 413 BEFORE the read - a hostile
        Content-Length cannot buy a hostile read. Refusals never
        archive; normal traffic continues. SECURITY row extended.
+423. **v3.31.1 - the receiver soak** (planned):
+     - the closing audit: 100 mixed posts (valid, forged, hostile,
+       oversized) through one live receiver with exact
+       bookkeeping - the archive holds exactly the accepted 40,
+       /health counts 40/60, and the server still serves a
+       verified post at the end. Test-only patch.

@@ -182,3 +182,63 @@ def test_oversized_body_gets_413_before_the_read():
         assert status == 200
     finally:
         server.shutdown()
+
+
+def test_soak_one_hundred_mixed_posts():
+    """The closing audit: 100 mixed posts — valid, forged, hostile,
+    oversized — through one live receiver. Exact bookkeeping: the
+    archive holds exactly the accepted posts, the /health counters
+    match, and the server is still serving at the end."""
+    from approximately.receiver import serve
+
+    archive = Path(tempfile.mkdtemp()) / "log.jsonl"
+    key = b"soak"
+    server, _state = serve(archive, port=0, key=key, max_bytes=128)
+    host, port = server.server_address[:2]
+    addr = f"{host}:{port}"
+    kinds = ["trace_failure", "spool", "ops_digest", "fleet"]
+    try:
+        expected = 0
+        refused = 0
+        for i in range(100):
+            mode = i % 5
+            body = json.dumps({"kind": kinds[i % 4],
+                               "seq": i}).encode()
+            if mode == 0:                       # valid signed
+                status, _ = _post(addr, body, _signed(body, key))
+                assert status == 200
+                expected += 1
+            elif mode == 1:                     # forged signature
+                status, _ = _post(addr, body, "sha256=" + "0" * 64)
+                assert status == 401
+                refused += 1
+            elif mode == 2:                     # hostile body
+                status, _ = _post(addr, b"{not json",
+                                  _signed(b"{not json", key))
+                assert status == 400
+                refused += 1
+            elif mode == 3:                     # oversized
+                big = b'{"k": "' + b"x" * 300 + b'"}'
+                status, _ = _post(addr, big, _signed(big, key))
+                assert status == 413
+                refused += 1
+            else:                               # valid again
+                body = json.dumps({"kind": kinds[i % 4],
+                                   "seq": i}).encode()
+                status, _ = _post(addr, body, _signed(body, key))
+                assert status == 200
+                expected += 1
+        rows = archive.read_text(encoding="utf-8").splitlines()
+        assert len(rows) == expected == 40
+        conn = HTTPConnection(host, int(port), timeout=5)
+        conn.request("GET", "/health")
+        health = json.loads(conn.getresponse().read())
+        conn.close()
+        assert health["received"] == 40
+        assert health["refused"] == 60
+        # the server is still serving after all of it
+        body = json.dumps({"kind": "after"}).encode()
+        status, resp = _post(addr, body, _signed(body, key))
+        assert status == 200 and resp["verified"] is True
+    finally:
+        server.shutdown()
