@@ -3873,3 +3873,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        restores R1's five files byte-for-byte and retires the
        footgun: rebuilds now restore only the round's changed
        paths, never the whole tree.
+418. **v3.29.0 - the glance and the ledger** (planned):
+     - status gains the drift line: week-over-week grade drift
+       (who slipped, who improved) rides the one-glance frame and
+       the JSON payload - flat weeks are not news. audit --format
+       junit renders each verdict-flipping section as a failing
+       testcase (doctor, every gate row, grade floor, prices,
+       trend, spend ceiling, failure budget) - the ci door's
+       native rendering, for the composed report.

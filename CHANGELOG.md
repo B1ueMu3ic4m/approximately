@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.29.0
+
+- the glance and the ledger: `status` shows the week-over-week grade drift beside its coverage line (and in JSON); `audit --format junit` renders every verdict-flipping section as a failing testcase - the ci door's native rendering, for the composed report.
+
 ## v3.28.2
 
 - restore the receiver: v3.28.1's stacked-branch rebuild used a whole-tree restore from a pre-R1 tip, and the squash merge silently shipped a tree without the receiver. v3.28.0 the tag was always intact; main was not. R1's five files come back byte-for-byte, and the rebuild procedure now restores only the round's changed paths.
