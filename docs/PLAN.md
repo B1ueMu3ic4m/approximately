@@ -3864,3 +3864,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        v240/v250/v317 already immune (fresh handler types,
        per-test resets, widened windows); v300 hardened. Audit:
        no other sites. Test-only patch.
+416. **v3.28.2 - restore the receiver** (planned):
+     - the strip incident, documented: v3.28.1's stacked-branch
+       rebuild used a whole-tree restore from a pre-R1 tip, and
+       the squash merge silently shipped a tree without the
+       receiver (code, tests, tour entry, security row). v3.28.0
+       the tag was always intact; main was not. This release
+       restores R1's five files byte-for-byte and retires the
+       footgun: rebuilds now restore only the round's changed
+       paths, never the whole tree.

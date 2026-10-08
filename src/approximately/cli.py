@@ -6,6 +6,7 @@ import argparse
 import importlib
 import json
 import sys
+import time
 from pathlib import Path
 from typing import Any, List, Optional
 
@@ -2844,6 +2845,38 @@ def _audit_digest(args: argparse.Namespace, report: dict) -> None:
         report["week"] = week_compare(trend["days"])
 
 
+def cmd_webhook_serve(args: argparse.Namespace) -> int:
+    """The receiving end of the signed channel: verify
+    X-Approximately-Signature and archive what survives. Refuses
+    (exit 2) on a bad port."""
+    from .integrity import load_key
+    from .receiver import serve
+
+    port = int(getattr(args, "port", 8080))
+    if not (0 <= port <= 65535):
+        print("error: port must be 0-65535", file=sys.stderr)
+        return 2
+    key = load_key(getattr(args, "key_file", None))
+    archive = Path(getattr(args, "log",
+                           "") or Path(args.store) / "webhook-log.jsonl")
+    server, _state = serve(archive, port=port, key=key)
+    host, bound = server.server_address[:2]
+    host = str(host)
+    mode = ("verify-only" if key else
+            "OPEN (no key configured: archiving unverified posts "
+            "as verified=false)")
+    print(f"webhook-serve listening on {host}:{bound} ({mode}); "
+          f"archive {archive}", flush=True)
+    try:
+        while True:
+            time.sleep(3600)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.shutdown()
+    return 0
+
+
 def _digest_post(post: str, payload: dict, page: str) -> int:
     """Deliver the page through the fleet's signed channel."""
     from .fleet import notify_webhook
@@ -4710,6 +4743,20 @@ def build_parser() -> argparse.ArgumentParser:
                         "patterns before rendering or posting (the "
                         "handoff's rule, kept here too)")
     p.set_defaults(func=cmd_digest)
+
+    p = sub.add_parser("webhook-serve", parents=[common],
+                       help="the receiving end of the signed "
+                            "channel: verify and archive posted "
+                            "alerts into a JSONL log")
+    p.add_argument("--port", type=int, default=8080, metavar="P",
+                   help="port to bind (default 8080)")
+    p.add_argument("--key-file", metavar="FILE",
+                   help="HMAC key (else APPROXIMATELY_SIGNING_KEY; "
+                        "with neither, posts are archived unverified)")
+    p.add_argument("--log", metavar="PATH",
+                   help="archive path (default <store>/"
+                        "webhook-log.jsonl)")
+    p.set_defaults(func=cmd_webhook_serve)
 
     p = sub.add_parser("retention", parents=[common],
                        help="value-weighted retention: successes "
