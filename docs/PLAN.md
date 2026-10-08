@@ -3847,3 +3847,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        saved inside one clock tick tie and their order rolls the
        dice. The worklist fixture climbs a real time ladder -
        arrival order is the invariant, not the save order.
+414. **v3.28.0 - webhook-serve: the other end of the channel**
+     (planned):
+     - fleet, tail, spool and digest all POST signed alerts;
+       webhook-serve is the zero-dependency receiving end: it
+       verifies X-Approximately-Signature against the same
+       load_key and archives what survives into a JSONL log. A
+       configured key makes it verify-only (401, never archived);
+       with no key it archives rows marked verified=false and
+       says so. Hostile bodies are refused without crashing.
