@@ -156,3 +156,29 @@ def test_cli_door_parses_and_refuses_bad_port():
     args = argparse.Namespace(store=".", port=99999, key_file=None,
                               log=None)
     assert cmd_webhook_serve(args) == 2
+
+
+def test_oversized_body_gets_413_before_the_read():
+    from approximately.receiver import serve
+
+    archive = Path(tempfile.mkdtemp()) / "log.jsonl"
+    server, state = serve(archive, port=0, key=None, max_bytes=64)
+    try:
+        host, port = server.server_address[:2]
+        conn = HTTPConnection(host, int(port), timeout=5)
+        big = b'{"kind": "' + b"x" * 200 + b'"}'
+        conn.request("POST", "/", body=big,
+                     headers={"Content-Length": str(len(big))})
+        resp = conn.getresponse()
+        data = json.loads(resp.read())
+        status = resp.status
+        conn.close()
+        assert status == 413
+        assert "exceeds" in data["error"]
+        assert not archive.exists(), "refused bodies never archive"
+        # and the receiver still serves normal traffic afterwards
+        small = b'{"kind": "spool"}'
+        status, _ = _post(f"{host}:{port}", small)
+        assert status == 200
+    finally:
+        server.shutdown()
