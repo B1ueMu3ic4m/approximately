@@ -340,10 +340,10 @@ them); the store should update itself, not wait for someone to run
 
 ```bash
 # cron mode: one pass, gateable exit code (1 = a failed run came in)
-approximately spool --store ~/agents/store --dir ~/spool --once
+approximately spool --store ~/agents/store ~/spool --once
 
 # daemon mode: a pass every 5 minutes until interrupted
-approximately spool --store ~/agents/store --dir ~/spool --interval 300
+approximately spool --store ~/agents/store ~/spool --interval 300
 ```
 
 Files move to `spool/done/` once parsed; unparseable files stay put
