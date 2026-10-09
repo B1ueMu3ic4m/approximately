@@ -1167,9 +1167,10 @@ _TOOLS: List[Dict[str, Any]] = [
                        "successes age out on keep_days, failures "
                        "(and unknown-outcome runs) on failure_days; "
                        "breach evidence and annotated traces never "
-                       "retire. Plan only — the deleting lives in "
-                       "the CLI (`approximately retention "
-                       "--apply`).",
+                       "retire. Plan only by default; pass "
+                       "apply=true with confirm=true to delete the "
+                       "plan's rows (both guards re-checked per file "
+                       "at apply time).",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -1181,6 +1182,14 @@ _TOOLS: List[Dict[str, Any]] = [
                                  "description": "failures get their "
                                                 "own clock (default = "
                                                 "keep_days)"},
+                "apply": {"type": "boolean",
+                          "description": "delete the plan's retire "
+                                         "rows (default false)"},
+                "confirm": {"type": "boolean",
+                            "description": "required true when "
+                                           "apply is set — the "
+                                           "two-flag gate against an "
+                                           "accidental delete"},
             },
             "required": ["keep_days"],
         },
@@ -2423,16 +2432,24 @@ def _tool_digest(ctx: ServerContext, args: Dict[str, Any]) -> dict:
 
 
 def _tool_retention(ctx: ServerContext, args: Dict[str, Any]) -> dict:
-    from .retention import retention_plan
+    from .retention import apply_plan, retention_plan
 
     keep = args.get("keep_days")
     if keep is None:
         raise KeyError("retention needs keep_days")
-    f_days = args.get("failure_days")
-    return retention_plan(_store(ctx, args), keep_days=int(keep),
-                          failure_days=(int(f_days)
-                                        if f_days is not None
-                                        else None))
+    plan = retention_plan(_store(ctx, args), keep_days=int(keep),
+                          failure_days=_opt_int(args, "failure_days"))
+    if not args.get("apply"):
+        return plan
+    if not args.get("confirm"):
+        raise ValueError("retention apply needs confirm: true")
+    removed = apply_plan(_store(ctx, args), plan)
+    return dict(plan, applied=removed)
+
+
+def _opt_int(args: Dict[str, Any], key: str) -> Optional[int]:
+    value = args.get(key)
+    return int(value) if value is not None else None
 
 
 _HANDLERS = {

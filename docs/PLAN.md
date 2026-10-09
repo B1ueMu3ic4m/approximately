@@ -3909,3 +3909,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
      - the audit caught it: handoff --queue ignored --out and
        --json - the worklist rendered to stdout only, unlike
        every other markdown door. Both shapes work now.
+
+425. **v3.33.0 - the MCP door deletes, behind two flags** (planned):
+       - retention's MCP tool was plan-only while the CLI could
+         --apply; now the MCP door deletes too, but only with
+         apply=true AND confirm=true — miss either and you get the
+         plan. One delete path, one set of guards (breach evidence,
+         annotated traces, unreadable poison), re-checked per file
+         at apply time for both doors.

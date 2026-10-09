@@ -259,7 +259,9 @@ layer rather than duplicating it:
   successes age out before failures, and the two guards (breach
   evidence, annotated traces) veto every retirement at plan time
   and again at apply time. The plan is the default; deleting is
-  explicit, and poison is `doctor`'s job, never retention's.
+  explicit — CLI `--apply`, or the MCP tool's `apply`+`confirm`
+  two-flag gate — and poison is `doctor`'s job, never
+  retention's.
 
 ## Invariants worth keeping
 
