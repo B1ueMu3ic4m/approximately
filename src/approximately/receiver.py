@@ -66,6 +66,39 @@ class ReceiverState:
         return False, "refused"
 
 
+def _open_log(stats: dict, archive: Path) -> Optional[str]:
+    """Fill in the byte size and return the decoded text, BOM
+    stripped; None when the log does not exist yet."""
+    if not archive.is_file():
+        return None
+    raw = archive.read_bytes()
+    stats["bytes"] = len(raw)
+    text = raw.decode("utf-8", errors="replace")
+    if text.startswith("\ufeff"):
+        text = text[1:]  # a BOM is history, not poison
+    return text
+
+
+def _stat_row(stats: dict, row: dict) -> None:
+    """One good row's census: the verified split, the kind bucket,
+    the last arrival. A kind that is not a string buckets by its
+    json form — the census must never crash on what arrived."""
+    if row.get("verified") is True:
+        stats["verified"] += 1
+    else:
+        stats["unverified"] += 1
+    kind = row.get("kind", "?")
+    if not isinstance(kind, str):
+        kind = json.dumps(kind, sort_keys=True,
+                          ensure_ascii=False)
+    stats["kinds"][kind] = stats["kinds"].get(kind, 0) + 1
+    stamp = row.get("received_at")
+    if isinstance(stamp, (int, float)) and \
+            (stats["last_received_at"] is None
+             or stamp > stats["last_received_at"]):
+        stats["last_received_at"] = stamp
+
+
 def archive_stats(archive: Path) -> dict:
     """What the on-disk log actually holds — read back, not
     remembered. Rows, the verified split, the kind census, the last
@@ -74,11 +107,10 @@ def archive_stats(archive: Path) -> dict:
     stats: dict = {"rows": 0, "verified": 0, "unverified": 0,
                    "malformed": 0, "kinds": {}, "bytes": 0,
                    "last_received_at": None}
-    if not archive.is_file():
+    text = _open_log(stats, archive)
+    if text is None:
         return stats
-    raw = archive.read_bytes()
-    stats["bytes"] = len(raw)
-    for line in raw.decode("utf-8", errors="replace").splitlines():
+    for line in text.splitlines():
         if not line.strip():
             continue
         try:
@@ -89,17 +121,7 @@ def archive_stats(archive: Path) -> dict:
             stats["malformed"] += 1
             continue
         stats["rows"] += 1
-        if row.get("verified") is True:
-            stats["verified"] += 1
-        else:
-            stats["unverified"] += 1
-        kind = row.get("kind", "?")
-        stats["kinds"][kind] = stats["kinds"].get(kind, 0) + 1
-        stamp = row.get("received_at")
-        if isinstance(stamp, (int, float)) and \
-                (stats["last_received_at"] is None
-                 or stamp > stats["last_received_at"]):
-            stats["last_received_at"] = stamp
+        _stat_row(stats, row)
     return stats
 
 
