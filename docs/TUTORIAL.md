@@ -217,7 +217,9 @@ verifies those signatures against the same key and archives what
 survives into a JSONL log. With a key configured it is verify-only
 (a bad or missing signature gets a 401 and is never archived); with
 no key it archives rows marked `verified: false` — an open tap that
-says so. Point `--post` at it and approximately talks to
+says so. `GET /health` is the liveness probe; `GET /stats` reads the
+archive back — rows, the verified split, the kind census — so a
+restarted server still answers "what does this log hold". Point `--post` at it and approximately talks to
 approximately with the same tamper-evidence the traces have.
 
 Postmortems are the loop's currency, so the brief counts what a
