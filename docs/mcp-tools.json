@@ -1244,7 +1244,7 @@
     },
     {
       "name": "retention",
-      "description": "The value-weighted retention plan: successes age out on keep_days, failures (and unknown-outcome runs) on failure_days; breach evidence and annotated traces never retire. Plan only \u2014 the deleting lives in the CLI (`approximately retention --apply`).",
+      "description": "The value-weighted retention plan: successes age out on keep_days, failures (and unknown-outcome runs) on failure_days; breach evidence and annotated traces never retire. Plan only by default; pass apply=true with confirm=true to delete the plan's rows (both guards re-checked per file at apply time).",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1258,6 +1258,14 @@
           "failure_days": {
             "type": "number",
             "description": "failures get their own clock (default = keep_days)"
+          },
+          "apply": {
+            "type": "boolean",
+            "description": "delete the plan's retire rows (default false)"
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "required true when apply is set \u2014 the two-flag gate against an accidental delete"
           }
         },
         "required": [

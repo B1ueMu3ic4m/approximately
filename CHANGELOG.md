@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.33.0
+
+- the MCP retention door learns to delete, behind two flags: `apply` + `confirm` (either missing returns the plan untouched) - one delete path with the CLI, guards re-checked per file at apply time.
+
 ## v3.32.0
 
 - the worklist speaks both shapes: `handoff --queue` honors `--out` and `--json` now - the audit caught it rendering to stdout only, unlike every other markdown door.
