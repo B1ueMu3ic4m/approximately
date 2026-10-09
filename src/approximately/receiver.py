@@ -66,19 +66,64 @@ class ReceiverState:
         return False, "refused"
 
 
+def archive_stats(archive: Path) -> dict:
+    """What the on-disk log actually holds — read back, not
+    remembered. Rows, the verified split, the kind census, the last
+    arrival and the byte size. A malformed line is counted as
+    ``malformed`` and never guessed at (poison is evidence too)."""
+    stats: dict = {"rows": 0, "verified": 0, "unverified": 0,
+                   "malformed": 0, "kinds": {}, "bytes": 0,
+                   "last_received_at": None}
+    if not archive.is_file():
+        return stats
+    raw = archive.read_bytes()
+    stats["bytes"] = len(raw)
+    for line in raw.decode("utf-8", errors="replace").splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+            if not isinstance(row, dict):
+                raise ValueError("row must be an object")
+        except ValueError:
+            stats["malformed"] += 1
+            continue
+        stats["rows"] += 1
+        if row.get("verified") is True:
+            stats["verified"] += 1
+        else:
+            stats["unverified"] += 1
+        kind = row.get("kind", "?")
+        stats["kinds"][kind] = stats["kinds"].get(kind, 0) + 1
+        stamp = row.get("received_at")
+        if isinstance(stamp, (int, float)) and \
+                (stats["last_received_at"] is None
+                 or stamp > stats["last_received_at"]):
+            stats["last_received_at"] = stamp
+    return stats
+
+
 def make_handler(state: ReceiverState) -> type:
     """Build a handler class bound to one ReceiverState (per-test
     servers get fresh state; nothing is class-level)."""
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:
-            if self.path != "/health":
-                self._reply(404, {"error": "not found"})
+            if self.path == "/health":
+                self._reply(200, {"ok": True,
+                                  "received": state.received,
+                                  "refused": state.refused,
+                                  "verify_mode": bool(state.key)})
                 return
-            self._reply(200, {"ok": True,
-                              "received": state.received,
-                              "refused": state.refused,
-                              "verify_mode": bool(state.key)})
+            if self.path == "/stats":
+                self._reply(200, dict(
+                    {"ok": True,
+                     "received": state.received,
+                     "refused": state.refused,
+                     "verify_mode": bool(state.key)},
+                    archive=archive_stats(state.archive)))
+                return
+            self._reply(404, {"error": "not found"})
 
         def do_POST(self) -> None:
             length = int(self.headers.get("Content-Length", 0) or 0)

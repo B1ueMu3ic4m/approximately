@@ -3023,7 +3023,7 @@ def cmd_webhook_serve(args: argparse.Namespace) -> int:
             "OPEN (no key configured: archiving unverified posts "
             "as verified=false)")
     print(f"webhook-serve listening on {host}:{bound} ({mode}); "
-          f"archive {archive}", flush=True)
+          f"archive {archive}; GET /health /stats", flush=True)
     try:
         while True:
             time.sleep(3600)

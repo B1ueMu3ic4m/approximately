@@ -3917,3 +3917,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          plan. One delete path, one set of guards (breach evidence,
          annotated traces, unreadable poison), re-checked per file
          at apply time for both doors.
+
+426. **v3.34.0 - /stats: the archive read back** (planned):
+       - /health counts this process's life only; a restarted
+         receiver forgets. /stats reads the JSONL on disk — rows,
+         the verified split, the kind census, the last arrival,
+         bytes — so on-call answers "what does this log hold"
+         without shelling into the box. Malformed lines are counted
+         as malformed, never parsed as truth.

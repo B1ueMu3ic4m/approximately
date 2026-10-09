@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.34.0
+
+- the receiver reports its log, not just its life: `GET /stats` reads the archive back - rows, verified split, kind census, last arrival, bytes - surviving restarts; malformed lines counted, never parsed.
+
 ## v3.33.0
 
 - the MCP retention door learns to delete, behind two flags: `apply` + `confirm` (either missing returns the plan untouched) - one delete path with the CLI, guards re-checked per file at apply time.
