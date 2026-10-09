@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.36.0
+
+- the receiver under concurrency: counters and the archive append serialize on a lock, and the listen backlog deepens to 128 (the default 5 reset burst connections before the handler saw them - the soak caught 80 of 200 posts kernel-refused). 200-post/20-thread soak demands exact bookkeeping and intact lines.
+
 ## v3.35.0
 
 - fuzz 29: hostile archives at /stats - BOMs, binary garbage, truncated tails, kinds that are lists, stamps that lie. Two real defects fixed (BOM row miscounted malformed; unhashable kind crashed the census); the contract is now pinned: never raises, one bucket per line, counts agree with a recount.
