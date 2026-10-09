@@ -3935,3 +3935,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          commands would exit 2). Spans fixed, audit pinned as a
          test. Tutorial also re-taught the MCP apply gate and both
          receiver probes.
+
+428. **v3.35.0 - fuzz 29: hostile archives at /stats** (planned):
+       - the /stats read path meets the worst disk: BOMs, binary
+         garbage, crash-truncated tails, rows whose kind is a list,
+         stamps that lie about their types. Two real defects found
+         and fixed: a BOM made the first real row count malformed,
+         and an unhashable kind crashed the census with TypeError.
+         Contract now: never raises, every line lands in exactly
+         one bucket, counts agree with a straight recount.

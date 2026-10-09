@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.35.0
+
+- fuzz 29: hostile archives at /stats - BOMs, binary garbage, truncated tails, kinds that are lists, stamps that lie. Two real defects fixed (BOM row miscounted malformed; unhashable kind crashed the census); the contract is now pinned: never raises, one bucket per line, counts agree with a recount.
+
 ## v3.34.1
 
 - the flag-level docs audit: every quoted `approximately ...` span across README/TUTORIAL/RECIPES/ANNOUNCEMENT must parse - door AND flags. It caught three real ghosts (spool's directory quoted as `--dir`; it is a positional) - spans fixed, audit pinned as tests.
