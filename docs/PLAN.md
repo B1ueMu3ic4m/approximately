@@ -3925,3 +3925,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          bytes — so on-call answers "what does this log hold"
          without shelling into the box. Malformed lines are counted
          as malformed, never parsed as truth.
+
+427. **v3.34.1 - the flag audit** (planned):
+       - the docs audit grew teeth: every `approximately ...` span
+         quoted across README/TUTORIAL/RECIPES/ANNOUNCEMENT must
+         parse - door names AND flags. It immediately caught three
+         real ghosts: spool's directory is a positional, but
+         TUTORIAL and RECIPES quoted `spool --dir` (readers'
+         commands would exit 2). Spans fixed, audit pinned as a
+         test. Tutorial also re-taught the MCP apply gate and both
+         receiver probes.

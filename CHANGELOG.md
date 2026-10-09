@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.34.1
+
+- the flag-level docs audit: every quoted `approximately ...` span across README/TUTORIAL/RECIPES/ANNOUNCEMENT must parse - door AND flags. It caught three real ghosts (spool's directory quoted as `--dir`; it is a positional) - spans fixed, audit pinned as tests.
+
 ## v3.34.0
 
 - the receiver reports its log, not just its life: `GET /stats` reads the archive back - rows, verified split, kind census, last arrival, bytes - surviving restarts; malformed lines counted, never parsed.

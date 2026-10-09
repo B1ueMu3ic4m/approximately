@@ -183,7 +183,7 @@ approximately import --store ~/agents/store runs.otlp.json   # sniffed
 
 Deterministic ids make the loop idempotent, and export → import →
 export closes byte-for-byte — the same run always produces the same
-document.  Or let it happen on its own: `approximately spool --dir
+document.  Or let it happen on its own: `approximately spool
 ~/spool` watches a directory (recipe 18), and `doctor --spool`
 tells you when a file needs a human.
 
@@ -240,8 +240,9 @@ was never recorded) live for ninety days. Two guards veto every
 retirement — breach evidence and annotated traces — checked when the
 plan is printed and again when `--apply` deletes, because a plan is
 a snapshot and the store moves on. Unreadable files are never
-touched here; poison is `doctor --fix`'s job. The MCP door is
-plan-only: deleting stays an explicit act in a shell.
+touched here; poison is `doctor --fix`'s job. The MCP door deletes
+too, but only with `apply: true` and `confirm: true` together —
+miss either and you get the plan, never a deletion.
 
 ## Where to go next
 
