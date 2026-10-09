@@ -38,8 +38,8 @@ def test_every_quoted_span_uses_real_doors_and_flags():
     problems: list = []
     for parts in _DOCS:
         text = _ROOT.joinpath(*parts).read_text(encoding="utf-8")
-        for span in re.findall(r"`approximately ([^`]+)`", text):
-            span = span.split(" #")[0].strip().rstrip("\\").strip()
+        for quoted in re.findall(r"`approximately ([^`]+)`", text):
+            span = quoted.split(" #")[0].strip().rstrip("\\").strip()
             if not span:
                 continue
             toks = span.replace("\\\n", " ").split()
