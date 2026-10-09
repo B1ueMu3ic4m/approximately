@@ -3944,3 +3944,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          and an unhashable kind crashed the census with TypeError.
          Contract now: never raises, every line lands in exactly
          one bucket, counts agree with a straight recount.
+
+429. **v3.36.0 - the receiver under concurrency** (planned):
+       - ThreadingHTTPServer served posts on parallel threads over
+         unsynchronized bookkeeping: the += counters and the JSONL
+         append could race (a lost increment is a lie in the ops
+         record; an interleaved line is a torn one). A lock now
+         serializes every counter and the archive append, and the
+         listen backlog is deepened to 128 - the default 5 reset
+         burst connections before the handler ever saw them
+         (the soak caught it: 80 of 200 posts refused by the
+         kernel). 200-post/20-thread soak with exact bookkeeping.

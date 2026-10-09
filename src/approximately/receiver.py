@@ -26,6 +26,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -37,8 +38,11 @@ DEFAULT_MAX_BYTES = 1_048_576  # 1 MiB: alerts are small; a
 # megabyte body is an attack, not an announcement
 class ReceiverState:
     """What the server needs between requests: the verifying key
-    (None = accept-and-mark-unverified), the archive path, and the
-    request-size bound."""
+    (None = accept-and-mark-unverified), the archive path, the
+    request-size bound, and the lock that serializes the
+    bookkeeping — ThreadingHTTPServer serves posts concurrently,
+    and a lost increment or an interleaved log line is a lie in the
+    ops record."""
 
     def __init__(self, archive: Path,
                  key: Optional[bytes] = None,
@@ -46,6 +50,7 @@ class ReceiverState:
         self.archive = archive
         self.key = key
         self.max_bytes = max(1, int(max_bytes))
+        self.lock = threading.Lock()
         self.received = 0
         self.refused = 0
 
@@ -132,17 +137,20 @@ def make_handler(state: ReceiverState) -> type:
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:
             if self.path == "/health":
-                self._reply(200, {"ok": True,
-                                  "received": state.received,
-                                  "refused": state.refused,
-                                  "verify_mode": bool(state.key)})
+                with state.lock:
+                    self._reply(200, {"ok": True,
+                                      "received": state.received,
+                                      "refused": state.refused,
+                                      "verify_mode": bool(state.key)})
                 return
             if self.path == "/stats":
+                with state.lock:
+                    counters = {"ok": True,
+                                "received": state.received,
+                                "refused": state.refused,
+                                "verify_mode": bool(state.key)}
                 self._reply(200, dict(
-                    {"ok": True,
-                     "received": state.received,
-                     "refused": state.refused,
-                     "verify_mode": bool(state.key)},
+                    counters,
                     archive=archive_stats(state.archive)))
                 return
             self._reply(404, {"error": "not found"})
@@ -152,7 +160,8 @@ def make_handler(state: ReceiverState) -> type:
             if length > state.max_bytes:
                 # refused BEFORE the read: a hostile Content-Length
                 # must not buy a hostile read
-                state.refused += 1
+                with state.lock:
+                    state.refused += 1
                 self._reply(413, {"error": f"body exceeds "
                                            f"{state.max_bytes} bytes"})
                 return
@@ -160,7 +169,8 @@ def make_handler(state: ReceiverState) -> type:
             verified, verdict = state.verify(
                 body, self.headers.get("X-Approximately-Signature"))
             if verdict == "refused":
-                state.refused += 1
+                with state.lock:
+                    state.refused += 1
                 self._reply(401, {"error": "bad signature"})
                 return
             try:
@@ -168,7 +178,8 @@ def make_handler(state: ReceiverState) -> type:
                 if not isinstance(payload, dict):
                     raise ValueError("payload must be a JSON object")
             except (ValueError, UnicodeDecodeError):
-                state.refused += 1
+                with state.lock:
+                    state.refused += 1
                 self._reply(400, {"error": "body must be a JSON "
                                            "object"})
                 return
@@ -176,11 +187,12 @@ def make_handler(state: ReceiverState) -> type:
                    "verified": verified,
                    "kind": payload.get("kind", "?"),
                    "payload": payload}
-            state.archive.parent.mkdir(parents=True, exist_ok=True)
-            with state.archive.open("a", encoding="utf-8") as fh:
-                fh.write(json.dumps(row, ensure_ascii=False,
-                                    sort_keys=True) + "\n")
-            state.received += 1
+            with state.lock:
+                state.archive.parent.mkdir(parents=True, exist_ok=True)
+                with state.archive.open("a", encoding="utf-8") as fh:
+                    fh.write(json.dumps(row, ensure_ascii=False,
+                                        sort_keys=True) + "\n")
+                state.received += 1
             self._reply(200, {"received": True, "verified": verified})
 
         def _reply(self, status: int, body: dict) -> None:
@@ -197,6 +209,17 @@ def make_handler(state: ReceiverState) -> type:
     return Handler
 
 
+class ReceiverHTTPServer(ThreadingHTTPServer):
+    """The receiver's listener. The listen backlog is a class
+    attribute because ``listen()`` runs inside the constructor —
+    setting it afterwards would decorate an already-bound socket.
+    Deep backlog: a fleet's posters arrive in bursts, and the
+    default queue of five resets connections before the handler
+    ever sees them."""
+
+    request_queue_size = 128
+
+
 def serve(archive: Path, port: int = 0,
           key: Optional[bytes] = None,
           max_bytes: int = DEFAULT_MAX_BYTES
@@ -204,8 +227,8 @@ def serve(archive: Path, port: int = 0,
     """Bind the receiver; returns the server (call shutdown() from
     the controlling thread) and its state."""
     state = ReceiverState(archive, key=key, max_bytes=max_bytes)
-    server = ThreadingHTTPServer(("127.0.0.1", port),
-                                 make_handler(state))
+    server = ReceiverHTTPServer(("127.0.0.1", port),
+                                make_handler(state))
     thread = __import__("threading").Thread(
         target=server.serve_forever, daemon=True)
     thread.start()
