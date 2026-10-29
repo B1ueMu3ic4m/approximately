@@ -4110,3 +4110,15 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          since is a refusal at the boundary, and a row that lies
          about its stamp is not time travel - it is dropped.
          The row filter split to hold the C+ budget at 87.
+
+445. **v3.48.1 - the sweep wrote a real archive named 123** (planned):
+       - the schema sweep probed the snapshot tool's path with the
+         wrong-typed 123; Path(str(123)) is a legal relative path,
+         so every full-suite run wrote a genuine snapshot archive
+         named `123` into the repo root - and the night's
+         git add -A kept committing it (v3.46-v3.48 carry it).
+         The sweep now runs in a throwaway cwd (hermetic), the
+         stray is untracked, and the finding is recorded: an MCP
+         client can point snapshot at any path the server process
+         can write - same trust domain as the store argument,
+         worth a threat-model line.

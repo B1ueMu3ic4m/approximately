@@ -38,7 +38,11 @@ HOSTILE_ARGS = [
 ]
 
 
-def test_every_tool_survives_every_hostile_argument_set():
+def test_every_tool_survives_every_hostile_argument_set(tmp_path,
+                                                        monkeypatch):
+    # the sweep really calls the tools: writer tools (snapshot,
+    # init_gate) must write into a throwaway cwd, not the repo
+    monkeypatch.chdir(tmp_path)
     ctx = ServerContext(TraceStore(tempfile.mkdtemp()).directory)
     probed = 0
     for tool in _TOOLS:
@@ -89,7 +93,8 @@ def test_rpc_layer_answers_hostile_calls_with_envelopes():
     assert "error" in reply
 
 
-def test_server_serves_after_the_fuzz():
+def test_server_serves_after_the_fuzz(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     ctx = ServerContext(TraceStore(tempfile.mkdtemp()).directory)
     from approximately.mcp_server import handle_request
 
@@ -105,9 +110,14 @@ def test_server_serves_after_the_fuzz():
         "the surface is intact after the storm"
 
 
-def test_every_declared_property_rejects_the_wrong_type():
+def test_every_declared_property_rejects_the_wrong_type(
+        tmp_path, monkeypatch):
     """Schema-aware sweep: each tool's declared properties get a
-    value of the wrong type — a refusal or a dict, never a leak."""
+    value of the wrong type — a refusal or a dict, never a leak.
+    Hermetic too: this caught the snapshot tool happily writing
+    `Path(str(123))` — a real archive named 123 — into the repo
+    root, where the fuzz kept committing it."""
+    monkeypatch.chdir(tmp_path)
     ctx = ServerContext(TraceStore(tempfile.mkdtemp()).directory)
     WRONG = {"string": 123, "number": "x", "boolean": "yes",
              "array": {}, "object": []}
