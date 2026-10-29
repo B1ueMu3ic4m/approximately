@@ -20,3 +20,4 @@ report_*.html
 
 # OS
 .DS_Store
+.agents-store/

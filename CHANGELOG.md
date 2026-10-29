@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.39.0
+
+- fuzz 30: hostile arguments at the 50-tool MCP surface - a wrong-typed property sweep leaked five real TypeErrors through the refusal idiom; all fixed at the boundaries (store path refusal with a word, digest/status/doctor coercion, init_gate directory). Pinned: refusal or dict, never a leak; the server serves after the storm. Plus: the Windows RST race at the 413 test now tolerated (the aborted connection is the refusal; the archive stays empty).
+
 ## v3.38.1
 
 - the Monday bomb: v306's week test failed whenever the real clock was a Monday (rows derived from yesterday, ref = today - the bucket empties); caught by dependabot branches whose CI ran on 2026-10-26. Monday-anchored with an explicit ref, all seven weekdays simulated green. Test-only patch.

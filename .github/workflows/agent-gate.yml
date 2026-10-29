@@ -1,0 +1,21 @@
+name: agent-gate
+on: [push, workflow_dispatch]
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install approximately
+      - name: quality-gate the recorded agent runs
+        run: |
+          approximately ci --store .agents-store \
+            --max-failure-rate 0.3 \
+            --max-p95-latency-ms 15000 \
+            --max-tokens 2000000 \
+            --max-budget-breaches 0 \
+            --min-traces 1
+          # tune ceilings, then add a spend gate:
+          #   approximately ci --store .agents-store --max-spend 5 --prices prices.json
