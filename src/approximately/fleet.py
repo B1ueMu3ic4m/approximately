@@ -233,8 +233,14 @@ def notify_webhook(summaries: List[StoreSummary], url: str,
         # through configuration
         raise RuntimeError(f"webhook URL must be http(s), got {scheme!r}")
 
-    body = _json.dumps(payload if payload is not None
-                       else webhook_payload(summaries),
+    if payload is None:
+        # the fleet summary is the one poster that never said what
+        # it was: receivers archived it under kind "?" and the kind
+        # census went blind to fleet traffic (tail says
+        # trace_failure, spool says spool, digest says ops_digest)
+        payload = dict(webhook_payload(summaries),
+                       kind="fleet_summary")
+    body = _json.dumps(payload,
                        sort_keys=True).encode("utf-8")
     headers = {"Content-Type": "application/json"}
     if signing_key:

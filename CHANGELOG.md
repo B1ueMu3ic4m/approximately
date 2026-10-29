@@ -3,6 +3,18 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.38.1
+
+- the Monday bomb: v306's week test failed whenever the real clock was a Monday (rows derived from yesterday, ref = today - the bucket empties); caught by dependabot branches whose CI ran on 2026-10-26. Monday-anchored with an explicit ref, all seven weekdays simulated green. Test-only patch.
+
+## v3.38.0
+
+- the inbox, answerable without a shell: the new MCP inbox tool reads the receiver's archive (the /stats shape plus recent rows, newest last, redactable) and the archive is browsable as a resource - 50 tools, every count claim moved in lockstep.
+
+## v3.37.0
+
+- the signed channel, end to end: notify_webhook at a live receiver lands verified, forgeries are a definite 401 with nothing archived, the CLI digest posts through the env key - and the closure caught that fleet summaries never carried a kind (receivers filed them under "?"); they are fleet_summary now. Plus: v314's week test de-time-bombed (Monday-anchored, not calendar dates).
+
 ## v3.36.0
 
 - the receiver under concurrency: counters and the archive append serialize on a lock, and the listen backlog deepens to 128 (the default 5 reset burst connections before the handler saw them - the soak caught 80 of 200 posts kernel-refused). 200-post/20-thread soak demands exact bookkeeping and intact lines.
