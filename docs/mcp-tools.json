@@ -1,5 +1,5 @@
 {
-  "count": 49,
+  "count": 50,
   "tools": [
     {
       "name": "list_traces",
@@ -1271,6 +1271,26 @@
         "required": [
           "keep_days"
         ]
+      }
+    },
+    {
+      "name": "inbox",
+      "description": "The receiver's archive, read back: what the webhook channel has delivered \u2014 row counts, the verified split, the kind census, and the most recent rows (newest last). Rows are evidence of what arrived, not of what was true; redact scrubs them before they leave the box.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number",
+            "description": "how many recent rows to return (default 20)"
+          },
+          "redact": {
+            "type": "boolean",
+            "description": "scrub each row through the builtin secret patterns"
+          }
+        }
       }
     }
   ]
