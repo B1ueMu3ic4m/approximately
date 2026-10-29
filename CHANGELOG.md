@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.48.0
+
+- `received --since EPOCH`: the cron reader gains a time window - a hostile since is a refusal at the boundary, a row that lies about its stamp is dropped, and the filter split holds the C+ budget at 87.
+
 ## v3.47.0
 
 - the receiver chapter catches up: TUTORIAL now teaches the bounded log (--max-rows rotation), the three-way read (/stats, received, inbox) and the doctor's archive checkup. Docs-only patch.

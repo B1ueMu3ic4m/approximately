@@ -4103,3 +4103,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          the received door and the doctor's archive checkup; it
          now teaches all three (bounded log, three-way read,
          3am checkup). Docs-only patch.
+
+444. **v3.48.0 - received --since: the window closes** (planned):
+       - the cron reader gains a time window: --since EPOCH keeps
+         only rows stamped at or after the second; a hostile
+         since is a refusal at the boundary, and a row that lies
+         about its stamp is not time travel - it is dropped.
+         The row filter split to hold the C+ budget at 87.

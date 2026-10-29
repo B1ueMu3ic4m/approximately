@@ -101,3 +101,22 @@ def test_include_rotated_folds_the_previous_log_in():
         [0, 1, 2, 10, 11], "the previous log comes first"
     assert payload["rows_total"] == 2, \
         "rows_total keeps meaning the current archive"
+
+
+def test_since_keeps_only_rows_at_or_after_the_epoch():
+    archive = _archive([_row(i) for i in range(5)])
+    payload = read_archive(archive, since=3.0)
+    assert [r["received_at"] for r in payload["recent"]] == \
+        [3.0, 4.0]
+    import pytest
+
+    with pytest.raises(ValueError, match="unix timestamp"):
+        read_archive(archive, since="not a number"), \
+            "a hostile since is a refusal, not a crash"
+
+
+def test_since_drops_rows_that_lie_about_their_stamp():
+    archive = _archive([_row(1), dict(_row(2), received_at="x")])
+    payload = read_archive(archive, since=0.5)
+    assert [r["received_at"] for r in payload["recent"]] == [1], \
+        "an unstampable row is not time travel"

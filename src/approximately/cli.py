@@ -3014,7 +3014,8 @@ def cmd_received(args: argparse.Namespace) -> int:
         kind=getattr(args, "kind", None),
         unverified_only=bool(getattr(args, "unverified_only", False)),
         include_rotated=bool(getattr(args, "include_rotated",
-                                     False)))
+                                     False)),
+        since=getattr(args, "since", None))
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2, ensure_ascii=False))
         return 0
@@ -4986,6 +4987,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--include-rotated", action="store_true",
                    help="fold the previous log (<archive>.1) in "
                         "ahead of the current one")
+    p.add_argument("--since", type=float, metavar="EPOCH",
+                   help="only rows stamped at or after this unix "
+                        "time (an unstampable row is dropped)")
     p.add_argument("--json", action="store_true",
                    help="emit the stats shape as JSON")
     p.set_defaults(func=cmd_received)
