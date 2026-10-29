@@ -4155,3 +4155,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          everything". Fixed with an explicit guard; the dawn
          sweep also de-numbered the help-tour docstring's stale
          "59 doors" (64 and counting).
+
+450. **v3.49.3 - the banner's numbers catch up** (planned):
+       - the README banner still said "30-gate perf wall" (the
+         wall is 27 gates since archive-stats joined) and "2,000+
+         tests" (2,143). Refreshed; the check-matrix count was
+         already honest at 21.

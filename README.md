@@ -18,7 +18,7 @@
 > triage / grade / handoff / snapshot / **digest** (fleet briefs, signed
 > `--post`, `--redact`) / **retention** (value-weighted keep, double-guarded) /
 > **webhook-serve** (the verified receiving end of the signed channel) —
-> 2,000+ tests across a 21-check CI matrix and a 30-gate perf wall.
+> 2,100+ tests across a 21-check CI matrix and a 27-gate perf wall.
 > Python 3.10+ (3.9 is EOL).
 > Versioning with teeth ([VERSIONING.md](docs/VERSIONING.md)): major for
 > capability milestones that carry a real contract change, minor per feature

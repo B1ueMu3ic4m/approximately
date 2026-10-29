@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.49.3
+
+- the banner's numbers catch up: "30-gate perf wall" -> 27 (archive-stats joined), "2,000+ tests" -> 2,100+. Docs-only patch.
+
 ## v3.49.2
 
 - limit zero showed everything: `rows[-0:]` is the whole list, so `received --limit 0` and the inbox tool returned every row instead of none - fixed with an explicit guard; the tour docstring's stale "59 doors" de-numbered.
