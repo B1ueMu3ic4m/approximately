@@ -4132,3 +4132,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          the repo (like fresh-install), records a demo store
          (two ok runs, one failure) and gates it - the demo is
          the evidence, thresholds verified locally first.
+
+447. **v3.49.0 - the plan must not aim the delete** (planned):
+       - a hostile retire-row id could aim apply_plan's unlink
+         outside the store: an absolute id (Path join replaces
+         the base) or a `..` climb unlinked any .json on the box.
+         Unreachable through the CLI and MCP doors today (both
+         build their plans internally), but a delete aimed by
+         data is a loaded gun for the next caller. The guards now
+         refuse any id whose resolved parent is not the store
+         itself.

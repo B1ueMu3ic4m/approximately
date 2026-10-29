@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.49.0
+
+- the plan must not aim the delete: a hostile retire-row id (absolute path or `..` climb) could aim apply_plan's unlink outside the store - unreachable through today's doors, refused now at the delete path itself; the guards verify the resolved parent is the store.
+
 ## v3.48.2
 
 - agent-gate finally gates something: it died at `pip install approximately` (no PyPI yet) with a gitignored store - it now installs from the repo, records a demo store (two ok, one failure) and gates it. CI-only patch.
