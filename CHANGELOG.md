@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.38.1
+
+- the Monday bomb: v306's week test failed whenever the real clock was a Monday (rows derived from yesterday, ref = today - the bucket empties); caught by dependabot branches whose CI ran on 2026-10-26. Monday-anchored with an explicit ref, all seven weekdays simulated green. Test-only patch.
+
 ## v3.38.0
 
 - the inbox, answerable without a shell: the new MCP inbox tool reads the receiver's archive (the /stats shape plus recent rows, newest last, redactable) and the archive is browsable as a resource - 50 tools, every count claim moved in lockstep.

@@ -3982,3 +3982,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          browsable as a resource. 50 tools; every count claim
          (meta, README, TUTORIAL, VERSIONING, mcp-tools.json)
          moved in lockstep.
+
+432. **v3.38.1 - the Monday bomb** (planned):
+       - the dependabot branches' red CI exposed a second time bomb
+         on main: v306's week shapes test derived rows from
+         yesterday and let week_compare use today - on a Monday
+         "this week" holds only today, the bucket empties, the
+         test fails (the CI run that caught it ran on 2026-10-26,
+         a Monday). Anchored to the ISO Monday with the same ref,
+         proven usable across all seven weekdays by simulation.
+       - sweep result: v314 and v306 were the only ISO-week
+         time bombs; v308/v309/v329 verified clock-immune.
