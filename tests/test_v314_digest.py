@@ -80,9 +80,14 @@ def test_triage_top_clamps_the_queue():
 def test_week_section_flows_from_digest_dir(tmp_path):
     import datetime as dt
 
+    # anchored to this ISO Monday and last: hardcoded calendar
+    # dates time-bomb the moment the real clock leaves their weeks
+    monday = dt.date.today() - dt.timedelta(
+        days=dt.date.today().weekday())
+    last_monday = monday - dt.timedelta(days=7)
     fleet = tmp_path / "fleet"
-    for day, traces, failures in (("2026-09-28", 4, 1),
-                                  ("2026-10-05", 5, 1)):
+    for day, traces, failures in ((str(last_monday), 4, 1),
+                                  (str(monday), 5, 1)):
         ts = dt.datetime.fromisoformat(
             f"{day}T12:00:00+00:00").timestamp()
         snap = {"ts": ts, "worsening": [],

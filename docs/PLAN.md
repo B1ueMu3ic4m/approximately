@@ -3955,3 +3955,41 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          burst connections before the handler ever saw them
          (the soak caught it: 80 of 200 posts refused by the
          kernel). 200-post/20-thread soak with exact bookkeeping.
+
+430. **v3.37.0 - the signed channel, end to end** (planned):
+       - poster and receiver had only ever met through stand-in
+         servers; the loop now closes in tests: notify_webhook at
+         a live webhook-serve lands verified, a forged key is a
+         definite HTTP 401 with nothing archived, and the CLI
+         digest door posts its page through the env key.
+       - the loop closure caught a real gap: the fleet summary was
+         the one poster that never said what it was - receivers
+         archived it under kind "?" and the /stats kind census was
+         blind to fleet traffic. notify_webhook now stamps
+         kind=fleet_summary (tail says trace_failure, spool says
+         spool, digest says ops_digest).
+       - test_v314's week test hardcoded calendar dates that
+         time-bombed the moment the real clock left their ISO
+         weeks; anchored to this Monday and last, like v306.
+
+431. **v3.38.0 - the inbox, answerable without a shell** (planned):
+       - the webhook channel had a writer, a keeper and /stats
+         over HTTP, but an agent inside an MCP client could not
+         see what had arrived. The new inbox tool reads the
+         receiver's archive back: the /stats shape plus the most
+         recent rows (newest last, rows_total vs recent, redact
+         scrubs before rows leave the box). The archive is also
+         browsable as a resource. 50 tools; every count claim
+         (meta, README, TUTORIAL, VERSIONING, mcp-tools.json)
+         moved in lockstep.
+
+432. **v3.38.1 - the Monday bomb** (planned):
+       - the dependabot branches' red CI exposed a second time bomb
+         on main: v306's week shapes test derived rows from
+         yesterday and let week_compare use today - on a Monday
+         "this week" holds only today, the bucket empties, the
+         test fails (the CI run that caught it ran on 2026-10-26,
+         a Monday). Anchored to the ISO Monday with the same ref,
+         proven usable across all seven weekdays by simulation.
+       - sweep result: v314 and v306 were the only ISO-week
+         time bombs; v308/v309/v329 verified clock-immune.
