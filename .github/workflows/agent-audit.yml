@@ -1,0 +1,27 @@
+name: agent-audit
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install approximately
+      - name: nightly audit (doctor + gate + forecast)
+        run: |
+          approximately audit --store .agents-store \
+            --max-failure-rate 0.3 \
+            --max-p95-latency-ms 15000 \
+            --max-tokens 2000000 \
+            --max-budget-breaches 0 \
+            --min-traces 1 \
+            --grade-floor F \
+            --triage-top 5 \
+            --fix
+        # add --digest-dir + --spend-ceiling once a watch feeds digests
+        # raise --grade-floor from F toward B as your agents mature
