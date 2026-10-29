@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.38.0
+
+- the inbox, answerable without a shell: the new MCP inbox tool reads the receiver's archive (the /stats shape plus recent rows, newest last, redactable) and the archive is browsable as a resource - 50 tools, every count claim moved in lockstep.
+
 ## v3.37.0
 
 - the signed channel, end to end: notify_webhook at a live receiver lands verified, forgeries are a definite 401 with nothing archived, the CLI digest posts through the env key - and the closure caught that fleet summaries never carried a kind (receivers filed them under "?"); they are fleet_summary now. Plus: v314's week test de-time-bombed (Monday-anchored, not calendar dates).
