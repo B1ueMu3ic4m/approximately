@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.44.0
+
+- yesterday's log is still one query: `received --include-rotated` folds the previous log (`<archive>.1`) in ahead of the current one; rows_total keeps meaning the current archive.
+
 ## v3.43.0
 
 - the archive rotates: `--max-rows` (default 100k) moves the full log aside as `<log>.1` and starts empty - an unbounded JSONL is a slow disk-fill, not a record; /stats keeps reading the disk, counters keep the truth.

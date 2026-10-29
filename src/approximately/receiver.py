@@ -81,31 +81,51 @@ class ReceiverState:
 
 def read_archive(archive: Path, limit: int = 20,
                  kind: Optional[str] = None,
-                 unverified_only: bool = False) -> dict:
+                 unverified_only: bool = False,
+                 include_rotated: bool = False) -> dict:
     """The archive read back with a filter: the /stats shape plus
     the most recent matching rows, newest last. Used by the
     ``received`` CLI door and the MCP inbox tool — one reader,
-    every surface."""
+    every surface. ``include_rotated`` folds the previous log
+    (``<archive>.1``, where rotation moves it) in ahead of the
+    current one, so yesterday's night is still one query."""
     stats = archive_stats(archive)
+    paths = [archive]
+    if include_rotated:
+        rotated = archive.with_name(archive.name + ".1")
+        if rotated.is_file():
+            paths.insert(0, rotated)
     rows: list = []
-    if archive.is_file():
-        lines = archive.read_text(
+    for path in paths:
+        if not path.is_file():
+            continue
+        lines = path.read_text(
             encoding="utf-8", errors="replace").splitlines()
-        for line in lines:
-            try:
-                row = json.loads(line)
-            except ValueError:
-                continue  # malformed lines stay counted in stats
-            if not isinstance(row, dict):
-                continue
-            if kind is not None and row.get("kind") != kind:
-                continue
-            if unverified_only and row.get("verified") is True:
-                continue
-            rows.append(row)
+        rows.extend(_matching_rows(lines, kind, unverified_only))
     stats["rows_total"] = stats["rows"]
     stats["recent"] = rows[-max(0, int(limit)):]
     return stats
+
+
+def _matching_rows(lines: list, kind: Optional[str],
+                   unverified_only: bool) -> list:
+    """The lines that pass the filter — malformed lines are
+    skipped here (archive_stats already counted them) and never
+    guessed at."""
+    rows: list = []
+    for line in lines:
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(row, dict):
+            continue
+        if kind is not None and row.get("kind") != kind:
+            continue
+        if unverified_only and row.get("verified") is True:
+            continue
+        rows.append(row)
+    return rows
 
 
 def _open_log(stats: dict, archive: Path) -> Optional[str]:

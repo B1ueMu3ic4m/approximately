@@ -4070,3 +4070,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          pre-existing rows count toward the bound, /stats keeps
          reading the disk (not the counters), and 0 says
          unbounded.
+
+441. **v3.44.0 - yesterday's log is still one query** (planned):
+       - rotation moved the previous night aside as `<log>.1`, and
+         the readers stopped there. `received --include-rotated`
+         (and read_archive's include_rotated) folds the previous
+         log in ahead of the current one; rows_total keeps meaning
+         the current archive.
