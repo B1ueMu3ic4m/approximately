@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.47.0
+
+- the receiver chapter catches up: TUTORIAL now teaches the bounded log (--max-rows rotation), the three-way read (/stats, received, inbox) and the doctor's archive checkup. Docs-only patch.
+
 ## v3.46.0
 
 - fuzz 31: the doctor meets hostile archives - directories wearing the log's name, binary garbage, rotated entries that are themselves directories. One real defect fixed (rotated presence was is_file; a directory went unreported - it is exists now); the /stats contract held everywhere else, and the store's own health stays untouched by the archive's hostility.

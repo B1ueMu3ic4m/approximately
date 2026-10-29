@@ -219,8 +219,16 @@ survives into a JSONL log. With a key configured it is verify-only
 no key it archives rows marked `verified: false` — an open tap that
 says so. `GET /health` is the liveness probe; `GET /stats` reads the
 archive back — rows, the verified split, the kind census — so a
-restarted server still answers "what does this log hold". Point `--post` at it and approximately talks to
-approximately with the same tamper-evidence the traces have.
+restarted server still answers "what does this log hold". The
+archive is length-bounded — `--max-rows` (default 100k) rotates the
+full log aside as `<log>.1` and starts empty, so a busy channel
+cannot become a slow disk-fill — and readable three ways: that
+`/stats` probe, the `received` door in a cron (`--include-rotated`
+folds yesterday's log in), and the MCP `inbox` tool. The 3am
+checkup reads it too: `doctor` reports the archive's rows,
+malformed lines and whether a rotated log sits beside it. Point
+`--post` at it and approximately talks to approximately with the
+same tamper-evidence the traces have.
 
 Postmortems are the loop's currency, so the brief counts what a
 shift still owes: **postmortems owed** — failures in the window no
