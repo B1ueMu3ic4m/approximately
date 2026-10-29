@@ -343,9 +343,9 @@ approximately audit --store .agents-store --digest-dir d \
 ```
 
 If your agents live inside an MCP client, the whole surface is
-answerable without a shell: 49 tools, and the operations state
-(`grades`, `triage`, `digest`, `prices`) is browsable as
-resources.
+answerable without a shell: 50 tools, and the operations state
+(`grades`, `triage`, `digest`, `prices`, the receiver's `inbox`)
+is browsable as resources.
 
 Version numbers follow [VERSIONING.md](VERSIONING.md): majors are
 capability milestones with a real contract change, minors are one

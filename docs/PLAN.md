@@ -3971,3 +3971,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        - test_v314's week test hardcoded calendar dates that
          time-bombed the moment the real clock left their ISO
          weeks; anchored to this Monday and last, like v306.
+
+431. **v3.38.0 - the inbox, answerable without a shell** (planned):
+       - the webhook channel had a writer, a keeper and /stats
+         over HTTP, but an agent inside an MCP client could not
+         see what had arrived. The new inbox tool reads the
+         receiver's archive back: the /stats shape plus the most
+         recent rows (newest last, rows_total vs recent, redact
+         scrubs before rows leave the box). The archive is also
+         browsable as a resource. 50 tools; every count claim
+         (meta, README, TUTORIAL, VERSIONING, mcp-tools.json)
+         moved in lockstep.
