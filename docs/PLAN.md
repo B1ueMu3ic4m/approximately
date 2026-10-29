@@ -4142,3 +4142,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          data is a loaded gun for the next caller. The guards now
          refuse any id whose resolved parent is not the store
          itself.
+
+448. **v3.49.1 - the tour knew the old count** (planned):
+       - the 50-tool sweep missed one string: the help tour's mcp
+         line still said "49 tools" (no test pins prose numbers
+         inside the tour data). Fixed; the dawn sweep caught it.

@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.49.1
+
+- the tour knew the old count: the help tour's mcp line still said "49 tools" - the one string the 50-tool sweep missed. Docs-only patch.
+
 ## v3.49.0
 
 - the plan must not aim the delete: a hostile retire-row id (absolute path or `..` climb) could aim apply_plan's unlink outside the store - unreachable through today's doors, refused now at the delete path itself; the guards verify the resolved parent is the store.
