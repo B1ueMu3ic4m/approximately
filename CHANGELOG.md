@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.48.1
+
+- the fuzz sweep wrote a real snapshot archive named `123` into the repo root (Path(str(123)) is a legal relative path) and the night kept committing it - the sweep runs in a throwaway cwd now, the stray is untracked, and the threat model names what was always true: MCP clients point tools at paths in the server's trust domain.
+
 ## v3.48.0
 
 - `received --since EPOCH`: the cron reader gains a time window - a hostile since is a refusal at the boundary, a row that lies about its stamp is dropped, and the filter split holds the C+ budget at 87.
