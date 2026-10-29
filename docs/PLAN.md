@@ -3955,3 +3955,19 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          burst connections before the handler ever saw them
          (the soak caught it: 80 of 200 posts refused by the
          kernel). 200-post/20-thread soak with exact bookkeeping.
+
+430. **v3.37.0 - the signed channel, end to end** (planned):
+       - poster and receiver had only ever met through stand-in
+         servers; the loop now closes in tests: notify_webhook at
+         a live webhook-serve lands verified, a forged key is a
+         definite HTTP 401 with nothing archived, and the CLI
+         digest door posts its page through the env key.
+       - the loop closure caught a real gap: the fleet summary was
+         the one poster that never said what it was - receivers
+         archived it under kind "?" and the /stats kind census was
+         blind to fleet traffic. notify_webhook now stamps
+         kind=fleet_summary (tail says trace_failure, spool says
+         spool, digest says ops_digest).
+       - test_v314's week test hardcoded calendar dates that
+         time-bombed the moment the real clock left their ISO
+         weeks; anchored to this Monday and last, like v306.
