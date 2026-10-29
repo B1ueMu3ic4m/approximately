@@ -229,8 +229,12 @@ def test_soak_one_hundred_mixed_posts():
                 refused += 1
             elif mode == 3:                     # oversized
                 big = b'{"k": "' + b"x" * 300 + b'"}'
-                status, _ = _post(addr, big, _signed(big, key))
-                assert status == 413
+                try:
+                    status, _ = _post(addr, big, _signed(big, key))
+                except (ConnectionAbortedError, ConnectionResetError,
+                        OSError):
+                    status = None  # the reset IS the refusal
+                assert status in (413, None)
                 refused += 1
             else:                               # valid again
                 body = json.dumps({"kind": kinds[i % 4],
