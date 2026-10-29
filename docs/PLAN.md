@@ -4033,3 +4033,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          with both ends, verify-only receiver, /stats + MCP inbox +
          browsable resource, value-weighted retention, 50 tools,
          2,100+ tests).
+
+437. **v3.40.2 - the topics ledger closes** (planned):
+       - the metadata audit found the live repo carrying
+         `langgraph` while meta.TOPICS did not - metadata-as-code
+         means the code follows the live state: TOPICS now lists
+         20 (GitHub's cap). Releases = tags = 370 verified in
+         parity; CHANGELOG head == pyproject version pinned OK.
