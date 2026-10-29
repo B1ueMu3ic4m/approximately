@@ -1,6 +1,6 @@
 """v307: the help tour holds itself to completeness.
 
-`approximately help` is a guided tour over the 59 doors, and the
+`approximately help` is a guided tour over the registered doors, and the
 tour is data — so the suite can hold it to the one rule that keeps
 help honest: **every registered door appears exactly once**, and
 every tour door is actually registered. A door added without a

@@ -4147,3 +4147,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        - the 50-tool sweep missed one string: the help tour's mcp
          line still said "49 tools" (no test pins prose numbers
          inside the tour data). Fixed; the dawn sweep caught it.
+
+449. **v3.49.2 - limit zero showed everything** (planned):
+       - `rows[-0:]` is the whole list: `received --limit 0` and
+         the inbox tool's limit=0 returned every row instead of
+         none - a slice quirk turning "show none" into "show
+         everything". Fixed with an explicit guard; the dawn
+         sweep also de-numbered the help-tour docstring's stale
+         "59 doors" (64 and counting).

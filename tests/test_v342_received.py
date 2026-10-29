@@ -120,3 +120,12 @@ def test_since_drops_rows_that_lie_about_their_stamp():
     payload = read_archive(archive, since=0.5)
     assert [r["received_at"] for r in payload["recent"]] == [1], \
         "an unstampable row is not time travel"
+
+
+def test_limit_zero_means_none_not_everything():
+    archive = _archive([_row(i) for i in range(5)])
+    payload = read_archive(archive, limit=0)
+    assert payload["recent"] == [], ("rows[-0:] is the whole "
+        "list - a slice quirk must not turn 'show none' into "
+        "'show everything'")
+    assert payload["rows_total"] == 5

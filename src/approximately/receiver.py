@@ -109,7 +109,10 @@ def read_archive(archive: Path, limit: int = 20,
         rows.extend(_matching_rows(lines, kind, unverified_only,
                                    since))
     stats["rows_total"] = stats["rows"]
-    stats["recent"] = rows[-max(0, int(limit)):]
+    keep = max(0, int(limit))
+    # rows[-0:] is the whole list — a slice quirk would turn
+    # "show none" into "show everything"
+    stats["recent"] = rows[len(rows) - keep:] if keep else []
     return stats
 
 
