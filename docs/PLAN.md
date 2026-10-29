@@ -4077,3 +4077,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          (and read_archive's include_rotated) folds the previous
          log in ahead of the current one; rows_total keeps meaning
          the current archive.
+
+442. **v3.45.0 - doctor reads the receiver's archive too** (planned):
+       - the webhook log lived beside the traces without ever
+         getting a checkup. Doctor now reports archive_rows /
+         archive_malformed (the same numbers /stats answers) and
+         whether a rotated previous log sits beside it - prose and
+         JSON. Read-only: the archive is delivery evidence,
+         housekeeping never touches it; a malformed line is a
+         note, not a wound (healthy stays true).
