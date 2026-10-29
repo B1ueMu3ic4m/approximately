@@ -1194,6 +1194,29 @@ _TOOLS: List[Dict[str, Any]] = [
             "required": ["keep_days"],
         },
     },
+    {
+        "name": "inbox",
+        "description": "The receiver's archive, read back: what the "
+                       "webhook channel has delivered — row counts, "
+                       "the verified split, the kind census, and the "
+                       "most recent rows (newest last). Rows are "
+                       "evidence of what arrived, not of what was "
+                       "true; redact scrubs them before they leave "
+                       "the box.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "limit": {"type": "number",
+                          "description": "how many recent rows to "
+                                         "return (default 20)"},
+                "redact": {"type": "boolean",
+                           "description": "scrub each row through "
+                                          "the builtin secret "
+                                          "patterns"},
+            },
+        },
+    },
 ]
 
 
@@ -2447,6 +2470,40 @@ def _tool_retention(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     return dict(plan, applied=removed)
 
 
+def _parse_row(line: str) -> Optional[dict]:
+    try:
+        row = json.loads(line)
+    except ValueError:
+        return None
+    return row if isinstance(row, dict) else None
+
+
+def _tool_inbox(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    """The webhook archive read back: the receiver's stats plus the
+    most recent rows, newest last. Rows are what arrived — the log
+    records delivery, never truth."""
+    from .receiver import archive_stats
+
+    store = _store(ctx, args)
+    archive = store.directory / "webhook-log.jsonl"
+    stats = archive_stats(archive)
+    rows: List[dict] = []
+    if archive.is_file():
+        lines = archive.read_text(
+            encoding="utf-8", errors="replace").splitlines()
+        limit = max(0, _opt_int(args, "limit") or 20)
+        parsed = [_parse_row(line) for line in lines[-limit:]]
+        rows = [row for row in parsed if row is not None]
+        # malformed lines stay counted in stats, never guessed at
+    if args.get("redact"):
+        from .redact import redact_value
+
+        rows = [redact_value(row)[0] for row in rows]
+    # the recent rows ride under "recent": "rows" stays the count,
+    # the same shape /stats reports over HTTP
+    return dict(stats, recent=rows)
+
+
 def _opt_int(args: Dict[str, Any], key: str) -> Optional[int]:
     value = args.get(key)
     return int(value) if value is not None else None
@@ -2502,6 +2559,7 @@ _HANDLERS = {
     "tail": _tool_tail,
     "digest": _tool_digest,
     "retention": _tool_retention,
+    "inbox": _tool_inbox,
 }
 
 
@@ -2547,6 +2605,17 @@ def _read_prices_resource(store: Any) -> tuple:
     return text, "application/json"
 
 
+def _read_inbox_resource(store: Any) -> tuple:
+    """The receiver's archive as ndjson, verbatim minus nothing:
+    rows are evidence of delivery — poison lines pass through as
+    they sit on disk."""
+    archive = store.directory / "webhook-log.jsonl"
+    if not archive.is_file():
+        return "", "application/x-ndjson"
+    return archive.read_text(encoding="utf-8",
+                             errors="replace"), "application/x-ndjson"
+
+
 def _resources(ctx: ServerContext) -> List[dict]:
     """Store contents as MCP resources: one entry per trace plus the
     annotation sidecar, so clients can browse a store without
@@ -2587,6 +2656,12 @@ def _resources(ctx: ServerContext) -> List[dict]:
         "mimeType": "application/json",
         "description": "model -> $/1k catalog; corrupt catalogs "
                        "surface here",
+    }, {
+        "uri": f"approximately://{store.directory}/webhook-log.jsonl",
+        "name": "inbox",
+        "mimeType": "application/x-ndjson",
+        "description": "the webhook receiver's archive: what the "
+                       "signed channel has delivered, newest last",
     }])
     out.extend({
         "uri": f"approximately://{store.directory}/traces/{trace.id}",
@@ -2626,6 +2701,8 @@ def _resources_read(msg: Dict[str, Any], ctx: Any,
         mime = "text/markdown"
     elif rest == f"{store.directory}/prices.json":
         text, mime = _read_prices_resource(store)
+    elif rest == f"{store.directory}/webhook-log.jsonl":
+        text, mime = _read_inbox_resource(store)
     elif rest == f"{store.directory}/stats.json":
         from .cluster import store_stats
 
