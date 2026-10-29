@@ -62,13 +62,23 @@ def _audit_args(tmp_path, **kw):
 
 
 def test_week_compare_shapes():
+    # anchored to the ISO Monday and passing the same ref: on a
+    # Monday, "this week" as seen from today holds only today, and
+    # yesterday-relative rows leave it empty — the bucket needs
+    # rows from the week, not from the weekday
+    monday = _TODAY - datetime.timedelta(days=_TODAY.weekday())
+
+    def day(offset_from_monday: int) -> str:
+        return str(monday + datetime.timedelta(
+            days=offset_from_monday))
+
     rows = summarize_trend([
-        {"day": _day(o), "snapshots": 1,
+        {"day": day(o), "snapshots": 1,
          "last": {"failures": o % 3, "est_spend": 1.0,
                   "stores": [{"traces": 10, "failures": o % 3,
                               "est_spend": 1.0}]}}
-        for o in range(1, 15)])
-    r = week_compare(rows["days"])
+        for o in range(-7, 7)])
+    r = week_compare(rows["days"], today=_TODAY)
     assert r["usable"] is True
     assert set(r["deltas"]) == {"failures", "traces", "est_spend"}
     assert r["this_week"]["days"] >= 1
