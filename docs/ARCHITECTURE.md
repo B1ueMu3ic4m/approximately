@@ -262,6 +262,11 @@ layer rather than duplicating it:
   explicit — CLI `--apply`, or the MCP tool's `apply`+`confirm`
   two-flag gate — and poison is `doctor`'s job, never
   retention's.
+- **`receiver.py`** is the signed channel's other end, and one
+  reader serves every surface: `archive_stats` (what /stats
+  returns), `read_archive` (the filter+tail the MCP `inbox` tool
+  and the CLI `received` door share), and the archive itself —
+  evidence of delivery, never of truth.
 
 ## Invariants worth keeping
 

@@ -2488,38 +2488,22 @@ def _tool_retention(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     return dict(plan, applied=removed)
 
 
-def _parse_row(line: str) -> Optional[dict]:
-    try:
-        row = json.loads(line)
-    except ValueError:
-        return None
-    return row if isinstance(row, dict) else None
-
-
 def _tool_inbox(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     """The webhook archive read back: the receiver's stats plus the
     most recent rows, newest last. Rows are what arrived — the log
-    records delivery, never truth."""
-    from .receiver import archive_stats
+    records delivery, never truth. One reader with the CLI's
+    `received` door (read_archive)."""
+    from .receiver import read_archive
 
     store = _store(ctx, args)
-    archive = store.directory / "webhook-log.jsonl"
-    stats = archive_stats(archive)
-    rows: List[dict] = []
-    if archive.is_file():
-        lines = archive.read_text(
-            encoding="utf-8", errors="replace").splitlines()
-        limit = max(0, _opt_int(args, "limit") or 20)
-        parsed = [_parse_row(line) for line in lines[-limit:]]
-        rows = [row for row in parsed if row is not None]
-        # malformed lines stay counted in stats, never guessed at
+    payload = read_archive(store.directory / "webhook-log.jsonl",
+                           limit=_opt_int(args, "limit") or 20)
+    rows = payload["recent"]
     if args.get("redact"):
         from .redact import redact_value
 
-        rows = [redact_value(row)[0] for row in rows]
-    # the recent rows ride under "recent": "rows" stays the count,
-    # the same shape /stats reports over HTTP
-    return dict(stats, recent=rows)
+        payload["recent"] = [redact_value(row)[0] for row in rows]
+    return payload
 
 
 def _opt_int(args: Dict[str, Any], key: str) -> Optional[int]:

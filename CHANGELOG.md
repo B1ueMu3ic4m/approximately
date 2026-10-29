@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.42.0
+
+- `received`: the cron-friendly reader of the receiver's archive - stats line, kind census, recent rows with a V/? mark, filtered by kind or unverified, prose or JSON. One reader under every surface: read_archive serves /stats, the MCP inbox and the CLI door alike.
+
 ## v3.41.0
 
 - SIGTERM lands the same clean shutdown as Ctrl-C: a systemd stop finishes the archive line in flight, closes the socket, exits 0 (proven with a real subprocess SIGTERM). Plus recipe 27 - the closed loop: digest --post into webhook-serve, read back via /stats or the inbox tool.
