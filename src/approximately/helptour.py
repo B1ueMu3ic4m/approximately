@@ -79,7 +79,7 @@ TOUR: Dict[str, tuple] = {
         ("changelog", "generate CHANGELOG from docs/PLAN.md"),
     ]),
     "integrate": ("move data in and out", [
-        ("mcp", "serve the toolkit over MCP (49 tools)"),
+        ("mcp", "serve the toolkit over MCP (50 tools)"),
         ("export", "export traces to CSV/SARIF"),
         ("import", "import foreign transcripts"),
         ("export-dataset", "labeled benchmark JSONL out"),
