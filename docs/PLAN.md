@@ -4011,3 +4011,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          draws a reset - the aborted connection IS the refusal; the
          test now accepts either the 413 or the abort, and still
          asserts the archive stays empty.
+
+434. **v3.39.1 - the soak draws a reset too** (planned):
+       - the same Windows RST race v3.39.0 fixed for the single
+         413 test fires inside the 100-post soak's oversized posts
+         (dependabot CI caught it again). The reset IS the refusal;
+         the soak now accepts either the 413 or the abort and still
+         demands exact bookkeeping. Test-only patch.

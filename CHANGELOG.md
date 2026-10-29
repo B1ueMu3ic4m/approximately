@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.39.1
+
+- the Windows RST race also fires inside the 100-post soak's oversized posts - the reset IS the refusal; exact bookkeeping still enforced. Test-only patch.
+
 ## v3.39.0
 
 - fuzz 30: hostile arguments at the 50-tool MCP surface - a wrong-typed property sweep leaked five real TypeErrors through the refusal idiom; all fixed at the boundaries (store path refusal with a word, digest/status/doctor coercion, init_gate directory). Pinned: refusal or dict, never a leak; the server serves after the storm. Plus: the Windows RST race at the 413 test now tolerated (the aborted connection is the refusal; the archive stays empty).
