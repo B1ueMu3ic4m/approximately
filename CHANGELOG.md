@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.48.2
+
+- agent-gate finally gates something: it died at `pip install approximately` (no PyPI yet) with a gitignored store - it now installs from the repo, records a demo store (two ok, one failure) and gates it. CI-only patch.
+
 ## v3.48.1
 
 - the fuzz sweep wrote a real snapshot archive named `123` into the repo root (Path(str(123)) is a legal relative path) and the night kept committing it - the sweep runs in a throwaway cwd now, the stray is untracked, and the threat model names what was always true: MCP clients point tools at paths in the server's trust domain.

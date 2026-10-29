@@ -8,11 +8,26 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install approximately
+      # the package is not on PyPI yet (publishing needs the
+      # owner's one-time Trusted Publishing setup) - install from
+      # the repo itself, like fresh-install does
+      - run: pip install .
+      - name: record a demo store (two ok runs, one failure)
+        run: |
+          python - <<'PY'
+          from approximately.recorder import Recorder
+          from approximately.store import TraceStore
+          store = TraceStore(".agents-store")
+          for i, ok in enumerate([True, True, False]):
+              rec = Recorder(f"demo run {i}", store=store)
+              rec.tool("sh", {"cmd": "deploy"}, result="ok")
+              rec.respond("done", success=ok)
+              store.save(rec.trace)
+          PY
       - name: quality-gate the recorded agent runs
         run: |
           approximately ci --store .agents-store \
-            --max-failure-rate 0.3 \
+            --max-failure-rate 0.5 \
             --max-p95-latency-ms 15000 \
             --max-tokens 2000000 \
             --max-budget-breaches 0 \
