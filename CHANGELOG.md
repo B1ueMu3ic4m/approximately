@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.49.2
+
+- limit zero showed everything: `rows[-0:]` is the whole list, so `received --limit 0` and the inbox tool returned every row instead of none - fixed with an explicit guard; the tour docstring's stale "59 doors" de-numbered.
+
 ## v3.49.1
 
 - the tour knew the old count: the help tour's mcp line still said "49 tools" - the one string the 50-tool sweep missed. Docs-only patch.
