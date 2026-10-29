@@ -4051,3 +4051,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          like the delivery. Plus recipe 27: the closed loop -
          digest --post into webhook-serve, read back via /stats or
          the inbox tool.
+
+439. **v3.42.0 - received: the cron-friendly reader** (planned):
+       - the archive was readable over HTTP (/stats) and through
+         MCP (inbox); the shell had only curl. The `received` door
+         reads it back - stats line, kind census, recent rows with
+         a V/? verified mark - filtered by kind or by the open
+         tap's unverified mark, prose or JSON. One reader under
+         every surface now: read_archive serves /stats, the inbox
+         tool and the CLI door alike; the inbox tool refactored
+         onto it (dead helper gone).

@@ -638,9 +638,11 @@ APPROXIMATELY_SIGNING_KEY=op-secret-1 approximately digest \
   --store ~/agents/store --post http://127.0.0.1:8443
 ```
 
-Read it back without a shell: `curl
-http://127.0.0.1:8443/stats` says what the log holds (rows, the
-verified split, the kind census); inside an MCP client the
-`inbox` tool answers the same question. A systemd unit wants
+Read it back three ways: `curl
+http://127.0.0.1:8443/stats` over HTTP, the `received` door in a
+cron (`approximately received --store ~/agents/store --kind
+trace_failure`), and the MCP `inbox` tool inside a client — all
+three answer what the log holds: rows, the verified split, the
+kind census. A systemd unit wants
 `Restart=on-failure` and nothing else — SIGTERM lands the same
 clean shutdown as Ctrl-C.

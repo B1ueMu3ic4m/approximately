@@ -3001,6 +3001,36 @@ def _audit_junit(report: dict) -> str:
                         xml_declaration=True).decode("utf-8"))
 
 
+def cmd_received(args: argparse.Namespace) -> int:
+    """Read the receiver's archive back: the /stats shape plus the
+    most recent matching rows, newest last — the cron-friendly
+    reader (no curl, no MCP client needed)."""
+    from .receiver import read_archive
+
+    archive = Path(getattr(args, "archive", "")
+                   or Path(args.store) / "webhook-log.jsonl")
+    payload = read_archive(
+        archive, limit=int(getattr(args, "limit", 20)),
+        kind=getattr(args, "kind", None),
+        unverified_only=bool(getattr(args, "unverified_only", False)))
+    if getattr(args, "json", False):
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0
+    print(f"archive {archive}: {payload['rows']} rows "
+          f"({payload['verified']} verified, "
+          f"{payload['unverified']} unverified, "
+          f"{payload['malformed']} malformed)")
+    for kind, count in sorted(payload["kinds"].items()):
+        print(f"  {kind}: {count}")
+    for row in payload["recent"]:
+        body = json.dumps(row.get("payload", {}),
+                          ensure_ascii=False)[:100]
+        mark = "V" if row.get("verified") else "?"
+        print(f"  {row.get('received_at'):.0f} {mark} "
+              f"{row.get('kind', '?')} {body}")
+    return 0
+
+
 def _serve_stop(signum: int, frame: Any) -> None:
     raise KeyboardInterrupt
 
@@ -4930,6 +4960,23 @@ def build_parser() -> argparse.ArgumentParser:
                    help="refuse bodies larger than this (default "
                         "1 MiB)")
     p.set_defaults(func=cmd_webhook_serve)
+
+    p = sub.add_parser("received", parents=[common],
+                       help="read the receiver's archive back: "
+                            "stats plus the most recent matching "
+                            "rows, newest last")
+    p.add_argument("--archive", metavar="PATH",
+                   help="archive path (default <store>/"
+                        "webhook-log.jsonl)")
+    p.add_argument("--limit", type=int, default=20, metavar="N",
+                   help="how many recent rows to show (default 20)")
+    p.add_argument("--kind", metavar="K",
+                   help="only rows of this kind")
+    p.add_argument("--unverified-only", action="store_true",
+                   help="only rows the open tap marked unverified")
+    p.add_argument("--json", action="store_true",
+                   help="emit the stats shape as JSON")
+    p.set_defaults(func=cmd_received)
 
     p = sub.add_parser("retention", parents=[common],
                        help="value-weighted retention: successes "

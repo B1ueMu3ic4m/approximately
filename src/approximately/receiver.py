@@ -71,6 +71,35 @@ class ReceiverState:
         return False, "refused"
 
 
+def read_archive(archive: Path, limit: int = 20,
+                 kind: Optional[str] = None,
+                 unverified_only: bool = False) -> dict:
+    """The archive read back with a filter: the /stats shape plus
+    the most recent matching rows, newest last. Used by the
+    ``received`` CLI door and the MCP inbox tool — one reader,
+    every surface."""
+    stats = archive_stats(archive)
+    rows: list = []
+    if archive.is_file():
+        lines = archive.read_text(
+            encoding="utf-8", errors="replace").splitlines()
+        for line in lines:
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue  # malformed lines stay counted in stats
+            if not isinstance(row, dict):
+                continue
+            if kind is not None and row.get("kind") != kind:
+                continue
+            if unverified_only and row.get("verified") is True:
+                continue
+            rows.append(row)
+    stats["rows_total"] = stats["rows"]
+    stats["recent"] = rows[-max(0, int(limit)):]
+    return stats
+
+
 def _open_log(stats: dict, archive: Path) -> Optional[str]:
     """Fill in the byte size and return the decoded text, BOM
     stripped; None when the log does not exist yet."""
