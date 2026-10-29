@@ -3051,7 +3051,9 @@ def cmd_webhook_serve(args: argparse.Namespace) -> int:
                            "") or Path(args.store) / "webhook-log.jsonl")
     server, _state = serve(archive, port=port, key=key,
                            max_bytes=int(getattr(
-                               args, "max_bytes", 1_048_576)))
+                               args, "max_bytes", 1_048_576)),
+                           max_rows=int(getattr(
+                               args, "max_rows", 100_000)))
     # SIGTERM lands the same clean shutdown as Ctrl-C: the archive
     # line in flight finishes, the socket closes, exit 0 - a
     # systemd stop must not look like a crash
@@ -4959,6 +4961,11 @@ def build_parser() -> argparse.ArgumentParser:
                    metavar="N",
                    help="refuse bodies larger than this (default "
                         "1 MiB)")
+    p.add_argument("--max-rows", type=int, default=100_000,
+                   metavar="N",
+                   help="rotate the archive when it holds this "
+                        "many rows; the previous log moves to "
+                        "<log>.1 (default 100000, 0 = unbounded)")
     p.set_defaults(func=cmd_webhook_serve)
 
     p = sub.add_parser("received", parents=[common],
