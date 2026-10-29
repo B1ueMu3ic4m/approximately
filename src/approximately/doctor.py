@@ -102,6 +102,17 @@ class DoctorReport:
             "archive_rotated": self.archive_rotated,
         }
 
+    def _render_archive(self) -> str:
+        if not (self.archive_rows or self.archive_malformed):
+            return ""
+        note = f"  webhook archive: {self.archive_rows} row(s)"
+        if self.archive_malformed:
+            note += (f", {self.archive_malformed} malformed "
+                     "(counted, never guessed at)")
+        if self.archive_rotated:
+            note += ", rotated log present"
+        return note
+
     def render(self) -> str:
         lines = [(f"doctor: {self.store} - "
                   f"{'healthy' if self.healthy else 'PROBLEMS FOUND'}"),
@@ -141,14 +152,9 @@ class DoctorReport:
         lines.extend(f"    leftover temp: {name}"
                      for name in self.temp_files[:5])
         lines.extend(self._render_digests())
-        if self.archive_rows or self.archive_malformed:
-            note = (f"  webhook archive: {self.archive_rows} row(s)")
-            if self.archive_malformed:
-                note += (f", {self.archive_malformed} malformed "
-                         "(counted, never guessed at)")
-            if self.archive_rotated:
-                note += ", rotated log present"
-            lines.append(note)
+        archive_note = self._render_archive()
+        if archive_note:
+            lines.append(archive_note)
         if self.spool_dir:
             note = (f"  spool {self.spool_dir}: "
                     f"{self.spool_pending} pending file(s)")
