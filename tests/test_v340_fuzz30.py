@@ -51,6 +51,7 @@ def test_every_tool_survives_every_hostile_argument_set():
                 # error envelopes - a word, never a crash. OSError
                 # is the OS refusing a hostile path (too long, bad
                 # syntax): environmental refusal, same class.
+                pass
             except Exception as exc:  # anything else is a leak
                 raise AssertionError(
                     f"{tool['name']} {list(args)}: leaked "
