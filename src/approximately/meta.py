@@ -35,6 +35,7 @@ TOPICS: tuple[str, ...] = (
     "debugging",
     "distillation",
     "drift-detection",
+    "langgraph",
     "llamaindex",
     "llm",
     "llm-ops",
