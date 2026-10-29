@@ -46,10 +46,11 @@ def test_every_tool_survives_every_hostile_argument_set():
         for args in HOSTILE_ARGS:
             try:
                 payload = handler(ctx, dict(args))
-            except (KeyError, ValueError):
-                # the refusal idiom: the RPC layer turns these
-                # into error envelopes - a word, never a crash
-                pass
+            except (KeyError, ValueError, OSError):
+                # the refusal idiom: the RPC layer turns these into
+                # error envelopes - a word, never a crash. OSError
+                # is the OS refusing a hostile path (too long, bad
+                # syntax): environmental refusal, same class.
             except Exception as exc:  # anything else is a leak
                 raise AssertionError(
                     f"{tool['name']} {list(args)}: leaked "
@@ -120,7 +121,7 @@ def test_every_declared_property_rejects_the_wrong_type():
                 continue
             try:
                 payload = handler(ctx, {prop: wrong})
-            except (KeyError, ValueError):
+            except (KeyError, ValueError, OSError):
                 continue  # refusal, turned into an envelope
             except Exception as exc:
                 raise AssertionError(
