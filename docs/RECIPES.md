@@ -621,3 +621,26 @@ whole night leave the machine safely. Each door is one command, and
 each is answerable by agents through the MCP surface (`tail`,
 `triage`, `grade`, `handoff`, `snapshot`, `prices`).
 
+
+
+## 27. The closed loop chapter: talk to yourself, with signatures
+
+The channel has a writer and a keeper; run both and approximately
+talks to itself with the same tamper-evidence its traces have:
+
+```bash
+# the keeper: verify signatures, archive what survives
+APPROXIMATELY_SIGNING_KEY=op-secret-1 approximately webhook-serve \
+  --port 8443 --key-file op-secret-1 --log ~/ops/webhook-log.jsonl
+
+# the writer: the shift brief posts itself through the same key
+APPROXIMATELY_SIGNING_KEY=op-secret-1 approximately digest \
+  --store ~/agents/store --post http://127.0.0.1:8443
+```
+
+Read it back without a shell: `curl
+http://127.0.0.1:8443/stats` says what the log holds (rows, the
+verified split, the kind census); inside an MCP client the
+`inbox` tool answers the same question. A systemd unit wants
+`Restart=on-failure` and nothing else — SIGTERM lands the same
+clean shutdown as Ctrl-C.

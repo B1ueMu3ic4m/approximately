@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.41.0
+
+- SIGTERM lands the same clean shutdown as Ctrl-C: a systemd stop finishes the archive line in flight, closes the socket, exits 0 (proven with a real subprocess SIGTERM). Plus recipe 27 - the closed loop: digest --post into webhook-serve, read back via /stats or the inbox tool.
+
 ## v3.40.2
 
 - the topics ledger closes: live carried langgraph, meta.TOPICS did not - the code follows the live state (20 topics, GitHub's cap); releases = tags = 370 in parity. Metadata-only patch.

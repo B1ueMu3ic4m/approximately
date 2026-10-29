@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import json
+import signal
 import sys
 import time
 from pathlib import Path
@@ -3000,6 +3001,10 @@ def _audit_junit(report: dict) -> str:
                         xml_declaration=True).decode("utf-8"))
 
 
+def _serve_stop(signum: int, frame: Any) -> None:
+    raise KeyboardInterrupt
+
+
 def cmd_webhook_serve(args: argparse.Namespace) -> int:
     """The receiving end of the signed channel: verify
     X-Approximately-Signature and archive what survives. Refuses
@@ -3017,6 +3022,10 @@ def cmd_webhook_serve(args: argparse.Namespace) -> int:
     server, _state = serve(archive, port=port, key=key,
                            max_bytes=int(getattr(
                                args, "max_bytes", 1_048_576)))
+    # SIGTERM lands the same clean shutdown as Ctrl-C: the archive
+    # line in flight finishes, the socket closes, exit 0 - a
+    # systemd stop must not look like a crash
+    signal.signal(signal.SIGTERM, _serve_stop)
     host, bound = server.server_address[:2]
     host = str(host)
     mode = ("verify-only" if key else

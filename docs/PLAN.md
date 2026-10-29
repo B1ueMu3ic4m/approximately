@@ -4040,3 +4040,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          means the code follows the live state: TOPICS now lists
          20 (GitHub's cap). Releases = tags = 370 verified in
          parity; CHANGELOG head == pyproject version pinned OK.
+
+438. **v3.41.0 - SIGTERM lands the same shutdown as Ctrl-C** (planned):
+       - webhook-serve ran forever and died with the process on a
+         systemd stop; SIGTERM now raises the same KeyboardInterrupt
+         the Ctrl-C path handles - the archive line in flight
+         finishes, the socket closes, exit 0 (fleet --watch has had
+         the handler since v1.x; the receiver gets the same).
+         Proven with a real subprocess SIGTERM (exit 0), POSIX-only
+         like the delivery. Plus recipe 27: the closed loop -
+         digest --post into webhook-serve, read back via /stats or
+         the inbox tool.
