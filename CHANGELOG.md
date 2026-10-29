@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.45.0
+
+- doctor reads the receiver's archive too: rows, malformed lines (counted, never guessed at) and whether a rotated log sits beside it - prose and JSON; read-only, a malformed line is a note not a wound.
+
 ## v3.44.0
 
 - yesterday's log is still one query: `received --include-rotated` folds the previous log (`<archive>.1`) in ahead of the current one; rows_total keeps meaning the current archive.

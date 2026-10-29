@@ -46,6 +46,9 @@ class DoctorReport:
     judge_cache_dir: str = ""
     judge_cache_entries: int = 0
     judge_cache_corrupt: int = 0
+    archive_rows: int = 0
+    archive_malformed: int = 0
+    archive_rotated: int = 0
     spool_dir: str = ""
     spool_pending: int = 0
     spool_unparsed: List[str] = field(default_factory=list)
@@ -94,6 +97,9 @@ class DoctorReport:
             "chain_checked": self.chain_checked,
             "chain_locked": self.chain_locked,
             "chain_failed": self.chain_failed,
+            "archive_rows": self.archive_rows,
+            "archive_malformed": self.archive_malformed,
+            "archive_rotated": self.archive_rotated,
         }
 
     def render(self) -> str:
@@ -135,6 +141,14 @@ class DoctorReport:
         lines.extend(f"    leftover temp: {name}"
                      for name in self.temp_files[:5])
         lines.extend(self._render_digests())
+        if self.archive_rows or self.archive_malformed:
+            note = (f"  webhook archive: {self.archive_rows} row(s)")
+            if self.archive_malformed:
+                note += (f", {self.archive_malformed} malformed "
+                         "(counted, never guessed at)")
+            if self.archive_rotated:
+                note += ", rotated log present"
+            lines.append(note)
         if self.spool_dir:
             note = (f"  spool {self.spool_dir}: "
                     f"{self.spool_pending} pending file(s)")
@@ -348,7 +362,26 @@ def doctor(store: Path, digest_dir: Optional[Path] = None,
         _check_judge_cache(report, judge_cache)
     if spool_dir is not None:
         _check_spool(spool_dir, report)
+    _check_archive(Path(store), report)
     return report
+
+
+def _check_archive(directory: Path, report: DoctorReport) -> None:
+    """The receiver's archive, if the store keeps one: rows and
+    malformed lines read back (the same counts /stats answers),
+    plus whether a rotated previous log sits beside it. Read-only
+    — the archive is delivery evidence, housekeeping never
+    touches it."""
+    from .receiver import archive_stats
+
+    archive = directory / "webhook-log.jsonl"
+    if not archive.is_file():
+        return
+    stats = archive_stats(archive)
+    report.archive_rows = stats["rows"]
+    report.archive_malformed = stats["malformed"]
+    report.archive_rotated = int(
+        archive.with_name(archive.name + ".1").is_file())
 
 
 def _check_chains(directory: Path, report: DoctorReport) -> None:
