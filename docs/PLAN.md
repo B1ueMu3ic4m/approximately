@@ -4122,3 +4122,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          client can point snapshot at any path the server process
          can write - same trust domain as the store argument,
          worth a threat-model line.
+
+446. **v3.48.2 - agent-gate finally gates something** (planned):
+       - the agent-gate workflow died at `pip install
+         approximately` on every push (the package is not on PyPI
+         - publishing still awaits the owner's one-time Trusted
+         Publishing setup), and `.agents-store` is gitignored, so
+         the gate could never have passed. It now installs from
+         the repo (like fresh-install), records a demo store
+         (two ok runs, one failure) and gates it - the demo is
+         the evidence, thresholds verified locally first.
