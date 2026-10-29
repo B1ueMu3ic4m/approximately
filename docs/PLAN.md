@@ -4086,3 +4086,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          JSON. Read-only: the archive is delivery evidence,
          housekeeping never touches it; a malformed line is a
          note, not a wound (healthy stays true).
+
+443. **v3.46.0 - fuzz 31: the doctor meets hostile archives** (planned):
+       - the archive check reads whatever sits at the log's path:
+         directories wearing the name, binary garbage, rotated
+         entries that are themselves directories, rows that lie
+         about their shape. One real defect: archive_rotated used
+         is_file, so a rotated entry that is a directory went
+         unreported - presence is the finding (exists). The
+         /stats contract held everywhere else: non-object lines
+         are malformed, the store's own health is untouched by
+         the archive's hostility.
