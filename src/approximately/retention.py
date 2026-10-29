@@ -104,14 +104,17 @@ def _classify(store: Any, path: Any, annotated: set,
 
 def apply_plan(store: Any, plan: dict) -> int:
     """Delete the plan's rows, re-checking both guards per file.
-    Returns the removed count."""
-    from .store import STORE_ARTIFACTS, stamped_breach
+    Returns the removed count. Rows whose id escapes the store
+    (absolute paths, `..` climbs) are refused before the unlink —
+    the plan is data, and data must not aim the delete."""
+    from .store import stamped_breach
 
+    base = store.directory.resolve()
     removed = 0
     for row in plan.get("retire", []):
         path = store.directory / f"{row['id']}.json"
-        if path.name in STORE_ARTIFACTS or not path.is_file():
-            continue
+        if path.parent.resolve() != base:
+            continue  # an escaped id: counted as absent, never unlinked
         try:
             trace = store.load(row["id"])
         except Exception:
