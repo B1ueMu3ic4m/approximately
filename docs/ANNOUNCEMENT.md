@@ -92,5 +92,13 @@ Under the hood: the taxonomy aligns with MAST (arXiv:2503.13657) — 14
 failure modes, 1,600+ human-annotated traces, κ = 0.88. Attribution is
 zero-dependency, offline, and deterministic; the LLM judge is optional
 (any OpenAI-compatible endpoint) and distillable to a local small model.
-Context budgeting ships with an effective-recall probe. 122 tests green,
-MIT licensed.
+Context budgeting ships with an effective-recall probe. MIT licensed.
+
+**The 3.x era (v3.0-v3.40):** the operations loop. A signed webhook
+channel now has both ends — `tail`/`fleet`/`digest` post HMAC-signed
+announcements, `webhook-serve` verifies and archives what survives
+(verify-only with a key, an honest open tap without one), and the
+archive is readable three ways: `GET /stats` over HTTP, the MCP
+`inbox` tool, a browsable resource. Value-weighted retention keeps
+postmortem evidence while boredom ages out. 50 MCP tools, 2,100+
+tests green.

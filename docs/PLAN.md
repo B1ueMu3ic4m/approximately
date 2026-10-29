@@ -4025,3 +4025,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          inbox call. perf gate #27: 10k mixed rows (7 kinds, half
          verified, payloads riding along) read back inside budget,
          counts exact. 17ms measured, 5s budget.
+
+436. **v3.40.1 - the announcement catches up** (planned):
+       - the announcement's technical thread still said "122 tests
+         green" from the v1 era and the doc stopped at 2.x; a 3.x
+         era paragraph now tells the ops-loop story (signed channel
+         with both ends, verify-only receiver, /stats + MCP inbox +
+         browsable resource, value-weighted retention, 50 tools,
+         2,100+ tests).

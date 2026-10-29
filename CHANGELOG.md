@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.40.1
+
+- the announcement catches up: the technical thread still said "122 tests green" from the v1 era - a 3.x paragraph now tells the ops-loop story (signed channel with both ends, verify-only receiver, /stats + MCP inbox, retention, 50 tools, 2,100+ tests). Docs-only patch.
+
 ## v3.40.0
 
 - the wall grows: perf gate #27 reads a 10k-row receiver archive back through the /stats path inside budget - the inbox must not stall the first time a log gets genuinely long.
