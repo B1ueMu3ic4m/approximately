@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.43.0
+
+- the archive rotates: `--max-rows` (default 100k) moves the full log aside as `<log>.1` and starts empty - an unbounded JSONL is a slow disk-fill, not a record; /stats keeps reading the disk, counters keep the truth.
+
 ## v3.42.0
 
 - `received`: the cron-friendly reader of the receiver's archive - stats line, kind census, recent rows with a V/? mark, filtered by kind or unverified, prose or JSON. One reader under every surface: read_archive serves /stats, the MCP inbox and the CLI door alike.

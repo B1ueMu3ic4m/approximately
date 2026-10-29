@@ -36,23 +36,31 @@ DEFAULT_MAX_BYTES = 1_048_576  # 1 MiB: alerts are small; a
 
 
 # megabyte body is an attack, not an announcement
+DEFAULT_MAX_ROWS = 100_000  # a long night of alerts is a few
+
+
+# thousand rows; a hundred thousand is a hoard
 class ReceiverState:
     """What the server needs between requests: the verifying key
     (None = accept-and-mark-unverified), the archive path, the
-    request-size bound, and the lock that serializes the
-    bookkeeping — ThreadingHTTPServer serves posts concurrently,
-    and a lost increment or an interleaved log line is a lie in the
-    ops record."""
+    request-size and archive-length bounds, and the lock that
+    serializes the bookkeeping — ThreadingHTTPServer serves posts
+    concurrently, and a lost increment or an interleaved log line
+    is a lie in the ops record."""
 
     def __init__(self, archive: Path,
                  key: Optional[bytes] = None,
-                 max_bytes: int = DEFAULT_MAX_BYTES):
+                 max_bytes: int = DEFAULT_MAX_BYTES,
+                 max_rows: int = DEFAULT_MAX_ROWS):
         self.archive = archive
         self.key = key
         self.max_bytes = max(1, int(max_bytes))
+        self.max_rows = max(0, int(max_rows))
         self.lock = threading.Lock()
         self.received = 0
         self.refused = 0
+        self.appended = 0
+        self.rows_on_disk = archive_stats(archive)["rows"]
 
     def verify(self, body: bytes,
                signature: Optional[str]) -> Tuple[bool, str]:
@@ -217,11 +225,25 @@ def make_handler(state: ReceiverState) -> type:
                    "kind": payload.get("kind", "?"),
                    "payload": payload}
             with state.lock:
+                if state.max_rows and (state.rows_on_disk
+                                       + state.appended) \
+                        >= state.max_rows:
+                    # rotate: the previous log moves aside, the
+                    # archive starts empty — an unbounded JSONL is
+                    # a slow disk-fill, not a record
+                    import os
+
+                    rotated = state.archive.with_name(
+                        state.archive.name + ".1")
+                    os.replace(state.archive, rotated)
+                    state.rows_on_disk = 0
+                    state.appended = 0
                 state.archive.parent.mkdir(parents=True, exist_ok=True)
                 with state.archive.open("a", encoding="utf-8") as fh:
                     fh.write(json.dumps(row, ensure_ascii=False,
                                         sort_keys=True) + "\n")
                 state.received += 1
+                state.appended += 1
             self._reply(200, {"received": True, "verified": verified})
 
         def _reply(self, status: int, body: dict) -> None:
@@ -251,11 +273,14 @@ class ReceiverHTTPServer(ThreadingHTTPServer):
 
 def serve(archive: Path, port: int = 0,
           key: Optional[bytes] = None,
-          max_bytes: int = DEFAULT_MAX_BYTES
+          max_bytes: int = DEFAULT_MAX_BYTES,
+          max_rows: int = DEFAULT_MAX_ROWS
           ) -> Tuple[ThreadingHTTPServer, ReceiverState]:
     """Bind the receiver; returns the server (call shutdown() from
-    the controlling thread) and its state."""
-    state = ReceiverState(archive, key=key, max_bytes=max_bytes)
+    the controlling thread) and its state. ``max_rows`` rotates
+    the archive when it fills (0 = unbounded, not advised)."""
+    state = ReceiverState(archive, key=key, max_bytes=max_bytes,
+                          max_rows=max_rows)
     server = ReceiverHTTPServer(("127.0.0.1", port),
                                 make_handler(state))
     thread = __import__("threading").Thread(

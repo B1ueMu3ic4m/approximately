@@ -4061,3 +4061,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          every surface now: read_archive serves /stats, the inbox
          tool and the CLI door alike; the inbox tool refactored
          onto it (dead helper gone).
+
+440. **v3.43.0 - the archive rotates** (planned):
+       - the receiver's JSONL grew without bound - a slow
+         disk-fill wearing a record's clothes. `--max-rows`
+         (default 100k) rotates the archive aside as `<log>.1`
+         (os.replace, atomic even on Windows) and starts empty;
+         pre-existing rows count toward the bound, /stats keeps
+         reading the disk (not the counters), and 0 says
+         unbounded.
