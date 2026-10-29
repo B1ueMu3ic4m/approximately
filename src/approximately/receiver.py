@@ -82,13 +82,18 @@ class ReceiverState:
 def read_archive(archive: Path, limit: int = 20,
                  kind: Optional[str] = None,
                  unverified_only: bool = False,
-                 include_rotated: bool = False) -> dict:
+                 include_rotated: bool = False,
+                 since: Optional[float] = None) -> dict:
     """The archive read back with a filter: the /stats shape plus
     the most recent matching rows, newest last. Used by the
     ``received`` CLI door and the MCP inbox tool — one reader,
     every surface. ``include_rotated`` folds the previous log
     (``<archive>.1``, where rotation moves it) in ahead of the
     current one, so yesterday's night is still one query."""
+    if since is not None and (isinstance(since, bool)
+                              or not isinstance(since,
+                                                (int, float))):
+        raise ValueError("since must be a unix timestamp")
     stats = archive_stats(archive)
     paths = [archive]
     if include_rotated:
@@ -101,14 +106,32 @@ def read_archive(archive: Path, limit: int = 20,
             continue
         lines = path.read_text(
             encoding="utf-8", errors="replace").splitlines()
-        rows.extend(_matching_rows(lines, kind, unverified_only))
+        rows.extend(_matching_rows(lines, kind, unverified_only,
+                                   since))
     stats["rows_total"] = stats["rows"]
     stats["recent"] = rows[-max(0, int(limit)):]
     return stats
 
 
+def _row_passes(row: dict, kind: Optional[str],
+                unverified_only: bool,
+                since: Optional[float]) -> bool:
+    """The row filters — a hostile ``since`` was refused at the
+    boundary, so the stamp check is just time arithmetic."""
+    if kind is not None and row.get("kind") != kind:
+        return False
+    if unverified_only and row.get("verified") is True:
+        return False
+    if since is not None:
+        stamp = row.get("received_at")
+        if not (isinstance(stamp, (int, float)) and stamp >= since):
+            return False
+    return True
+
+
 def _matching_rows(lines: list, kind: Optional[str],
-                   unverified_only: bool) -> list:
+                   unverified_only: bool,
+                   since: Optional[float] = None) -> list:
     """The lines that pass the filter — malformed lines are
     skipped here (archive_stats already counted them) and never
     guessed at."""
@@ -118,13 +141,10 @@ def _matching_rows(lines: list, kind: Optional[str],
             row = json.loads(line)
         except ValueError:
             continue
-        if not isinstance(row, dict):
-            continue
-        if kind is not None and row.get("kind") != kind:
-            continue
-        if unverified_only and row.get("verified") is True:
-            continue
-        rows.append(row)
+        if isinstance(row, dict) and _row_passes(row, kind,
+                                                 unverified_only,
+                                                 since):
+            rows.append(row)
     return rows
 
 
