@@ -42,7 +42,48 @@ def main() -> int:
             + junit_gate() + quarantine_gate() + result_meter_gate()
             + composition_gate() + failure_budget_gate()
             + tail_gate() + startup_gate() + complexity_gate()
-            + retention_gate())
+            + retention_gate() + archive_stats_gate())
+
+def archive_stats_gate(budget_s: float = 5.0) -> int:
+    """The /stats read path over a 10k-row archive.
+
+    The inbox tool and the /stats endpoint read the whole JSONL
+    back; the read must stay linear in rows and finish inside
+    budget, or the MCP inbox stalls the first time a receiver's
+    log gets genuinely long.
+    """
+    import json as _json
+    import tempfile
+    from pathlib import Path as _Path
+
+    from approximately.receiver import archive_stats
+
+    with tempfile.TemporaryDirectory() as tmp:
+        archive = _Path(tmp) / "log.jsonl"
+        with archive.open("w", encoding="utf-8") as fh:
+            for i in range(10_000):
+                row = {"received_at": time.time() - i * 0.1,
+                       "verified": i % 2 == 0,
+                       "kind": f"k{i % 7}",
+                       "payload": {"seq": i, "blob": "x" * 40}}
+                fh.write(_json.dumps(row, sort_keys=True) + "\n")
+        start = time.perf_counter()
+        stats = archive_stats(archive)
+        elapsed = time.perf_counter() - start
+        if stats["rows"] != 10_000 or stats["verified"] != 5_000 \
+                or sum(stats["kinds"].values()) != 10_000:
+            print("FAIL: archive stats miscounted the log",
+                  file=sys.stderr)
+            return 1
+    print(f"perf-gate[archive-stats]: {elapsed * 1000:.0f}ms over "
+          f"10k rows (budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: archive stats slowed past budget",
+              file=sys.stderr)
+        return 1
+    return 0
+
 
 def fleet_anomaly_gate(budget_s: float = 10.0) -> int:
     """Per-tool fleet baselines over a 10k-trace store.

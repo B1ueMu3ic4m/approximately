@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.40.0
+
+- the wall grows: perf gate #27 reads a 10k-row receiver archive back through the /stats path inside budget - the inbox must not stall the first time a log gets genuinely long.
+
 ## v3.39.1
 
 - the Windows RST race also fires inside the 100-post soak's oversized posts - the reset IS the refusal; exact bookkeeping still enforced. Test-only patch.

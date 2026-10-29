@@ -4018,3 +4018,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          (dependabot CI caught it again). The reset IS the refusal;
          the soak now accepts either the 413 or the abort and still
          demands exact bookkeeping. Test-only patch.
+
+435. **v3.40.0 - the wall grows: archive stats on the perf gate** (planned):
+       - the inbox and /stats read the whole JSONL back; a receiver
+         whose log gets genuinely long must not stall the first
+         inbox call. perf gate #27: 10k mixed rows (7 kinds, half
+         verified, payloads riding along) read back inside budget,
+         counts exact. 17ms measured, 5s budget.
