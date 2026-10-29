@@ -4097,3 +4097,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          /stats contract held everywhere else: non-object lines
          are malformed, the store's own health is untouched by
          the archive's hostility.
+
+444. **v3.47.0 - the receiver chapter catches up** (planned):
+       - TUTORIAL's webhook-serve paragraph predated rotation,
+         the received door and the doctor's archive checkup; it
+         now teaches all three (bounded log, three-way read,
+         3am checkup). Docs-only patch.
