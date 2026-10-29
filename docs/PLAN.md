@@ -3993,3 +3993,21 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          proven usable across all seven weekdays by simulation.
        - sweep result: v314 and v306 were the only ISO-week
          time bombs; v308/v309/v329 verified clock-immune.
+
+433. **v3.39.0 - fuzz 30: hostile arguments at the MCP surface** (planned):
+       - 50 tools wide now; every handler takes JSON-decoded
+         anything. A hostile-args sweep (20 arg shapes x 50 tools,
+         plus a schema-aware sweep injecting wrong types into every
+         declared property) leaked five real TypeErrors through the
+         refusal idiom - all fixed at the boundaries: _store
+         refuses non-string store and unusable paths with a word,
+         digest/status/doctor coerce digest_dir, digest coerces
+         triage_top/since_days None, init_gate refuses a
+         non-string directory. Contract pinned: refusal or dict,
+         never a leak; the server serves after the storm.
+       - the Windows RST race at the 413-before-read test
+         (dependabot CI caught it): the server answers before
+         reading an oversized body and the client's in-flight send
+         draws a reset - the aborted connection IS the refusal; the
+         test now accepts either the 413 or the abort, and still
+         asserts the archive stays empty.

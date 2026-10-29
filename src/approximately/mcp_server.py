@@ -1230,7 +1230,18 @@ class ServerContext:
 def _store(ctx: ServerContext, args: Dict[str, Any]) -> Any:
     from .store import TraceStore
 
-    return TraceStore(Path(args.get("store") or ctx.store))
+    store = args.get("store")
+    if store is not None and not isinstance(store, str):
+        # a hostile or buggy client sends anything; Path(123) would
+        # leak a TypeError — every tool refuses with a word instead
+        raise ValueError(f"store must be a string path, "
+                         f"got {type(store).__name__}")
+    try:
+        return TraceStore(Path(store or ctx.store))
+    except OSError as exc:
+        # an unusable path (missing parent, permission, ...) is a
+        # refusal, not a crash: same word, every tool
+        raise ValueError(f"store unusable: {exc}") from exc
 
 
 def _tool_list_traces(ctx: ServerContext, args: Dict[str, Any]) -> dict:
@@ -1351,7 +1362,11 @@ def _tool_init_gate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     same idempotent three files `approximately init` writes."""
     from .scaffold import init_scaffold
 
-    target = Path(args.get("directory") or ".")
+    directory = args.get("directory")
+    if directory is not None and not isinstance(directory, str):
+        raise ValueError("directory must be a string path, "
+                         f"got {type(directory).__name__}")
+    target = Path(directory or ".")
     statuses = init_scaffold(target, force=bool(args.get("force")))
     return {"directory": str(target), "files": statuses}
 
@@ -1688,7 +1703,7 @@ def _tool_doctor(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     spool_dir = args.get("spool_dir")
     directory = _store(ctx, args).directory
     report = doctor(directory,
-                    Path(digest_dir) if digest_dir else None,
+                    Path(str(digest_dir)) if digest_dir else None,
                     judge_cache=(Path(str(judge_cache))
                                  if judge_cache else None),
                     spool_dir=(Path(str(spool_dir))
@@ -2174,8 +2189,9 @@ def _tool_status(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     since = args.get("since")
     traces = store.list_traces(
         since_days=int(since) if since is not None else None)
+    digest_dir = args.get("digest_dir")
     return _status_payload(store, traces,
-                           args.get("digest_dir"),
+                           str(digest_dir) if digest_dir else None,
                            since=(int(since)
                                   if since is not None else None))
 
@@ -2440,13 +2456,15 @@ def _tool_digest(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .digest import build_digest
 
     store = _store(ctx, args)
+    triage_top = _opt_int(args, "triage_top")
+    since_days = _opt_int(args, "since_days")
+    digest_dir = args.get("digest_dir")
     payload = build_digest(
         store,
-        digest_dir=args.get("digest_dir"),
-        triage_top=int(args.get("triage_top", 5)),
+        digest_dir=str(digest_dir) if digest_dir else None,
+        triage_top=5 if triage_top is None else triage_top,
         grade_floor=args.get("grade_floor"),
-        since_days=int(args["since_days"])
-        if args.get("since_days") is not None else 1)
+        since_days=1 if since_days is None else since_days)
     if args.get("redact"):
         from .redact import redact_value
 
