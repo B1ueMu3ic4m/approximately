@@ -84,3 +84,20 @@ def test_missing_archive_is_zeros_not_an_error(capsys):
     assert cmd_received(_args(archive)) == 0
     out = capsys.readouterr().out
     assert "0 rows" in out
+
+
+def test_include_rotated_folds_the_previous_log_in():
+    archive = _archive([_row(10, kind="k"), _row(11, kind="k")])
+    rotated = Path(str(archive) + ".1")
+    with rotated.open("a", encoding="utf-8") as fh:
+        for i in range(3):
+            fh.write(json.dumps(_row(i, kind="k"),
+                                sort_keys=True) + "\n")
+    payload = read_archive(archive, limit=20)
+    assert [r["received_at"] for r in payload["recent"]] == \
+        [10, 11], "without the flag, only the current log"
+    payload = read_archive(archive, limit=20, include_rotated=True)
+    assert [r["received_at"] for r in payload["recent"]] == \
+        [0, 1, 2, 10, 11], "the previous log comes first"
+    assert payload["rows_total"] == 2, \
+        "rows_total keeps meaning the current archive"
