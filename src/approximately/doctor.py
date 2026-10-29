@@ -387,7 +387,7 @@ def _check_archive(directory: Path, report: DoctorReport) -> None:
     report.archive_rows = stats["rows"]
     report.archive_malformed = stats["malformed"]
     report.archive_rotated = int(
-        archive.with_name(archive.name + ".1").is_file())
+        archive.with_name(archive.name + ".1").exists())
 
 
 def _check_chains(directory: Path, report: DoctorReport) -> None:

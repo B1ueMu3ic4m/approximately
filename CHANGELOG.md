@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.46.0
+
+- fuzz 31: the doctor meets hostile archives - directories wearing the log's name, binary garbage, rotated entries that are themselves directories. One real defect fixed (rotated presence was is_file; a directory went unreported - it is exists now); the /stats contract held everywhere else, and the store's own health stays untouched by the archive's hostility.
+
 ## v3.45.0
 
 - doctor reads the receiver's archive too: rows, malformed lines (counted, never guessed at) and whether a rotated log sits beside it - prose and JSON; read-only, a malformed line is a note not a wound.
