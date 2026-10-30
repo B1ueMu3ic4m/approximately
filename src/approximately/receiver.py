@@ -181,47 +181,55 @@ def _follow_pass(archive: Path, offset: int,
     rotation via os.replace) or it shrank (a truncation). The
     identity is owned here: updating it after the pass would let a
     mid-pass rotation bless the new file with the old offset."""
-    try:
-        stat = archive.stat() if archive.is_file() else None
-    except OSError:
-        # vanished between is_file and stat: the rotation raced us
-        stat = None
+    stat = _safe_stat(archive)
     new_ino = stat.st_ino if stat is not None else last_ino
     identity_changed = (stat is not None and last_ino is not None
                         and new_ino != last_ino)
     size = stat.st_size if stat is not None else 0
     if identity_changed or size < offset:
-        offset = 0
+        offset = 0  # rotation or truncation: start over
     rows: List[dict] = []
     if size > offset:
-        try:
-            with archive.open("r", encoding="utf-8",
-                              errors="replace") as fh:
-                fh.seek(offset)
-                offset = _read_new_rows(fh, offset, rows)
-        except OSError:
-            # the file vanished mid-read (rotation raced us):
-            # restart from zero on the next pass, lose nothing
-            return 0, rows, last_ino
-        last_ino = new_ino
+        offset, rows, last_ino = _read_new_rows(archive, offset,
+                                                rows, new_ino,
+                                                last_ino)
     elif stat is not None:
         last_ino = new_ino
     return offset, rows, last_ino
 
 
-def _read_new_rows(fh: Any, offset: int, rows: List[dict]) -> int:
-    """Consume the new lines into ``rows``; return the offset to
-    resume from. Malformed lines are skipped here — they were
-    counted by the readers that parse the whole log."""
-    for line in fh:
-        offset += len(line.encode("utf-8", errors="replace"))
-        try:
-            row = json.loads(line)
-        except ValueError:
-            continue
-        if isinstance(row, dict):
-            rows.append(row)
-    return offset
+def _safe_stat(archive: Path) -> Optional[Any]:
+    """The file's stat, or None when it vanished mid-check (the
+    rotation raced us between is_file and stat)."""
+    try:
+        return archive.stat() if archive.is_file() else None
+    except OSError:
+        return None
+
+
+def _read_new_rows(archive: Path, offset: int, rows: List[dict],
+                   new_ino: Any,
+                   last_ino: Any) -> Tuple[int, List[dict], Any]:
+    """Read the new lines; the vanished-file race is an
+    restart-from-zero signal, the reader keeps the old identity."""
+    try:
+        with archive.open("r", encoding="utf-8",
+                          errors="replace") as fh:
+            fh.seek(offset)
+            for line in fh:
+                offset += len(line.encode("utf-8",
+                                          errors="replace"))
+                try:
+                    row = json.loads(line)
+                except ValueError:
+                    continue
+                if isinstance(row, dict):
+                    rows.append(row)
+        last_ino = new_ino
+    except OSError:
+        # vanished mid-read: restart from zero on the next pass
+        return 0, rows, last_ino
+    return offset, rows, last_ino
 
 
 def _open_log(stats: dict, archive: Path) -> Optional[str]:
