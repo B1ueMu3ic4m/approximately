@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.54.0
+
+- fuzz 32: the digest dir lies to the trend chain - a snapshot whose stores is a dict or a list of non-dicts crashed _trend_row (AttributeError, through audit/status/CI); lying stores now degrade the day to zeros, and the garbage-filename fallback is pinned to fire only on a corrupt timestamp.
+
 ## v3.53.3
 
 - the capability table meets the receiver: the README's table gains the inbox family row (webhook-serve, bounded rotation, the four-way read). Docs-only patch.
