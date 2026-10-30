@@ -8,7 +8,6 @@ when that store keeps an archive.
 
 import json
 import tempfile
-import time
 
 from approximately.digest import build_fleet_digest, render_fleet_markdown
 from approximately.store import TraceStore
@@ -18,7 +17,10 @@ def _store(with_archive: bool):
     store = TraceStore(tempfile.mkdtemp())
     if with_archive:
         archive = store.directory / "webhook-log.jsonl"
-        rows = [{"received_at": time.time() - 60,
+        import datetime as dt
+        start = dt.datetime.combine(dt.date.today(),
+                                    dt.time.min).timestamp()
+        rows = [{"received_at": start + 60.0 + i,
                  "verified": i == 0, "kind": "spool",
                  "payload": {}} for i in range(3)]
         with archive.open("a", encoding="utf-8") as fh:

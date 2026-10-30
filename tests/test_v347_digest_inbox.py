@@ -27,17 +27,33 @@ def _store_with_archive(rows):
     return store
 
 
-def _row(age_days, kind="trace_failure", verified=True):
-    import time
+def _window_start():
+    import datetime as dt
+    midnight = dt.datetime.combine(dt.date.today(), dt.time.min)
+    return midnight.timestamp()
 
-    return {"received_at": time.time() - age_days * 86400.0,
+
+def _row(age_days, kind="trace_failure", verified=True):
+    # anchored to the window's own start: real-clock ages go stale
+    # at midnight (a row 2h ago is yesterday when the clock says
+    # 00:10, and the window is today)
+    return {"received_at": _window_start() + age_days * 86400.0
+            * (1 if age_days >= 0 else 0) + (age_days * 3600.0
+                                             if age_days < 1 else 0),
             "verified": verified, "kind": kind, "payload": {}}
 
 
 def test_inbox_counts_the_window_not_the_history():
-    store = _store_with_archive([
-        _row(0.1), _row(0.2, kind="ops_digest"),
-        _row(3, verified=False), _row(30)])
+    start = _window_start()
+    rows = [{"received_at": start + 60.0, "verified": True,
+             "kind": "trace_failure", "payload": {}},
+            {"received_at": start + 120.0, "verified": True,
+             "kind": "ops_digest", "payload": {}},
+            {"received_at": start - 60.0, "verified": False,
+             "kind": "spool", "payload": {}},
+            {"received_at": start - 30 * 86400.0, "verified": True,
+             "kind": "old", "payload": {}}]
+    store = _store_with_archive(rows)
     payload = build_digest(store)
     inbox = payload["inbox"]
     assert inbox["present"] is True
@@ -56,9 +72,14 @@ def test_no_archive_is_one_honest_line():
 
 
 def test_render_shows_split_and_kinds():
-    store = _store_with_archive([
-        _row(0.1), _row(0.2, kind="spool", verified=False),
-        _row(0.3, kind="spool", verified=False)])
+    start = _window_start()
+    rows = [{"received_at": start + 60.0, "verified": True,
+             "kind": "trace_failure", "payload": {}},
+            {"received_at": start + 120.0, "verified": False,
+             "kind": "spool", "payload": {}},
+            {"received_at": start + 180.0, "verified": False,
+             "kind": "spool", "payload": {}}]
+    store = _store_with_archive(rows)
     page = render_markdown(build_digest(store))
     assert "## overnight arrivals (webhook)" in page
     assert "3 row(s) in the window: 1 verified, 2 unverified" in page

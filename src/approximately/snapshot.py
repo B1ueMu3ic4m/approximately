@@ -16,7 +16,7 @@ import json
 import time
 import zipfile
 from pathlib import Path
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 from .prices import STORE_ARTIFACTS
 
@@ -132,6 +132,16 @@ def verify_snapshot(archive: Path) -> Tuple[dict, List[str]]:
     return manifest, offenders
 
 
+def _escaping_members(names: Any, into: Path) -> list:
+    """Member names that resolve outside the restore target — a
+    doctored archive aims the extraction; the manifest's hashes
+    cannot catch it (the manifest is the attacker's)."""
+    into_resolved = into.resolve()
+    return [name for name in names
+            if not (into / name).resolve().is_relative_to(
+                into_resolved)]
+
+
 def restore(archive: Path, into: Path, force: bool = False) -> dict:
     """Verify, then extract into ``into``; refuses on any hash
     mismatch (listing offenders) or on existing files without
@@ -145,6 +155,12 @@ def restore(archive: Path, into: Path, force: bool = False) -> dict:
                          + "; ".join(offenders[:5])
                          + (f" (+{len(offenders) - 5} more)"
                             if len(offenders) > 5 else ""))
+    escapes = _escaping_members(manifest["members"], into)
+    if escapes:
+        raise ValueError(
+            f"{len(escapes)} member(s) escape the restore target "
+            f"(first: {escapes[0]}) — a snapshot member must name "
+            "a path inside the store")
     clashes = [name for name in manifest["members"]
                if (into / name).exists()]
     if clashes and not force:
