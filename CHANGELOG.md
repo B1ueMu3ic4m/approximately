@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.58.1
+
+- the follower loses the race, gracefully: CI caught a stat-then-open TOCTOU in follow_archive (the writer's rotation landed between stat and open - FileNotFoundError); the vanished file is a restart-from-zero signal now.
+
 ## v3.58.0
 
 - a symlink is not store evidence: snapshot followed links (one link to / could blow the archive up to the whole disk or leak its target into the backup); links - including broken ones - are skipped now.
