@@ -188,18 +188,23 @@ def _follow_pass(archive: Path, offset: int,
         offset = 0
     rows: List[dict] = []
     if size > offset:
-        with archive.open("r", encoding="utf-8",
-                          errors="replace") as fh:
-            fh.seek(offset)
-            for line in fh:
-                offset += len(line.encode("utf-8",
-                                          errors="replace"))
-                try:
-                    row = json.loads(line)
-                except ValueError:
-                    continue
-                if isinstance(row, dict):
-                    rows.append(row)
+        try:
+            with archive.open("r", encoding="utf-8",
+                              errors="replace") as fh:
+                fh.seek(offset)
+                for line in fh:
+                    offset += len(line.encode("utf-8",
+                                              errors="replace"))
+                    try:
+                        row = json.loads(line)
+                    except ValueError:
+                        continue
+                    if isinstance(row, dict):
+                        rows.append(row)
+        except OSError:
+            # the file vanished mid-read (rotation raced us):
+            # restart from zero on the next pass, lose nothing
+            return 0, rows
     return offset, rows
 
 

@@ -4292,3 +4292,16 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          whole disk, or leak whatever it pointed at into the
          backup. Links are skipped (broken links too); the probe
          confirmed the leak before the guard.
+
+468. **v3.58.1 - the follower loses the race, gracefully** (planned):
+       - CI caught a stat-then-open TOCTOU in follow_archive: the
+         writer's rotation (os.replace) landed between the stat
+         and the open, and the read raised FileNotFoundError.
+         The pass now treats the vanished file as a restart-from-
+         zero signal - the next pass picks the new log up.
+       - process note, recorded honestly: v3.58.0's symlink fix
+         was committed and pushed straight to main (the branch
+         checkout was missed) - main's own push CI served as the
+         gate, caught this race, and the fix comes through a PR
+         as always. The two-step protocol exists because direct
+         pushes skip the pre-merge verification pass.
