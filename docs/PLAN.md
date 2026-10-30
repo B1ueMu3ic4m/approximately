@@ -4221,3 +4221,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          but none for their receiver: the inbox family
          (webhook-serve, bounded rotation, four-way read) now has
          its row. Docs-only patch.
+
+459. **v3.54.0 - fuzz 32: the digest dir lies to the trend chain** (planned):
+       - the trend chain reads digest-*.jsonl the operator points
+         at; a snapshot whose stores is a dict (keys iterate as
+         strings) or a list of non-dicts crashed _trend_row with
+         AttributeError - through audit, status and the CI gate.
+         The row now degrades lying stores to zeros; the
+         garbage-filename fallback only fires on a corrupt
+         timestamp (a valid ts wins without a file stamp).

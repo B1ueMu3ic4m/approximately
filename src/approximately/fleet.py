@@ -757,9 +757,14 @@ def trend_days(digest_dir: Path) -> List[dict]:
 
 
 def _trend_row(entry: dict) -> dict:
-    """Fleet state for one digest day (trace-weighted failure rate)."""
+    """Fleet state for one digest day (trace-weighted failure rate).
+    The snapshot is untrusted input: a ``stores`` that is not a
+    list of dicts degrades the day to zeros, never the process."""
     snap = entry["last"]
     stores = snap.get("stores") or []
+    if not isinstance(stores, list):
+        stores = []
+    stores = [s for s in stores if isinstance(s, dict)]
     traces = sum(s.get("traces", 0) for s in stores)
     weighted = sum(s.get("failure_rate", 0.0) * s.get("traces", 0)
                    for s in stores)
