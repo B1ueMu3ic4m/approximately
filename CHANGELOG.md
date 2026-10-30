@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.55.1
+
+- the backup carries the whole working set: snapshot -> restore pinned end to end (trace, annotations, catalog, archive, rotated predecessor - byte-identical, catalog loads, archive stats agree). Test-only patch.
+
 ## v3.55.0
 
 - the catalog write is atomic: `prices set` lands whole in a tmp file and os.replace swaps it in - a crash mid-write leaves the old table standing, never a torn prices.json.

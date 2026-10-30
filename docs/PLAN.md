@@ -4239,3 +4239,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          the old table or the new one, never half of either (the
          ledger stays append-only; appends were already
          line-tolerant).
+
+461. **v3.55.1 - the backup carries the whole working set** (planned):
+       - the snapshot round trip is pinned end to end: trace,
+         annotations, price catalog, the archive and its rotated
+         predecessor all come back byte-identical, the catalog
+         loads, the archive stats agree, and the restored store
+         serves. Test-only patch.
