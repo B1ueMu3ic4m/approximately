@@ -192,20 +192,27 @@ def _follow_pass(archive: Path, offset: int,
             with archive.open("r", encoding="utf-8",
                               errors="replace") as fh:
                 fh.seek(offset)
-                for line in fh:
-                    offset += len(line.encode("utf-8",
-                                              errors="replace"))
-                    try:
-                        row = json.loads(line)
-                    except ValueError:
-                        continue
-                    if isinstance(row, dict):
-                        rows.append(row)
+                offset = _read_new_rows(fh, offset, rows)
         except OSError:
             # the file vanished mid-read (rotation raced us):
             # restart from zero on the next pass, lose nothing
             return 0, rows
     return offset, rows
+
+
+def _read_new_rows(fh: Any, offset: int, rows: List[dict]) -> int:
+    """Consume the new lines into ``rows``; return the offset to
+    resume from. Malformed lines are skipped here — they were
+    counted by the readers that parse the whole log."""
+    for line in fh:
+        offset += len(line.encode("utf-8", errors="replace"))
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(row, dict):
+            rows.append(row)
+    return offset
 
 
 def _open_log(stats: dict, archive: Path) -> Optional[str]:
