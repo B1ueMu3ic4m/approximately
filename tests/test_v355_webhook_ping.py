@@ -11,10 +11,7 @@ without a key tests nothing and is refused.
 import argparse
 import json
 import tempfile
-from http.client import HTTPConnection
 from pathlib import Path
-
-import pytest
 
 from approximately.cli import cmd_webhook_ping
 from approximately.receiver import serve
