@@ -42,7 +42,8 @@ def main() -> int:
             + junit_gate() + quarantine_gate() + result_meter_gate()
             + composition_gate() + failure_budget_gate()
             + tail_gate() + startup_gate() + complexity_gate()
-            + retention_gate() + archive_stats_gate())
+            + retention_gate() + archive_stats_gate()
+            + status_frame_gate())
 
 def archive_stats_gate(budget_s: float = 5.0) -> int:
     """The /stats read path over a 10k-row archive.
@@ -80,6 +81,55 @@ def archive_stats_gate(budget_s: float = 5.0) -> int:
           + ("PASS" if elapsed <= budget_s else "FAIL"))
     if elapsed > budget_s:
         print("FAIL: archive stats slowed past budget",
+              file=sys.stderr)
+        return 1
+    return 0
+
+
+def status_frame_gate(budget_s: float = 5.0) -> int:
+    """One status frame over a 2k-trace store with a 5k-row archive.
+
+    The watch mode renders this frame every few seconds, and the
+    frame now reads the webhook inbox too. Everything it does must
+    stay linear in the store it describes.
+    """
+    import json as _json
+    import tempfile
+    from pathlib import Path as _Path
+
+    from approximately.cli import _status_payload
+    from approximately.recorder import Recorder
+    from approximately.store import TraceStore
+
+    with tempfile.TemporaryDirectory() as tmp:
+        store = TraceStore(_Path(tmp) / "s")
+        old = time.time() - 5 * 86400
+        for i in range(2_000):
+            rec = Recorder(f"run {i}", save=False)
+            rec.tool("deploy", {}, result="ok")
+            rec.respond("done", success=(i % 4 != 0))
+            rec.trace.created_at = old
+            store.save(rec.trace)
+        archive = store.directory / "webhook-log.jsonl"
+        with archive.open("w", encoding="utf-8") as fh:
+            for i in range(5_000):
+                row = {"received_at": time.time() - i * 0.1,
+                       "verified": i % 2 == 0, "kind": f"k{i % 5}",
+                       "payload": {"seq": i}}
+                fh.write(_json.dumps(row) + "\n")
+        start = time.perf_counter()
+        payload = _status_payload(store, store.list_traces(), None)
+        elapsed = time.perf_counter() - start
+        if payload["traces"] != 2_000 or \
+                not payload["webhook_inbox"]["present"]:
+            print("FAIL: status frame described the wrong store",
+                  file=sys.stderr)
+            return 1
+    print(f"perf-gate[status-frame]: {elapsed * 1000:.0f}ms over "
+          f"2k traces + 5k-row archive (budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: the status frame slowed past budget",
               file=sys.stderr)
         return 1
     return 0

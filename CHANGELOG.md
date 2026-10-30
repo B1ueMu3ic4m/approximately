@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.53.2
+
+- the status frame joins the wall: perf gate #28 renders one frame over a 2k-trace store with a 5k-row archive inside budget (222ms, 5s budget).
+
 ## v3.53.1
 
 - one reader, four surfaces, one audit: the same store answers /stats, the received door, the MCP inbox and the status frame, and a test demands the same counts from each. Test-only patch.

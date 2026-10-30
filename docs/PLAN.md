@@ -4208,3 +4208,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          same rows/verified/unverified/kinds from each. Empty
          archives agree too; the status frame's present-flag stays
          honest on both sides.
+
+457. **v3.53.2 - the status frame joins the wall** (planned):
+       - the watch mode renders a status frame every few seconds,
+         and the frame now reads the webhook inbox on every pass.
+         perf gate #28: one frame over a 2k-trace store with a
+         5k-row archive inside budget, counts exact (222ms
+         measured, 5s budget).
