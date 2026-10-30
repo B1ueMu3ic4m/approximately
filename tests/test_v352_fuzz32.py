@@ -72,7 +72,10 @@ def test_garbage_filename_falls_back_to_epoch_day():
         [json.dumps({"ts": 1793312531,
                      "stores": [{"traces": 4, "failures": 1}]})],
         name="digest-garbage.jsonl"))
-    assert good[0]["day"] == "2026-10-30", \
+    import datetime as dt
+    expected = dt.datetime.fromtimestamp(1793312531).strftime(
+        "%Y-%m-%d")  # the same local clock the code reads
+    assert good[0]["day"] == expected, \
         "a valid timestamp wins even without a file stamp"
 
 
