@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 from pathlib import Path
 from typing import Dict, Optional, Union
 
@@ -65,10 +66,15 @@ def load_catalog(store_dir: Union[str, Path]) -> Optional[dict]:
 
 
 def save_catalog(store_dir: Union[str, Path], table: dict) -> Path:
+    """Write the catalog atomically: the tmp file lands whole, then
+    os.replace swaps it in — a crash mid-write must not leave a
+    torn prices.json for the money door to refuse."""
     path = catalog_path(store_dir)
     clean = validate_table(table)
-    path.write_text(json.dumps(clean, indent=2, sort_keys=True) + "\n",
-                    encoding="utf-8")
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(json.dumps(clean, indent=2, sort_keys=True) + "\n",
+                   encoding="utf-8")
+    os.replace(tmp, path)
     return path
 
 
