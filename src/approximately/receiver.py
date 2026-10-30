@@ -167,7 +167,10 @@ def follow_archive(archive: Path, interval: float = 1.0,
     while max_passes is None or passes < max_passes:
         passes += 1
         offset, rows = _follow_pass(archive, offset, last_ino)
-        stat = archive.stat() if archive.is_file() else None
+        try:
+            stat = archive.stat() if archive.is_file() else None
+        except OSError:
+            stat = None  # same race, other side of the pass
         if stat is not None:
             last_ino = stat.st_ino
         for row in rows:
@@ -181,7 +184,11 @@ def _follow_pass(archive: Path, offset: int,
     the offset to resume from — restarting from zero when the
     file's identity changed (a rotation via os.replace) or it
     shrank (a truncation)."""
-    stat = archive.stat() if archive.is_file() else None
+    try:
+        stat = archive.stat() if archive.is_file() else None
+    except OSError:
+        # vanished between is_file and stat: the rotation raced us
+        stat = None
     size = stat.st_size if stat is not None else 0
     identity_changed = stat is not None and stat.st_ino != last_ino
     if identity_changed or size < offset:
