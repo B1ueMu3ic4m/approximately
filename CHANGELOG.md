@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.51.0
+
+- the fleet page reads the inbox too: each store's section shows one line - window rows, verified split - only when that store keeps an archive; absent stays silent.
+
 ## v3.50.0
 
 - the brief reads the inbox: digest gains an "overnight arrivals (webhook)" section (window rows, verified split, kind census via the one reader); no archive is one honest line. snapshot now carries the archive's rotated predecessors.

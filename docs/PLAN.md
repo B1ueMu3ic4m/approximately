@@ -4170,3 +4170,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          archive is one honest line. snapshot now carries the
          archive's rotated predecessors too - yesterday's log
          rides along with the evidence.
+
+452. **v3.51.0 - the fleet page reads the inbox too** (planned):
+       - the fleet digest's per-store briefs already compute the
+         webhook inbox; the render just never showed it. Each
+         store's section now carries one line - window rows and
+         verified split - only when that store keeps an archive;
+         absent stays silent, the fleet page stays compact.

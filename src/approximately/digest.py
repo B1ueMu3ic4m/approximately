@@ -256,6 +256,10 @@ def render_fleet_markdown(payload: dict) -> str:
         lines.append(f"postmortems owed: {brief['briefs_due']}")
         arr = brief["arrivals"]
         lines.append(f"today: {arr['failed']} failed / {arr['ok']} ok")
+        inbox = brief.get("inbox") or {}
+        if inbox.get("present"):
+            lines.append(f"webhook inbox: {inbox['rows']} row(s) "
+                         f"in window, {inbox['verified']} verified")
         lines.append("")
     return "\n".join(lines) + "\n"
 
