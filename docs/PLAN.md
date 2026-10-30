@@ -4192,3 +4192,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          restore now refuses any member resolving outside the
          target before a single byte or directory. Legitimate
          archives never contain such names.
+
+455. **v3.53.0 - status reads the inbox** (planned):
+       - status is the shift's first look, but the webhook inbox
+         lived one read_archive away without showing. The frame
+         gains a line - rows, verified split - only when the store
+         keeps an archive, prose and JSON. Same numbers /stats,
+         digest, fleet and the CLI door answer: one reader under
+         every surface.
