@@ -228,7 +228,9 @@ folds yesterday's log in), and the MCP `inbox` tool. The 3am
 checkup reads it too: `doctor` reports the archive's rows,
 malformed lines and whether a rotated log sits beside it. Point
 `--post` at it and approximately talks to approximately with the
-same tamper-evidence the traces have.
+same tamper-evidence the traces have. `webhook-ping URL` proves
+the config on demand: a signed synthetic post, then the archive
+count - accepted, verified, counted.
 
 The brief reads the store's webhook inbox too: **overnight
 arrivals (webhook)** — the window's delivered rows with their

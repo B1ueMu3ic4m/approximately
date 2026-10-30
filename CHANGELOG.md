@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.56.1
+
+- the ping joins the docs: RECIPES' closed-loop chapter and TUTORIAL's receiver paragraph teach webhook-ping. Docs-only patch.
+
 ## v3.56.0
 
 - webhook-ping: prove the channel works - sign a synthetic post through the same notify_webhook, read the receiver's archive back (accepted, verified, counted); keyless pings refused, key mismatch reported with a hint.

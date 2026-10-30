@@ -4256,3 +4256,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          Keyless pings are refused (a ping without a signature
          tests nothing); a key mismatch reports the hint instead
          of crashing.
+
+463. **v3.56.1 - the ping joins the docs** (planned):
+       - RECIPES' closed-loop chapter and TUTORIAL's receiver
+         paragraph now teach webhook-ping: prove the config on
+         demand, before the first real alert. Docs-only patch.
