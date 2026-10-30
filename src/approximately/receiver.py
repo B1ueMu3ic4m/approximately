@@ -166,31 +166,30 @@ def follow_archive(archive: Path, interval: float = 1.0,
     passes = 0
     while max_passes is None or passes < max_passes:
         passes += 1
-        offset, rows = _follow_pass(archive, offset, last_ino)
-        try:
-            stat = archive.stat() if archive.is_file() else None
-        except OSError:
-            stat = None  # same race, other side of the pass
-        if stat is not None:
-            last_ino = stat.st_ino
+        offset, rows, last_ino = _follow_pass(archive, offset,
+                                              last_ino)
         for row in rows:
             yield row
         _time.sleep(max(0.05, interval))
 
 
 def _follow_pass(archive: Path, offset: int,
-                 last_ino: Any) -> Tuple[int, List[dict]]:
-    """One read pass: the rows that landed since ``offset``, and
-    the offset to resume from — restarting from zero when the
-    file's identity changed (a rotation via os.replace) or it
-    shrank (a truncation)."""
+                 last_ino: Any) -> Tuple[int, List[dict], Any]:
+    """One read pass: the rows that landed since ``offset``, the
+    offset to resume from, and the identity the pass actually read
+    — restarting from zero when the file's identity changed (a
+    rotation via os.replace) or it shrank (a truncation). The
+    identity is owned here: updating it after the pass would let a
+    mid-pass rotation bless the new file with the old offset."""
     try:
         stat = archive.stat() if archive.is_file() else None
     except OSError:
         # vanished between is_file and stat: the rotation raced us
         stat = None
+    new_ino = stat.st_ino if stat is not None else last_ino
+    identity_changed = (stat is not None and last_ino is not None
+                        and new_ino != last_ino)
     size = stat.st_size if stat is not None else 0
-    identity_changed = stat is not None and stat.st_ino != last_ino
     if identity_changed or size < offset:
         offset = 0
     rows: List[dict] = []
@@ -203,8 +202,11 @@ def _follow_pass(archive: Path, offset: int,
         except OSError:
             # the file vanished mid-read (rotation raced us):
             # restart from zero on the next pass, lose nothing
-            return 0, rows
-    return offset, rows
+            return 0, rows, last_ino
+        last_ino = new_ino
+    elif stat is not None:
+        last_ino = new_ino
+    return offset, rows, last_ino
 
 
 def _read_new_rows(fh: Any, offset: int, rows: List[dict]) -> int:

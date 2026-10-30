@@ -4299,6 +4299,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          and the open, and the read raised FileNotFoundError.
          The pass now treats the vanished file as a restart-from-
          zero signal - the next pass picks the new log up.
+       - deeper root cause (CI again): the pass's post-read stat
+         could bless the NEW file's inode while the offset still
+         pointed into the old one - identity tracking moved inside
+         _follow_pass, owned atomically with the read.
        - process note, recorded honestly: v3.58.0's symlink fix
          was committed and pushed straight to main (the branch
          checkout was missed) - main's own push CI served as the
