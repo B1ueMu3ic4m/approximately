@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.53.3
+
+- the capability table meets the receiver: the README's table gains the inbox family row (webhook-serve, bounded rotation, the four-way read). Docs-only patch.
+
 ## v3.53.2
 
 - the status frame joins the wall: perf gate #28 renders one frame over a 2k-trace store with a 5k-row archive inside budget (222ms, 5s budget).

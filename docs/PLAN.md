@@ -4215,3 +4215,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          perf gate #28: one frame over a 2k-trace store with a
          5k-row archive inside budget, counts exact (222ms
          measured, 5s budget).
+
+458. **v3.53.3 - the capability table meets the receiver** (planned):
+       - the README's capability table had a row for the alerts
+         but none for their receiver: the inbox family
+         (webhook-serve, bounded rotation, four-way read) now has
+         its row. Docs-only patch.

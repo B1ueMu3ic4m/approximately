@@ -158,6 +158,7 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 | 🧩 Fleet merge | Union another team's store, refusing broken evidence; id conflicts via skip/replace/rename | `approximately merge <source>` |
 | 🗺️ Fleet dashboard | All your stores on one page: failure rates, trend sparklines, top modes, broken ledgers | `approximately fleet <dir>... --fleet-html` |
 | 🔔 Fleet alerts | HMAC-signed JSON webhooks when a store's trend turns worse — receivers authenticate alerts like evidence | `approximately fleet --webhook URL` |
+| 📥 Receiver inbox | The signed channel's other end: `webhook-serve` verifies and archives what survives (bounded, rotatable, SIGTERM-clean), and the log reads back four ways — /stats, `received`, the MCP `inbox` tool, the status frame | `approximately webhook-serve --port 8443` / `approximately received --kind trace_failure` |
 | ⏱️ Latency anomalies | Median/MAD modified z-score — flags slow *and* fast outlier steps without being fooled by tails | `approximately anomalies <trace>` |
 | 🧱 Result bloat | The third meter: result character length — a tool dumping a 40k-char wall into the context can be cheap in tokens and still eat the window; composition + a truncation what-if price the fix | `approximately anomalies <trace> --results` / `context <trace> --composition --truncate-results 2000` |
 | 🔁 Step-level replay | Verify fixes without re-running the task; A/B compare original vs patched executors | `approximately replay --patched` |
