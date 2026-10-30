@@ -26,23 +26,32 @@ SNAPSHOT_FORMAT = 1
 _SKIP_SUFFIXES = (".lock", ".tmp")
 
 
+def _is_evidence(path: Path, rel: Path) -> bool:
+    """The include rules: sidecars (any .jsonl, the rotated
+    archive logs), the store's artifact files, quarantined bytes,
+    and root-level JSONs (traces)."""
+    if rel.parent.name == ".quarantine":
+        return True
+    if path.name.endswith(".jsonl") or ".jsonl." in path.name:
+        return True
+    if path.name in STORE_ARTIFACTS:
+        return True
+    return rel.parent == Path(".") and path.suffix == ".json"
+
+
 def _member_candidates(store_dir: Path) -> List[Path]:
     """Everything in the store that is evidence: root trace JSONs and
     artifacts, the annotation and ledger sidecars, the receiver's
     archive and its rotated predecessors, quarantined bytes
-    (preserved evidence), never locks or temp files."""
+    (preserved evidence), never locks or temp files or symlinks —
+    a link's target lives outside the store."""
     out: List[Path] = []
     for path in sorted(store_dir.rglob("*")):
-        if not path.is_file():
+        if path.is_symlink() or not path.is_file():
             continue
         rel = path.relative_to(store_dir)
-        if path.suffix in _SKIP_SUFFIXES:
-            continue
-        if rel.parent.name == ".quarantine" or \
-                path.name.endswith(".jsonl") or \
-                ".jsonl." in path.name or \
-                path.name in STORE_ARTIFACTS or \
-                (rel.parent == Path(".") and path.suffix == ".json"):
+        if path.suffix not in _SKIP_SUFFIXES and _is_evidence(path,
+                                                              rel):
             out.append(path)
     return out
 

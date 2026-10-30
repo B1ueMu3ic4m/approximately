@@ -4285,3 +4285,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          operator's signature was being ignored and nothing said
          so. The ping now warns (stderr) that the receiver has no
          key configured, right where the count shows it.
+
+467. **v3.58.0 - a symlink is not store evidence** (planned):
+       - snapshot walked the store with rglob and followed
+         symlinks: one link to / could blow the archive up to the
+         whole disk, or leak whatever it pointed at into the
+         backup. Links are skipped (broken links too); the probe
+         confirmed the leak before the guard.

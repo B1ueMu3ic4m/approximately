@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.58.0
+
+- a symlink is not store evidence: snapshot followed links (one link to / could blow the archive up to the whole disk or leak its target into the backup); links - including broken ones - are skipped now.
+
 ## v3.57.1
 
 - the ping names the open tap: a receiver without a key archives your ping UNVERIFIED - the ping now warns on stderr instead of silently showing "0 verified".
