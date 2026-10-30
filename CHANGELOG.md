@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.55.0
+
+- the catalog write is atomic: `prices set` lands whole in a tmp file and os.replace swaps it in - a crash mid-write leaves the old table standing, never a torn prices.json.
+
 ## v3.54.0
 
 - fuzz 32: the digest dir lies to the trend chain - a snapshot whose stores is a dict or a list of non-dicts crashed _trend_row (AttributeError, through audit/status/CI); lying stores now degrade the day to zeros, and the garbage-filename fallback is pinned to fire only on a corrupt timestamp.

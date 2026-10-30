@@ -4230,3 +4230,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          The row now degrades lying stores to zeros; the
          garbage-filename fallback only fires on a corrupt
          timestamp (a valid ts wins without a file stamp).
+
+460. **v3.55.0 - the catalog write is atomic** (planned):
+       - `prices set` rewrote prices.json in place; a crash
+         mid-write left a torn catalog for the money door to
+         refuse until a human fixed it. The write now lands whole
+         in a tmp file and os.replace swaps it in - readers see
+         the old table or the new one, never half of either (the
+         ledger stays append-only; appends were already
+         line-tolerant).
