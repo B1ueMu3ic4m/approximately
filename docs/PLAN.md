@@ -4261,3 +4261,20 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        - RECIPES' closed-loop chapter and TUTORIAL's receiver
          paragraph now teach webhook-ping: prove the config on
          demand, before the first real alert. Docs-only patch.
+
+464. **v3.57.0 - received --follow: the on-call terminal's live view** (planned):
+       - the archive had readers; it had no follower.
+         `received --follow` yields rows as they land,
+         offset- and identity-tracked - a rotation (os.replace
+         swaps a new file into the name) restarts from zero even
+         when the new file is the same length, which a size check
+         alone would hide. Malformed lines skipped; --max-passes
+         bounds the loop for tests.
+
+465. **v3.57.0 - received --follow** (planned):
+       - the archive had readers; it had no follower.
+         `received --follow` yields rows as they land, offset-
+         and identity-tracked: a rotation (os.replace swaps a new
+         file into the name) restarts from zero even when the new
+         file is the same length - a size check alone would hide
+         it. Malformed lines skipped; --max-passes bounds tests.

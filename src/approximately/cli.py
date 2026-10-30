@@ -3016,14 +3016,34 @@ def _audit_junit(report: dict) -> str:
                         xml_declaration=True).decode("utf-8"))
 
 
+def _render_inbox_row(row: dict) -> str:
+    body = json.dumps(row.get("payload", {}),
+                      ensure_ascii=False)[:100]
+    mark = "V" if row.get("verified") else "?"
+    return (f"  {row.get('received_at'):.0f} {mark} "
+            f"{row.get('kind', '?')} {body}")
+
+
 def cmd_received(args: argparse.Namespace) -> int:
     """Read the receiver's archive back: the /stats shape plus the
     most recent matching rows, newest last — the cron-friendly
-    reader (no curl, no MCP client needed)."""
-    from .receiver import read_archive
+    reader (no curl, no MCP client needed). With --follow it
+    keeps the archive open and prints rows as they land."""
+    from .receiver import follow_archive, read_archive
 
     archive = Path(getattr(args, "archive", "")
                    or Path(args.store) / "webhook-log.jsonl")
+    if getattr(args, "follow", False):
+        try:
+            for row in follow_archive(
+                    archive,
+                    interval=float(getattr(args, "interval", 1.0)),
+                    max_passes=(int(getattr(args, "max_passes", 0))
+                                or None)):
+                print(_render_inbox_row(row), flush=True)
+        except KeyboardInterrupt:
+            pass
+        return 0
     payload = read_archive(
         archive, limit=int(getattr(args, "limit", 20)),
         kind=getattr(args, "kind", None),
@@ -3041,11 +3061,7 @@ def cmd_received(args: argparse.Namespace) -> int:
     for kind, count in sorted(payload["kinds"].items()):
         print(f"  {kind}: {count}")
     for row in payload["recent"]:
-        body = json.dumps(row.get("payload", {}),
-                          ensure_ascii=False)[:100]
-        mark = "V" if row.get("verified") else "?"
-        print(f"  {row.get('received_at'):.0f} {mark} "
-              f"{row.get('kind', '?')} {body}")
+        print(_render_inbox_row(row))
     return 0
 
 
@@ -5076,6 +5092,15 @@ def build_parser() -> argparse.ArgumentParser:
                         "time (an unstampable row is dropped)")
     p.add_argument("--json", action="store_true",
                    help="emit the stats shape as JSON")
+    p.add_argument("--follow", action="store_true",
+                   help="keep the archive open and print rows as "
+                        "they land (Ctrl-C to stop)")
+    p.add_argument("--interval", type=float, default=1.0,
+                   metavar="S",
+                   help="seconds between follow passes "
+                        "(default 1.0)")
+    p.add_argument("--max-passes", type=int, default=0, metavar="N",
+                   help="stop after N follow passes (tests)")
     p.set_defaults(func=cmd_received)
 
     p = sub.add_parser("retention", parents=[common],
