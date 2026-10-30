@@ -638,6 +638,11 @@ APPROXIMATELY_SIGNING_KEY=op-secret-1 approximately digest \
   --store ~/agents/store --post http://127.0.0.1:8443
 ```
 
+Prove the config before you need it:
+`APPROXIMATELY_SIGNING_KEY=op-secret-1 approximately webhook-ping
+http://127.0.0.1:8443 --message drill` signs a synthetic post and
+reads the receiver's archive back - accepted, verified, counted.
+
 Read it back three ways: `curl
 http://127.0.0.1:8443/stats` over HTTP, the `received` door in a
 cron (`approximately received --store ~/agents/store --kind
