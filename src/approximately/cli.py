@@ -1436,6 +1436,16 @@ def _status_payload(store: Any, traces: list, digest_dir: Any,
         },
         "triage_coverage": coverage,
     }
+    from .receiver import read_archive
+
+    inbox = read_archive(store.directory / "webhook-log.jsonl",
+                         limit=0)
+    payload["webhook_inbox"] = {
+        "present": inbox["bytes"] > 0,
+        "rows": inbox["rows"],
+        "verified": inbox["verified"],
+        "unverified": inbox["unverified"],
+    }
     _payload_forecasts(payload, trend, spend_ceiling,
                        failure_allowance)
     return payload
@@ -1574,6 +1584,11 @@ def _render_status(args: argparse.Namespace) -> str:
     if ledger_intact is not None:
         buf.write("  ledger: "
                   + ("intact" if ledger_intact else "BROKEN") + "\n")
+    inbox = payload.get("webhook_inbox") or {}
+    if inbox.get("present"):
+        buf.write(f"  webhook inbox: {inbox['rows']} row(s) "
+                  f"({inbox['verified']} verified, "
+                  f"{inbox['unverified']} unverified)\n")
     if payload["top_recidivist"]:
         buf.write(f"  top recidivist: {payload['top_recidivist']}\n")
     worst_tool = payload.get("worst_tool")
