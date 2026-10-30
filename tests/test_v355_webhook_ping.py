@@ -19,7 +19,7 @@ from approximately.receiver import serve
 
 def _receiver(key=None):
     archive = Path(tempfile.mkdtemp()) / "webhook-log.jsonl"
-    server, state = serve(archive, port=0, key=key)
+    server, _state = serve(archive, port=0, key=key)
     url = f"http://127.0.0.1:{server.server_address[1]}"
     return server, archive, url
 
