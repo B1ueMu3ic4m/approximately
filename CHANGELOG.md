@@ -3,6 +3,14 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.57.0
+
+- `received --follow`: rows as they land, offset- and identity-tracked - rotation restarts from zero even at equal file length; malformed lines skipped; --max-passes bounds tests.
+
+## v3.57.0
+
+- `received --follow`: rows as they land, offset- and identity-tracked - rotation restarts from zero even at equal file length (a size check alone would hide it); malformed lines skipped; --max-passes bounds tests.
+
 ## v3.56.1
 
 - the ping joins the docs: RECIPES' closed-loop chapter and TUTORIAL's receiver paragraph teach webhook-ping. Docs-only patch.

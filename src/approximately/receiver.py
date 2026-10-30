@@ -30,7 +30,7 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any, Optional, Tuple
+from typing import Any, Iterator, List, Optional, Tuple
 
 DEFAULT_MAX_BYTES = 1_048_576  # 1 MiB: alerts are small; a
 
@@ -149,6 +149,58 @@ def _matching_rows(lines: list, kind: Optional[str],
                                                  since):
             rows.append(row)
     return rows
+
+
+def follow_archive(archive: Path, interval: float = 1.0,
+                   max_passes: Optional[int] = None
+                   ) -> "Iterator[dict]":
+    """Yield rows as they land, newest last — the on-call
+    terminal's live view without ssh + tail -f. Offset-tracked:
+    a rotation (the file shrinking under us) restarts from zero,
+    so nothing is skipped twice or lost. Malformed lines are
+    skipped; they were counted at write/read time."""
+    import time as _time
+
+    offset = 0
+    last_ino = None
+    passes = 0
+    while max_passes is None or passes < max_passes:
+        passes += 1
+        offset, rows = _follow_pass(archive, offset, last_ino)
+        stat = archive.stat() if archive.is_file() else None
+        if stat is not None:
+            last_ino = stat.st_ino
+        for row in rows:
+            yield row
+        _time.sleep(max(0.05, interval))
+
+
+def _follow_pass(archive: Path, offset: int,
+                 last_ino: Any) -> Tuple[int, List[dict]]:
+    """One read pass: the rows that landed since ``offset``, and
+    the offset to resume from — restarting from zero when the
+    file's identity changed (a rotation via os.replace) or it
+    shrank (a truncation)."""
+    stat = archive.stat() if archive.is_file() else None
+    size = stat.st_size if stat is not None else 0
+    identity_changed = stat is not None and stat.st_ino != last_ino
+    if identity_changed or size < offset:
+        offset = 0
+    rows: List[dict] = []
+    if size > offset:
+        with archive.open("r", encoding="utf-8",
+                          errors="replace") as fh:
+            fh.seek(offset)
+            for line in fh:
+                offset += len(line.encode("utf-8",
+                                          errors="replace"))
+                try:
+                    row = json.loads(line)
+                except ValueError:
+                    continue
+                if isinstance(row, dict):
+                    rows.append(row)
+    return offset, rows
 
 
 def _open_log(stats: dict, archive: Path) -> Optional[str]:
