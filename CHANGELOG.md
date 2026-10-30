@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.52.0
+
+- a snapshot member must not aim the extraction: restore refused nothing on member names, and a doctored archive (manifest hashes matching its own forged members) could write ../../evil.txt outside the restore target - the probe confirmed the escape; any member resolving outside the target is now refused before a single byte or directory.
+
 ## v3.51.1
 
 - the fleet doc catches up: FLEET-DIGEST.md now describes the per-store brief's shape - grades, owed, arrivals, the inbox line, silent when absent. Docs-only patch.

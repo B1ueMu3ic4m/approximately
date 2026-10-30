@@ -4182,3 +4182,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        - FLEET-DIGEST.md never described the per-store brief's
          shape; it now names the grades / owed / arrivals / inbox
          lines (and the silent-when-absent rule). Docs-only patch.
+
+454. **v3.52.0 - a snapshot member must not aim the extraction** (planned):
+       - restore extracted members by name; a doctored archive
+         whose manifest hashes match its own forged members could
+         name a member ../../evil.txt - the hash check passes (the
+         manifest is the attacker's) and the file lands outside
+         the restore target. The probe confirmed the escape; the
+         restore now refuses any member resolving outside the
+         target before a single byte or directory. Legitimate
+         archives never contain such names.
