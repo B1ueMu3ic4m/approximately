@@ -4278,3 +4278,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          file into the name) restarts from zero even when the new
          file is the same length - a size check alone would hide
          it. Malformed lines skipped; --max-passes bounds tests.
+
+466. **v3.57.1 - the ping names the open tap** (planned):
+       - the ping's archive read-back silently reported "0
+         verified" when the receiver was an open tap - the
+         operator's signature was being ignored and nothing said
+         so. The ping now warns (stderr) that the receiver has no
+         key configured, right where the count shows it.
