@@ -4246,3 +4246,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          predecessor all come back byte-identical, the catalog
          loads, the archive stats agree, and the restored store
          serves. Test-only patch.
+
+462. **v3.56.0 - webhook-ping: prove the channel works** (planned):
+       - setting up the receiver and the poster are two halves of
+         one config; the only way to prove they agreed was to wait
+         for a real alert. webhook-ping signs a synthetic post
+         through the same notify_webhook, then reads the
+         receiver's archive back - accepted, verified, counted.
+         Keyless pings are refused (a ping without a signature
+         tests nothing); a key mismatch reports the hint instead
+         of crashing.

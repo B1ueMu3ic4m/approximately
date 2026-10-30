@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.56.0
+
+- webhook-ping: prove the channel works - sign a synthetic post through the same notify_webhook, read the receiver's archive back (accepted, verified, counted); keyless pings refused, key mismatch reported with a hint.
+
 ## v3.55.1
 
 - the backup carries the whole working set: snapshot -> restore pinned end to end (trace, annotations, catalog, archive, rotated predecessor - byte-identical, catalog loads, archive stats agree). Test-only patch.

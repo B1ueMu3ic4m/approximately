@@ -3049,6 +3049,63 @@ def cmd_received(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_webhook_ping(args: argparse.Namespace) -> int:
+    """Prove the channel works: sign a ping, post it, read the
+    receiver's archive back. A ping without a key tests nothing —
+    the unsigned path is the open tap's job."""
+    import time as _time
+    from urllib.parse import urlparse
+
+    from .fleet import notify_webhook
+    from .integrity import load_key
+
+    url = str(args.url)
+    if urlparse(url).scheme not in ("http", "https"):
+        print("error: webhook URL must be http(s)", file=sys.stderr)
+        return 2
+    key = load_key(getattr(args, "key_file", None))
+    if not key:
+        print("error: no signing key (APPROXIMATELY_SIGNING_KEY or "
+              "--key-file): a ping without a signature tests "
+              "nothing", file=sys.stderr)
+        return 2
+    payload = {"kind": "ping",
+               "message": str(getattr(args, "message", "") or "ping"),
+               "sent_at": _time.time()}
+    try:
+        status = notify_webhook([], url, signing_key=key,
+                                payload=payload)
+    except RuntimeError as exc:
+        print(f"ping failed: {exc}", file=sys.stderr)
+        return 1
+    if status != "200":
+        hint = {"HTTP 401": "signature refused - keys differ?",
+                "HTTP 400": "body refused - is it a JSON-object "
+                            "receiver?",
+                "HTTP 413": "body too large for --max-bytes"}.get(
+            status, "receiver answered, not accepted")
+        print(f"ping NOT accepted: {status} ({hint})",
+              file=sys.stderr)
+        return 1
+    print(f"ping accepted: HTTP 200 (kind=ping, "
+          f"message={payload['message']!r})")
+    host = urlparse(url)
+    stats_url = f"{host.scheme}://{host.netloc}/stats"
+    try:
+        import urllib.request
+
+        with urllib.request.urlopen(  # nosec B310: http(s) checked at the door
+                stats_url, timeout=5) as resp:
+            stats = json.loads(resp.read())
+        archive = stats.get("archive") or {}
+        print(f"receiver archive: {archive.get('rows')} row(s), "
+              f"{archive.get('verified')} verified "
+              f"({archive.get('malformed')} malformed)")
+    except Exception:
+        print("receiver /stats not reachable (skipped)")
+    return 0
+
+
 def _serve_stop(signum: int, frame: Any) -> None:
     raise KeyboardInterrupt
 
@@ -4985,6 +5042,18 @@ def build_parser() -> argparse.ArgumentParser:
                         "many rows; the previous log moves to "
                         "<log>.1 (default 100000, 0 = unbounded)")
     p.set_defaults(func=cmd_webhook_serve)
+
+    p = sub.add_parser("webhook-ping", parents=[common],
+                       help="prove the channel works: sign a ping, "
+                            "post it, read the receiver's archive "
+                            "back")
+    p.add_argument("url", metavar="URL",
+                   help="the receiver's http(s) endpoint")
+    p.add_argument("--key-file", metavar="FILE",
+                   help="HMAC key (else APPROXIMATELY_SIGNING_KEY)")
+    p.add_argument("--message", metavar="TEXT", default="ping",
+                   help="what the ping says (default: ping)")
+    p.set_defaults(func=cmd_webhook_ping)
 
     p = sub.add_parser("received", parents=[common],
                        help="read the receiver's archive back: "
