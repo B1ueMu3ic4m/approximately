@@ -4177,3 +4177,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          store's section now carries one line - window rows and
          verified split - only when that store keeps an archive;
          absent stays silent, the fleet page stays compact.
+
+453. **v3.51.1 - the fleet doc catches up** (planned):
+       - FLEET-DIGEST.md never described the per-store brief's
+         shape; it now names the grades / owed / arrivals / inbox
+         lines (and the silent-when-absent rule). Docs-only patch.

@@ -56,6 +56,13 @@ def verify_alert(body: bytes, signature: str, key: bytes) -> bool:
 - webhook transport failures print to stderr but do not change the
   exit path (the survey itself succeeded)
 
+## The per-store brief
+
+Each store's section carries its grades, postmortems owed, today's
+arrivals, and - when that store keeps a webhook archive - one line
+for its **webhook inbox**: the window's delivered rows and how many
+arrived verified. A store without an archive stays silent.
+
 ## Window the digest
 
 Pair with `--since`-style triage: `stats --since 30` and
