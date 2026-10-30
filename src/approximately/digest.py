@@ -94,9 +94,38 @@ def build_digest(store: Any,
         "briefs_due": sum(1 for r in queue if not r.annotated),
         "arrivals": _arrival_section(store, ref,
                                      since_days=since_days),
+        "inbox": _inbox_section(store, since_days=since_days),
     }
     _grade_section(store, grade_floor, payload)
     return payload
+
+
+def _inbox_section(store: Any, since_days: int = 1) -> dict:
+    """What the webhook channel delivered into this store's inbox
+    within the arrival window — the same numbers /stats answers,
+    scoped to the night the brief covers. No archive, one honest
+    line: the brief always names what it does not know."""
+    from .receiver import read_archive
+
+    archive = store.directory / "webhook-log.jsonl"
+    if not archive.is_file():
+        return {"present": False, "rows": 0, "verified": 0,
+                "unverified": 0, "kinds": {}}
+    window_start = (_dt.datetime.combine(_dt.date.today(),
+                                         _dt.time.min)
+                    - _dt.timedelta(days=since_days - 1)).timestamp()
+    rows = read_archive(archive, limit=10 ** 9,
+                        since=window_start)["recent"]
+    kinds: Dict[str, int] = {}
+    verified = 0
+    for row in rows:
+        if row.get("verified") is True:
+            verified += 1
+        kind = str(row.get("kind", "?"))
+        kinds[kind] = kinds.get(kind, 0) + 1
+    return {"present": True, "rows": len(rows),
+            "verified": verified, "unverified": len(rows)
+            - verified, "kinds": kinds}
 
 
 def _delta_pct(d: Optional[float]) -> str:
@@ -146,6 +175,20 @@ def _render_triage(payload: dict) -> List[str]:
     lines.append(f"- postmortems owed: {owed} failure(s) in the "
                  "window without an annotation")
     return lines
+
+
+def _render_inbox(payload: dict) -> List[str]:
+    inbox = payload.get("inbox") or {}
+    if not inbox.get("present"):
+        return [("no webhook archive in this store - nothing was "
+                 "delivered here")]
+    line = (f"{inbox['rows']} row(s) in the window: "
+            f"{inbox['verified']} verified, "
+            f"{inbox['unverified']} unverified")
+    kinds = (", kinds: " + ", ".join(
+        f"{k} x{v}" for k, v in sorted(inbox["kinds"].items()))) \
+        if inbox["kinds"] else ""
+    return [line + kinds]
 
 
 def _render_arrivals(payload: dict) -> List[str]:
@@ -227,4 +270,6 @@ def render_markdown(payload: dict) -> str:
     lines += ["", "## grades", *_render_grades(payload)]
     lines += ["", "## triage queue", *_render_triage(payload)]
     lines += ["", "## today's arrivals", *_render_arrivals(payload)]
+    lines += ["", "## overnight arrivals (webhook)",
+              *_render_inbox(payload)]
     return "\n".join(lines) + "\n"

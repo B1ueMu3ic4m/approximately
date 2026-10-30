@@ -66,7 +66,7 @@ def test_brief_composes_the_doors():
     assert len(payload["arrivals"]["lines"]) == 1
     page = render_markdown(payload)
     assert "BELOW FLOOR" in page
-    assert page.count("## ") == 4
+    assert page.count("## ") == 5  # + the overnight webhook section
 
 
 def test_triage_top_clamps_the_queue():

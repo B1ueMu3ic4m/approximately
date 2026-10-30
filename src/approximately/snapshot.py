@@ -28,7 +28,8 @@ _SKIP_SUFFIXES = (".lock", ".tmp")
 
 def _member_candidates(store_dir: Path) -> List[Path]:
     """Everything in the store that is evidence: root trace JSONs and
-    artifacts, the annotation and ledger sidecars, quarantined bytes
+    artifacts, the annotation and ledger sidecars, the receiver's
+    archive and its rotated predecessors, quarantined bytes
     (preserved evidence), never locks or temp files."""
     out: List[Path] = []
     for path in sorted(store_dir.rglob("*")):
@@ -39,6 +40,7 @@ def _member_candidates(store_dir: Path) -> List[Path]:
             continue
         if rel.parent.name == ".quarantine" or \
                 path.name.endswith(".jsonl") or \
+                ".jsonl." in path.name or \
                 path.name in STORE_ARTIFACTS or \
                 (rel.parent == Path(".") and path.suffix == ".json"):
             out.append(path)

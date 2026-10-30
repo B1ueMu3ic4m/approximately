@@ -255,6 +255,11 @@ layer rather than duplicating it:
   to the door that owns it, and an absent section says so. With
   `--stores`, one brief covers a fleet, sections ranked worst-first;
   the brief is also browsable as an MCP resource.
+- **`digest.py`** also reads the receiver's inbox (the window's
+  webhook rows, verified split, kind census) into the brief, and
+  `snapshot.py` carries the archive's rotated predecessors — the
+  loop's front page and its backup both know what the channel
+  delivered.
 - **`retention.py`** keeps what postmortem value says to keep:
   successes age out before failures, and the two guards (breach
   evidence, annotated traces) veto every retirement at plan time
