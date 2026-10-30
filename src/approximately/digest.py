@@ -185,7 +185,7 @@ def _render_inbox(payload: dict) -> List[str]:
     line = (f"{inbox['rows']} row(s) in the window: "
             f"{inbox['verified']} verified, "
             f"{inbox['unverified']} unverified")
-    kinds = (f", kinds: " + ", ".join(
+    kinds = (", kinds: " + ", ".join(
         f"{k} x{v}" for k, v in sorted(inbox["kinds"].items()))) \
         if inbox["kinds"] else ""
     return [line + kinds]

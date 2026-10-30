@@ -12,7 +12,6 @@ along with the rest of the evidence.
 
 import json
 import tempfile
-from pathlib import Path
 
 from approximately.digest import build_digest, render_markdown
 from approximately.snapshot import _member_candidates
