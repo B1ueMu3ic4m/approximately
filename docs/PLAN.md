@@ -4161,3 +4161,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          wall is 27 gates since archive-stats joined) and "2,000+
          tests" (2,143). Refreshed; the check-matrix count was
          already honest at 21.
+
+451. **v3.50.0 - the brief reads the inbox** (planned):
+       - the webhook archive sat beside the store without ever
+         reaching the brief. digest gains an "overnight arrivals
+         (webhook)" section: the window's rows, verified split and
+         kind census, via the one reader (read_archive); no
+         archive is one honest line. snapshot now carries the
+         archive's rotated predecessors too - yesterday's log
+         rides along with the evidence.

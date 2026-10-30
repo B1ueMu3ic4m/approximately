@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.50.0
+
+- the brief reads the inbox: digest gains an "overnight arrivals (webhook)" section (window rows, verified split, kind census via the one reader); no archive is one honest line. snapshot now carries the archive's rotated predecessors.
+
 ## v3.49.3
 
 - the banner's numbers catch up: "30-gate perf wall" -> 27 (archive-stats joined), "2,000+ tests" -> 2,100+. Docs-only patch.

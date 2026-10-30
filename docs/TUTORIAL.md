@@ -230,6 +230,11 @@ malformed lines and whether a rotated log sits beside it. Point
 `--post` at it and approximately talks to approximately with the
 same tamper-evidence the traces have.
 
+The brief reads the store's webhook inbox too: **overnight
+arrivals (webhook)** — the window's delivered rows with their
+verified split and kind census, straight from the archive. No
+archive is one honest line, not an empty section.
+
 Postmortems are the loop's currency, so the brief counts what a
 shift still owes: **postmortems owed** — failures in the window no
 human has annotated yet. Work them top-down with `triage
