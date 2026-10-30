@@ -47,7 +47,10 @@ def test_absolute_member_is_refused_too():
     outside = Path(tempfile.mkdtemp()) / "evil.txt"
     zpath = _forged({str(outside): b"pwned"})
     into = Path(tempfile.mkdtemp()) / "restored"
-    with pytest.raises(ValueError, match="escape"):
+    # windows normalizes the forged name before the hash check, so
+    # the refusal can come from verify instead of the slip guard -
+    # the contract is the refusal, not which layer signs it
+    with pytest.raises(ValueError):
         restore(zpath, into)
     assert not outside.exists()
 
