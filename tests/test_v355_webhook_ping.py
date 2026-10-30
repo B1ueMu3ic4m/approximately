@@ -37,8 +37,10 @@ def test_ping_lands_verified_and_reads_the_archive_back(capsys):
         assert cmd_webhook_ping(_args(url, key_file=str(keyfile),
                                       message="hello")) == 0
         out = capsys.readouterr().out
+        err = capsys.readouterr().err
         assert "ping accepted: HTTP 200" in out
         assert "receiver archive: 1 row(s), 1 verified" in out
+        assert "UNVERIFIED" not in err
         rows = [json.loads(line) for line in
                 archive.read_text().splitlines()]
         assert rows[0]["verified"] is True
@@ -57,6 +59,20 @@ def test_key_mismatch_is_a_reported_not_a_crash(capsys):
         err = capsys.readouterr().err
         assert "ping NOT accepted: HTTP 401" in err
         assert "keys differ" in err
+    finally:
+        server.shutdown()
+
+
+def test_an_open_tap_receiver_warns_about_its_ignorance(capsys):
+    server, _archive, url = _receiver(key=None)  # the open tap
+    keyfile = Path(tempfile.mkdtemp()) / "key"
+    keyfile.write_bytes(b"ping-key")
+    try:
+        assert cmd_webhook_ping(_args(url, key_file=str(keyfile))
+                                ) == 0  # accepted, but...
+        err = capsys.readouterr().err
+        assert "UNVERIFIED" in err and "no key configured" in err, \
+            "the operator must learn the signature was ignored"
     finally:
         server.shutdown()
 

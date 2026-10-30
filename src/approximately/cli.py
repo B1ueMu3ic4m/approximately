@@ -3117,6 +3117,10 @@ def cmd_webhook_ping(args: argparse.Namespace) -> int:
         print(f"receiver archive: {archive.get('rows')} row(s), "
               f"{archive.get('verified')} verified "
               f"({archive.get('malformed')} malformed)")
+        if archive.get("rows") and not archive.get("verified"):
+            print("WARNING: the receiver archived your ping as "
+                  "UNVERIFIED - it has no key configured, so your "
+                  "signature was not checked", file=sys.stderr)
     except Exception:
         print("receiver /stats not reachable (skipped)")
     return 0
