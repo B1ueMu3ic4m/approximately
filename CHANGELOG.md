@@ -3,9 +3,9 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
-## v3.57.0
+## v3.57.1
 
-- `received --follow`: rows as they land, offset- and identity-tracked - rotation restarts from zero even at equal file length; malformed lines skipped; --max-passes bounds tests.
+- the ping names the open tap: a receiver without a key archives your ping UNVERIFIED - the ping now warns on stderr instead of silently showing "0 verified".
 
 ## v3.57.0
 
