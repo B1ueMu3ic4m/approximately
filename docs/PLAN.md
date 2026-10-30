@@ -4200,3 +4200,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          keeps an archive, prose and JSON. Same numbers /stats,
          digest, fleet and the CLI door answer: one reader under
          every surface.
+
+456. **v3.53.1 - one reader, four surfaces, one audit** (planned):
+       - "one reader" was marketing until the same store answered
+         all four readers - /stats, the received door, the MCP
+         inbox and the status frame - and the test demands the
+         same rows/verified/unverified/kinds from each. Empty
+         archives agree too; the status frame's present-flag stays
+         honest on both sides.

@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.53.1
+
+- one reader, four surfaces, one audit: the same store answers /stats, the received door, the MCP inbox and the status frame, and a test demands the same counts from each. Test-only patch.
+
 ## v3.53.0
 
 - status reads the inbox: the one-glance frame gains a webhook-inbox line (rows, verified split) only when the store keeps an archive, prose and JSON - one reader under every surface.
