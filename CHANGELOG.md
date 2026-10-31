@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.63.2
+
+- the briefing names the poison: the digest inbox section carries first_malformed — a night's torn line shows up at the shift briefing.
+
 ## v3.63.1
 
 - machine follow: `received --follow --json` emits one object per row (poison skipped) — a pipeline can tail the inbox without parsing prose; the 50-tool schema artifact re-verified byte-identical.

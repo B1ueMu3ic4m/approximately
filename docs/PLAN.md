@@ -4406,3 +4406,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          object per row (poison skipped) — a pipeline can tail the
          inbox without parsing prose. The 50-tool schema artifact
          re-verified byte-identical after the night's changes.
+
+482. **v3.63.2 - the briefing names the poison** (planned):
+       - the digest inbox section carries first_malformed (the
+         one reader's shape grew): a night's torn line shows up
+         at the shift briefing, not just in the stats probe.

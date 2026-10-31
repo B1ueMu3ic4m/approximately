@@ -105,12 +105,14 @@ def _inbox_section(store: Any, since_days: int = 1) -> dict:
     within the arrival window — the same numbers /stats answers,
     scoped to the night the brief covers. No archive, one honest
     line: the brief always names what it does not know."""
-    from .receiver import read_archive
+    from .receiver import archive_stats, read_archive
 
     archive = store.directory / "webhook-log.jsonl"
     if not archive.is_file():
         return {"present": False, "rows": 0, "verified": 0,
-                "unverified": 0, "kinds": {}}
+                "unverified": 0, "kinds": {},
+                "first_malformed": None}
+    stats = archive_stats(archive)
     window_start = (_dt.datetime.combine(_dt.date.today(),
                                          _dt.time.min)
                     - _dt.timedelta(days=since_days - 1)).timestamp()
@@ -125,7 +127,8 @@ def _inbox_section(store: Any, since_days: int = 1) -> dict:
         kinds[kind] = kinds.get(kind, 0) + 1
     return {"present": True, "rows": len(rows),
             "verified": verified, "unverified": len(rows)
-            - verified, "kinds": kinds}
+            - verified, "kinds": kinds,
+            "first_malformed": stats["first_malformed"]}
 
 
 def _delta_pct(d: Optional[float]) -> str:
@@ -188,7 +191,11 @@ def _render_inbox(payload: dict) -> List[str]:
     kinds = (", kinds: " + ", ".join(
         f"{k} x{v}" for k, v in sorted(inbox["kinds"].items()))) \
         if inbox["kinds"] else ""
-    return [line + kinds]
+    lines = [line + kinds]
+    if inbox.get("first_malformed"):
+        lines.append(f"  first malformed: "
+                     f"{inbox['first_malformed']}")
+    return lines
 
 
 def _render_arrivals(payload: dict) -> List[str]:
