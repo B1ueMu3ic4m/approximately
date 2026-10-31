@@ -49,3 +49,14 @@ def test_json_payload_shape_stays_honest(capsys):
     summaries = survey([busy.directory])
     assert summaries[0].inbox_rows == 3
     assert summaries[0].inbox_verified == 1
+
+
+def test_the_html_dashboard_carries_it_too():
+    from approximately.fleet import render_fleet_html
+
+    busy = _store(with_archive=True)
+    quiet = _store(with_archive=False)
+    page = render_fleet_html(survey([busy.directory,
+                                     quiet.directory]))
+    assert page.count("webhook inbox: 3 row(s), 1 verified") == 1, \
+        "the fourth fleet surface shows the inbox as well"

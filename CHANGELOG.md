@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.61.1
+
+- the dashboard is the fourth surface: the fleet HTML's store cards carry the inbox line (silent when absent), matching the prose page.
+
 ## v3.61.0
 
 - the fleet survey counts the inbox: each store's line shows its webhook inbox (rows, verified) when it keeps an archive — silent otherwise; StoreSummary carries the counts.

@@ -419,9 +419,15 @@ def _store_card(s: StoreSummary) -> str:
         for r in s.top_agents
     ) or "<tr><td>no named agents recorded</td></tr>"
     anomaly_html = _card_findings(s, esc)
+    inbox_rows = getattr(s, "inbox_rows", 0) or 0
+    inbox_note = ""
+    if inbox_rows:
+        inbox_note = (f" · webhook inbox: {inbox_rows} row(s), "
+                      f"{getattr(s, 'inbox_verified', 0)} verified")
     sub = (f'{esc(s.path)} · {s.traces} traces · ledger: '
            f'{ledger_note} · notes: {getattr(s, "annotations", 0)} '
-           f'({getattr(s, "annotations_confirmed", 0)} confirmed)')
+           f'({getattr(s, "annotations_confirmed", 0)} confirmed)'
+           f'{esc(inbox_note)}')
     if getattr(s, "total_tokens", 0):
         sub += f' · {s.total_tokens:,} tokens'
         if getattr(s, "est_spend", None) is not None:
