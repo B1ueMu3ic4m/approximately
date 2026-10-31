@@ -3044,26 +3044,12 @@ def cmd_received(args: argparse.Namespace) -> int:
     most recent matching rows, newest last — the cron-friendly
     reader (no curl, no MCP client needed). With --follow it
     keeps the archive open and prints rows as they land."""
-    from .receiver import follow_archive, read_archive
+    from .receiver import read_archive
 
     archive = Path(getattr(args, "archive", "")
                    or Path(args.store) / "webhook-log.jsonl")
     if getattr(args, "follow", False):
-        as_json = bool(getattr(args, "json", False))
-        try:
-            for row in follow_archive(
-                    archive,
-                    interval=float(getattr(args, "interval", 1.0)),
-                    max_passes=(int(getattr(args, "max_passes", 0))
-                                or None)):
-                if as_json:
-                    print(json.dumps(row, ensure_ascii=False,
-                                     sort_keys=True), flush=True)
-                else:
-                    print(_render_inbox_row(row), flush=True)
-        except KeyboardInterrupt:
-            pass
-        return 0
+        return _follow_print(archive, args)
     payload = read_archive(
         archive, limit=int(getattr(args, "limit", 20)),
         kind=getattr(args, "kind", None),
@@ -3082,6 +3068,33 @@ def cmd_received(args: argparse.Namespace) -> int:
         print(f"  {kind}: {count}")
     for row in payload["recent"]:
         print(_render_inbox_row(row))
+    return 0
+
+
+def _follow_print(archive: Path, args: argparse.Namespace) -> int:
+    """The live view: --follow honors the same filters as the
+    one-shot read — the flag must not quietly widen the view."""
+    from .receiver import follow_archive, row_passes
+
+    as_json = bool(getattr(args, "json", False))
+    kind = getattr(args, "kind", None)
+    unverified_only = bool(getattr(args, "unverified_only", False))
+    since = getattr(args, "since", None)
+    try:
+        for row in follow_archive(
+                archive,
+                interval=float(getattr(args, "interval", 1.0)),
+                max_passes=(int(getattr(args, "max_passes", 0))
+                            or None)):
+            if not row_passes(row, kind, unverified_only, since):
+                continue
+            if as_json:
+                print(json.dumps(row, ensure_ascii=False,
+                                 sort_keys=True), flush=True)
+            else:
+                print(_render_inbox_row(row), flush=True)
+    except KeyboardInterrupt:
+        pass
     return 0
 
 
