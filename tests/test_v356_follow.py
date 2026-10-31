@@ -79,3 +79,25 @@ def test_missing_archive_waits_patiently():
     seen = [row["payload"]["seq"] for row in
             follow_archive(archive, interval=0.05, max_passes=10)]
     assert seen == [9]
+
+
+def test_follow_json_emits_one_object_per_row(capsys):
+    import json as _json
+
+    archive = Path(tempfile.mkdtemp()) / "webhook-log.jsonl"
+    with archive.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(_row(1)) + "\n")
+        fh.write("garbage\n")
+        fh.write(json.dumps(_row(2)) + "\n")
+    from approximately.cli import cmd_received
+    import argparse
+
+    assert cmd_received(argparse.Namespace(
+        store=str(archive.parent), archive=str(archive), limit=20,
+        kind=None, unverified_only=False, include_rotated=False,
+        since=None, json=True, follow=True, interval=0.05,
+        max_passes=2)) == 0
+    lines = [l for l in capsys.readouterr().out.splitlines() if l]
+    rows = [_json.loads(l) for l in lines]
+    assert [r["payload"]["seq"] for r in rows] == [1, 2], \
+        "one machine-readable object per row, poison skipped"

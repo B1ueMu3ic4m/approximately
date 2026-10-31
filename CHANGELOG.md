@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.63.1
+
+- machine follow: `received --follow --json` emits one object per row (poison skipped) — a pipeline can tail the inbox without parsing prose; the 50-tool schema artifact re-verified byte-identical.
+
 ## v3.63.0
 
 - the trend chain sees the deliveries: trend day-rows aggregate inbox_rows / inbox_verified (older snapshots degrade to zero) — and the audit widened: lying NUMERIC fields crashed the row sums with TypeError; a count coercion degrades every lying numeric to 0.
