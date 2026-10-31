@@ -4411,3 +4411,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        - the digest inbox section carries first_malformed (the
          one reader's shape grew): a night's torn line shows up
          at the shift briefing, not just in the stats probe.
+
+483. **v3.64.0 - the architecture names the family** (planned):
+       - the receiver bullet predated follow_archive, rotation
+         and webhook-ping; it now names the family. Docs-only
+         patch.

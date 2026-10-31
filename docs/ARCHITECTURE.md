@@ -270,8 +270,11 @@ layer rather than duplicating it:
 - **`receiver.py`** is the signed channel's other end, and one
   reader serves every surface: `archive_stats` (what /stats
   returns), `read_archive` (the filter+tail the MCP `inbox` tool
-  and the CLI `received` door share), and the archive itself —
-  evidence of delivery, never of truth.
+  and the CLI `received` door share), and `follow_archive` (the
+  on-call terminal's live view) — over an archive that is
+  bounded (rotation), identity-tracked across restarts, and
+  evidence of delivery, never of truth. `webhook-ping` proves
+  the config on demand.
 
 ## Invariants worth keeping
 
