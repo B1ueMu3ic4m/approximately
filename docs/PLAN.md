@@ -4104,14 +4104,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          now teaches all three (bounded log, three-way read,
          3am checkup). Docs-only patch.
 
-444. **v3.48.0 - received --since: the window closes** (planned):
+445. **v3.48.0 - received --since: the window closes** (planned):
        - the cron reader gains a time window: --since EPOCH keeps
          only rows stamped at or after the second; a hostile
          since is a refusal at the boundary, and a row that lies
          about its stamp is not time travel - it is dropped.
          The row filter split to hold the C+ budget at 87.
 
-445. **v3.48.1 - the sweep wrote a real archive named 123** (planned):
+446. **v3.48.1 - the sweep wrote a real archive named 123** (planned):
        - the schema sweep probed the snapshot tool's path with the
          wrong-typed 123; Path(str(123)) is a legal relative path,
          so every full-suite run wrote a genuine snapshot archive
@@ -4123,7 +4123,7 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          can write - same trust domain as the store argument,
          worth a threat-model line.
 
-446. **v3.48.2 - agent-gate finally gates something** (planned):
+447. **v3.48.2 - agent-gate finally gates something** (planned):
        - the agent-gate workflow died at `pip install
          approximately` on every push (the package is not on PyPI
          - publishing still awaits the owner's one-time Trusted
@@ -4133,7 +4133,7 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          (two ok runs, one failure) and gates it - the demo is
          the evidence, thresholds verified locally first.
 
-447. **v3.49.0 - the plan must not aim the delete** (planned):
+448. **v3.49.0 - the plan must not aim the delete** (planned):
        - a hostile retire-row id could aim apply_plan's unlink
          outside the store: an absolute id (Path join replaces
          the base) or a `..` climb unlinked any .json on the box.
@@ -4143,12 +4143,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          refuse any id whose resolved parent is not the store
          itself.
 
-448. **v3.49.1 - the tour knew the old count** (planned):
+449. **v3.49.1 - the tour knew the old count** (planned):
        - the 50-tool sweep missed one string: the help tour's mcp
          line still said "49 tools" (no test pins prose numbers
          inside the tour data). Fixed; the dawn sweep caught it.
 
-449. **v3.49.2 - limit zero showed everything** (planned):
+450. **v3.49.2 - limit zero showed everything** (planned):
        - `rows[-0:]` is the whole list: `received --limit 0` and
          the inbox tool's limit=0 returned every row instead of
          none - a slice quirk turning "show none" into "show
@@ -4156,13 +4156,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          sweep also de-numbered the help-tour docstring's stale
          "59 doors" (64 and counting).
 
-450. **v3.49.3 - the banner's numbers catch up** (planned):
+451. **v3.49.3 - the banner's numbers catch up** (planned):
        - the README banner still said "30-gate perf wall" (the
          wall is 27 gates since archive-stats joined) and "2,000+
          tests" (2,143). Refreshed; the check-matrix count was
          already honest at 21.
 
-451. **v3.50.0 - the brief reads the inbox** (planned):
+452. **v3.50.0 - the brief reads the inbox** (planned):
        - the webhook archive sat beside the store without ever
          reaching the brief. digest gains an "overnight arrivals
          (webhook)" section: the window's rows, verified split and
@@ -4171,19 +4171,19 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          archive's rotated predecessors too - yesterday's log
          rides along with the evidence.
 
-452. **v3.51.0 - the fleet page reads the inbox too** (planned):
+453. **v3.51.0 - the fleet page reads the inbox too** (planned):
        - the fleet digest's per-store briefs already compute the
          webhook inbox; the render just never showed it. Each
          store's section now carries one line - window rows and
          verified split - only when that store keeps an archive;
          absent stays silent, the fleet page stays compact.
 
-453. **v3.51.1 - the fleet doc catches up** (planned):
+454. **v3.51.1 - the fleet doc catches up** (planned):
        - FLEET-DIGEST.md never described the per-store brief's
          shape; it now names the grades / owed / arrivals / inbox
          lines (and the silent-when-absent rule). Docs-only patch.
 
-454. **v3.52.0 - a snapshot member must not aim the extraction** (planned):
+455. **v3.52.0 - a snapshot member must not aim the extraction** (planned):
        - restore extracted members by name; a doctored archive
          whose manifest hashes match its own forged members could
          name a member ../../evil.txt - the hash check passes (the
@@ -4193,7 +4193,7 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          target before a single byte or directory. Legitimate
          archives never contain such names.
 
-455. **v3.53.0 - status reads the inbox** (planned):
+456. **v3.53.0 - status reads the inbox** (planned):
        - status is the shift's first look, but the webhook inbox
          lived one read_archive away without showing. The frame
          gains a line - rows, verified split - only when the store
@@ -4201,7 +4201,7 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          digest, fleet and the CLI door answer: one reader under
          every surface.
 
-456. **v3.53.1 - one reader, four surfaces, one audit** (planned):
+457. **v3.53.1 - one reader, four surfaces, one audit** (planned):
        - "one reader" was marketing until the same store answered
          all four readers - /stats, the received door, the MCP
          inbox and the status frame - and the test demands the
@@ -4209,20 +4209,20 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          archives agree too; the status frame's present-flag stays
          honest on both sides.
 
-457. **v3.53.2 - the status frame joins the wall** (planned):
+458. **v3.53.2 - the status frame joins the wall** (planned):
        - the watch mode renders a status frame every few seconds,
          and the frame now reads the webhook inbox on every pass.
          perf gate #28: one frame over a 2k-trace store with a
          5k-row archive inside budget, counts exact (222ms
          measured, 5s budget).
 
-458. **v3.53.3 - the capability table meets the receiver** (planned):
+459. **v3.53.3 - the capability table meets the receiver** (planned):
        - the README's capability table had a row for the alerts
          but none for their receiver: the inbox family
          (webhook-serve, bounded rotation, four-way read) now has
          its row. Docs-only patch.
 
-459. **v3.54.0 - fuzz 32: the digest dir lies to the trend chain** (planned):
+460. **v3.54.0 - fuzz 32: the digest dir lies to the trend chain** (planned):
        - the trend chain reads digest-*.jsonl the operator points
          at; a snapshot whose stores is a dict (keys iterate as
          strings) or a list of non-dicts crashed _trend_row with
@@ -4231,7 +4231,7 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          garbage-filename fallback only fires on a corrupt
          timestamp (a valid ts wins without a file stamp).
 
-460. **v3.55.0 - the catalog write is atomic** (planned):
+461. **v3.55.0 - the catalog write is atomic** (planned):
        - `prices set` rewrote prices.json in place; a crash
          mid-write left a torn catalog for the money door to
          refuse until a human fixed it. The write now lands whole
@@ -4240,14 +4240,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          ledger stays append-only; appends were already
          line-tolerant).
 
-461. **v3.55.1 - the backup carries the whole working set** (planned):
+462. **v3.55.1 - the backup carries the whole working set** (planned):
        - the snapshot round trip is pinned end to end: trace,
          annotations, price catalog, the archive and its rotated
          predecessor all come back byte-identical, the catalog
          loads, the archive stats agree, and the restored store
          serves. Test-only patch.
 
-462. **v3.56.0 - webhook-ping: prove the channel works** (planned):
+463. **v3.56.0 - webhook-ping: prove the channel works** (planned):
        - setting up the receiver and the poster are two halves of
          one config; the only way to prove they agreed was to wait
          for a real alert. webhook-ping signs a synthetic post
@@ -4257,12 +4257,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          tests nothing); a key mismatch reports the hint instead
          of crashing.
 
-463. **v3.56.1 - the ping joins the docs** (planned):
+464. **v3.56.1 - the ping joins the docs** (planned):
        - RECIPES' closed-loop chapter and TUTORIAL's receiver
          paragraph now teach webhook-ping: prove the config on
          demand, before the first real alert. Docs-only patch.
 
-464. **v3.57.0 - received --follow: the on-call terminal's live view** (planned):
+465. **v3.57.0 - received --follow: the on-call terminal's live view** (planned):
        - the archive had readers; it had no follower.
          `received --follow` yields rows as they land,
          offset- and identity-tracked - a rotation (os.replace
@@ -4271,7 +4271,7 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          alone would hide. Malformed lines skipped; --max-passes
          bounds the loop for tests.
 
-465. **v3.57.0 - received --follow** (planned):
+466. **v3.57.0 - received --follow** (planned):
        - the archive had readers; it had no follower.
          `received --follow` yields rows as they land, offset-
          and identity-tracked: a rotation (os.replace swaps a new
@@ -4279,21 +4279,21 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          file is the same length - a size check alone would hide
          it. Malformed lines skipped; --max-passes bounds tests.
 
-466. **v3.57.1 - the ping names the open tap** (planned):
+467. **v3.57.1 - the ping names the open tap** (planned):
        - the ping's archive read-back silently reported "0
          verified" when the receiver was an open tap - the
          operator's signature was being ignored and nothing said
          so. The ping now warns (stderr) that the receiver has no
          key configured, right where the count shows it.
 
-467. **v3.58.0 - a symlink is not store evidence** (planned):
+468. **v3.58.0 - a symlink is not store evidence** (planned):
        - snapshot walked the store with rglob and followed
          symlinks: one link to / could blow the archive up to the
          whole disk, or leak whatever it pointed at into the
          backup. Links are skipped (broken links too); the probe
          confirmed the leak before the guard.
 
-468. **v3.58.1 - the follower loses the race, gracefully** (planned):
+469. **v3.58.1 - the follower loses the race, gracefully** (planned):
        - CI caught a stat-then-open TOCTOU in follow_archive: the
          writer's rotation (os.replace) landed between the stat
          and the open, and the read raised FileNotFoundError.
@@ -4310,14 +4310,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          as always. The two-step protocol exists because direct
          pushes skip the pre-merge verification pass.
 
-469. **v3.58.2 - the money door's boundaries** (planned):
+470. **v3.58.2 - the money door's boundaries** (planned):
        - spend math is only as honest as the catalog: the audit
          probed the validator's edges (negative refused, zero is
          a real price for free models, NaN/inf refused, non-
          numbers refused up front) and pinned them as tests.
          Catalog integrity test-only patch.
 
-470. **v3.59.0 - the audit carries the archive checkup** (planned):
+471. **v3.59.0 - the audit carries the archive checkup** (planned):
        - doctor CLI reported the receiver's archive (v3.45.0); the
          audit's JSON and junit renderings did not. The doctor
          section (both assembly sites) carries archive_rows /
@@ -4327,7 +4327,7 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          system-out even when green, so a torn log is visible in
          CI output without failing the suite.
 
-471. **v3.59.1 - the array sweep** (planned):
+472. **v3.59.1 - the array sweep** (planned):
        - fuzz 30's property sweep checked the list, not what rides
          inside it: survey's stores took [123]/[None]/[{}] and
          leaked a TypeError from Path(). survey validates the
@@ -4336,7 +4336,7 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          Refusal or dict, never a leak - at every nesting the
          docs' rule holds.
 
-472. **v3.60.0 - the first poison is recognisable** (planned):
+473. **v3.60.0 - the first poison is recognisable** (planned):
        - archive_stats counted malformed lines but never said
          WHICH line was poison. The stats gain first_malformed:
          the first bad line, truncated to 80 characters - enough
@@ -4344,20 +4344,20 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          through /stats, the inbox tool and the received door
          (the one reader's shape grows).
 
-473. **v3.60.1 - context edges and catalog residue** (planned):
+474. **v3.60.1 - context edges and catalog residue** (planned):
        - the context doors met degenerate traces in an audit
          (empty composition, 1 MB single-step forecast): shapes
          hold, and the token floor of 1 is deliberate - pinned.
          save_catalog cleans its tmp file on a failed swap (no
          residue after a crash).
 
-474. **v3.60.2 - the import the newer ruff wants** (planned):
+475. **v3.60.2 - the import the newer ruff wants** (planned):
        - CI's unpinned ruff (newer than local) collapses a
          89-char import the older one kept wrapped; the single-
          line form fits the line-length 100 config either way.
          Patch release to keep main green.
 
-474. **v3.60.3 - the lint toolchain is pinned** (planned):
+476. **v3.60.3 - the lint toolchain is pinned** (planned):
        - v3.60.2's import fix was drift, not taste: CI's unpinned
          ruff gained an import-collapse rule the local 0.16.10
          did not have, and main's lint broke mid-night. The lint
@@ -4365,24 +4365,24 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          against that toolchain; upgrades are a deliberate act,
          not a Tuesday surprise.
 
-476. **v3.60.4 - the receiver's own story catches up** (planned):
+477. **v3.60.4 - the receiver's own story catches up** (planned):
        - receiver.py's module header predated the family it grew
          (stats, read_archive, follow_archive, rotation) - it now
          names them; TUTORIAL teaches first_malformed. Docs-only.
 
-477. **v3.61.0 - the fleet survey counts the inbox** (planned):
+478. **v3.61.0 - the fleet survey counts the inbox** (planned):
        - the fleet page's per-store line grew the webhook inbox:
          rows and the verified split, read through the one
          reader — silent when a store keeps no archive, honest
          when it does. StoreSummary carries inbox_rows /
          inbox_verified.
 
-478. **v3.61.1 - the dashboard is the fourth surface** (planned):
+479. **v3.61.1 - the dashboard is the fourth surface** (planned):
        - the fleet inbox line reached the prose page; the HTML
          dashboard's store cards now carry it too (silent when a
          store keeps no archive). Four fleet surfaces, one count.
 
-479. **v3.62.0 - the counts ride to the channel** (planned):
+480. **v3.62.0 - the counts ride to the channel** (planned):
        - webhook_payload's store rows gain inbox_rows /
          inbox_verified: the counts ride with every fleet
          announcement into the receiver's archive, the digest
@@ -4391,7 +4391,7 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          documents the rows.
 
 
-480. **v3.63.0 - the trend chain sees the deliveries** (planned):
+481. **v3.63.0 - the trend chain sees the deliveries** (planned):
        - trend day-rows aggregate inbox_rows / inbox_verified
          (older snapshots degrade to zero) - the fleet can trend
          its own deliveries beside its failures. And the audit
@@ -4401,25 +4401,32 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          coercion degrades every lying numeric to 0, inbox
          included.
 
-481. **v3.63.1 - machine follow** (planned):
+482. **v3.63.1 - machine follow** (planned):
        - `received --follow --json` emits one machine-readable
          object per row (poison skipped) — a pipeline can tail the
          inbox without parsing prose. The 50-tool schema artifact
          re-verified byte-identical after the night's changes.
 
-482. **v3.63.2 - the briefing names the poison** (planned):
+483. **v3.63.2 - the briefing names the poison** (planned):
        - the digest inbox section carries first_malformed (the
          one reader's shape grew): a night's torn line shows up
          at the shift briefing, not just in the stats probe.
 
-483. **v3.64.0 - the architecture names the family** (planned):
+484. **v3.64.0 - the architecture names the family** (planned):
        - the receiver bullet predated follow_archive, rotation
          and webhook-ping; it now names the family. Docs-only
          patch.
 
-484. **v3.65.0 - --follow answers to the same filters** (planned):
+485. **v3.65.0 - --follow answers to the same filters** (planned):
        - the follow path yielded every row while the one-shot read
          filtered by kind / unverified / since - the flag quietly
          widened the view. Both paths answer to the same
          `row_passes` filter now (the filter is public, the tests
          pin the kind cut).
+
+486. **v3.65.1 - the ledger renumbers itself, audited** (planned):
+       - the consistency audit found two duplicate entry numbers
+         (444, 474 - re-runs of ledger scripts during the night)
+         and a 475 gap; the cascade renumbered the chain (last is
+         now 485) and the parse confirms: no dupes, no gaps after
+         440. Docs-only patch.
