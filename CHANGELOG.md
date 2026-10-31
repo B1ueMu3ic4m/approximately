@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.60.1
+
+- context edges and catalog residue: the budget doors pinned against degenerate traces (the token floor of 1 is deliberate); save_catalog cleans its tmp on a failed swap.
+
 ## v3.60.0
 
 - the first poison is recognisable: archive_stats gains first_malformed (the first bad line, truncated to 80 chars), flowing through /stats, the inbox tool and the received door.

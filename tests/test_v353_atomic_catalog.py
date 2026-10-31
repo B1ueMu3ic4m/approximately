@@ -46,7 +46,8 @@ def test_a_failed_replace_keeps_the_old_table():
         prices.os.replace = real_replace
     assert load_catalog(store) == {"gpt-x": 0.5}, \
         "the old table survives the crash, the door stays open"
-    (Path(store) / "prices.json.tmp").unlink()  # the tmp may remain
+    assert not (Path(store) / "prices.json.tmp").exists(), \
+        "a failed swap leaves no residue"
 
 
 def test_set_rate_still_round_trips():

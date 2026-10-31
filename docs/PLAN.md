@@ -4343,3 +4343,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          to recognise the line, never enough to be it. Flows
          through /stats, the inbox tool and the received door
          (the one reader's shape grows).
+
+473. **v3.60.1 - context edges and catalog residue** (planned):
+       - the context doors met degenerate traces in an audit
+         (empty composition, 1 MB single-step forecast): shapes
+         hold, and the token floor of 1 is deliberate - pinned.
+         save_catalog cleans its tmp file on a failed swap (no
+         residue after a crash).
