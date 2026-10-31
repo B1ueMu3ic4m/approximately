@@ -8,8 +8,7 @@ degenerate input.
 
 import tempfile
 
-from approximately.context import (composition, estimate_tokens,
-                                   forecast, optimize_budget)
+from approximately.context import composition, estimate_tokens, forecast, optimize_budget
 from approximately.recorder import Recorder
 from approximately.store import TraceStore
 
