@@ -89,8 +89,9 @@ def test_follow_json_emits_one_object_per_row(capsys):
         fh.write(json.dumps(_row(1)) + "\n")
         fh.write("garbage\n")
         fh.write(json.dumps(_row(2)) + "\n")
-    from approximately.cli import cmd_received
     import argparse
+
+    from approximately.cli import cmd_received
 
     assert cmd_received(argparse.Namespace(
         store=str(archive.parent), archive=str(archive), limit=20,
