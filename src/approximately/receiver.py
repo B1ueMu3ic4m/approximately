@@ -272,7 +272,8 @@ def archive_stats(archive: Path) -> dict:
     ``malformed`` and never guessed at (poison is evidence too)."""
     stats: dict = {"rows": 0, "verified": 0, "unverified": 0,
                    "malformed": 0, "kinds": {}, "bytes": 0,
-                   "last_received_at": None}
+                   "last_received_at": None,
+                   "first_malformed": None}
     text = _open_log(stats, archive)
     if text is None:
         return stats
@@ -285,6 +286,10 @@ def archive_stats(archive: Path) -> dict:
                 raise ValueError("row must be an object")
         except ValueError:
             stats["malformed"] += 1
+            if stats["first_malformed"] is None:
+                # the first poison, truncated: enough to recognise
+                # the line, never enough to be it
+                stats["first_malformed"] = line.strip()[:80]
             continue
         stats["rows"] += 1
         _stat_row(stats, row)

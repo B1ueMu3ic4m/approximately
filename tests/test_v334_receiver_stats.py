@@ -42,7 +42,8 @@ def test_stats_on_an_empty_archive():
         assert data["archive"] == {"rows": 0, "verified": 0,
                                    "unverified": 0, "malformed": 0,
                                    "kinds": {}, "bytes": 0,
-                                   "last_received_at": None}
+                                   "last_received_at": None,
+                                   "first_malformed": None}
         assert data["received"] == 0 and data["refused"] == 0
     finally:
         server.shutdown()
@@ -107,3 +108,33 @@ def test_health_contract_unchanged_and_404_holds():
 def test_archive_stats_on_a_missing_file():
     stats = archive_stats(Path(tempfile.mkdtemp()) / "absent.jsonl")
     assert stats["rows"] == 0 and stats["bytes"] == 0
+
+
+def test_first_malformed_is_named_truncated():
+    archive = Path(tempfile.mkdtemp()) / "webhook-log.jsonl"
+    poison = "not json garbage here"
+    archive.write_text(
+        json.dumps({"kind": "ok", "verified": True}) + "\n"
+        + poison + "\n"
+        + "[" * 200 + "\n", encoding="utf-8")
+    stats = archive_stats(archive)
+    assert stats["malformed"] == 2
+    assert stats["first_malformed"] == poison, \
+        "the first poison is recognisable"
+    assert len(stats["first_malformed"]) == len(poison)
+
+
+def test_first_malformed_is_truncated_to_eighty():
+    archive = Path(tempfile.mkdtemp()) / "webhook-log.jsonl"
+    archive.write_text("x" * 500 + "\n", encoding="utf-8")
+    stats = archive_stats(archive)
+    assert len(stats["first_malformed"]) == 80, \
+        "enough to recognise, never enough to be it"
+
+
+def test_clean_archive_has_no_first_malformed():
+    archive = Path(tempfile.mkdtemp()) / "webhook-log.jsonl"
+    archive.write_text(json.dumps({"kind": "ok",
+                                   "verified": True}) + "\n",
+                       encoding="utf-8")
+    assert archive_stats(archive)["first_malformed"] is None

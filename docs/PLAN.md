@@ -4335,3 +4335,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          element pass (redact's pattern/only coerce via str()). 
          Refusal or dict, never a leak - at every nesting the
          docs' rule holds.
+
+472. **v3.60.0 - the first poison is recognisable** (planned):
+       - archive_stats counted malformed lines but never said
+         WHICH line was poison. The stats gain first_malformed:
+         the first bad line, truncated to 80 characters - enough
+         to recognise the line, never enough to be it. Flows
+         through /stats, the inbox tool and the received door
+         (the one reader's shape grows).
