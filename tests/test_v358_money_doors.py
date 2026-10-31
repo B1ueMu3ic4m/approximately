@@ -8,7 +8,6 @@ price (free models exist), and types that are not numbers are
 refused outright.
 """
 
-import math
 import tempfile
 
 import pytest
