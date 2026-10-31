@@ -96,3 +96,20 @@ def test_snapshot_carries_the_rotated_log():
     assert "webhook-log.jsonl" in names
     assert "webhook-log.jsonl.1" in names, \
         "yesterday's log rides along with the evidence"
+
+
+def test_a_torn_line_is_visible_in_the_brief():
+    store = _store_with_archive([_row(0.1, kind="ops_digest")])
+    archive = store.directory / "webhook-log.jsonl"
+    with archive.open("a", encoding="utf-8") as fh:
+        fh.write("garbage line\n")  # a raw torn line, as crashes leave them
+    payload = build_digest(store)
+    page = render_markdown(payload)
+    assert "first malformed: garbage line" in page, \
+        "the night's torn line shows up at the shift briefing"
+
+
+def test_a_clean_inbox_names_no_poison():
+    store = _store_with_archive([_row(0.1, kind="ops_digest")])
+    page = render_markdown(build_digest(store))
+    assert "first malformed" not in page
