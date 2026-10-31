@@ -98,7 +98,8 @@ def test_follow_json_emits_one_object_per_row(capsys):
         kind=None, unverified_only=False, include_rotated=False,
         since=None, json=True, follow=True, interval=0.05,
         max_passes=2)) == 0
-    lines = [l for l in capsys.readouterr().out.splitlines() if l]
-    rows = [_json.loads(l) for l in lines]
+    lines = [line for line in capsys.readouterr().out.splitlines()
+             if line]
+    rows = [_json.loads(line) for line in lines]
     assert [r["payload"]["seq"] for r in rows] == [1, 2], \
         "one machine-readable object per row, poison skipped"
