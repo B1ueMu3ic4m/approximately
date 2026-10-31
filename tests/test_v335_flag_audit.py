@@ -16,7 +16,9 @@ from approximately.cli import build_parser
 _ROOT = Path(__file__).resolve().parents[1]
 
 _DOCS = [("README.md",), ("docs", "TUTORIAL.md"),
-         ("docs", "RECIPES.md"), ("docs", "ANNOUNCEMENT.md")]
+         ("docs", "RECIPES.md"), ("docs", "ANNOUNCEMENT.md"),
+         ("docs", "ci-integration.md"), ("docs", "FLEET-DIGEST.md"),
+         ("docs", "SECURITY.md")]
 
 
 def _door_options() -> dict:

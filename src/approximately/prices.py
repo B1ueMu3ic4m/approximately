@@ -74,7 +74,11 @@ def save_catalog(store_dir: Union[str, Path], table: dict) -> Path:
     tmp = path.with_name(path.name + ".tmp")
     tmp.write_text(json.dumps(clean, indent=2, sort_keys=True) + "\n",
                    encoding="utf-8")
-    os.replace(tmp, path)
+    try:
+        os.replace(tmp, path)
+    except OSError:
+        tmp.unlink(missing_ok=True)  # no residue on a failed swap
+        raise
     return path
 
 
