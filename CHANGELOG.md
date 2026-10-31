@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.60.4
+
+- the receiver's own story catches up: the module header names the family it grew (stats, read_archive, follow_archive, rotation); TUTORIAL teaches first_malformed. Docs-only patch.
+
 ## v3.60.3
 
 - the lint toolchain is pinned: CI installs ruff==0.16.10 (the repo is audited against it) — an unpinned install drifted mid-night and broke main's lint. CI-only patch.

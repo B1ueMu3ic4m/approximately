@@ -4364,3 +4364,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          step now pins ruff==0.16.10 - the repo is audited
          against that toolchain; upgrades are a deliberate act,
          not a Tuesday surprise.
+
+476. **v3.60.4 - the receiver's own story catches up** (planned):
+       - receiver.py's module header predated the family it grew
+         (stats, read_archive, follow_archive, rotation) - it now
+         names them; TUTORIAL teaches first_malformed. Docs-only.
