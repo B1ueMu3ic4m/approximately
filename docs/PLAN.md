@@ -4369,3 +4369,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        - receiver.py's module header predated the family it grew
          (stats, read_archive, follow_archive, rotation) - it now
          names them; TUTORIAL teaches first_malformed. Docs-only.
+
+477. **v3.61.0 - the fleet survey counts the inbox** (planned):
+       - the fleet page's per-store line grew the webhook inbox:
+         rows and the verified split, read through the one
+         reader — silent when a store keeps no archive, honest
+         when it does. StoreSummary carries inbox_rows /
+         inbox_verified.

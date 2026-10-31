@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.61.0
+
+- the fleet survey counts the inbox: each store's line shows its webhook inbox (rows, verified) when it keeps an archive — silent otherwise; StoreSummary carries the counts.
+
 ## v3.60.4
 
 - the receiver's own story catches up: the module header names the family it grew (stats, read_archive, follow_archive, rotation); TUTORIAL teaches first_malformed. Docs-only patch.
