@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.64.0
+
+- the architecture names the family: the receiver bullet carries follow_archive, the bounded/identity-tracked archive and webhook-ping. Docs-only patch.
+
 ## v3.63.2
 
 - the briefing names the poison: the digest inbox section carries first_malformed — a night's torn line shows up at the shift briefing.
