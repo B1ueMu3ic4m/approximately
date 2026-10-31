@@ -4381,3 +4381,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        - the fleet inbox line reached the prose page; the HTML
          dashboard's store cards now carry it too (silent when a
          store keeps no archive). Four fleet surfaces, one count.
+
+479. **v3.62.0 - the counts ride to the channel** (planned):
+       - webhook_payload's store rows gain inbox_rows /
+         inbox_verified: the counts ride with every fleet
+         announcement into the receiver's archive, the digest
+         history and the trend chain - the fleet can trend its
+         own deliveries, not just its failures. FLEET-DIGEST
+         documents the rows.

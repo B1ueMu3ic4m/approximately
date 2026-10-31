@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.62.0
+
+- the counts ride to the channel: webhook_payload's store rows gain inbox_rows / inbox_verified — the fleet can trend its own deliveries, not just its failures; FLEET-DIGEST documents the rows.
+
 ## v3.61.1
 
 - the dashboard is the fourth surface: the fleet HTML's store cards carry the inbox line (silent when absent), matching the prose page.

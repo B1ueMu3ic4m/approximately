@@ -172,6 +172,8 @@ def webhook_payload(summaries: List[StoreSummary]) -> dict:
                 "annotations": getattr(s, "annotations", 0),
                 "annotations_confirmed":
                     getattr(s, "annotations_confirmed", 0),
+                "inbox_rows": getattr(s, "inbox_rows", 0),
+                "inbox_verified": getattr(s, "inbox_verified", 0),
                 "fleet_anomalies": getattr(s, "fleet_anomalies", 0),
                 "worst_anomaly": getattr(s, "worst_anomaly", None),
                 "token_anomalies": getattr(s, "token_anomalies", 0),

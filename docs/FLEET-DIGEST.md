@@ -61,7 +61,10 @@ def verify_alert(body: bytes, signature: str, key: bytes) -> bool:
 Each store's section carries its grades, postmortems owed, today's
 arrivals, and - when that store keeps a webhook archive - one line
 for its **webhook inbox**: the window's delivered rows and how many
-arrived verified. A store without an archive stays silent.
+arrived verified. A store without an archive stays silent. The
+JSON payload's store rows carry the same counts
+(`inbox_rows` / `inbox_verified`), so the digest history and the
+trend chain see them too.
 
 ## Window the digest
 
