@@ -60,3 +60,18 @@ def test_the_html_dashboard_carries_it_too():
                                      quiet.directory]))
     assert page.count("webhook inbox: 3 row(s), 1 verified") == 1, \
         "the fourth fleet surface shows the inbox as well"
+
+
+def test_the_payload_carries_the_counts_to_the_channel():
+    from approximately.fleet import webhook_payload
+
+    busy = _store(with_archive=True)
+    quiet = _store(with_archive=False)
+    payload = webhook_payload(survey([busy.directory,
+                                      quiet.directory]))
+    rows = {s["name"]: s.get("inbox_rows") for s in payload["stores"]}
+    verified = {s["name"]: s.get("inbox_verified")
+                for s in payload["stores"]}
+    assert sorted(v for v in rows.values() if v is not None) == \
+        [0, 3], "the counts ride to the receiver and the trend"
+    assert 1 in verified.values()
