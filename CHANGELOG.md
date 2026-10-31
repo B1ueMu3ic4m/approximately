@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.65.1
+
+- the ledger renumbers itself, audited: two duplicate entry numbers (re-runs of ledger scripts) and a gap found by the consistency audit; the cascade renumbered the chain. Docs-only patch.
+
 ## v3.65.0
 
 - --follow answers to the same filters as the one-shot read: kind / unverified-only / since hold on both paths (the flag must not quietly widen the view).
