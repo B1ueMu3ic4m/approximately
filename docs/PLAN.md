@@ -4309,3 +4309,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          gate, caught this race, and the fix comes through a PR
          as always. The two-step protocol exists because direct
          pushes skip the pre-merge verification pass.
+
+469. **v3.58.2 - the money door's boundaries** (planned):
+       - spend math is only as honest as the catalog: the audit
+         probed the validator's edges (negative refused, zero is
+         a real price for free models, NaN/inf refused, non-
+         numbers refused up front) and pinned them as tests.
+         Catalog integrity test-only patch.
