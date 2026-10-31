@@ -3049,13 +3049,18 @@ def cmd_received(args: argparse.Namespace) -> int:
     archive = Path(getattr(args, "archive", "")
                    or Path(args.store) / "webhook-log.jsonl")
     if getattr(args, "follow", False):
+        as_json = bool(getattr(args, "json", False))
         try:
             for row in follow_archive(
                     archive,
                     interval=float(getattr(args, "interval", 1.0)),
                     max_passes=(int(getattr(args, "max_passes", 0))
                                 or None)):
-                print(_render_inbox_row(row), flush=True)
+                if as_json:
+                    print(json.dumps(row, ensure_ascii=False,
+                                     sort_keys=True), flush=True)
+                else:
+                    print(_render_inbox_row(row), flush=True)
         except KeyboardInterrupt:
             pass
         return 0

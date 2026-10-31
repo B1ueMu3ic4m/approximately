@@ -4400,3 +4400,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          hole fuzz 32 closed for non-dict stores. A `_row_counts`
          coercion degrades every lying numeric to 0, inbox
          included.
+
+481. **v3.63.1 - machine follow** (planned):
+       - `received --follow --json` emits one machine-readable
+         object per row (poison skipped) — a pipeline can tail the
+         inbox without parsing prose. The 50-tool schema artifact
+         re-verified byte-identical after the night's changes.
