@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.60.2
+
+- the import the newer ruff wants: CI's unpinned ruff collapses an 89-char import the older local one kept wrapped - the single-line form fits line-length 100 either way.
+
 ## v3.60.1
 
 - context edges and catalog residue: the budget doors pinned against degenerate traces (the token floor of 1 is deliberate); save_catalog cleans its tmp on a failed swap.

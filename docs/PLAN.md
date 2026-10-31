@@ -4350,3 +4350,9 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          hold, and the token floor of 1 is deliberate - pinned.
          save_catalog cleans its tmp file on a failed swap (no
          residue after a crash).
+
+474. **v3.60.2 - the import the newer ruff wants** (planned):
+       - CI's unpinned ruff (newer than local) collapses a
+         89-char import the older one kept wrapped; the single-
+         line form fits the line-length 100 config either way.
+         Patch release to keep main green.
