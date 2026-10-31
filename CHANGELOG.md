@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.60.0
+
+- the first poison is recognisable: archive_stats gains first_malformed (the first bad line, truncated to 80 chars), flowing through /stats, the inbox tool and the received door.
+
 ## v3.59.1
 
 - the array sweep: survey's stores took non-string elements and leaked a TypeError from Path() - elements validated now, and the schema sweep gained an array-element pass (refusal or dict, never a leak).
