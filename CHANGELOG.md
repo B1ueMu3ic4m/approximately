@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.65.0
+
+- --follow answers to the same filters as the one-shot read: kind / unverified-only / since hold on both paths (the flag must not quietly widen the view).
+
 ## v3.64.0
 
 - the architecture names the family: the receiver bullet carries follow_archive, the bounded/identity-tracked archive and webhook-ping. Docs-only patch.

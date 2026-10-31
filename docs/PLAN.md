@@ -4416,3 +4416,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
        - the receiver bullet predated follow_archive, rotation
          and webhook-ping; it now names the family. Docs-only
          patch.
+
+484. **v3.65.0 - --follow answers to the same filters** (planned):
+       - the follow path yielded every row while the one-shot read
+         filtered by kind / unverified / since - the flag quietly
+         widened the view. Both paths answer to the same
+         `row_passes` filter now (the filter is public, the tests
+         pin the kind cut).

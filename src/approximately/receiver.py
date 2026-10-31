@@ -121,7 +121,7 @@ def read_archive(archive: Path, limit: int = 20,
     return stats
 
 
-def _row_passes(row: dict, kind: Optional[str],
+def row_passes(row: dict, kind: Optional[str],
                 unverified_only: bool,
                 since: Optional[float]) -> bool:
     """The row filters — a hostile ``since`` was refused at the
@@ -149,7 +149,7 @@ def _matching_rows(lines: list, kind: Optional[str],
             row = json.loads(line)
         except ValueError:
             continue
-        if isinstance(row, dict) and _row_passes(row, kind,
+        if isinstance(row, dict) and row_passes(row, kind,
                                                  unverified_only,
                                                  since):
             rows.append(row)
