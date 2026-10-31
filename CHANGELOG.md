@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.59.1
+
+- the array sweep: survey's stores took non-string elements and leaked a TypeError from Path() - elements validated now, and the schema sweep gained an array-element pass (refusal or dict, never a leak).
+
 ## v3.59.0
 
 - the audit carries the archive checkup: the doctor section (JSON both sites, junit system-out) reports archive rows/malformed/rotated - counted, never verdict-flipping; a torn log is visible in CI output without failing the suite.

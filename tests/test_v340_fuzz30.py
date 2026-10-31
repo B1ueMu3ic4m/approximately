@@ -143,3 +143,35 @@ def test_every_declared_property_rejects_the_wrong_type(
     # 37-ish today: only typed properties are probed; the floor
     # catches a sweep that stops touching the surface entirely
     assert probed >= 30, f"schema sweep lost coverage: {probed}"
+
+
+def test_array_elements_get_the_wrong_type_too(tmp_path, monkeypatch):
+    """survey's stores list took non-string elements and leaked a
+    TypeError from Path() — the property sweep only checked the
+    list itself, not what rides inside it. Array-typed properties
+    now get hostile ELEMENTS: refusal or dict, never a leak."""
+    monkeypatch.chdir(tmp_path)
+    ctx = ServerContext(TraceStore(tempfile.mkdtemp()).directory)
+    probed = 0
+    for tool in _TOOLS:
+        props = (tool.get("inputSchema") or {}).get("properties") \
+            or {}
+        handler = _HANDLERS[tool["name"]]
+        for prop, spec in props.items():
+            if spec.get("type") != "array":
+                continue
+            for hostile in ([123], [None], [{}]):
+                probed += 1
+                try:
+                    payload = handler(ctx, {prop: hostile})
+                except (KeyError, ValueError, OSError):
+                    continue
+                except Exception as exc:
+                    raise AssertionError(
+                        f"{tool['name']}.{prop}={hostile!r}: "
+                        f"leaked {type(exc).__name__}: {exc}"
+                    ) from exc
+                assert isinstance(payload, dict)
+    # survey.stores + redact.pattern + redact.only: every declared
+    # array property must have been probed three times over
+    assert probed >= 9, f"the array sweep lost its targets: {probed}"

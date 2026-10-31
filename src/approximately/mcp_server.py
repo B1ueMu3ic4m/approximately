@@ -1371,10 +1371,19 @@ def _tool_init_gate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     return {"directory": str(target), "files": statuses}
 
 
+def _survey_paths(stores: Any) -> List[Path]:
+    """The stores list, validated: a hostile element (a number, a
+    None, a dict) is a refusal, never a Path() TypeError."""
+    if not isinstance(stores, list) or \
+            not all(isinstance(s, str) for s in stores):
+        raise ValueError("stores must be a list of string paths")
+    return [Path(s) for s in stores]
+
+
 def _tool_survey(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .fleet import survey, webhook_payload
 
-    paths = [Path(p) for p in args["stores"]]
+    paths = _survey_paths(args["stores"])
     prices = args.get("prices")
     table = None
     if prices is not None:

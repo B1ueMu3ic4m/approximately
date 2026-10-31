@@ -4326,3 +4326,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          doctor message (with the malformed count) rides in
          system-out even when green, so a torn log is visible in
          CI output without failing the suite.
+
+471. **v3.59.1 - the array sweep** (planned):
+       - fuzz 30's property sweep checked the list, not what rides
+         inside it: survey's stores took [123]/[None]/[{}] and
+         leaked a TypeError from Path(). survey validates the
+         elements now, and the schema sweep gained an array-
+         element pass (redact's pattern/only coerce via str()). 
+         Refusal or dict, never a leak - at every nesting the
+         docs' rule holds.
