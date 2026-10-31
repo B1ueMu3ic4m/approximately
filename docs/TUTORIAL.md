@@ -218,8 +218,10 @@ survives into a JSONL log. With a key configured it is verify-only
 (a bad or missing signature gets a 401 and is never archived); with
 no key it archives rows marked `verified: false` — an open tap that
 says so. `GET /health` is the liveness probe; `GET /stats` reads the
-archive back — rows, the verified split, the kind census — so a
-restarted server still answers "what does this log hold". The
+archive back — rows, the verified split, the kind census, and
+`first_malformed` (the first poison, truncated: enough to
+recognise the line, never enough to be it) — so a restarted
+server still answers "what does this log hold". The
 archive is length-bounded — `--max-rows` (default 100k) rotates the
 full log aside as `<log>.1` and starts empty, so a busy channel
 cannot become a slow disk-fill — and readable three ways: that

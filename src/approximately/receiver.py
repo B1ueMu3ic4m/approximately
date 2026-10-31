@@ -1,10 +1,15 @@
-"""The receiving end of the signed channel.
+"""The receiving end of the signed channel — and its readers.
 
 Fleet summaries, tail failure announcements and shift digests all
 travel one way: HMAC-signed JSON POSTs. ``webhook-serve`` is the
 zero-dependency other end — a small HTTP server that verifies the
 ``X-Approximately-Signature`` header against the same ``load_key``
 every poster uses, and archives what survives into a JSONL log.
+The log is bounded (``--max-rows`` rotates it aside), and one
+reader serves every surface: ``archive_stats`` (what /stats
+answers), ``read_archive`` (the filter+tail the MCP inbox tool
+and the CLI received door share), and ``follow_archive`` (the
+on-call terminal's live view).
 
 Trust rules, in order:
 
