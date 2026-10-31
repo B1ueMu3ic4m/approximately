@@ -4376,3 +4376,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          reader — silent when a store keeps no archive, honest
          when it does. StoreSummary carries inbox_rows /
          inbox_verified.
+
+478. **v3.61.1 - the dashboard is the fourth surface** (planned):
+       - the fleet inbox line reached the prose page; the HTML
+         dashboard's store cards now carry it too (silent when a
+         store keeps no archive). Four fleet surfaces, one count.
