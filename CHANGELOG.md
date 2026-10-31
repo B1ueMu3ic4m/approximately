@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.63.0
+
+- the trend chain sees the deliveries: trend day-rows aggregate inbox_rows / inbox_verified (older snapshots degrade to zero) — and the audit widened: lying NUMERIC fields crashed the row sums with TypeError; a count coercion degrades every lying numeric to 0.
+
 ## v3.62.0
 
 - the counts ride to the channel: webhook_payload's store rows gain inbox_rows / inbox_verified — the fleet can trend its own deliveries, not just its failures; FLEET-DIGEST documents the rows.

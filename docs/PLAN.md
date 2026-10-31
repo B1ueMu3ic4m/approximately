@@ -4389,3 +4389,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          history and the trend chain - the fleet can trend its
          own deliveries, not just its failures. FLEET-DIGEST
          documents the rows.
+
+
+480. **v3.63.0 - the trend chain sees the deliveries** (planned):
+       - trend day-rows aggregate inbox_rows / inbox_verified
+         (older snapshots degrade to zero) - the fleet can trend
+         its own deliveries beside its failures. And the audit
+         widened while aggregating: lying NUMERIC fields (traces:
+         "ten") crashed the row sums with TypeError - the same
+         hole fuzz 32 closed for non-dict stores. A `_row_counts`
+         coercion degrades every lying numeric to 0, inbox
+         included.
