@@ -1519,10 +1519,18 @@ def _audit_doctor(directory: Any, args: Dict[str, Any]) -> dict:
         moved = quarantine_corrupt(Path(directory), doc)
         doc.corrupt = [n for n in doc.corrupt if n not in moved]
         doc.quarantined = moved
-    return {"healthy": doc.healthy, "corrupt": doc.corrupt,
-            "quarantined": doc.quarantined,
-            "chain_failed": doc.chain_failed,
-            "ledger_intact": doc.ledger_intact}
+    payload = {"healthy": doc.healthy, "corrupt": doc.corrupt,
+               "quarantined": doc.quarantined,
+               "chain_failed": doc.chain_failed,
+               "ledger_intact": doc.ledger_intact}
+    if doc.archive_rows or doc.archive_malformed:
+        # the receiver's archive checkup rides along: counted,
+        # never verdict-flipping (the archive is delivery
+        # evidence, and the doctor counts, it does not judge)
+        payload["archive_rows"] = doc.archive_rows
+        payload["archive_malformed"] = doc.archive_malformed
+        payload["archive_rotated"] = doc.archive_rotated
+    return payload
 
 
 def _audit_gate(traces: list, args: Dict[str, Any]) -> dict:

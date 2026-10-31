@@ -2853,6 +2853,12 @@ def cmd_audit(args: argparse.Namespace) -> int:
                         "quarantined": doc.quarantined,
                         "chain_failed": doc.chain_failed,
                         "ledger_intact": doc.ledger_intact}
+    if doc.archive_rows or doc.archive_malformed:
+        # the receiver's archive checkup rides along: counted,
+        # never verdict-flipping (the archive is delivery evidence)
+        report["doctor"]["archive_rows"] = doc.archive_rows
+        report["doctor"]["archive_malformed"] = doc.archive_malformed
+        report["doctor"]["archive_rotated"] = doc.archive_rotated
     report["ok"] = report["ok"] and doc.healthy
 
     try:
@@ -2984,10 +2990,13 @@ def _audit_checks(report: dict) -> list:
     """(name, ok, message) per verdict-flipping audit section —
     derived from the report alone, the audit's own flip points."""
     doctor = report.get("doctor") or {}
-    doctor_check = ("doctor", bool(doctor.get("healthy")),
-                    (f"doctor: corrupt={doctor.get('corrupt')} "
-                     f"quarantined={doctor.get('quarantined')} "
-                     f"chain_failed={doctor.get('chain_failed')}"))
+    message = (f"doctor: corrupt={doctor.get('corrupt')} "
+               f"quarantined={doctor.get('quarantined')} "
+               f"chain_failed={doctor.get('chain_failed')}")
+    if doctor.get("archive_malformed"):
+        message += (f" archive_malformed="
+                    f"{doctor.get('archive_malformed')}")
+    doctor_check = ("doctor", bool(doctor.get("healthy")), message)
     return ([doctor_check, *_gate_checks(report),
              *_finding_checks(report), *_budget_checks(report)])
 
@@ -3008,6 +3017,9 @@ def _audit_junit(report: dict) -> str:
         tc = ET.SubElement(suite, "testcase",
                            {"name": name,
                             "classname": "approximately.audit"})
+        # the message rides in system-out even when green: a torn
+        # archive line is visible without failing the suite
+        ET.SubElement(tc, "system-out").text = msg
         if not ok:
             ET.SubElement(tc, "failure",
                           {"message": msg,
