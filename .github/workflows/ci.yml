@@ -201,7 +201,10 @@ jobs:
         run: python -m compileall -q src examples tests
       - name: Lint
         run: |
-          pip install ruff
+          # pinned: the repo is audited against this ruff; an
+          # unpinned install drifts (an import-collapse rule
+          # changed under us mid-night and broke main's lint)
+          pip install "ruff==0.16.10"
           ruff check src tests examples
       - name: Type check
         run: |

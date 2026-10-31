@@ -4356,3 +4356,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          89-char import the older one kept wrapped; the single-
          line form fits the line-length 100 config either way.
          Patch release to keep main green.
+
+474. **v3.60.3 - the lint toolchain is pinned** (planned):
+       - v3.60.2's import fix was drift, not taste: CI's unpinned
+         ruff gained an import-collapse rule the local 0.16.10
+         did not have, and main's lint broke mid-night. The lint
+         step now pins ruff==0.16.10 - the repo is audited
+         against that toolchain; upgrades are a deliberate act,
+         not a Tuesday surprise.
