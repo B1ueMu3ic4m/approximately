@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.58.2
+
+- the money door's boundaries: the catalog validator's edges (negative/NaN/inf refused, zero legit, non-numbers refused) pinned as tests. Test-only patch.
+
 ## v3.58.1
 
 - the follower loses the race, gracefully: CI caught a stat-then-open TOCTOU in follow_archive (the writer's rotation landed between stat and open - FileNotFoundError); the vanished file is a restart-from-zero signal now.
