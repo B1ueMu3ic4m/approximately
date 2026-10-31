@@ -780,34 +780,59 @@ def _trend_row(entry: dict) -> dict:
     if not isinstance(stores, list):
         stores = []
     stores = [s for s in stores if isinstance(s, dict)]
-    traces = sum(s.get("traces", 0) for s in stores)
-    weighted = sum(s.get("failure_rate", 0.0) * s.get("traces", 0)
-                   for s in stores)
+    counts = _row_counts(stores)
     modes: dict = {}
     for s in stores:
         for m in s.get("top_modes") or []:
             modes[m.get("mode", "?")] = (
                 modes.get(m.get("mode", "?"), 0) + m.get("count", 0))
-    anomalies = sum(s.get("fleet_anomalies", 0) for s in stores)
-    token_flags = sum(s.get("token_anomalies", 0) for s in stores)
-    spend = sum(s.get("est_spend") or 0 for s in stores)
-    breaches = sum(s.get("budget_breaches", 0) for s in stores)
-    failures = sum(s.get("failures", 0) for s in stores)
-    result_flags = sum(s.get("result_anomalies", 0) for s in stores)
+    traces = counts["traces"]
     return {
         "day": entry["day"],
-        "budget_breaches": breaches,
+        "budget_breaches": counts["budget_breaches"],
         "snapshots": entry["snapshots"],
         "stores": len(stores),
         "traces": traces,
-        "failures": failures,
-        "failure_rate": round(weighted / traces, 4) if traces else 0.0,
+        "failures": counts["failures"],
+        "failure_rate": round(counts["weighted"] / traces, 4)
+        if traces else 0.0,
         "worsening": snap.get("worsening") or [],
         "top_modes": sorted(modes.items(), key=lambda kv: -kv[1])[:3],
-        "fleet_anomalies": anomalies,
-        "token_anomalies": token_flags,
-        "result_anomalies": result_flags,
-        "est_spend": round(spend, 2),
+        "fleet_anomalies": counts["fleet_anomalies"],
+        "token_anomalies": counts["token_anomalies"],
+        "result_anomalies": counts["result_anomalies"],
+        "est_spend": round(counts["est_spend"], 2),
+        "inbox_rows": counts["inbox_rows"],
+        "inbox_verified": counts["inbox_verified"],
+    }
+
+
+def _row_counts(stores: List[dict]) -> dict:
+    """The numeric sums one trend day is built from. A lying value
+    is not a value: non-numbers degrade to 0 (a string "5" in a
+    digest file must crash nothing downstream)."""
+    def count(s: dict, key: str) -> float:
+        v = s.get(key, 0)
+        return v if isinstance(v, (int, float)) and \
+            not isinstance(v, bool) else 0
+
+    return {
+        "traces": sum(count(s, "traces") for s in stores),
+        "weighted": sum(count(s, "failure_rate") * count(s, "traces")
+                        for s in stores),
+        "fleet_anomalies": sum(count(s, "fleet_anomalies")
+                               for s in stores),
+        "token_anomalies": sum(count(s, "token_anomalies")
+                               for s in stores),
+        "est_spend": sum(count(s, "est_spend") for s in stores),
+        "budget_breaches": sum(count(s, "budget_breaches")
+                               for s in stores),
+        "failures": sum(count(s, "failures") for s in stores),
+        "result_anomalies": sum(count(s, "result_anomalies")
+                                for s in stores),
+        "inbox_rows": sum(count(s, "inbox_rows") for s in stores),
+        "inbox_verified": sum(count(s, "inbox_verified")
+                              for s in stores),
     }
 
 
