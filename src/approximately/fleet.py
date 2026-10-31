@@ -77,6 +77,8 @@ class StoreSummary:
     annotations: int = 0
     fleet_anomalies: int = 0
     worst_anomaly: Optional[dict] = None
+    inbox_rows: int = 0
+    inbox_verified: int = 0
     token_anomalies: int = 0
     worst_token_anomaly: Optional[dict] = None
     result_anomalies: int = 0
@@ -317,6 +319,9 @@ def survey(stores: List[Path], top_agents: int = 3,
         anomalies = detect_fleet_anomalies(traces)
         token_flags = detect_fleet_token_anomalies(traces)
         result_flags = detect_fleet_result_anomalies(traces)
+        from .receiver import archive_stats
+
+        inbox = archive_stats(store.directory / "webhook-log.jsonl")
         summaries.append(StoreSummary(
             name=Path(path).name or str(path),
             path=str(path),
@@ -330,6 +335,8 @@ def survey(stores: List[Path], top_agents: int = 3,
             trend_verdict=verdict,
             trend_slope=slope,
             annotations=health["total"],
+            inbox_rows=inbox["rows"],
+            inbox_verified=inbox["verified"],
             annotations_confirmed=sum(
                 1 for a in notes if a.get("verdict") == "confirmed"),
             fleet_anomalies=len(anomalies),

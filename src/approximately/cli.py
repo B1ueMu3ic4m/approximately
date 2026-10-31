@@ -1746,6 +1746,9 @@ def _print_fleet(summaries: list) -> None:
         slow = f", {anomalies} slow outlier(s)" if anomalies else ""
         print(f"{s.name}: {s.traces} traces, "
               f"failure rate {s.failure_rate:.0%}{slow}{flag}")
+        if getattr(s, "inbox_rows", 0):
+            print(f"  webhook inbox: {s.inbox_rows} row(s), "
+                  f"{s.inbox_verified} verified")
 
 
 def _fleet_notify(summaries: list, url: str) -> None:
