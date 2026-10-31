@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.59.0
+
+- the audit carries the archive checkup: the doctor section (JSON both sites, junit system-out) reports archive rows/malformed/rotated - counted, never verdict-flipping; a torn log is visible in CI output without failing the suite.
+
 ## v3.58.2
 
 - the money door's boundaries: the catalog validator's edges (negative/NaN/inf refused, zero legit, non-numbers refused) pinned as tests. Test-only patch.

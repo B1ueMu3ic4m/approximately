@@ -4316,3 +4316,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          a real price for free models, NaN/inf refused, non-
          numbers refused up front) and pinned them as tests.
          Catalog integrity test-only patch.
+
+470. **v3.59.0 - the audit carries the archive checkup** (planned):
+       - doctor CLI reported the receiver's archive (v3.45.0); the
+         audit's JSON and junit renderings did not. The doctor
+         section (both assembly sites) carries archive_rows /
+         archive_malformed / archive_rotated when an archive
+         exists - counted, never verdict-flipping - and the junit
+         doctor message (with the malformed count) rides in
+         system-out even when green, so a torn log is visible in
+         CI output without failing the suite.
