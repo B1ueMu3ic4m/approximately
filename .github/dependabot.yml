@@ -1,6 +1,16 @@
 version: 2
 updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    # the supply-chain posture is sha pins enforced by a test:
+    # version bumps of the pinned actions would fail the posture
+    # check, so dependabot skips them (the pins are upgraded
+    # deliberately, by sha, in a PR of their own)
+    ignore:
+      - dependency-name: "actions/*"

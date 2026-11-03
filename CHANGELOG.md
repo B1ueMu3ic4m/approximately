@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.68.0
+
+- dependabot stops fighting the posture: `actions/*` bumps are ignored (the pins are upgraded deliberately, by sha), the pip ecosystem joins weekly, and the config itself is pinned by a test.
+
 ## v3.67.1
 
 - the supply-chain posture is enforced: a test holds every external action in the workflows to a full commit sha (local composite actions exempt). Test-only patch.
