@@ -4459,3 +4459,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          the whole workflow directory to the posture — a mutable
          tag can be re-pointed, and this repo's CI is its own
          audit chain. Test-only patch.
+
+490. **v3.68.0 - dependabot stops fighting the posture** (planned):
+       - the supply-chain posture (v3.67.1) makes any dependabot
+         version bump of a pinned action a PR that can never be
+         green. The dependabot config ignores `actions/*` bumps
+         (the pins are upgraded deliberately, by sha) and gains
+         the pip ecosystem (weekly); the config itself is pinned
+         by a test so the ignore list cannot silently rot.
