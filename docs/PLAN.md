@@ -4430,3 +4430,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          and a 475 gap; the cascade renumbered the chain (last is
          now 485) and the parse confirms: no dupes, no gaps after
          440. Docs-only patch.
+
+487. **v3.65.2 - agent-audit finally audits something** (planned):
+       - the scheduled nightly died at `pip install approximately`
+         (no PyPI yet) with a gitignored store - it could never
+         have passed. It now installs from the repo (like
+         agent-gate), records a demo store (two ok runs, one
+         failure) and audits it with the --fix/--grade-floor/
+         --triage-top treatment. Thresholds verified locally
+         first. CI-only patch.

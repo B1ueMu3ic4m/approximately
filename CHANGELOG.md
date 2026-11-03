@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.65.2
+
+- agent-audit finally audits something: the scheduled nightly died at `pip install approximately` (no PyPI yet) with a gitignored store — it now installs from the repo, records a demo store and audits it. CI-only patch.
+
 ## v3.65.1
 
 - the ledger renumbers itself, audited: two duplicate entry numbers (re-runs of ledger scripts) and a gap found by the consistency audit; the cascade renumbered the chain. Docs-only patch.
