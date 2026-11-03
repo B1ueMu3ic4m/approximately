@@ -4452,7 +4452,7 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          pinned by a test (3 runs, two ok one failure), the gate
          verified against it, both workflows reduced to one line.
 
-489. **v3.67.1 - the supply-chain posture is enforced** (planned):
+490. **v3.67.1 - the supply-chain posture is enforced** (planned):
        - every external action in the workflows is pinned to a
          full commit sha (the tag-pinned demo workflows aligned
          during the dependabot reconciliation); a test now holds
@@ -4460,10 +4460,26 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          tag can be re-pointed, and this repo's CI is its own
          audit chain. Test-only patch.
 
-490. **v3.68.0 - dependabot stops fighting the posture** (planned):
+491. **v3.68.0 - dependabot stops fighting the posture** (planned):
        - the supply-chain posture (v3.67.1) makes any dependabot
          version bump of a pinned action a PR that can never be
          green. The dependabot config ignores `actions/*` bumps
          (the pins are upgraded deliberately, by sha) and gains
          the pip ecosystem (weekly); the config itself is pinned
          by a test so the ignore list cannot silently rot.
+
+492. **v3.69.0 - the ledger audits itself** (planned):
+       - the consistency audit that found the night's duplicate
+         entry numbers (444, 474) and the 475 gap was a hand-run
+         script; it is a test now: PLAN numbers unique and
+         gapless in the modern era, CHANGELOG heads unique and
+         newest-first, changelog head == pyproject. Test-only
+         patch.
+
+493. **v3.69.0 addendum - the audit caught its own author** (recorded):
+       - the ledger-consistency test failed four times on landing:
+         the new entry was mis-numbered 487 (491 taken), the 489
+         dupe cascaded, the pairwise zip carried strict=True (a
+         adjacent-pairs zip is one-short by construction), and the
+         modern-era floor picked up legacy gaps 417/421. The audit
+         works - on its own author first.
