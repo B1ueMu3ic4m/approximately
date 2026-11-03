@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.69.1
+
+- recipe citations are pinned: every "recipe N" citation in the docs is held against the chapters RECIPES actually has, and the chapters are contiguous from 1. Test-only patch.
+
 ## v3.69.0
 
 - the ledger audits itself: PLAN numbers unique/gapless (pinned era), CHANGELOG heads unique and newest-first, changelog head == pyproject — the hand-run audit is a test now, and it caught its own author four times on landing (mis-numbering, a dupe cascade, a strict-zip on adjacent pairs, a stale era floor). Test-only patch.

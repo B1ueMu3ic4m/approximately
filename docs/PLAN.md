@@ -4483,3 +4483,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          adjacent-pairs zip is one-short by construction), and the
          modern-era floor picked up legacy gaps 417/421. The audit
          works - on its own author first.
+
+494. **v3.69.1 - recipe citations are pinned** (planned):
+       - TUTORIAL/ARCHITECTURE cross-reference RECIPES by chapter
+         number ("(recipe 18)"); renumbering a chapter silently
+         rots the citations. Every cited number is held against
+         the chapters RECIPES actually has, and the chapters are
+         pinned contiguous from 1. Test-only patch.
