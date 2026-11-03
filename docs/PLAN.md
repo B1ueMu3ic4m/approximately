@@ -4484,7 +4484,7 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          modern-era floor picked up legacy gaps 417/421. The audit
          works - on its own author first.
 
-493. **v3.69.1 - recipe citations are pinned** (planned):
+494. **v3.69.1 - recipe citations are pinned** (planned):
        - TUTORIAL/ARCHITECTURE cross-reference RECIPES by chapter
          number ("(recipe 18)"); renumbering a chapter silently
          rots the citations. Every cited number is held against
