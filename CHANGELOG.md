@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.67.0
+
+- the demo recorder is a real module: agent-gate/agent-audit's inline heredocs become examples/record-demo.py — imported, pinned by a test, gate-verified; both workflows reduced to one line.
+
 ## v3.66.0
 
 - the matrix counts the gate: the README banner's "21-check CI matrix" is 22 (agent-gate joined at v3.48.2) — counted, not guessed. Banner-only patch.
