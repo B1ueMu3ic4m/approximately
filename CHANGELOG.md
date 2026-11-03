@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.67.1
+
+- the supply-chain posture is enforced: a test holds every external action in the workflows to a full commit sha (local composite actions exempt). Test-only patch.
+
 ## v3.67.0
 
 - the demo recorder is a real module: agent-gate/agent-audit's inline heredocs become examples/record-demo.py — imported, pinned by a test, gate-verified; both workflows reduced to one line.
