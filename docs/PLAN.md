@@ -4451,3 +4451,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          fixture is examples/record-demo.py now: imported and
          pinned by a test (3 runs, two ok one failure), the gate
          verified against it, both workflows reduced to one line.
+
+489. **v3.67.1 - the supply-chain posture is enforced** (planned):
+       - every external action in the workflows is pinned to a
+         full commit sha (the tag-pinned demo workflows aligned
+         during the dependabot reconciliation); a test now holds
+         the whole workflow directory to the posture — a mutable
+         tag can be re-pointed, and this repo's CI is its own
+         audit chain. Test-only patch.
