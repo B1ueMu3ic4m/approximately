@@ -9,16 +9,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      # the package is not on PyPI yet (publishing needs the
-      # owner's one-time Trusted Publishing setup) - install from
-      # the repo itself, like agent-gate does
-      - run: pip install .
-      - name: record a demo store (two ok runs, one failure)
-        run: python examples/record-demo.py .agents-store
       - name: nightly audit (doctor + gate + forecast)
         run: |
           approximately audit --store .agents-store \
