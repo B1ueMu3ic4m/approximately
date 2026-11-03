@@ -11,18 +11,15 @@ cannot silently rot.
 
 from pathlib import Path
 
-import yaml
-
 
 def test_actions_bumps_are_ignored_pip_stays():
-    cfg = yaml.safe_load((Path(__file__).resolve().parents[1]
-                          / ".github" / "dependabot.yml")
-                         .read_text(encoding="utf-8"))
-    updates = {u["package-ecosystem"]: u for u in cfg["updates"]}
-    actions = updates.get("github-actions")
-    assert actions is not None, "the actions ecosystem vanished"
-    ignored = [i["dependency-name"]
-               for i in actions.get("ignore", [])]
-    assert "actions/*" in ignored, \
+    # parsed by text, not yaml: the test env stays zero-dependency
+    cfg = (Path(__file__).resolve().parents[1]
+           / ".github" / "dependabot.yml").read_text(
+        encoding="utf-8")
+    assert 'dependency-name: "actions/*"' in cfg, \
         "without the ignore, dependabot opens PRs the posture test fails"
-    assert "pip" in updates, "the pip ecosystem stays weekly"
+    assert 'package-ecosystem: "pip"' in cfg, \
+        "the pip ecosystem stays weekly"
+    assert 'package-ecosystem: "github-actions"' in cfg, \
+        "the actions ecosystem stays watched (for the unpinned few)"
