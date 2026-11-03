@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.69.0
+
+- the ledger audits itself: PLAN numbers unique/gapless (pinned era), CHANGELOG heads unique and newest-first, changelog head == pyproject — the hand-run audit is a test now, and it caught its own author four times on landing (mis-numbering, a dupe cascade, a strict-zip on adjacent pairs, a stale era floor). Test-only patch.
+
 ## v3.68.0
 
 - dependabot stops fighting the posture: `actions/*` bumps are ignored (the pins are upgraded deliberately, by sha), the pip ecosystem joins weekly, and the config itself is pinned by a test.
