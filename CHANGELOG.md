@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.66.0
+
+- the matrix counts the gate: the README banner's "21-check CI matrix" is 22 (agent-gate joined at v3.48.2) — counted, not guessed. Banner-only patch.
+
 ## v3.65.2
 
 - agent-audit finally audits something: the scheduled nightly died at `pip install approximately` (no PyPI yet) with a gitignored store — it now installs from the repo, records a demo store and audits it. CI-only patch.

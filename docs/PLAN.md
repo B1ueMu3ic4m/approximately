@@ -4439,3 +4439,8 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          failure) and audits it with the --fix/--grade-floor/
          --triage-top treatment. Thresholds verified locally
          first. CI-only patch.
+
+488. **v3.66.0 - the matrix counts the gate** (planned):
+       - agent-gate joined the PR matrix (v3.48.2) but the README
+         banner still said "21-check" — the count is 22 now
+         (counted, not guessed). Banner-only patch.
