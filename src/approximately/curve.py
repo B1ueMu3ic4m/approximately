@@ -138,7 +138,14 @@ def _scatter_svg(scatter: list | None, width: int, height: int,
 def render_curve_html(curve: BudgetCurve,
                       scatter: Optional[List[Tuple[int, Optional[bool]]]] = None
                       ) -> str:
-    """Self-contained HTML: budget-vs-recall line (+ optional scatter)."""
+    """Self-contained HTML: budget-vs-recall line (+ optional scatter).
+
+    ``trace_id`` rides in from the trace — and traces can be
+    ingested from foreign evidence — so it is HTML-escaped like
+    every other renderer's untrusted string.
+    """
+    import html as _html
+
     width, height, pad = 640, 300, 40
     line = _svg_line([(p.budget, p.recall) for p in curve.points],
                      width, height, pad, "#b02a37")
@@ -152,7 +159,7 @@ border-radius:12px;padding:18px;margin-bottom:16px}} code{{background:#f1f3f5;pa
 border-radius:4px}} footer{{color:#adb5bd;font-size:12.5px;text-align:center}}</style></head>
 <body><h1>Context budget vs effective recall</h1>
 <div class="card">
-<p>Trace <code>{curve.trace_id}</code> — full context {curve.full_tokens} tokens.
+<p>Trace <code>{_html.escape(curve.trace_id)}</code> — full context {curve.full_tokens} tokens.
 Recall is measured with the probe facts of this recording.</p>
 <svg viewBox="0 0 {width} {height}" width="{width}" height="{height}">
 <rect width="{width}" height="{height}" fill="#f6f7f9" />
