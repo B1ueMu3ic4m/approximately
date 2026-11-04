@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.70.0
+
+- every HTML surface holds the injection audit: render_curve_html interpolated curve.trace_id raw (trace ids can arrive from ingested foreign evidence); fixed and pinned — all six renderers are fed hostile text through their real data paths, and no raw script tag or attribute breaker survives.
+
 ## v3.69.2
 
 - the audit job installs what it audits: v3.67.1's sha-pin rewrite silently deleted agent-audit's `pip install .` and demo-store steps (the scheduled run died with `approximately: command not found`); both restored, and a test now holds every workflow that invokes the bare CLI to install-first plus a store worth judging.

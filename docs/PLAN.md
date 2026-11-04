@@ -4501,3 +4501,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          workflow invoking the bare CLI installs the package
          first, agent-audit records a store for --min-traces to
          judge, and the fixture it invokes still exists.
+496. **v3.70.0 - every HTML surface holds the injection audit** (planned):
+       - Six renderers emit self-contained pages; five escaped
+         their untrusted strings, but render_curve_html rode
+         curve.trace_id straight into the page — and trace ids
+         can be anything once traces are ingested from foreign
+         evidence. The fix escapes it like the rest, and the
+         audit is a test: fleet, report, index, replay, curve
+         and the leaderboard are fed hostile text through their
+         real data paths, and the markers must never appear raw.
