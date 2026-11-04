@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.69.2
+
+- the audit job installs what it audits: v3.67.1's sha-pin rewrite silently deleted agent-audit's `pip install .` and demo-store steps (the scheduled run died with `approximately: command not found`); both restored, and a test now holds every workflow that invokes the bare CLI to install-first plus a store worth judging.
+
 ## v3.69.1
 
 - recipe citations are pinned: every "recipe N" citation in the docs is held against the chapters RECIPES actually has, and the chapters are contiguous from 1. Test-only patch.
