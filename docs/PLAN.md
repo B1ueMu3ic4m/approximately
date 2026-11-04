@@ -4490,3 +4490,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          rots the citations. Every cited number is held against
          the chapters RECIPES actually has, and the chapters are
          pinned contiguous from 1. Test-only patch.
+495. **v3.69.2 - the audit job installs what it audits** (planned):
+       - v3.67.1's sha-pin rewrite deleted agent-audit's
+         `pip install .` and its demo-store step; the next
+         scheduled run died with `approximately: command not
+         found`, and the dispatch that "verified" the workflow
+         had run before the deletion merged. Both steps restored
+         (the recorder via the shared examples/record-demo.py),
+         and a text-scan test now holds the contract: any
+         workflow invoking the bare CLI installs the package
+         first, agent-audit records a store for --min-traces to
+         judge, and the fixture it invokes still exists.
