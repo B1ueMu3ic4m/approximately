@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.71.0
+
+- the inbox is searchable: read_archive gains `contains` (a case-insensitive substring over the row's own JSON), the received door gains `--grep` plus a `--since` that takes plain durations (`30m`, `2h`, `1d`), and the MCP inbox tool carries the same filters. One reader, every surface, searchable.
+
 ## v3.70.0
 
 - every HTML surface holds the injection audit: render_curve_html interpolated curve.trace_id raw (trace ids can arrive from ingested foreign evidence); fixed and pinned — all six renderers are fed hostile text through their real data paths, and no raw script tag or attribute breaker survives.

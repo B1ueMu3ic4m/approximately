@@ -1289,6 +1289,18 @@
           "redact": {
             "type": "boolean",
             "description": "scrub each row through the builtin secret patterns"
+          },
+          "kind": {
+            "type": "string",
+            "description": "only rows of this kind"
+          },
+          "contains": {
+            "type": "string",
+            "description": "only rows whose JSON contains this substring (case-insensitive)"
+          },
+          "unverified_only": {
+            "type": "boolean",
+            "description": "only rows the open tap marked unverified"
           }
         }
       }

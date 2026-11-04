@@ -84,21 +84,31 @@ class ReceiverState:
         return False, "refused"
 
 
+def _refuse_hostile_filters(since: Optional[float],
+                            contains: Optional[str]) -> None:
+    """The boundary refusals — hostile filter types are refused
+    here, so the row predicate stays pure arithmetic."""
+    if since is not None and (isinstance(since, bool)
+                              or not isinstance(since,
+                                                (int, float))):
+        raise ValueError("since must be a unix timestamp")
+    if contains is not None and not isinstance(contains, str):
+        raise ValueError("contains must be a string")
+
+
 def read_archive(archive: Path, limit: int = 20,
                  kind: Optional[str] = None,
                  unverified_only: bool = False,
                  include_rotated: bool = False,
-                 since: Optional[float] = None) -> dict:
+                 since: Optional[float] = None,
+                 contains: Optional[str] = None) -> dict:
     """The archive read back with a filter: the /stats shape plus
     the most recent matching rows, newest last. Used by the
     ``received`` CLI door and the MCP inbox tool — one reader,
     every surface. ``include_rotated`` folds the previous log
     (``<archive>.1``, where rotation moves it) in ahead of the
     current one, so yesterday's night is still one query."""
-    if since is not None and (isinstance(since, bool)
-                              or not isinstance(since,
-                                                (int, float))):
-        raise ValueError("since must be a unix timestamp")
+    _refuse_hostile_filters(since, contains)
     stats = archive_stats(archive)
     paths = [archive]
     if include_rotated:
@@ -112,7 +122,7 @@ def read_archive(archive: Path, limit: int = 20,
         lines = path.read_text(
             encoding="utf-8", errors="replace").splitlines()
         rows.extend(_matching_rows(lines, kind, unverified_only,
-                                   since))
+                                   since, contains))
     stats["rows_total"] = stats["rows"]
     keep = max(0, int(limit))
     # rows[-0:] is the whole list — a slice quirk would turn
@@ -121,9 +131,19 @@ def read_archive(archive: Path, limit: int = 20,
     return stats
 
 
+def _matches_contains(row: dict, contains: str) -> bool:
+    """Case-insensitive substring over the row's own JSON text:
+    the log records delivery, and the search matches what was
+    delivered, byte for byte."""
+    text = json.dumps(row, sort_keys=True,
+                      ensure_ascii=False).lower()
+    return contains.lower() in text
+
+
 def row_passes(row: dict, kind: Optional[str],
                 unverified_only: bool,
-                since: Optional[float]) -> bool:
+                since: Optional[float],
+                contains: Optional[str] = None) -> bool:
     """The row filters — a hostile ``since`` was refused at the
     boundary, so the stamp check is just time arithmetic."""
     if kind is not None and row.get("kind") != kind:
@@ -134,12 +154,14 @@ def row_passes(row: dict, kind: Optional[str],
         stamp = row.get("received_at")
         if not (isinstance(stamp, (int, float)) and stamp >= since):
             return False
-    return True
+    return (contains is None
+            or _matches_contains(row, contains))
 
 
 def _matching_rows(lines: list, kind: Optional[str],
                    unverified_only: bool,
-                   since: Optional[float] = None) -> list:
+                   since: Optional[float] = None,
+                   contains: Optional[str] = None) -> list:
     """The lines that pass the filter — malformed lines are
     skipped here (archive_stats already counted them) and never
     guessed at."""
@@ -151,7 +173,7 @@ def _matching_rows(lines: list, kind: Optional[str],
             continue
         if isinstance(row, dict) and row_passes(row, kind,
                                                  unverified_only,
-                                                 since):
+                                                 since, contains):
             rows.append(row)
     return rows
 
