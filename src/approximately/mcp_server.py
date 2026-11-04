@@ -1214,6 +1214,16 @@ _TOOLS: List[Dict[str, Any]] = [
                            "description": "scrub each row through "
                                           "the builtin secret "
                                           "patterns"},
+                "kind": {"type": "string",
+                         "description": "only rows of this kind"},
+                "contains": {"type": "string",
+                             "description": "only rows whose JSON "
+                                            "contains this substring "
+                                            "(case-insensitive)"},
+                "unverified_only": {"type": "boolean",
+                                    "description": "only rows the "
+                                                   "open tap marked "
+                                                   "unverified"},
             },
         },
     },
@@ -2509,12 +2519,24 @@ def _tool_inbox(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     """The webhook archive read back: the receiver's stats plus the
     most recent rows, newest last. Rows are what arrived — the log
     records delivery, never truth. One reader with the CLI's
-    `received` door (read_archive)."""
+    `received` door (read_archive): kind, contains and
+    unverified_only narrow the view the same way --kind, --grep
+    and --unverified-only do."""
     from .receiver import read_archive
 
     store = _store(ctx, args)
-    payload = read_archive(store.directory / "webhook-log.jsonl",
-                           limit=_opt_int(args, "limit") or 20)
+    contains = args.get("contains")
+    if contains is not None and not isinstance(contains, str):
+        raise ValueError("contains must be a string")
+    kind = args.get("kind")
+    if kind is not None and not isinstance(kind, str):
+        raise ValueError("kind must be a string")
+    payload = read_archive(
+        store.directory / "webhook-log.jsonl",
+        limit=_opt_int(args, "limit") or 20,
+        kind=kind,
+        contains=contains,
+        unverified_only=bool(args.get("unverified_only", False)))
     rows = payload["recent"]
     if args.get("redact"):
         from .redact import redact_value

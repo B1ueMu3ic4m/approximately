@@ -4510,3 +4510,11 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          audit is a test: fleet, report, index, replay, curve
          and the leaderboard are fed hostile text through their
          real data paths, and the markers must never appear raw.
+497. **v3.71.0 - the inbox is searchable** (planned):
+       - The archive answered "how many" and "which kinds", but
+         not "which rows mention deploy". read_archive gains
+         contains (case-insensitive substring over the row's own
+         JSON), the received door gains --grep and a --since that
+         speaks human durations (30m, 2h, 1d), and the MCP inbox
+         tool narrows the same way (kind / contains /
+         unverified_only). One reader, every surface, searchable.

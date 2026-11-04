@@ -226,7 +226,12 @@ archive is length-bounded — `--max-rows` (default 100k) rotates the
 full log aside as `<log>.1` and starts empty, so a busy channel
 cannot become a slow disk-fill — and readable three ways: that
 `/stats` probe, the `received` door in a cron (`--include-rotated`
-folds yesterday's log in), and the MCP `inbox` tool. The 3am
+folds yesterday's log in), and the MCP `inbox` tool. All three search the same
+way: `--grep TEXT` (or the inbox tool's `contains`) matches a
+case-insensitive substring of the row's own JSON, and `--since`
+takes a unix epoch or a plain duration (`30m`, `2h`, `1d`) —
+the on-call asks "what arrived since the last shift" in the
+words they'd use anyway. The 3am
 checkup reads it too: `doctor` reports the archive's rows,
 malformed lines and whether a rotated log sits beside it. Point
 `--post` at it and approximately talks to approximately with the

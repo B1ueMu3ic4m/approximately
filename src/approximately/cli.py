@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import json
+import re
 import signal
 import sys
 import time
@@ -3039,6 +3040,31 @@ def _render_inbox_row(row: dict) -> str:
             f"{row.get('kind', '?')} {body}")
 
 
+_SINCE_UNITS = {"s": 1.0, "m": 60.0, "h": 3600.0,
+                "d": 86400.0, "w": 604800.0}
+
+
+def _parse_since(text: str) -> float:
+    """``--since`` accepts a unix epoch or a human duration
+    (``30m``, ``2h``, ``1.5d``, ``1w``) — the on-call types what
+    they mean, and garbage is refused at the flag boundary."""
+    import time as _time
+
+    try:
+        return float(text)
+    except ValueError:
+        pass
+    stripped = text.strip().lower()
+    match = re.fullmatch(
+        r"(\d+(?:\.\d+)?)\s*([smhdw])", stripped)
+    if not match:
+        raise argparse.ArgumentTypeError(
+            f"bad --since {text!r}: use a unix epoch or a "
+            "duration like 30m, 2h, 1d, 1w")
+    return _time.time() - float(match.group(1)) \
+        * _SINCE_UNITS[match.group(2)]
+
+
 def cmd_received(args: argparse.Namespace) -> int:
     """Read the receiver's archive back: the /stats shape plus the
     most recent matching rows, newest last — the cron-friendly
@@ -3056,7 +3082,8 @@ def cmd_received(args: argparse.Namespace) -> int:
         unverified_only=bool(getattr(args, "unverified_only", False)),
         include_rotated=bool(getattr(args, "include_rotated",
                                      False)),
-        since=getattr(args, "since", None))
+        since=getattr(args, "since", None),
+        contains=getattr(args, "grep", None))
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2, ensure_ascii=False))
         return 0
@@ -3080,13 +3107,15 @@ def _follow_print(archive: Path, args: argparse.Namespace) -> int:
     kind = getattr(args, "kind", None)
     unverified_only = bool(getattr(args, "unverified_only", False))
     since = getattr(args, "since", None)
+    contains = getattr(args, "grep", None)
     try:
         for row in follow_archive(
                 archive,
                 interval=float(getattr(args, "interval", 1.0)),
                 max_passes=(int(getattr(args, "max_passes", 0))
                             or None)):
-            if not row_passes(row, kind, unverified_only, since):
+            if not row_passes(row, kind, unverified_only, since,
+                              contains):
                 continue
             if as_json:
                 print(json.dumps(row, ensure_ascii=False,
@@ -5124,9 +5153,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--include-rotated", action="store_true",
                    help="fold the previous log (<archive>.1) in "
                         "ahead of the current one")
-    p.add_argument("--since", type=float, metavar="EPOCH",
+    p.add_argument("--since", type=_parse_since,
+                   metavar="EPOCH|DUR",
                    help="only rows stamped at or after this unix "
-                        "time (an unstampable row is dropped)")
+                        "time, or a duration like 30m, 2h, 1d "
+                        "(an unstampable row is dropped)")
+    p.add_argument("--grep", metavar="TEXT",
+                   help="only rows whose JSON contains this "
+                        "substring (case-insensitive)")
     p.add_argument("--json", action="store_true",
                    help="emit the stats shape as JSON")
     p.add_argument("--follow", action="store_true",
