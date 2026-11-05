@@ -4559,3 +4559,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          proof, an accepted-but-lost ping is a named warning,
          and a receiver older than the query filters falls back
          to the global count, honestly labelled.
+502. **v3.75.1 - the fold is recorded** (planned):
+       - A careless `git add -A` swept fuzz-33's work into the
+         v3.75.0 commit: parse_stats_query (the strict /stats
+         query parser — repeated parameters, non-finite since
+         values and unknown words are refusals with the reason
+         named) and its pin, test_v376, shipped inside the
+         ping-nonce release without being named. The code is
+         complete and was gated (both rounds' gates ran over
+         exactly this tree); only the record was wrong. The
+         ledger says so now, the release note names the parser,
+         and the record is corrected — not the code.
