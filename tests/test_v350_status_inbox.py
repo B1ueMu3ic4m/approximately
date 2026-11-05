@@ -33,8 +33,11 @@ def _payload(store):
 
 def test_payload_counts_the_inbox():
     payload = _payload(_store(with_archive=True))
+    # v372 added the kind census (the digest and /stats answer it;
+    # the frame answers the same set now)
     assert payload["webhook_inbox"] == {
-        "present": True, "rows": 5, "verified": 2, "unverified": 3}
+        "present": True, "rows": 5, "verified": 2, "unverified": 3,
+        "kinds": {"spool": 5}}
 
 
 def test_absent_archive_is_present_false():

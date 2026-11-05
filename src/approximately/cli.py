@@ -1446,6 +1446,7 @@ def _status_payload(store: Any, traces: list, digest_dir: Any,
         "rows": inbox["rows"],
         "verified": inbox["verified"],
         "unverified": inbox["unverified"],
+        "kinds": inbox["kinds"],
     }
     _payload_forecasts(payload, trend, spend_ceiling,
                        failure_allowance)
@@ -1590,6 +1591,12 @@ def _render_status(args: argparse.Namespace) -> str:
         buf.write(f"  webhook inbox: {inbox['rows']} row(s) "
                   f"({inbox['verified']} verified, "
                   f"{inbox['unverified']} unverified)\n")
+        kinds = inbox.get("kinds") or {}
+        if kinds:
+            census = ", ".join(
+                f"{kind} x{count}" for kind, count in
+                sorted(kinds.items()))
+            buf.write(f"    kinds: {census}\n")
     if payload["top_recidivist"]:
         buf.write(f"  top recidivist: {payload['top_recidivist']}\n")
     worst_tool = payload.get("worst_tool")
