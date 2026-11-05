@@ -79,6 +79,7 @@ class StoreSummary:
     worst_anomaly: Optional[dict] = None
     inbox_rows: int = 0
     inbox_verified: int = 0
+    inbox_kinds: Dict[str, int] = field(default_factory=dict)
     token_anomalies: int = 0
     worst_token_anomaly: Optional[dict] = None
     result_anomalies: int = 0
@@ -174,6 +175,7 @@ def webhook_payload(summaries: List[StoreSummary]) -> dict:
                     getattr(s, "annotations_confirmed", 0),
                 "inbox_rows": getattr(s, "inbox_rows", 0),
                 "inbox_verified": getattr(s, "inbox_verified", 0),
+                "inbox_kinds": getattr(s, "inbox_kinds", {}) or {},
                 "fleet_anomalies": getattr(s, "fleet_anomalies", 0),
                 "worst_anomaly": getattr(s, "worst_anomaly", None),
                 "token_anomalies": getattr(s, "token_anomalies", 0),
@@ -339,6 +341,7 @@ def survey(stores: List[Path], top_agents: int = 3,
             annotations=health["total"],
             inbox_rows=inbox["rows"],
             inbox_verified=inbox["verified"],
+            inbox_kinds=inbox["kinds"],
             annotations_confirmed=sum(
                 1 for a in notes if a.get("verdict") == "confirmed"),
             fleet_anomalies=len(anomalies),
@@ -426,6 +429,11 @@ def _store_card(s: StoreSummary) -> str:
     if inbox_rows:
         inbox_note = (f" · webhook inbox: {inbox_rows} row(s), "
                       f"{getattr(s, 'inbox_verified', 0)} verified")
+        kinds = getattr(s, "inbox_kinds", None) or {}
+        if kinds:
+            census = ", ".join(
+                f"{k} x{v}" for k, v in sorted(kinds.items()))
+            inbox_note += f" ({census})"
     sub = (f'{esc(s.path)} · {s.traces} traces · ledger: '
            f'{ledger_note} · notes: {getattr(s, "annotations", 0)} '
            f'({getattr(s, "annotations_confirmed", 0)} confirmed)'
