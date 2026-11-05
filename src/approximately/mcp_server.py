@@ -1214,6 +1214,9 @@ _TOOLS: List[Dict[str, Any]] = [
                            "description": "scrub each row through "
                                           "the builtin secret "
                                           "patterns"},
+                "since": {"type": "number",
+                          "description": "only rows stamped at or "
+                                         "after this unix time"},
                 "kind": {"type": "string",
                          "description": "only rows of this kind"},
                 "contains": {"type": "string",
@@ -2519,9 +2522,9 @@ def _tool_inbox(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     """The webhook archive read back: the receiver's stats plus the
     most recent rows, newest last. Rows are what arrived — the log
     records delivery, never truth. One reader with the CLI's
-    `received` door (read_archive): kind, contains and
-    unverified_only narrow the view the same way --kind, --grep
-    and --unverified-only do."""
+    `received` door (read_archive): since, kind, contains and
+    unverified_only narrow the view the same way --since, --kind,
+    --grep and --unverified-only do."""
     from .receiver import read_archive
 
     store = _store(ctx, args)
@@ -2534,6 +2537,7 @@ def _tool_inbox(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     payload = read_archive(
         store.directory / "webhook-log.jsonl",
         limit=_opt_int(args, "limit") or 20,
+        since=args.get("since"),
         kind=kind,
         contains=contains,
         unverified_only=bool(args.get("unverified_only", False)))

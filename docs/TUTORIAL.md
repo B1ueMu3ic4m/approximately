@@ -231,7 +231,8 @@ way: `--grep TEXT` (or the inbox tool's `contains`) matches a
 case-insensitive substring of the row's own JSON, and `--since`
 takes a unix epoch or a plain duration (`30m`, `2h`, `1d`) —
 the on-call asks "what arrived since the last shift" in the
-words they'd use anyway. The 3am
+words they'd use anyway (the inbox tool takes the same
+`since`, as a unix epoch). The 3am
 checkup reads it too: `doctor` reports the archive's rows,
 malformed lines and whether a rotated log sits beside it. Point
 `--post` at it and approximately talks to approximately with the

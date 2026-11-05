@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.72.0
+
+- the reader's filters reach every surface: the MCP `inbox` tool gains `since` (the reader boundary refuses hostile types, so a string like "30m" is an error, not a silent coercion), and the status frame's webhook_inbox now carries the kind census — rendered in the digest's exact format. One reader, one answer set.
+
 ## v3.71.0
 
 - the inbox is searchable: read_archive gains `contains` (a case-insensitive substring over the row's own JSON), the received door gains `--grep` plus a `--since` that takes plain durations (`30m`, `2h`, `1d`), and the MCP inbox tool carries the same filters. One reader, every surface, searchable.

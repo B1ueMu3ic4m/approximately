@@ -1290,6 +1290,10 @@
             "type": "boolean",
             "description": "scrub each row through the builtin secret patterns"
           },
+          "since": {
+            "type": "number",
+            "description": "only rows stamped at or after this unix time"
+          },
           "kind": {
             "type": "string",
             "description": "only rows of this kind"

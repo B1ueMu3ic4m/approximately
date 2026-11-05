@@ -4518,3 +4518,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          speaks human durations (30m, 2h, 1d), and the MCP inbox
          tool narrows the same way (kind / contains /
          unverified_only). One reader, every surface, searchable.
+498. **v3.72.0 - the reader's filters reach every surface** (planned):
+       - The parity audit found two holes v371 left: the MCP
+         inbox took no `since` (the CLI's --since had no twin),
+         and the status frame's webhook_inbox carried the
+         verified split but dropped the kind census the digest
+         and /stats both answer. One reader means one answer
+         set: the MCP tool now takes since (refused at the
+         reader boundary like every hostile type), and the
+         frame renders the census in the digest's exact format.
