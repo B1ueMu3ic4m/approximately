@@ -221,7 +221,10 @@ says so. `GET /health` is the liveness probe; `GET /stats` reads the
 archive back — rows, the verified split, the kind census, and
 `first_malformed` (the first poison, truncated: enough to
 recognise the line, never enough to be it) — so a restarted
-server still answers "what does this log hold". The
+server still answers "what does this log hold" — and
+`/stats?kind=spool` scopes the census to what matches
+(`contains=` and `since=` too; an unknown parameter is a 400,
+not a silent lie). The
 archive is length-bounded — `--max-rows` (default 100k) rotates the
 full log aside as `<log>.1` and starts empty, so a busy channel
 cannot become a slow disk-fill — and readable three ways: that

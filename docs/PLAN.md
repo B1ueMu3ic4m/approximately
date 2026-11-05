@@ -4536,3 +4536,15 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          exact format, the webhook notification payload carries
          it, and a legacy summary without the field still
          renders the old note untouched.
+500. **v3.74.0 - the /stats probe answers the same filters** (planned):
+       - The curl probe was the last surface that answered only
+         the channel-global census: /stats?kind=spool was 404
+         territory, and an unknown query parameter would have
+         been silently ignored — a typo'd check that always
+         looks like the truth. /stats now scopes rows/verified/
+         unverified/kinds to the filter (bytes, malformed and
+         first_malformed stay channel-global: they describe the
+         log, not the filter) and refuses unknown parameters and
+         hostile values with a 400 — the probe lies about
+         nothing. Entry 500: the reader's filters are on every
+         surface that reads the archive.

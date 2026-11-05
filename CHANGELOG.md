@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.74.0
+
+- the /stats probe answers the same filters: `/stats?kind=X` (and `contains=`, `since=`) scopes the census to what matches while bytes/malformed stay channel-global; unknown parameters and hostile values are a 400, not a silent lie. The reader's filters now reach every surface that reads the archive.
+
 ## v3.73.0
 
 - the fleet card answers the same census: store cards and the webhook notification payload carry the inbox's kind census in the digest's exact format — the last surface that dropped it. A legacy StoreSummary without the field renders the old note unchanged.
