@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.73.0
+
+- the fleet card answers the same census: store cards and the webhook notification payload carry the inbox's kind census in the digest's exact format — the last surface that dropped it. A legacy StoreSummary without the field renders the old note unchanged.
+
 ## v3.72.0
 
 - the reader's filters reach every surface: the MCP `inbox` tool gains `since` (the reader boundary refuses hostile types, so a string like "30m" is an error, not a silent coercion), and the status frame's webhook_inbox now carries the kind census — rendered in the digest's exact format. One reader, one answer set.

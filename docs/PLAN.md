@@ -4527,3 +4527,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          set: the MCP tool now takes since (refused at the
          reader boundary like every hostile type), and the
          frame renders the census in the digest's exact format.
+499. **v3.73.0 - the fleet card answers the same census** (planned):
+       - The fleet dashboard's store cards said "webhook inbox:
+         3 row(s), 2 verified" and stopped — the kind census the
+         digest, /stats, the frame and the MCP inbox all answer
+         never reached the survey. StoreSummary carries
+         inbox_kinds now; the card renders it in the digest's
+         exact format, the webhook notification payload carries
+         it, and a legacy summary without the field still
+         renders the old note untouched.
