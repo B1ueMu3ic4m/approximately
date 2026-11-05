@@ -240,8 +240,12 @@ checkup reads it too: `doctor` reports the archive's rows,
 malformed lines and whether a rotated log sits beside it. Point
 `--post` at it and approximately talks to approximately with the
 same tamper-evidence the traces have. `webhook-ping URL` proves
-the config on demand: a signed synthetic post, then the archive
-count - accepted, verified, counted.
+the config on demand: a signed synthetic post carrying a random
+nonce, then the archive read back scoped to that nonce - under
+concurrent traffic a global count proves nothing about YOUR
+ping; a nonce matches only the row it rode in on (a receiver
+that predates the query filters falls back to the global
+count, honestly labelled).
 
 The brief reads the store's webhook inbox too: **overnight
 arrivals (webhook)** — the window's delivered rows with their

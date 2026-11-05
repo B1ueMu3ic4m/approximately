@@ -4548,3 +4548,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          hostile values with a 400 — the probe lies about
          nothing. Entry 500: the reader's filters are on every
          surface that reads the archive.
+501. **v3.75.0 - the ping verifies its own delivery** (planned):
+       - A ping read the channel-global /stats back: under
+         concurrent traffic that count proves nothing about YOUR
+         ping — another sender's rows inflate it, a rotation
+         deflates it. The ping now carries a random nonce and
+         reads the scoped probe back (/stats?kind=ping&
+         contains=nonce): a nonce matches only the row it rode
+         in on, so "1 row(s) matched this ping" is the delivery
+         proof, an accepted-but-lost ping is a named warning,
+         and a receiver older than the query filters falls back
+         to the global count, honestly labelled.

@@ -39,12 +39,15 @@ def test_ping_lands_verified_and_reads_the_archive_back(capsys):
         out = capsys.readouterr().out
         err = capsys.readouterr().err
         assert "ping accepted: HTTP 200" in out
-        assert "receiver archive: 1 row(s), 1 verified" in out
+        # v375: the readback is scoped to this ping's nonce
+        assert ("receiver archive (scoped to this ping): "
+                "1 row(s) matched this ping, 1 verified") in out
         assert "UNVERIFIED" not in err
         rows = [json.loads(line) for line in
                 archive.read_text().splitlines()]
         assert rows[0]["verified"] is True
         assert rows[0]["payload"]["message"] == "hello"
+        assert rows[0]["payload"]["nonce"]
     finally:
         server.shutdown()
 
