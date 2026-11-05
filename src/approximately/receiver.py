@@ -323,6 +323,32 @@ def archive_stats(archive: Path) -> dict:
     return stats
 
 
+def filtered_stats(archive: Path, kind: Optional[str] = None,
+                   contains: Optional[str] = None,
+                   since: Optional[float] = None) -> dict:
+    """archive_stats scoped to the rows that pass the filters —
+    the numbers curl checks when it asks "did my kind land".
+    rows/verified/unverified/kinds describe the matches;
+    bytes/malformed/first_malformed/last_received_at stay
+    channel-global (properties of the log, not of the filter)."""
+    stats = archive_stats(archive)
+    rows = read_archive(archive, limit=10 ** 9, kind=kind,
+                        contains=contains, since=since)["recent"]
+    # _stat_row also writes last_received_at; the key exists so
+    # the census helper never KeyErrors — the copy-back below
+    # keeps the channel-global value anyway
+    scoped: dict = {"rows": len(rows), "verified": 0,
+                    "unverified": 0, "kinds": {},
+                    "last_received_at": None}
+    for row in rows:
+        _stat_row(scoped, row)
+    stats["rows"] = scoped["rows"]
+    stats["verified"] = scoped["verified"]
+    stats["unverified"] = scoped["unverified"]
+    stats["kinds"] = scoped["kinds"]
+    return stats
+
+
 def make_handler(state: ReceiverState) -> type:
     """Build a handler class bound to one ReceiverState (per-test
     servers get fresh state; nothing is class-level)."""
@@ -336,7 +362,34 @@ def make_handler(state: ReceiverState) -> type:
                                       "refused": state.refused,
                                       "verify_mode": bool(state.key)})
                 return
-            if self.path == "/stats":
+            if self.path == "/stats" or self.path.startswith(
+                    "/stats?"):
+                import urllib.parse
+
+                split = urllib.parse.urlsplit(self.path)
+                params = urllib.parse.parse_qs(split.query)
+                unknown = set(params) - {"kind", "contains",
+                                         "since"}
+                if unknown:
+                    self._reply(400, {"error": "unknown query "
+                                               "parameter: "
+                                               + sorted(
+                                                   unknown)[0]})
+                    return
+                filters: dict = {}
+                try:
+                    if "kind" in params:
+                        filters["kind"] = params["kind"][0]
+                    if "contains" in params:
+                        filters["contains"] = \
+                            params["contains"][0]
+                    if "since" in params:
+                        filters["since"] = \
+                            float(params["since"][0])
+                except ValueError:
+                    self._reply(400, {"error": "since must be a "
+                                               "unix timestamp"})
+                    return
                 with state.lock:
                     counters = {"ok": True,
                                 "received": state.received,
@@ -344,7 +397,8 @@ def make_handler(state: ReceiverState) -> type:
                                 "verify_mode": bool(state.key)}
                 self._reply(200, dict(
                     counters,
-                    archive=archive_stats(state.archive)))
+                    archive=filtered_stats(state.archive,
+                                           **filters)))
                 return
             self._reply(404, {"error": "not found"})
 
