@@ -3,9 +3,14 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.75.1
+
+- the fold is recorded: fuzz-33's strict /stats query parser (`parse_stats_query`) and its fuzz pin shipped inside v3.75.0, swept along by a careless `git add -A`; the release note now names it, and the ledger carries the addendum. The record is corrected — not the code.
+
 ## v3.75.0
 
-- the ping verifies its own delivery: every ping carries a random nonce and reads `/stats?kind=ping&contains=<nonce>` back — "1 row(s) matched this ping" is proof under concurrent traffic, where the old global count could lie in either direction. An accepted-but-lost ping is a named warning; a receiver predating the query filters falls back to the global readback, honestly labelled.
+
+- the ping verifies its own delivery: every ping carries a random nonce and reads `/stats?kind=ping&contains=<nonce>` back; the same release also landed fuzz-33: `parse_stats_query`, the strict /stats query parser (repeated parameters, non-finite since values and unknown words are refusals with the reason named), pinned by test_v376 — "1 row(s) matched this ping" is proof under concurrent traffic, where the old global count could lie in either direction. An accepted-but-lost ping is a named warning; a receiver predating the query filters falls back to the global readback, honestly labelled.
 
 ## v3.74.0
 
