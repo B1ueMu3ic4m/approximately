@@ -4570,3 +4570,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          exactly this tree); only the record was wrong. The
          ledger says so now, the release note names the parser,
          and the record is corrected — not the code.
+503. **v3.76.0 - the reader count is counted** (planned):
+       - The README said the log "reads back four ways" — a
+         count that rotted as the digest brief and the fleet
+         dashboard joined the reader (the same rot the
+         "21-check CI matrix" banner suffered in v3.66). The
+         claim is enumerated now — /stats (with its filters),
+         received, the MCP inbox tool, the status frame, the
+         digest brief, the fleet dashboard — and pinned: every
+         named surface must exist in the code, and the count in
+         the sentence must equal the pin. A seventh reader
+         moves both, or the test says where they split.

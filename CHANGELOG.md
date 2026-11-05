@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.76.0
+
+- the reader count is counted: the README's stale "reads back four ways" is now the enumerated six — /stats (with its kind/contains/since filters), `received`, the MCP `inbox` tool, the status frame, the digest brief, the fleet dashboard — and a pin test holds each named surface to its code proof and the count to the list. ARCHITECTURE's one-reader paragraph names the shared filters and the ping's nonce-scoped readback.
+
 ## v3.75.1
 
 - the fold is recorded: fuzz-33's strict /stats query parser (`parse_stats_query`) and its fuzz pin shipped inside v3.75.0, swept along by a careless `git add -A`; the release note now names it, and the ledger carries the addendum. The record is corrected — not the code.
