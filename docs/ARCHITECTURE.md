@@ -269,12 +269,14 @@ layer rather than duplicating it:
   retention's.
 - **`receiver.py`** is the signed channel's other end, and one
   reader serves every surface: `archive_stats` (what /stats
-  returns), `read_archive` (the filter+tail the MCP `inbox` tool
-  and the CLI `received` door share), and `follow_archive` (the
-  on-call terminal's live view) — over an archive that is
-  bounded (rotation), identity-tracked across restarts, and
-  evidence of delivery, never of truth. `webhook-ping` proves
-  the config on demand.
+  returns), `read_archive` (the kind/contains/since filters the
+  MCP `inbox` tool, the CLI `received` door and the scoped
+  /stats probe all share), and `follow_archive` (the on-call
+  terminal's live view) — over an archive that is bounded
+  (rotation), identity-tracked across restarts, and evidence of
+  delivery, never of truth. `webhook-ping` proves the config on
+  demand with a nonce-scoped readback: a nonce matches only the
+  row it rode in on.
 
 ## Invariants worth keeping
 
