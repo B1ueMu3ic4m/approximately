@@ -3177,9 +3177,7 @@ def cmd_webhook_ping(args: argparse.Namespace) -> int:
         return 1
     print(f"ping accepted: HTTP 200 (kind=ping, "
           f"message={payload['message']!r})")
-    nonce = payload["nonce"]
-    assert isinstance(nonce, str)
-    _ping_readback(url, nonce)
+    _ping_readback(url, str(payload["nonce"]))
     return 0
 
 

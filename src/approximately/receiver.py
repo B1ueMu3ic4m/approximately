@@ -349,6 +349,43 @@ def filtered_stats(archive: Path, kind: Optional[str] = None,
     return stats
 
 
+def parse_stats_query(query: str) -> dict:
+    """The /stats query string, parsed strictly: kind, contains
+    and since are the whole vocabulary; anything else, repeated
+    parameters (an ambiguous request), a non-finite since
+    (``1e309`` is ``inf``, not a timestamp) or a value that will
+    not parse raises ValueError — the caller answers 400."""
+    import urllib.parse
+
+    params = urllib.parse.parse_qs(query, keep_blank_values=True)
+    unknown = set(params) - {"kind", "contains", "since"}
+    if unknown:
+        raise ValueError("unknown query parameter: "
+                         + sorted(unknown)[0])
+    filters: dict = {}
+    for key in ("kind", "contains"):
+        if key in params:
+            values = params[key]
+            if len(values) > 1:
+                raise ValueError(f"repeated query parameter: {key}")
+            filters[key] = values[0]
+    if "since" in params:
+        values = params["since"]
+        if len(values) > 1:
+            raise ValueError("repeated query parameter: since")
+        try:
+            since = float(values[0])
+        except ValueError:
+            raise ValueError(
+                "since must be a unix timestamp") from None
+        import math
+
+        if not math.isfinite(since):
+            raise ValueError("since must be a unix timestamp")
+        filters["since"] = since
+    return filters
+
+
 def make_handler(state: ReceiverState) -> type:
     """Build a handler class bound to one ReceiverState (per-test
     servers get fresh state; nothing is class-level)."""
@@ -367,28 +404,10 @@ def make_handler(state: ReceiverState) -> type:
                 import urllib.parse
 
                 split = urllib.parse.urlsplit(self.path)
-                params = urllib.parse.parse_qs(split.query)
-                unknown = set(params) - {"kind", "contains",
-                                         "since"}
-                if unknown:
-                    self._reply(400, {"error": "unknown query "
-                                               "parameter: "
-                                               + sorted(
-                                                   unknown)[0]})
-                    return
-                filters: dict = {}
                 try:
-                    if "kind" in params:
-                        filters["kind"] = params["kind"][0]
-                    if "contains" in params:
-                        filters["contains"] = \
-                            params["contains"][0]
-                    if "since" in params:
-                        filters["since"] = \
-                            float(params["since"][0])
-                except ValueError:
-                    self._reply(400, {"error": "since must be a "
-                                               "unix timestamp"})
+                    filters = parse_stats_query(split.query)
+                except ValueError as exc:
+                    self._reply(400, {"error": str(exc)})
                     return
                 with state.lock:
                     counters = {"ok": True,
