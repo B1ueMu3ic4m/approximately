@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.75.0
+
+- the ping verifies its own delivery: every ping carries a random nonce and reads `/stats?kind=ping&contains=<nonce>` back — "1 row(s) matched this ping" is proof under concurrent traffic, where the old global count could lie in either direction. An accepted-but-lost ping is a named warning; a receiver predating the query filters falls back to the global readback, honestly labelled.
+
 ## v3.74.0
 
 - the /stats probe answers the same filters: `/stats?kind=X` (and `contains=`, `since=`) scopes the census to what matches while bytes/malformed stay channel-global; unknown parameters and hostile values are a 400, not a silent lie. The reader's filters now reach every surface that reads the archive.

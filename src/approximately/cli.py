@@ -3154,8 +3154,11 @@ def cmd_webhook_ping(args: argparse.Namespace) -> int:
               "--key-file): a ping without a signature tests "
               "nothing", file=sys.stderr)
         return 2
+    import secrets
+
     payload = {"kind": "ping",
                "message": str(getattr(args, "message", "") or "ping"),
+               "nonce": secrets.token_hex(8),
                "sent_at": _time.time()}
     try:
         status = notify_webhook([], url, signing_key=key,
@@ -3174,25 +3177,59 @@ def cmd_webhook_ping(args: argparse.Namespace) -> int:
         return 1
     print(f"ping accepted: HTTP 200 (kind=ping, "
           f"message={payload['message']!r})")
-    host = urlparse(url)
-    stats_url = f"{host.scheme}://{host.netloc}/stats"
-    try:
-        import urllib.request
+    nonce = payload["nonce"]
+    assert isinstance(nonce, str)
+    _ping_readback(url, nonce)
+    return 0
 
+
+def _ping_readback(url: str, nonce: str) -> None:
+    """The ping verifies its own delivery: the scoped readback asks
+    /stats for this ping's kind and nonce — under concurrent
+    traffic a global count can be wrong in either direction, a
+    nonce cannot. A receiver older than /stats query filters (or
+    anything else answering 400/404) falls back to the global
+    readback, honestly labelled."""
+    import urllib.request
+    from urllib.parse import quote, urlparse
+
+    host = urlparse(url)
+    base = f"{host.scheme}://{host.netloc}"
+
+    def _fetch(path: str) -> dict:
         with urllib.request.urlopen(  # nosec B310: http(s) checked at the door
-                stats_url, timeout=5) as resp:
-            stats = json.loads(resp.read())
-        archive = stats.get("archive") or {}
-        print(f"receiver archive: {archive.get('rows')} row(s), "
+                base + path, timeout=5) as resp:
+            return json.loads(resp.read())
+
+    scoped = True
+    try:
+        path = (f"/stats?kind=ping&contains={quote(nonce)}")
+        archive = (_fetch(path).get("archive") or {})
+    except Exception:
+        try:
+            archive = (_fetch("/stats").get("archive") or {})
+        except Exception:
+            print("receiver /stats not reachable (skipped)")
+            return
+        scoped = False
+    rows = archive.get("rows") or 0
+    if scoped:
+        print(f"receiver archive (scoped to this ping): "
+              f"{rows} row(s) matched this ping, "
               f"{archive.get('verified')} verified "
               f"({archive.get('malformed')} malformed)")
-        if archive.get("rows") and not archive.get("verified"):
-            print("WARNING: the receiver archived your ping as "
-                  "UNVERIFIED - it has no key configured, so your "
-                  "signature was not checked", file=sys.stderr)
-    except Exception:
-        print("receiver /stats not reachable (skipped)")
-    return 0
+    else:
+        print(f"receiver archive: {rows} row(s), "
+              f"{archive.get('verified')} verified "
+              f"({archive.get('malformed')} malformed)")
+    if rows == 0:
+        print("WARNING: the receiver accepted your ping but the "
+              "scoped readback found nothing - is something else "
+              "answering /stats?", file=sys.stderr)
+    elif not archive.get("verified"):
+        print("WARNING: the receiver archived your ping as "
+              "UNVERIFIED - it has no key configured, so your "
+              "signature was not checked", file=sys.stderr)
 
 
 def _serve_stop(signum: int, frame: Any) -> None:
