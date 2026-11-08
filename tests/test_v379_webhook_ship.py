@@ -79,13 +79,8 @@ def test_ship_refuses_an_unknown_trace(capsys):
         args = argparse.Namespace(trace="nope", url=url,
                                   key_file=_keyfile(),
                                   store=str(store.directory))
-        raised = False
-        try:
-            cmd_webhook_ship(args)
-        except SystemExit as exc:
-            raised = True
-            assert "no trace found" in str(exc)
-        assert raised
+        assert cmd_webhook_ship(args) == 2
+        assert "no trace found" in capsys.readouterr().err
     finally:
         server.shutdown()
 

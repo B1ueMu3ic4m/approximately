@@ -4644,3 +4644,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          store's own oldest-mtime-last statement), and the
          fixture stops leaning on the clock — distinct stamps
          saved back, so the report has something real to sort.
+510. **v3.83.0 - the channel is agent-reachable** (planned):
+       - `webhook-ship` was a shell door only — an agent with an
+         MCP client had no way to move evidence to another box.
+         The `webhook_ship` tool ships the same signed row
+         through the same `_ship_core` (one mechanics, two
+         surfaces — the CLI's output pins hold byte-for-byte,
+         the probe comes back as data: delivered=true is the
+         machine-checkable form of "1 row(s) matched this
+         trace"), signs with APPROXIMATELY_SIGNING_KEY at the
+         tool boundary, and refuses hostile args there. 51
+         tools.

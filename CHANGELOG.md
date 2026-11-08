@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.83.0
+
+- the channel is agent-reachable: the MCP `webhook_ship` tool ships the same signed row as the CLI door through the same `_ship_core` (CLI output byte-for-byte unchanged; the delivery probe is now data — `delivered: true` is the machine-checkable "1 row(s) matched this trace") and signs with `APPROXIMATELY_SIGNING_KEY` at the tool boundary. 51 tools.
+
 ## v3.82.0
 
 - the tie is the store's to break: v3.80.0's `(created_at, trace id)` sort traded a filesystem coin flip for an id coin flip — on a coarse clock two same-tick traces carry the same stamp and a random hex id decided anyway (the v269 cards flipped again that same day). Stamps decide now and the store's incoming order breaks ties (stable sort), and the fixture saves distinct stamps back instead of leaning on the clock.

@@ -3177,20 +3177,18 @@ def cmd_webhook_ping(args: argparse.Namespace) -> int:
         return 1
     print(f"ping accepted: HTTP 200 (kind=ping, "
           f"message={payload['message']!r})")
-    _delivery_readback(url, "ping", str(payload["nonce"]),
-                       "this ping")
+    _print_probe(_delivery_probe(url, "ping",
+                                 str(payload["nonce"])),
+                 "this ping")
     return 0
 
 
-def _delivery_readback(url: str, kind: str, needle: str,
-                       noun: str) -> None:
-    """A sender verifies its own delivery: the scoped readback
-    asks /stats for this shipment's kind and needle — under
-    concurrent traffic a global count can be wrong in either
-    direction, a nonce (or a trace id) cannot. A receiver older
-    than /stats query filters (or anything else answering
-    400/404) falls back to the global readback, honestly
-    labelled."""
+def _delivery_probe(url: str, kind: str, needle: str) -> dict:
+    """The scoped delivery probe, as data: {"scoped", "rows",
+    "verified", "malformed", "reachable"} — the CLI prints it,
+    the MCP tool returns it. A receiver older than /stats query
+    filters (or anything else answering 400/404) falls back to
+    the global census, honestly flagged."""
     import urllib.request
     from urllib.parse import quote, urlparse
 
@@ -3210,27 +3208,77 @@ def _delivery_readback(url: str, kind: str, needle: str,
         try:
             archive = (_fetch("/stats").get("archive") or {})
         except Exception:
-            print("receiver /stats not reachable (skipped)")
-            return
+            return {"scoped": False, "reachable": False,
+                    "rows": 0, "verified": 0, "malformed": 0}
         scoped = False
-    rows = archive.get("rows") or 0
-    if scoped:
+    return {"scoped": scoped, "reachable": True,
+            "rows": archive.get("rows") or 0,
+            "verified": archive.get("verified") or 0,
+            "malformed": archive.get("malformed") or 0}
+
+
+def _print_probe(probe: dict, noun: str) -> None:
+    """The probe's terminal voice — same words, every sender."""
+    if not probe.get("reachable"):
+        print("receiver /stats not reachable (skipped)")
+        return
+    rows = probe.get("rows") or 0
+    if probe.get("scoped"):
         print(f"receiver archive (scoped to {noun}): "
               f"{rows} row(s) matched {noun}, "
-              f"{archive.get('verified')} verified "
-              f"({archive.get('malformed')} malformed)")
+              f"{probe.get('verified')} verified "
+              f"({probe.get('malformed')} malformed)")
     else:
         print(f"receiver archive: {rows} row(s), "
-              f"{archive.get('verified')} verified "
-              f"({archive.get('malformed')} malformed)")
+              f"{probe.get('verified')} verified "
+              f"({probe.get('malformed')} malformed)")
     if rows == 0:
         print(f"WARNING: the receiver accepted your {noun} but "
               "the scoped readback found nothing - is something "
               "else answering /stats?", file=sys.stderr)
-    elif not archive.get("verified"):
+    elif not probe.get("verified"):
         print(f"WARNING: the receiver archived your {noun} as "
               "UNVERIFIED - it has no key configured, so your "
               "signature was not checked", file=sys.stderr)
+
+
+def _ship_core(store_dir: str, trace_spec: str, url: str,
+               key: bytes) -> dict:
+    """The ship mechanics, shared by the CLI door and the MCP
+    tool: resolve the trace, post it signed, read the scoped
+    probe back. Returns {"trace_id", "steps", "status",
+    "probe"}; raises ValueError on a bad URL, an unknown trace
+    or a refused shipment — the message is the user-facing
+    hint, so both surfaces say the same thing."""
+    import time as _time
+    from urllib.parse import urlparse
+
+    from .fleet import notify_webhook
+
+    if urlparse(url).scheme not in ("http", "https"):
+        raise ValueError("webhook URL must be http(s)")
+    try:
+        store = TraceStore(Path(store_dir))
+        trace = _load_trace(trace_spec, store)
+    except SystemExit as exc:
+        raise ValueError(str(exc)) from None
+    payload = {"kind": "trace_ship",
+               "trace": trace.to_dict(),
+               "shipped_at": _time.time()}
+    try:
+        status = notify_webhook([], url, signing_key=key,
+                                payload=payload)
+    except RuntimeError as exc:
+        raise ValueError(f"ship failed: {exc}") from None
+    if status != "200":
+        hint = {"HTTP 401": "signature refused - keys differ?",
+                "HTTP 400": "body refused - too large for "
+                            "--max-bytes?"}.get(
+            status, "receiver answered, not accepted")
+        raise ValueError(f"ship NOT accepted: {status} ({hint})")
+    return {"trace_id": trace.id, "steps": len(trace.steps),
+            "status": status,
+            "probe": _delivery_probe(url, "trace_ship", trace.id)}
 
 
 def cmd_webhook_ship(args: argparse.Namespace) -> int:
@@ -3240,44 +3288,23 @@ def cmd_webhook_ship(args: argparse.Namespace) -> int:
     receiver archives it as evidence of delivery, and importing
     it back is the receiving box's call (foreign evidence must
     not acquire OUR integrity chain)."""
-    import time as _time
-    from urllib.parse import urlparse
-
-    from .fleet import notify_webhook
     from .integrity import load_key
 
-    url = str(args.url)
-    if urlparse(url).scheme not in ("http", "https"):
-        print("error: webhook URL must be http(s)", file=sys.stderr)
-        return 2
     key = load_key(getattr(args, "key_file", None))
     if not key:
         print("error: no signing key (APPROXIMATELY_SIGNING_KEY or "
               "--key-file): a shipment without a signature tests "
               "nothing", file=sys.stderr)
         return 2
-    store = TraceStore(args.store)
-    trace = _load_trace(args.trace, store)
-    payload = {"kind": "trace_ship",
-               "trace": trace.to_dict(),
-               "shipped_at": _time.time()}
     try:
-        status = notify_webhook([], url, signing_key=key,
-                                payload=payload)
-    except RuntimeError as exc:
-        print(f"ship failed: {exc}", file=sys.stderr)
-        return 1
-    if status != "200":
-        hint = {"HTTP 401": "signature refused - keys differ?",
-                "HTTP 400": "body refused - too large for "
-                            "--max-bytes?"}.get(
-            status, "receiver answered, not accepted")
-        print(f"ship NOT accepted: {status} ({hint})",
-              file=sys.stderr)
-        return 1
-    print(f"shipped: HTTP 200 (trace {trace.id}, "
-          f"{len(trace.steps)} step(s))")
-    _delivery_readback(url, "trace_ship", trace.id, "this trace")
+        result = _ship_core(str(args.store), str(args.trace),
+                            str(args.url), key)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2 if "must be http(s)" in str(exc) or             "no trace found" in str(exc) else 1
+    print(f"shipped: HTTP 200 (trace {result['trace_id']}, "
+          f"{result['steps']} step(s))")
+    _print_probe(result["probe"], "this trace")
     return 0
 
 

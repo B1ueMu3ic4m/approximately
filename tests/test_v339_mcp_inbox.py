@@ -85,8 +85,8 @@ def test_inbox_is_registered_and_browsable():
     assert row["kind"] == "spool"
 
 
-def test_fifty_tools_and_the_claim_says_so():
+def test_fifty_one_tools_and_the_claim_says_so():
     from approximately import meta
 
-    assert len(_TOOLS) == 50
-    assert meta.tool_count_claim() == 50
+    assert len(_TOOLS) == 51
+    assert meta.tool_count_claim() == 51
