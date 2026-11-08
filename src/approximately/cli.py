@@ -3351,9 +3351,13 @@ def _inbox_plan(archive: Path, store: TraceStore,
         if not isinstance(tid, str) or not tid:
             continue
         if tid not in shipments:
+            from .store import _safe_id
+
             try:
                 Trace.from_dict(trace_data)
-                ok = True
+                # the id is about to become a filename on apply:
+                # a name, never a path
+                ok = bool(_safe_id(tid))
             except (ValueError, TypeError, KeyError):
                 ok = False
             shipments[tid] = {"trace": trace_data,

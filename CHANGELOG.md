@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.86.0
+
+- trace ids are names, not paths: the store's save wrote `directory/<id>.json` unfenced — a hostile id shipped in as a trace_ship row and imported with the open-tap override was an arbitrary-write primitive on the receiving box. Save refuses anything that is not one safe token; the explicit-path load feature keeps working (climbs refused); and the import door marks a non-name id malformed at plan time, so the poison is named and never reaches the apply loop as a filename.
+
 ## v3.85.0
 
 - the brief counts the evidence waiting at the door: the digest brief and the status frame surface `shipments_awaiting` — verified trace_ship rows whose traces are not in the store yet (deduped by id, the whole archive counted: awaiting is about now, not about the window) — and name the next step (`inbox-import will bring them home`). An already-imported arc is silent, not a zero parade.
