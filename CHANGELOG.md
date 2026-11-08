@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.81.0
+
+- fuzz 34, the import door meets hostile shipments: `inbox-import --apply` parsed every trace_ship record inside the apply loop — a corrupt or hostile archived row (`steps: "not a list"`) crashed the door, and an open tap can write anything. Parse at plan time now: malformed records are marked in the plan, refused by name, counted in the JSON, and the apply loop never sees a record the plan did not vouch for.
+
 ## v3.80.0
 
 - the breach report follows stamps, not the filesystem: `_breached_agents` sorted nothing — it inherited the directory's listing order while promising stamp order, and two same-tick traces flipped the report on a Windows runner. Hits now sort by (created_at, trace id); a pin feeds them in reverse and demands the stamps anyway.

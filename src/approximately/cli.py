@@ -3284,10 +3284,12 @@ def cmd_webhook_ship(args: argparse.Namespace) -> int:
 def _inbox_plan(archive: Path, store: TraceStore,
                 include_rotated: bool) -> tuple:
     """The archive's trace_ship rows as (rows, shipments, plan):
-    shipments maps trace id -> {trace, verified} (two rows
-    shipping one trace import it once); plan rows carry the
-    verified split and whether the store already has the id."""
+    shipments maps trace id -> {trace, verified, ok} (two rows
+    shipping one trace import it once); a record that will not
+    parse is marked ``ok: False`` at plan time — an open tap's
+    garbage must never reach the apply loop as a crash."""
     from .receiver import read_archive
+    from .trace import Trace
 
     payload = read_archive(archive, limit=10 ** 9,
                            kind="trace_ship",
@@ -3304,15 +3306,40 @@ def _inbox_plan(archive: Path, store: TraceStore,
         if not isinstance(tid, str) or not tid:
             continue
         if tid not in shipments:
+            try:
+                Trace.from_dict(trace_data)
+                ok = True
+            except (ValueError, TypeError, KeyError):
+                ok = False
             shipments[tid] = {"trace": trace_data,
                               "verified": row.get("verified")
-                              is True}
+                              is True,
+                              "ok": ok}
     plan = [{"id": tid,
              "task": (s["trace"].get("task") or "")[:60],
              "verified": s["verified"],
+             "malformed": not s["ok"],
              "present": store.load(tid) is not None}
             for tid, s in shipments.items()]
     return rows, shipments, plan
+
+
+def _inbox_dryrun(args: argparse.Namespace, out: dict,
+                  archive: Path, plan: list,
+                  importable_n: int) -> None:
+    """The plan's output: JSON on --json, or the terminal table
+    with the counts, the malformed refusal named and the
+    dry-run hint."""
+    if getattr(args, "json", False):
+        print(json.dumps(out, indent=2))
+        return
+    _print_inbox_plan(archive, out, plan, importable_n)
+    if out["malformed"]:
+        print(f"  ({out['malformed']} malformed shipment(s) "
+              "refused - they will not parse as traces)",
+              file=sys.stderr)
+    if plan and importable_n:
+        print("dry run - add --apply to import")
 
 
 def _print_inbox_plan(archive: Path, out: dict, plan: list,
@@ -3323,20 +3350,24 @@ def _print_inbox_plan(archive: Path, out: dict, plan: list,
           f"{out['unverified_skipped']} unverified-skipped")
     for p_ in plan:
         mark = ("present" if p_["present"] else
-                ("unverified" if not p_["verified"]
-                 else "importable"))
+                ("malformed" if p_["malformed"] else
+                 ("unverified" if not p_["verified"]
+                  else "importable")))
         print(f"  {p_['id']}  {p_['task']}  [{mark}]")
 
 
 def _inbox_importable(plan: list,
                       allow_unverified: bool) -> tuple:
     """(importable, unverified_skipped): present ids are never
-    re-imported, and unverified rows only with the override —
+    re-imported, records that will not parse are never
+    importable, and unverified rows only with the override —
     an open tap's rows could be anything."""
     importable = [p_ for p_ in plan if not p_["present"]
+                  and not p_["malformed"]
                   and (p_["verified"] or allow_unverified)]
     skipped = sum(1 for p_ in plan
-                  if not p_["present"] and not p_["verified"])
+                  if not p_["present"] and not p_["verified"]
+                  and not p_["malformed"])
     return importable, skipped
 
 
@@ -3376,13 +3407,10 @@ def cmd_inbox_import(args: argparse.Namespace) -> int:
                "already_present": sum(1 for p_ in plan
                                       if p_["present"]),
                "unverified_skipped": skipped_unverified,
+               "malformed": sum(1 for p_ in plan
+                                if p_["malformed"]),
                "traces": plan}
-        if getattr(args, "json", False):
-            print(json.dumps(out, indent=2))
-        else:
-            _print_inbox_plan(archive, out, plan, len(importable))
-            if plan and importable:
-                print("dry run - add --apply to import")
+        _inbox_dryrun(args, out, archive, plan, len(importable))
         return 0
     imported = _inbox_apply(store, shipments, importable)
     print(f"imported {len(imported)} trace(s) from the channel "

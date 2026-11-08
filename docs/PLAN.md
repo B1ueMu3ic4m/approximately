@@ -4621,3 +4621,15 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          promise is kept now — hits sort by (created_at, trace
          id) — and a pin feeds the traces in reverse and demands
          the stamp order anyway.
+508. **v3.81.0 - fuzz 34: the import door meets hostile
+       shipments** (planned):
+       - `inbox-import --apply` trusted every trace_ship record
+         far enough to parse it inside the apply loop — a
+         hostile (or merely corrupt) archived row crashed the
+         door with a traceback; `steps: "not a list"` was
+         enough, and an open tap can write anything. Parse at
+         plan time now: a record that will not parse is marked
+         malformed in the plan, refused by name in the output,
+         counted in the JSON, and the apply loop never sees a
+         record the plan did not vouch for. No raise escapes
+         the door.
