@@ -4664,3 +4664,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          untouched. Recorded here because a near-miss that
          ships a fix is still worth naming — the checkout step
          is now part of the round's own checklist.
+512. **v3.84.0 - the receiving half is agent-reachable too**
+       (planned):
+       - `inbox-import` was shell-only. The `inbox_import` tool
+         reads the same plan through the same helpers, and its
+         apply carries the retention two-flag gate (apply +
+         confirm) — importing is a store mutation, and store
+         mutations do not ride on one flag. Verified rows only
+         unless allow_unverified, malformed records never reach
+         the apply loop, already-present ids never re-import,
+         and the chain stays the sender's (stamp=False). 52
+         tools.

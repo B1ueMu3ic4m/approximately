@@ -1236,6 +1236,38 @@ _TOOLS: List[Dict[str, Any]] = [
         },
     },
     {
+        "name": "inbox_import",
+        "description": "The receiving half of webhook_ship: read "
+                       "trace_ship rows back into the local "
+                       "store. Plan by default; the apply is a "
+                       "two-flag gate (apply + confirm). Only "
+                       "verified rows are importable unless "
+                       "allow_unverified, and every import "
+                       "saves with stamp=False — foreign "
+                       "evidence keeps its own integrity chain.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "apply": {"type": "boolean",
+                          "description": "import for real "
+                                         "(default: plan only)"},
+                "confirm": {"type": "boolean",
+                            "description": "required alongside "
+                                           "apply — store "
+                                           "mutations do not ride "
+                                           "on one flag"},
+                "allow_unverified": {"type": "boolean",
+                                     "description": "also import "
+                                                    "open-tap rows "
+                                                    "(loudly)"},
+                "include_rotated": {"type": "boolean",
+                                    "description": "fold the "
+                                                   "previous log in"},
+            },
+        },
+    },
+    {
         "name": "webhook_ship",
         "description": "Ship a recorded trace to another box's "
                        "receiver over the signed channel: the "
@@ -2613,6 +2645,44 @@ def _tool_webhook_ship(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                 probe=probe)
 
 
+def _tool_inbox_import(ctx: ServerContext,
+                       args: Dict[str, Any]) -> dict:
+    """The receiving half of webhook_ship, at the tool boundary:
+    trace_ship rows read back into the local store. A plan by
+    default (reading is not deciding); the apply is the
+    retention two-flag gate (apply + confirm) — importing is a
+    store mutation, and store mutations do not ride on one
+    flag. Only verified rows are importable unless
+    allow_unverified is set (an open tap's rows could be
+    anything), and foreign evidence keeps its own integrity
+    chain: stamp=False, never re-stamped by our key."""
+    from .cli import _inbox_apply, _inbox_importable, _inbox_plan
+
+    store = _store(ctx, args)
+    archive = store.directory / "webhook-log.jsonl"
+    _rows, shipments, plan = _inbox_plan(
+        archive, store,
+        bool(args.get("include_rotated", False)))
+    importable, skipped_unverified = _inbox_importable(
+        plan, bool(args.get("allow_unverified", False)))
+    already = sum(1 for p_ in plan if p_["present"])
+    malformed = sum(1 for p_ in plan if p_["malformed"])
+    if not args.get("apply"):
+        return {"found": len(plan),
+                "importable": len(importable),
+                "already_present": already,
+                "unverified_skipped": skipped_unverified,
+                "malformed": malformed,
+                "traces": plan}
+    if not args.get("confirm"):
+        raise ValueError("inbox_import apply needs confirm: true")
+    imported = _inbox_apply(store, shipments, importable)
+    return {"applied": imported, "found": len(plan),
+            "importable": len(importable),
+            "unverified_skipped": skipped_unverified,
+            "malformed": malformed}
+
+
 def _opt_int(args: Dict[str, Any], key: str) -> Optional[int]:
     value = args.get(key)
     return int(value) if value is not None else None
@@ -2670,6 +2740,7 @@ _HANDLERS = {
     "retention": _tool_retention,
     "inbox": _tool_inbox,
     "webhook_ship": _tool_webhook_ship,
+    "inbox_import": _tool_inbox_import,
 }
 
 

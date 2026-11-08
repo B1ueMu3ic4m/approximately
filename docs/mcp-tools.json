@@ -1,5 +1,5 @@
 {
-  "count": 51,
+  "count": 52,
   "tools": [
     {
       "name": "list_traces",
@@ -1309,6 +1309,34 @@
           "include_rotated": {
             "type": "boolean",
             "description": "fold the previous log (<archive>.1) in ahead of the current one"
+          }
+        }
+      }
+    },
+    {
+      "name": "inbox_import",
+      "description": "The receiving half of webhook_ship: read trace_ship rows back into the local store. Plan by default; the apply is a two-flag gate (apply + confirm). Only verified rows are importable unless allow_unverified, and every import saves with stamp=False \u2014 foreign evidence keeps its own integrity chain.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "apply": {
+            "type": "boolean",
+            "description": "import for real (default: plan only)"
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "required alongside apply \u2014 store mutations do not ride on one flag"
+          },
+          "allow_unverified": {
+            "type": "boolean",
+            "description": "also import open-tap rows (loudly)"
+          },
+          "include_rotated": {
+            "type": "boolean",
+            "description": "fold the previous log in"
           }
         }
       }

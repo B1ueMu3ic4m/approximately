@@ -106,7 +106,7 @@ def test_server_serves_after_the_fuzz(tmp_path, monkeypatch):
                 ctx)
     reply = handle_request(
         {"jsonrpc": "2.0", "id": 10, "method": "tools/list"}, ctx)
-    assert len(reply["result"]["tools"]) == 51, \
+    assert len(reply["result"]["tools"]) == 52, \
         "the surface is intact after the storm"
 
 
