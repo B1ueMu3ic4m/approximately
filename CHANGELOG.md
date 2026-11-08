@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.82.0
+
+- the tie is the store's to break: v3.80.0's `(created_at, trace id)` sort traded a filesystem coin flip for an id coin flip — on a coarse clock two same-tick traces carry the same stamp and a random hex id decided anyway (the v269 cards flipped again that same day). Stamps decide now and the store's incoming order breaks ties (stable sort), and the fixture saves distinct stamps back instead of leaning on the clock.
+
 ## v3.81.0
 
 - fuzz 34, the import door meets hostile shipments: `inbox-import --apply` parsed every trace_ship record inside the apply loop — a corrupt or hostile archived row (`steps: "not a list"`) crashed the door, and an open tap can write anything. Parse at plan time now: malformed records are marked in the plan, refused by name, counted in the JSON, and the apply loop never sees a record the plan did not vouch for.

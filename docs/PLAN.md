@@ -4633,3 +4633,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          counted in the JSON, and the apply loop never sees a
          record the plan did not vouch for. No raise escapes
          the door.
+509. **v3.82.0 - the tie is the store's to break** (planned):
+       - v3.80.0's (created_at, trace id) sort traded a
+         filesystem coin flip for an id coin flip: on a coarse
+         clock (Windows ~15ms) two same-tick traces carry the
+         same stamp, and a random hex id decided the report
+         anyway — the v269 cards flipped again on a runner the
+         same day. Stamps decide now and the store's incoming
+         order breaks ties (a stable sort: the listing is the
+         store's own oldest-mtime-last statement), and the
+         fixture stops leaning on the clock — distinct stamps
+         saved back, so the report has something real to sort.

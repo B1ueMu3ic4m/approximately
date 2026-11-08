@@ -48,6 +48,14 @@ def _burned_per_agent(store_dir):
                   budget=budget2) as rec:
         rec.tool("book", agent="booker", tokens=500)
         rec.respond("done", success=True)
+    # distinct stamps, saved back: inside one coarse clock tick
+    # (Windows ~15ms) both traces carry the same created_at, and
+    # a report the stamps cannot order inherits a coin flip
+    traces = store.list_traces()
+    for trace, stamp in zip(traces, (1000.0, 2000.0),
+                            strict=False):
+        trace.created_at = stamp
+        store.save(trace)
     return store
 
 
