@@ -4688,3 +4688,15 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          counted (awaiting is about now, not about the window)
          — and name the next step in the brief's own voice. An
          already-imported arc is silent, not a zero parade.
+514. **v3.86.0 - trace ids are names, not paths** (planned):
+       - The store's save wrote `directory/<id>.json` with no
+         fence: a hostile trace id (`../../tmp/evil`) shipped in
+         as a trace_ship row and imported with the operator's
+         open-tap override turned the receiving box's store into
+         an arbitrary-write primitive. Save refuses anything
+         that is not one safe token now; the explicit-path LOAD
+         feature (the caller names the file, like cat) keeps
+         working with climbs refused; and the import door marks
+         a shipment whose id is not a name as malformed at plan
+         time — the poison is named in the plan and never
+         reaches the apply loop as a filename.

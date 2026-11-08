@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from pathlib import Path
 from typing import List, Optional
@@ -29,6 +30,19 @@ def stamped_breach(meta: object) -> bool:
     return (isinstance(meta, dict)
             and isinstance(meta.get("budget"), dict)
             and meta["budget"].get("exceeded") is True)
+
+
+SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+
+def _safe_id(trace_id: str) -> bool:
+    """A trace id is a NAME, not a path: one safe-token token, no
+    separators, no climb, no dotfiles. Anything else is refused
+    at the store boundary — save() writes ``directory/<id>.json``
+    and a hostile id (shipped in, say, as a trace_ship row)
+    must never turn that into an arbitrary write, and load()
+    must never read past the store on one either."""
+    return bool(trace_id) and bool(SAFE_ID.match(trace_id))
 
 
 def trace_files(directory: "Path") -> List["Path"]:
@@ -90,6 +104,10 @@ class TraceStore:
             from .integrity import load_key, sign
 
             sign(trace, key=load_key())
+        if not _safe_id(trace.id):
+            raise ValueError(
+                f"trace id {trace.id!r} is not a safe name - "
+                "ids are names, not paths")
         path = self.directory / f"{trace.id}.json"
         lock = self.directory / f".{trace.id}.lock"
         payload = trace.to_json()
@@ -324,13 +342,22 @@ class TraceStore:
         return stamped_breach(trace.meta)
 
     def _resolve(self, trace_id: str) -> Optional[Path]:
+        # three shapes: an explicit .json file, an explicit path
+        # that wants .json appended (the caller names it, like
+        # cat — climbs still refused), and a bare safe token
+        # resolved inside the store's fence. Save refuses
+        # anything but the last shape: the write vector is the
+        # one untrusted ids can reach.
         path = Path(trace_id)
-        # block traversal: an id may name an explicit .json file, but never
-        # may it climb out of the caller's intent via parent segments
         if ".." in path.parts:
             return None
-        if path.is_file():
+        if path.suffix == ".json" and path.is_file():
             return path
+        explicit = Path(str(path) + ".json")
+        if path.suffix != ".json" and explicit.is_file():
+            return explicit
+        if not _safe_id(trace_id):
+            return None
         candidate = self.directory / f"{trace_id}.json"
         return candidate if candidate.is_file() else None
 
