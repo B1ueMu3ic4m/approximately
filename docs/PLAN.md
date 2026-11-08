@@ -4675,3 +4675,16 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          the apply loop, already-present ids never re-import,
          and the chain stays the sender's (stamp=False). 52
          tools.
+513. **v3.85.0 - the brief counts the evidence waiting at the
+       door** (planned):
+       - The evidence arc shipped twice over (webhook-ship,
+         inbox-import, both surfaces) but nothing TOLD the
+         operator the middle step was owed: traces arrived as
+         trace_ship rows and sat in the archive until someone
+         thought to ask. The digest brief and the status frame
+         count shipments_awaiting now — verified rows whose
+         traces are not in the store yet, a trace counted once
+         however many rows carried it, the whole archive
+         counted (awaiting is about now, not about the window)
+         — and name the next step in the brief's own voice. An
+         already-imported arc is silent, not a zero parade.

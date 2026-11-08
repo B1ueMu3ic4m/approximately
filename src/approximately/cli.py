@@ -1441,12 +1441,18 @@ def _status_payload(store: Any, traces: list, digest_dir: Any,
 
     inbox = read_archive(store.directory / "webhook-log.jsonl",
                          limit=0)
+    from .digest import shipments_awaiting
+
+    awaiting = shipments_awaiting(
+        store, store.directory / "webhook-log.jsonl") \
+        if inbox["rows"] else 0
     payload["webhook_inbox"] = {
         "present": inbox["bytes"] > 0,
         "rows": inbox["rows"],
         "verified": inbox["verified"],
         "unverified": inbox["unverified"],
         "kinds": inbox["kinds"],
+        "shipments_awaiting": awaiting,
     }
     _payload_forecasts(payload, trend, spend_ceiling,
                        failure_allowance)
@@ -1537,6 +1543,28 @@ def _write_drift_line(buf: Any, payload: dict) -> None:
                   f"{'; '.join(parts)}\n")
 
 
+def _write_inbox_lines(buf: Any, inbox: dict) -> None:
+    """The frame's webhook-inbox section: the counts, the kind
+    census (the digest's exact format), and the next-step note
+    when shipped evidence is waiting at the door."""
+    if not inbox.get("present"):
+        return
+    buf.write(f"  webhook inbox: {inbox['rows']} row(s) "
+              f"({inbox['verified']} verified, "
+              f"{inbox['unverified']} unverified)\n")
+    kinds = inbox.get("kinds") or {}
+    if kinds:
+        census = ", ".join(
+            f"{kind} x{count}" for kind, count in
+            sorted(kinds.items()))
+        buf.write(f"    kinds: {census}\n")
+    awaiting = inbox.get("shipments_awaiting") or 0
+    if awaiting:
+        buf.write(f"    shipped evidence awaiting import: "
+                  f"{awaiting} trace(s) - inbox-import will "
+                  "bring them home\n")
+
+
 def _render_status(args: argparse.Namespace) -> str:
     """One status frame — shared by the one-shot and watch modes."""
     import io as _io
@@ -1586,17 +1614,7 @@ def _render_status(args: argparse.Namespace) -> str:
     if ledger_intact is not None:
         buf.write("  ledger: "
                   + ("intact" if ledger_intact else "BROKEN") + "\n")
-    inbox = payload.get("webhook_inbox") or {}
-    if inbox.get("present"):
-        buf.write(f"  webhook inbox: {inbox['rows']} row(s) "
-                  f"({inbox['verified']} verified, "
-                  f"{inbox['unverified']} unverified)\n")
-        kinds = inbox.get("kinds") or {}
-        if kinds:
-            census = ", ".join(
-                f"{kind} x{count}" for kind, count in
-                sorted(kinds.items()))
-            buf.write(f"    kinds: {census}\n")
+    _write_inbox_lines(buf, payload.get("webhook_inbox") or {})
     if payload["top_recidivist"]:
         buf.write(f"  top recidivist: {payload['top_recidivist']}\n")
     worst_tool = payload.get("worst_tool")

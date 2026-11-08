@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.85.0
+
+- the brief counts the evidence waiting at the door: the digest brief and the status frame surface `shipments_awaiting` — verified trace_ship rows whose traces are not in the store yet (deduped by id, the whole archive counted: awaiting is about now, not about the window) — and name the next step (`inbox-import will bring them home`). An already-imported arc is silent, not a zero parade.
+
 ## v3.84.0
 
 - the receiving half is agent-reachable too: the MCP `inbox_import` tool reads the same plan through the same helpers, and its apply carries the retention two-flag gate (apply + confirm — importing is a store mutation, and store mutations do not ride on one flag). Verified rows only unless `allow_unverified`, malformed records never reach the apply loop, already-present ids never re-import, and the chain stays the sender's (`stamp=False`). 52 tools.
