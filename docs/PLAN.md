@@ -4700,3 +4700,10 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          a shipment whose id is not a name as malformed at plan
          time — the poison is named in the plan and never
          reaches the apply loop as a filename.
+515. **v3.87.0 - awaiting sees yesterday too** (planned):
+       - `shipments_awaiting` read the current log only: a
+         shipment that landed at 23:59 rotated at midnight and
+         the 00:01 brief went silent about evidence that was
+         still waiting at the door. The rotated log counts now
+         — awaiting is about now, and rotation is the channel's
+         plumbing, not the operator's clock.

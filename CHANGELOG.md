@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.87.0
+
+- awaiting sees yesterday too: `shipments_awaiting` read the current log only, so a shipment that landed at 23:59 rotated at midnight and the 00:01 brief went silent about evidence still waiting at the door. The rotated log counts now — rotation is the channel's plumbing, not the operator's clock.
+
 ## v3.86.0
 
 - trace ids are names, not paths: the store's save wrote `directory/<id>.json` unfenced — a hostile id shipped in as a trace_ship row and imported with the open-tap override was an arbitrary-write primitive on the receiving box. Save refuses anything that is not one safe token; the explicit-path load feature keeps working (climbs refused); and the import door marks a non-name id malformed at plan time, so the poison is named and never reaches the apply loop as a filename.

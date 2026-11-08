@@ -146,8 +146,11 @@ def shipments_awaiting(store: TraceStore, archive: Path) -> int:
 
     seen: set = set()
     awaiting = 0
+    # the rotated log counts too: a shipment that landed at
+    # 23:59 rotated at midnight is still waiting at 00:01
     for row in read_archive(archive, limit=10 ** 9,
-                            kind="trace_ship")["recent"]:
+                            kind="trace_ship",
+                            include_rotated=True)["recent"]:
         body = row.get("payload")
         trace = body.get("trace") if isinstance(body, dict) \
             else None
