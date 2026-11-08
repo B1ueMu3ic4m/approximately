@@ -97,8 +97,9 @@ class StoreSummary:
 
 
 def _breach_hits(traces: list) -> List[tuple]:
-    """(created_at, trace id, agent name) per breach — the raw
-    material the stamp-ordered report sorts on."""
+    """(created_at, trace id, agent name) per breach, in the
+    store's incoming order — the raw material the report sorts
+    on (stamps decide; the incoming order breaks ties)."""
     found: List[tuple] = []
     for t in traces:
         if not isinstance(t.meta, dict):
@@ -116,13 +117,15 @@ def _breach_hits(traces: list) -> List[tuple]:
 
 def _breached_agents(traces: list) -> List[str]:
     """Agents named by per-agent ceilings as breached, in stamp
-    order — the trace's own created_at, not the directory's
-    listing order: two traces written in the same clock tick can
-    list in either order on some filesystems, and a breach
-    report must not inherit that coin flip."""
+    order. The trace's own created_at decides; the store's
+    incoming order breaks ties — a stable sort, because two
+    traces written inside one coarse clock tick (Windows ~15ms)
+    carry the same stamp, and neither a hex id nor a filesystem
+    listing may decide a report the stamps cannot."""
     seen: set = set()
     names: List[str] = []
-    for _stamp, _tid, name in sorted(_breach_hits(traces)):
+    hits = sorted(_breach_hits(traces), key=lambda h: h[0])
+    for _stamp, _tid, name in hits:
         if name not in seen:
             seen.add(name)
             names.append(name)
