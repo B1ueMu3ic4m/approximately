@@ -15,6 +15,8 @@ import datetime as _dt
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from .store import TraceStore
+
 
 def _week_section(store: Any, digest_dir: Optional[str],
                   ref: _dt.date) -> Optional[dict]:
@@ -128,7 +130,35 @@ def _inbox_section(store: Any, since_days: int = 1) -> dict:
     return {"present": True, "rows": len(rows),
             "verified": verified, "unverified": len(rows)
             - verified, "kinds": kinds,
+            "shipments_awaiting": shipments_awaiting(store,
+                                                     archive),
             "first_malformed": stats["first_malformed"]}
+
+
+def shipments_awaiting(store: TraceStore, archive: Path) -> int:
+    """Verified trace_ship rows whose traces are not in the store
+    yet — the brief's "evidence waiting at the door" count. A
+    trace id counts once, however many rows carried it, and the
+    whole archive counts (awaiting is about now, not about the
+    window): the brief's next-step note must not hide behind a
+    window boundary."""
+    from .receiver import read_archive
+
+    seen: set = set()
+    awaiting = 0
+    for row in read_archive(archive, limit=10 ** 9,
+                            kind="trace_ship")["recent"]:
+        body = row.get("payload")
+        trace = body.get("trace") if isinstance(body, dict) \
+            else None
+        tid = trace.get("id") if isinstance(trace, dict) \
+            else None
+        if row.get("verified") is True and \
+                isinstance(tid, str) and tid not in seen:
+            seen.add(tid)
+            if store.load(tid) is None:
+                awaiting += 1
+    return awaiting
 
 
 def _delta_pct(d: Optional[float]) -> str:
@@ -192,6 +222,11 @@ def _render_inbox(payload: dict) -> List[str]:
         f"{k} x{v}" for k, v in sorted(inbox["kinds"].items()))) \
         if inbox["kinds"] else ""
     lines = [line + kinds]
+    awaiting = inbox.get("shipments_awaiting") or 0
+    if awaiting:
+        lines.append(f"  shipped evidence awaiting import: "
+                     f"{awaiting} trace(s) - inbox-import "
+                     "will bring them home")
     if inbox.get("first_malformed"):
         lines.append(f"  first malformed: "
                      f"{inbox['first_malformed']}")
