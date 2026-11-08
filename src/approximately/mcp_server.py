@@ -1227,6 +1227,11 @@ _TOOLS: List[Dict[str, Any]] = [
                                     "description": "only rows the "
                                                    "open tap marked "
                                                    "unverified"},
+                "include_rotated": {"type": "boolean",
+                                    "description": "fold the previous "
+                                                   "log (<archive>.1) "
+                                                   "in ahead of the "
+                                                   "current one"},
             },
         },
     },
@@ -2540,6 +2545,7 @@ def _tool_inbox(ctx: ServerContext, args: Dict[str, Any]) -> dict:
         since=args.get("since"),
         kind=kind,
         contains=contains,
+        include_rotated=bool(args.get("include_rotated", False)),
         unverified_only=bool(args.get("unverified_only", False)))
     rows = payload["recent"]
     if args.get("redact"):
