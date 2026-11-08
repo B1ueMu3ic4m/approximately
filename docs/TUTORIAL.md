@@ -248,9 +248,13 @@ that predates the query filters falls back to the global
 count, honestly labelled). `webhook-ship TRACE URL` moves
 evidence the same way: a recorded trace posts through the
 signed channel as a `trace_ship` row, integrity block intact,
-and the scoped readback proves THIS trace landed - what the
-receiving box does with it is its call, and foreign evidence
-never acquires the receiver's chain.
+and the scoped readback proves THIS trace landed. The
+receiving half exists too: `inbox-import` reads `trace_ship`
+rows back into the local store — a plan by default (--apply to
+import), verified rows only (an open tap's rows could be
+anything; --allow-unverified imports them loudly), and every
+import saves with stamp=False: foreign evidence keeps its own
+integrity chain, never re-stamped by the receiver's key.
 
 The brief reads the store's webhook inbox too: **overnight
 arrivals (webhook)** — the window's delivered rows with their

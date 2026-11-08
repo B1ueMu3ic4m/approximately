@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.79.0
+
+- the receiving half closes the evidence loop: `inbox-import` reads `trace_ship` rows back into the local store — plan by default, `--apply` to import, verified rows only (`--allow-unverified` imports open-tap rows loudly), already-present ids never re-imported, and every import saves with `stamp=False`: foreign evidence keeps its own integrity chain, never re-stamped by our key. Ship, receive, import — one signed arc.
+
 ## v3.78.0
 
 - the channel carries evidence: `webhook-ship TRACE URL` posts a recorded trace through the signed channel as a `trace_ship` row (integrity block intact) and the scoped readback proves THIS trace landed — the ping's nonce discipline generalized into `_delivery_readback(kind, needle, noun)`, byte-for-byte identical output for the ping. The receiving box's store is untouched; importing foreign evidence is its call.
