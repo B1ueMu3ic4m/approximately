@@ -85,6 +85,23 @@ def test_an_imported_arc_is_silent_in_the_brief():
         "no zero parade for work already done"
 
 
+def test_awaiting_sees_the_rotated_log():
+    # shipped at 23:59, rotated at midnight, still waiting at 00:01
+    store = TraceStore(tempfile.mkdtemp())
+    box = TraceStore(tempfile.mkdtemp())
+    t1 = _trace_in(box, "rotated shipment")
+    rotated = store.directory / "webhook-log.jsonl.1"
+    rotated.write_text(json.dumps(_shipped_row(t1.to_dict()),
+                                  sort_keys=True) + "\n",
+                       encoding="utf-8")
+    current = store.directory / "webhook-log.jsonl"
+    current.write_text(json.dumps(_shipped_row(
+        {"id": "current1", "task": "current", "steps": []}),
+        sort_keys=True) + "\n", encoding="utf-8")
+    assert shipments_awaiting(store, current) == 2, \
+        "yesterday's shipment still counts as waiting"
+
+
 def test_the_status_frame_carries_the_count():
     from approximately.cli import _status_payload
 
