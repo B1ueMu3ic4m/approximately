@@ -126,3 +126,30 @@ def test_card_without_agent_still_names_nothing(tmp_path):
     assert "agents:" not in html
     s = StoreSummary(name="x", path="/x", budget_breaches=1)
     assert "agents:" not in _breach_html(s)
+
+
+def test_breach_order_follows_stamps_not_listing_order(tmp_path):
+    # a Windows runner flipped this once: two traces written in
+    # the same clock tick listed in either filesystem order, and
+    # the collector inherited the coin flip. The stamps decide
+    # now — feed the traces in reverse and the report still
+    # follows the stamps.
+    from approximately.fleet import _breached_agents
+
+    late = Recorder("late task", model="m/1", store=TraceStore(tmp_path))
+    late.tool("book", agent="booker", tokens=500)
+    late.respond("done", success=True)
+    late_trace = late.trace
+    late_trace.created_at = 2000.0
+    late_trace.meta["budget"] = {"agents": {"booker": {
+        "exceeded": True}}}
+    early = Recorder("early task", model="m/1",
+                     store=TraceStore(tmp_path))
+    early.tool("search", agent="researcher", tokens=500)
+    early.respond("done", success=True)
+    early_trace = early.trace
+    early_trace.created_at = 1000.0
+    early_trace.meta["budget"] = {"agents": {"researcher": {
+        "exceeded": True}}}
+    traces = [late_trace, early_trace]  # reverse stamp order
+    assert _breached_agents(traces) == ["researcher", "booker"]

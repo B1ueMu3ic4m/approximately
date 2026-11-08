@@ -4612,3 +4612,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          import saves with stamp=False: foreign evidence keeps
          its own integrity chain, never re-stamped by our key.
          Ship, receive, import: one signed arc.
+507. **v3.80.0 - the breach report follows stamps, not the
+       filesystem** (planned):
+       - A Windows runner flipped `_breached_agents` once: two
+         traces written in the same clock tick list in either
+         filesystem order, and the collector inherited the coin
+         flip while its docstring promised stamp order. The
+         promise is kept now — hits sort by (created_at, trace
+         id) — and a pin feeds the traces in reverse and demands
+         the stamp order anyway.

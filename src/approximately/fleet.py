@@ -96,9 +96,10 @@ class StoreSummary:
         return self.trend_verdict == "worsening"
 
 
-def _breached_agents(traces: list) -> List[str]:
-    """Agents named by per-agent ceilings as breached, in stamp order."""
-    names: List[str] = []
+def _breach_hits(traces: list) -> List[tuple]:
+    """(created_at, trace id, agent name) per breach — the raw
+    material the stamp-ordered report sorts on."""
+    found: List[tuple] = []
     for t in traces:
         if not isinstance(t.meta, dict):
             continue
@@ -107,9 +108,24 @@ def _breached_agents(traces: list) -> List[str]:
         if isinstance(agents, dict):
             for name, st in agents.items():
                 if isinstance(st, dict) and \
-                        st.get("exceeded") is True and \
-                        name not in names:
-                    names.append(name)
+                        st.get("exceeded") is True:
+                    found.append((t.created_at or 0.0, t.id,
+                                  name))
+    return found
+
+
+def _breached_agents(traces: list) -> List[str]:
+    """Agents named by per-agent ceilings as breached, in stamp
+    order — the trace's own created_at, not the directory's
+    listing order: two traces written in the same clock tick can
+    list in either order on some filesystems, and a breach
+    report must not inherit that coin flip."""
+    seen: set = set()
+    names: List[str] = []
+    for _stamp, _tid, name in sorted(_breach_hits(traces)):
+        if name not in seen:
+            seen.add(name)
+            names.append(name)
     return names
 
 
