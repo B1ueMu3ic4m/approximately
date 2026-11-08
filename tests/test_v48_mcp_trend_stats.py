@@ -70,13 +70,13 @@ def _digest_dir(tmp_path):
     return digests
 
 
-def test_tools_list_has_twelve_tools():
+def test_tools_list_has_the_inventory():
     ctx = ServerContext(".")
     raw, _ = _serve([_rpc("tools/list")], ctx)
     names = [t["name"] for t in
              json.loads(raw.strip().splitlines()[0])["result"]["tools"]]
-    assert len(names) == 50 and "trend" in names and "stats" in names
-    assert len(_TOOLS) == 50
+    assert len(names) == 51 and "trend" in names and "stats" in names
+    assert len(_TOOLS) == 51
 
 
 def test_mcp_trend_returns_day_series(tmp_path):

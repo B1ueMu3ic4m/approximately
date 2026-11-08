@@ -1235,6 +1235,29 @@ _TOOLS: List[Dict[str, Any]] = [
             },
         },
     },
+    {
+        "name": "webhook_ship",
+        "description": "Ship a recorded trace to another box's "
+                       "receiver over the signed channel: the "
+                       "trace posts as a trace_ship row with its "
+                       "own integrity block intact (foreign "
+                       "evidence never acquires the receiver's "
+                       "chain), and the scoped readback proves "
+                       "THIS trace landed. Signs with "
+                       "APPROXIMATELY_SIGNING_KEY.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "store": {"type": "string"},
+                "trace": {"type": "string",
+                          "description": "trace id, or 'latest'"},
+                "url": {"type": "string",
+                        "description": "the receiver's http(s) "
+                                       "endpoint"},
+            },
+            "required": ["url"],
+        },
+    },
 ]
 
 
@@ -2555,6 +2578,41 @@ def _tool_inbox(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     return payload
 
 
+def _tool_webhook_ship(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    """Ship a recorded trace to another box's receiver over the
+    signed channel: the trace rides as a trace_ship row with its
+    own integrity block intact — foreign evidence never
+    acquires the receiver's chain. The signature comes from
+    APPROXIMATELY_SIGNING_KEY (no key file at the tool
+    boundary); the scoped probe proves THIS trace landed."""
+    from .integrity import load_key
+
+    store = _store(ctx, args)
+    url = args.get("url")
+    if url is not None and not isinstance(url, str):
+        raise ValueError("url must be a string")
+    trace_spec = args.get("trace")
+    if trace_spec is not None and not isinstance(trace_spec, str):
+        raise ValueError("trace must be a string")
+    if url is None:
+        raise ValueError("url is required: the receiver's "
+                         "http(s) endpoint")
+    key = load_key(None)
+    if not key:
+        raise ValueError("no signing key (APPROXIMATELY_SIGNING_KEY): "
+                         "a shipment without a signature tests "
+                         "nothing")
+    from .cli import _ship_core
+
+    result = _ship_core(store.directory, trace_spec or "latest",
+                        url, key)
+    probe = result.pop("probe")
+    return dict(result,
+                delivered=bool(probe.get("scoped")
+                               and probe.get("rows")),
+                probe=probe)
+
+
 def _opt_int(args: Dict[str, Any], key: str) -> Optional[int]:
     value = args.get(key)
     return int(value) if value is not None else None
@@ -2611,6 +2669,7 @@ _HANDLERS = {
     "digest": _tool_digest,
     "retention": _tool_retention,
     "inbox": _tool_inbox,
+    "webhook_ship": _tool_webhook_ship,
 }
 
 

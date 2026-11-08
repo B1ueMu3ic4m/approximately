@@ -1,5 +1,5 @@
 {
-  "count": 50,
+  "count": 51,
   "tools": [
     {
       "name": "list_traces",
@@ -1311,6 +1311,29 @@
             "description": "fold the previous log (<archive>.1) in ahead of the current one"
           }
         }
+      }
+    },
+    {
+      "name": "webhook_ship",
+      "description": "Ship a recorded trace to another box's receiver over the signed channel: the trace posts as a trace_ship row with its own integrity block intact (foreign evidence never acquires the receiver's chain), and the scoped readback proves THIS trace landed. Signs with APPROXIMATELY_SIGNING_KEY.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "trace": {
+            "type": "string",
+            "description": "trace id, or 'latest'"
+          },
+          "url": {
+            "type": "string",
+            "description": "the receiver's http(s) endpoint"
+          }
+        },
+        "required": [
+          "url"
+        ]
       }
     }
   ]
