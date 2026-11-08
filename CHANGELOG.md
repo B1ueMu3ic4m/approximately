@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.78.0
+
+- the channel carries evidence: `webhook-ship TRACE URL` posts a recorded trace through the signed channel as a `trace_ship` row (integrity block intact) and the scoped readback proves THIS trace landed — the ping's nonce discipline generalized into `_delivery_readback(kind, needle, noun)`, byte-for-byte identical output for the ping. The receiving box's store is untouched; importing foreign evidence is its call.
+
 ## v3.77.0
 
 - the reader's last hole closes: the MCP `inbox` tool gains `include_rotated` (the CLI's `--include-rotated` finally has its twin; the census stays the current log's /stats shape — the flag widens the view, never rewrites the numbers), and SECURITY.md names the /stats probe's refusal posture: unknown parameters and hostile values are a 400 naming the reason.

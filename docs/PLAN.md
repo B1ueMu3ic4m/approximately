@@ -4591,3 +4591,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          /stats shape; the flag widens the view, never rewrites
          the numbers), and SECURITY.md names the probe's refusal
          posture: a typo'd check gets a 400 naming the reason.
+505. **v3.78.0 - the channel carries evidence** (planned):
+       - The signed channel moved alerts, screams, briefs and
+         pings — never a trace. `webhook-ship TRACE URL` posts a
+         recorded trace through the channel as a `trace_ship`
+         row, integrity block intact, and the scoped readback
+         (the ping's nonce discipline, generalized: a trace id
+         matches only the row it rode in on) proves THIS trace
+         landed. The receiving box's store is untouched —
+         importing foreign evidence is its call.

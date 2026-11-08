@@ -3177,17 +3177,20 @@ def cmd_webhook_ping(args: argparse.Namespace) -> int:
         return 1
     print(f"ping accepted: HTTP 200 (kind=ping, "
           f"message={payload['message']!r})")
-    _ping_readback(url, str(payload["nonce"]))
+    _delivery_readback(url, "ping", str(payload["nonce"]),
+                       "this ping")
     return 0
 
 
-def _ping_readback(url: str, nonce: str) -> None:
-    """The ping verifies its own delivery: the scoped readback asks
-    /stats for this ping's kind and nonce — under concurrent
-    traffic a global count can be wrong in either direction, a
-    nonce cannot. A receiver older than /stats query filters (or
-    anything else answering 400/404) falls back to the global
-    readback, honestly labelled."""
+def _delivery_readback(url: str, kind: str, needle: str,
+                       noun: str) -> None:
+    """A sender verifies its own delivery: the scoped readback
+    asks /stats for this shipment's kind and needle — under
+    concurrent traffic a global count can be wrong in either
+    direction, a nonce (or a trace id) cannot. A receiver older
+    than /stats query filters (or anything else answering
+    400/404) falls back to the global readback, honestly
+    labelled."""
     import urllib.request
     from urllib.parse import quote, urlparse
 
@@ -3201,7 +3204,7 @@ def _ping_readback(url: str, nonce: str) -> None:
 
     scoped = True
     try:
-        path = (f"/stats?kind=ping&contains={quote(nonce)}")
+        path = f"/stats?kind={quote(kind)}&contains={quote(needle)}"
         archive = (_fetch(path).get("archive") or {})
     except Exception:
         try:
@@ -3212,8 +3215,8 @@ def _ping_readback(url: str, nonce: str) -> None:
         scoped = False
     rows = archive.get("rows") or 0
     if scoped:
-        print(f"receiver archive (scoped to this ping): "
-              f"{rows} row(s) matched this ping, "
+        print(f"receiver archive (scoped to {noun}): "
+              f"{rows} row(s) matched {noun}, "
               f"{archive.get('verified')} verified "
               f"({archive.get('malformed')} malformed)")
     else:
@@ -3221,13 +3224,61 @@ def _ping_readback(url: str, nonce: str) -> None:
               f"{archive.get('verified')} verified "
               f"({archive.get('malformed')} malformed)")
     if rows == 0:
-        print("WARNING: the receiver accepted your ping but the "
-              "scoped readback found nothing - is something else "
-              "answering /stats?", file=sys.stderr)
+        print(f"WARNING: the receiver accepted your {noun} but "
+              "the scoped readback found nothing - is something "
+              "else answering /stats?", file=sys.stderr)
     elif not archive.get("verified"):
-        print("WARNING: the receiver archived your ping as "
+        print(f"WARNING: the receiver archived your {noun} as "
               "UNVERIFIED - it has no key configured, so your "
               "signature was not checked", file=sys.stderr)
+
+
+def cmd_webhook_ship(args: argparse.Namespace) -> int:
+    """Ship a recorded trace to another box's receiver over the
+    signed channel: the trace rides as a JSON row (kind=
+    trace_ship) with its own integrity block intact — the
+    receiver archives it as evidence of delivery, and importing
+    it back is the receiving box's call (foreign evidence must
+    not acquire OUR integrity chain)."""
+    import time as _time
+    from urllib.parse import urlparse
+
+    from .fleet import notify_webhook
+    from .integrity import load_key
+
+    url = str(args.url)
+    if urlparse(url).scheme not in ("http", "https"):
+        print("error: webhook URL must be http(s)", file=sys.stderr)
+        return 2
+    key = load_key(getattr(args, "key_file", None))
+    if not key:
+        print("error: no signing key (APPROXIMATELY_SIGNING_KEY or "
+              "--key-file): a shipment without a signature tests "
+              "nothing", file=sys.stderr)
+        return 2
+    store = TraceStore(args.store)
+    trace = _load_trace(args.trace, store)
+    payload = {"kind": "trace_ship",
+               "trace": trace.to_dict(),
+               "shipped_at": _time.time()}
+    try:
+        status = notify_webhook([], url, signing_key=key,
+                                payload=payload)
+    except RuntimeError as exc:
+        print(f"ship failed: {exc}", file=sys.stderr)
+        return 1
+    if status != "200":
+        hint = {"HTTP 401": "signature refused - keys differ?",
+                "HTTP 400": "body refused - too large for "
+                            "--max-bytes?"}.get(
+            status, "receiver answered, not accepted")
+        print(f"ship NOT accepted: {status} ({hint})",
+              file=sys.stderr)
+        return 1
+    print(f"shipped: HTTP 200 (trace {trace.id}, "
+          f"{len(trace.steps)} step(s))")
+    _delivery_readback(url, "trace_ship", trace.id, "this trace")
+    return 0
 
 
 def _serve_stop(signum: int, frame: Any) -> None:
@@ -5178,6 +5229,18 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--message", metavar="TEXT", default="ping",
                    help="what the ping says (default: ping)")
     p.set_defaults(func=cmd_webhook_ping)
+
+    p = sub.add_parser("webhook-ship", parents=[common],
+                       help="ship a recorded trace to another "
+                            "box's receiver over the signed "
+                            "channel")
+    p.add_argument("trace", metavar="TRACE",
+                   help="trace id, or 'latest'")
+    p.add_argument("url", metavar="URL",
+                   help="the receiver's http(s) endpoint")
+    p.add_argument("--key-file", metavar="FILE",
+                   help="HMAC key (else APPROXIMATELY_SIGNING_KEY)")
+    p.set_defaults(func=cmd_webhook_ship)
 
     p = sub.add_parser("received", parents=[common],
                        help="read the receiver's archive back: "
