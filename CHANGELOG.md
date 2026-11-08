@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.77.0
+
+- the reader's last hole closes: the MCP `inbox` tool gains `include_rotated` (the CLI's `--include-rotated` finally has its twin; the census stays the current log's /stats shape — the flag widens the view, never rewrites the numbers), and SECURITY.md names the /stats probe's refusal posture: unknown parameters and hostile values are a 400 naming the reason.
+
 ## v3.76.0
 
 - the reader count is counted: the README's stale "reads back four ways" is now the enumerated six — /stats (with its kind/contains/since filters), `received`, the MCP `inbox` tool, the status frame, the digest brief, the fleet dashboard — and a pin test holds each named surface to its code proof and the count to the list. ARCHITECTURE's one-reader paragraph names the shared filters and the ping's nonce-scoped readback.

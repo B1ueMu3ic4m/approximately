@@ -1305,6 +1305,10 @@
           "unverified_only": {
             "type": "boolean",
             "description": "only rows the open tap marked unverified"
+          },
+          "include_rotated": {
+            "type": "boolean",
+            "description": "fold the previous log (<archive>.1) in ahead of the current one"
           }
         }
       }

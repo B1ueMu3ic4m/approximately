@@ -4581,3 +4581,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          named surface must exist in the code, and the count in
          the sentence must equal the pin. A seventh reader
          moves both, or the test says where they split.
+504. **v3.77.0 - the reader's last hole closes** (planned):
+       - The parity sweep missed one: the CLI's `received` door
+         folds the rotated log in with --include-rotated, but the
+         MCP inbox tool had no twin — a caller asking the tool
+         "what landed yesterday" saw only today's log with no
+         way to know it was half the story. The tool carries
+         include_rotated now (the census stays the current log's
+         /stats shape; the flag widens the view, never rewrites
+         the numbers), and SECURITY.md names the probe's refusal
+         posture: a typo'd check gets a 400 naming the reason.
