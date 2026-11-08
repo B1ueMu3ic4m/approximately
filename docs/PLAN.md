@@ -4600,3 +4600,15 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          matches only the row it rode in on) proves THIS trace
          landed. The receiving box's store is untouched —
          importing foreign evidence is its call.
+506. **v3.79.0 - the receiving half closes the evidence loop**
+       (planned):
+       - `webhook-ship` posted traces; nothing brought them
+         home. `inbox-import` reads trace_ship rows back into
+         the local store — a plan by default (reading is not
+         deciding, retention's shape), --apply to import,
+         verified rows only (an open tap's rows could be
+         anything; --allow-unverified imports them loudly),
+         already-present ids never re-imported, and every
+         import saves with stamp=False: foreign evidence keeps
+         its own integrity chain, never re-stamped by our key.
+         Ship, receive, import: one signed arc.

@@ -3281,6 +3281,121 @@ def cmd_webhook_ship(args: argparse.Namespace) -> int:
     return 0
 
 
+def _inbox_plan(archive: Path, store: TraceStore,
+                include_rotated: bool) -> tuple:
+    """The archive's trace_ship rows as (rows, shipments, plan):
+    shipments maps trace id -> {trace, verified} (two rows
+    shipping one trace import it once); plan rows carry the
+    verified split and whether the store already has the id."""
+    from .receiver import read_archive
+
+    payload = read_archive(archive, limit=10 ** 9,
+                           kind="trace_ship",
+                           include_rotated=include_rotated)
+    rows = payload["recent"]
+    shipments: dict = {}
+    for row in rows:
+        body = row.get("payload")
+        trace_data = body.get("trace") if isinstance(body,
+                                                     dict) else None
+        if not isinstance(trace_data, dict):
+            continue  # a row that carries no trace is not a shipment
+        tid = trace_data.get("id")
+        if not isinstance(tid, str) or not tid:
+            continue
+        if tid not in shipments:
+            shipments[tid] = {"trace": trace_data,
+                              "verified": row.get("verified")
+                              is True}
+    plan = [{"id": tid,
+             "task": (s["trace"].get("task") or "")[:60],
+             "verified": s["verified"],
+             "present": store.load(tid) is not None}
+            for tid, s in shipments.items()]
+    return rows, shipments, plan
+
+
+def _print_inbox_plan(archive: Path, out: dict, plan: list,
+                      importable_n: int) -> None:
+    print(f"archive {archive}: {out['found']} shipment(s), "
+          f"{importable_n} importable, "
+          f"{out['already_present']} already present, "
+          f"{out['unverified_skipped']} unverified-skipped")
+    for p_ in plan:
+        mark = ("present" if p_["present"] else
+                ("unverified" if not p_["verified"]
+                 else "importable"))
+        print(f"  {p_['id']}  {p_['task']}  [{mark}]")
+
+
+def _inbox_importable(plan: list,
+                      allow_unverified: bool) -> tuple:
+    """(importable, unverified_skipped): present ids are never
+    re-imported, and unverified rows only with the override —
+    an open tap's rows could be anything."""
+    importable = [p_ for p_ in plan if not p_["present"]
+                  and (p_["verified"] or allow_unverified)]
+    skipped = sum(1 for p_ in plan
+                  if not p_["present"] and not p_["verified"])
+    return importable, skipped
+
+
+def _inbox_apply(store: TraceStore, shipments: dict,
+                 importable: list) -> list:
+    """Save the planned traces: foreign evidence keeps its own
+    integrity chain — stamp=False, never re-stamped by our key."""
+    from .trace import Trace
+
+    imported: list = []
+    for p_ in importable:
+        trace = Trace.from_dict(shipments[p_["id"]]["trace"])
+        store.save(trace, stamp=False)
+        imported.append(p_["id"])
+    return imported
+
+
+def cmd_inbox_import(args: argparse.Namespace) -> int:
+    """Import trace_ship rows from the receiver's archive into the
+    local store: the receiving half of webhook-ship. A plan by
+    default (retention's shape — reading is not deciding); the
+    apply is explicit. Only verified rows are importable — an
+    open tap's rows could be anything — and foreign evidence
+    keeps its own integrity chain: saved with stamp=False, never
+    re-stamped by our key."""
+    archive = (Path(getattr(args, "archive", "")
+                    or Path(args.store) / "webhook-log.jsonl"))
+    store = TraceStore(args.store)
+    _rows, shipments, plan = _inbox_plan(
+        archive, store,
+        bool(getattr(args, "include_rotated", False)))
+    importable, skipped_unverified = _inbox_importable(
+        plan, bool(getattr(args, "allow_unverified", False)))
+    if not getattr(args, "apply", False):
+        out = {"archive": str(archive), "found": len(plan),
+               "importable": len(importable),
+               "already_present": sum(1 for p_ in plan
+                                      if p_["present"]),
+               "unverified_skipped": skipped_unverified,
+               "traces": plan}
+        if getattr(args, "json", False):
+            print(json.dumps(out, indent=2))
+        else:
+            _print_inbox_plan(archive, out, plan, len(importable))
+            if plan and importable:
+                print("dry run - add --apply to import")
+        return 0
+    imported = _inbox_apply(store, shipments, importable)
+    print(f"imported {len(imported)} trace(s) from the channel "
+          f"(stamp=False: foreign evidence keeps its own chain)")
+    for tid in imported:
+        print(f"  {tid}")
+    if skipped_unverified:
+        print(f"skipped {skipped_unverified} unverified row(s) - "
+              "an open tap's rows could be anything",
+              file=sys.stderr)
+    return 0
+
+
 def _serve_stop(signum: int, frame: Any) -> None:
     raise KeyboardInterrupt
 
@@ -5241,6 +5356,25 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--key-file", metavar="FILE",
                    help="HMAC key (else APPROXIMATELY_SIGNING_KEY)")
     p.set_defaults(func=cmd_webhook_ship)
+
+    p = sub.add_parser("inbox-import", parents=[common],
+                       help="import trace_ship rows from the "
+                            "receiver's archive into the store "
+                            "(plan by default, --apply to "
+                            "import)")
+    p.add_argument("--archive", metavar="PATH",
+                   help="the archive (default: <store>/"
+                        "webhook-log.jsonl)")
+    p.add_argument("--apply", action="store_true",
+                   help="import for real (default: plan only)")
+    p.add_argument("--allow-unverified", action="store_true",
+                   help="also import rows the open tap marked "
+                        "unverified (loudly)")
+    p.add_argument("--include-rotated", action="store_true",
+                   help="fold the previous log (<archive>.1) in")
+    p.add_argument("--json", action="store_true",
+                   help="emit the plan as JSON")
+    p.set_defaults(func=cmd_inbox_import)
 
     p = sub.add_parser("received", parents=[common],
                        help="read the receiver's archive back: "
