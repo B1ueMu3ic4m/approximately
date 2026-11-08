@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.80.0
+
+- the breach report follows stamps, not the filesystem: `_breached_agents` sorted nothing — it inherited the directory's listing order while promising stamp order, and two same-tick traces flipped the report on a Windows runner. Hits now sort by (created_at, trace id); a pin feeds them in reverse and demands the stamps anyway.
+
 ## v3.79.0
 
 - the receiving half closes the evidence loop: `inbox-import` reads `trace_ship` rows back into the local store — plan by default, `--apply` to import, verified rows only (`--allow-unverified` imports open-tap rows loudly), already-present ids never re-imported, and every import saves with `stamp=False`: foreign evidence keeps its own integrity chain, never re-stamped by our key. Ship, receive, import — one signed arc.
