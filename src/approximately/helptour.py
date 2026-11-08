@@ -51,6 +51,7 @@ TOUR: Dict[str, tuple] = {
         ("webhook-serve", "the receiving end of the signed channel: verify and archive"),
         ("received", "read the receiver's archive back: stats, recent rows, or --follow"),
         ("webhook-ping", "prove the channel works: sign a ping and read the archive back"),
+        ("webhook-ship", "ship a recorded trace to another box over the signed channel"),
         ("redact", "sanitized share-copy of a trace"),
         ("prices", "the store's price catalog"),
         ("annotate", "attach an analyst note"),

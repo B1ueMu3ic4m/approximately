@@ -245,7 +245,12 @@ nonce, then the archive read back scoped to that nonce - under
 concurrent traffic a global count proves nothing about YOUR
 ping; a nonce matches only the row it rode in on (a receiver
 that predates the query filters falls back to the global
-count, honestly labelled).
+count, honestly labelled). `webhook-ship TRACE URL` moves
+evidence the same way: a recorded trace posts through the
+signed channel as a `trace_ship` row, integrity block intact,
+and the scoped readback proves THIS trace landed - what the
+receiving box does with it is its call, and foreign evidence
+never acquires the receiver's chain.
 
 The brief reads the store's webhook inbox too: **overnight
 arrivals (webhook)** — the window's delivered rows with their
