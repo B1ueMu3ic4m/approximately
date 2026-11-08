@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.84.0
+
+- the receiving half is agent-reachable too: the MCP `inbox_import` tool reads the same plan through the same helpers, and its apply carries the retention two-flag gate (apply + confirm — importing is a store mutation, and store mutations do not ride on one flag). Verified rows only unless `allow_unverified`, malformed records never reach the apply loop, already-present ids never re-import, and the chain stays the sender's (`stamp=False`). 52 tools.
+
 ## v3.83.0
 
 - the channel is agent-reachable: the MCP `webhook_ship` tool ships the same signed row as the CLI door through the same `_ship_core` (CLI output byte-for-byte unchanged; the delivery probe is now data — `delivered: true` is the machine-checkable "1 row(s) matched this trace") and signs with `APPROXIMATELY_SIGNING_KEY` at the tool boundary. 51 tools.
