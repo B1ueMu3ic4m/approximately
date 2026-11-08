@@ -71,7 +71,7 @@ def test_the_tool_ships_and_proves_delivery(monkeypatch):
 
 
 def test_latest_ships_the_newest_recording(monkeypatch):
-    server, archive, url = _receiver()
+    server, _archive, url = _receiver()
     store = TraceStore(tempfile.mkdtemp())
     ids = []
     for i in range(2):

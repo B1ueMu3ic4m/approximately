@@ -4655,3 +4655,12 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          trace"), signs with APPROXIMATELY_SIGNING_KEY at the
          tool boundary, and refuses hostile args there. 51
          tools.
+511. **v3.83.0 addendum - the branch that wasn't** (recorded):
+       - The first commit of this round landed on local main —
+         the branch checkout was missed, the third time this
+         session has made that slip (v3.58.0, v3.59.1). This
+         one never reached the remote: recovered before push by
+         branch-at-sha + reset, so main's public history is
+         untouched. Recorded here because a near-miss that
+         ships a fix is still worth naming — the checkout step
+         is now part of the round's own checklist.
