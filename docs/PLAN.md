@@ -4707,3 +4707,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          still waiting at the door. The rotated log counts now
          — awaiting is about now, and rotation is the channel's
          plumbing, not the operator's clock.
+516. **v3.88.0 - the inbox knows who shipped it** (planned):
+       - Every trace_ship row arrived anonymous: a receiver
+         serving three boxes read one undifferentiated pile.
+         The ship door labels its rows now (--from BOX,
+         default this host's hostname; sender on the MCP tool),
+         the census counts shippers by label (senders in the
+         stats, from BOX: n in the received door and the
+         status frame), and the reader narrows by label
+         (--sender on the door, sender on the inbox tool). A
+         label is data, never a name used in a path; only a
+         non-empty string counts as a shipper.

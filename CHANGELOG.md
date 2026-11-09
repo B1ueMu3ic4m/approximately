@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.88.0
+
+- the inbox knows who shipped it: every trace_ship row arrived anonymous, so a receiver serving three boxes read one undifferentiated pile. The ship door labels its rows now (`--from BOX`, default this host's hostname; `sender` on the MCP tool), the census counts shippers by label (`senders` in the stats, `from BOX: n` in the received door and the status frame), and the reader narrows by label (`--sender` on the door, `sender` on the inbox tool) — the ops story works without anyone remembering a flag. A label is data, never a name used in a path, and only a non-empty string counts as a shipper.
+
 ## v3.87.0
 
 - awaiting sees yesterday too: `shipments_awaiting` read the current log only, so a shipment that landed at 23:59 rotated at midnight and the 00:01 brief went silent about evidence still waiting at the door. The rotated log counts now — rotation is the channel's plumbing, not the operator's clock.

@@ -1452,6 +1452,7 @@ def _status_payload(store: Any, traces: list, digest_dir: Any,
         "verified": inbox["verified"],
         "unverified": inbox["unverified"],
         "kinds": inbox["kinds"],
+        "senders": inbox.get("senders") or {},
         "shipments_awaiting": awaiting,
     }
     _payload_forecasts(payload, trend, spend_ceiling,
@@ -1558,6 +1559,11 @@ def _write_inbox_lines(buf: Any, inbox: dict) -> None:
             f"{kind} x{count}" for kind, count in
             sorted(kinds.items()))
         buf.write(f"    kinds: {census}\n")
+    senders = inbox.get("senders") or {}
+    if senders:
+        who = ", ".join(f"{label} x{count}" for label, count
+                        in sorted(senders.items()))
+        buf.write(f"    from: {who}\n")
     awaiting = inbox.get("shipments_awaiting") or 0
     if awaiting:
         buf.write(f"    shipped evidence awaiting import: "
@@ -3108,7 +3114,8 @@ def cmd_received(args: argparse.Namespace) -> int:
         include_rotated=bool(getattr(args, "include_rotated",
                                      False)),
         since=getattr(args, "since", None),
-        contains=getattr(args, "grep", None))
+        contains=getattr(args, "grep", None),
+        sender=getattr(args, "sender", None))
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2, ensure_ascii=False))
         return 0
@@ -3118,6 +3125,9 @@ def cmd_received(args: argparse.Namespace) -> int:
           f"{payload['malformed']} malformed)")
     for kind, count in sorted(payload["kinds"].items()):
         print(f"  {kind}: {count}")
+    for sender_label, count in sorted(
+            (payload.get("senders") or {}).items()):
+        print(f"  from {sender_label}: {count}")
     for row in payload["recent"]:
         print(_render_inbox_row(row))
     return 0
@@ -3133,6 +3143,7 @@ def _follow_print(archive: Path, args: argparse.Namespace) -> int:
     unverified_only = bool(getattr(args, "unverified_only", False))
     since = getattr(args, "since", None)
     contains = getattr(args, "grep", None)
+    sender = getattr(args, "sender", None)
     try:
         for row in follow_archive(
                 archive,
@@ -3140,7 +3151,7 @@ def _follow_print(archive: Path, args: argparse.Namespace) -> int:
                 max_passes=(int(getattr(args, "max_passes", 0))
                             or None)):
             if not row_passes(row, kind, unverified_only, since,
-                              contains):
+                              contains, sender):
                 continue
             if as_json:
                 print(json.dumps(row, ensure_ascii=False,
@@ -3261,13 +3272,16 @@ def _print_probe(probe: dict, noun: str) -> None:
 
 
 def _ship_core(store_dir: str, trace_spec: str, url: str,
-               key: bytes) -> dict:
+               key: bytes, sender: Optional[str] = None) -> dict:
     """The ship mechanics, shared by the CLI door and the MCP
     tool: resolve the trace, post it signed, read the scoped
     probe back. Returns {"trace_id", "steps", "status",
-    "probe"}; raises ValueError on a bad URL, an unknown trace
-    or a refused shipment — the message is the user-facing
-    hint, so both surfaces say the same thing."""
+    "sender", "probe"}; raises ValueError on a bad URL, an
+    unknown trace or a refused shipment — the message is the
+    user-facing hint, so both surfaces say the same thing.
+    ``sender`` names the shipping box (default: this host's
+    hostname) so the receiver's census can tell shippers apart."""
+    import socket
     import time as _time
     from urllib.parse import urlparse
 
@@ -3280,9 +3294,9 @@ def _ship_core(store_dir: str, trace_spec: str, url: str,
         trace = _load_trace(trace_spec, store)
     except SystemExit as exc:
         raise ValueError(str(exc)) from None
-    payload = {"kind": "trace_ship",
-               "trace": trace.to_dict(),
-               "shipped_at": _time.time()}
+    who = sender or socket.gethostname()
+    payload = {"kind": "trace_ship", "trace": trace.to_dict(),
+               "shipped_at": _time.time(), "sender": who}
     try:
         status = notify_webhook([], url, signing_key=key,
                                 payload=payload)
@@ -3295,7 +3309,7 @@ def _ship_core(store_dir: str, trace_spec: str, url: str,
             status, "receiver answered, not accepted")
         raise ValueError(f"ship NOT accepted: {status} ({hint})")
     return {"trace_id": trace.id, "steps": len(trace.steps),
-            "status": status,
+            "status": status, "sender": who,
             "probe": _delivery_probe(url, "trace_ship", trace.id)}
 
 
@@ -3316,12 +3330,14 @@ def cmd_webhook_ship(args: argparse.Namespace) -> int:
         return 2
     try:
         result = _ship_core(str(args.store), str(args.trace),
-                            str(args.url), key)
+                            str(args.url), key,
+                            sender=getattr(args, "sender", None))
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2 if "must be http(s)" in str(exc) or             "no trace found" in str(exc) else 1
     print(f"shipped: HTTP 200 (trace {result['trace_id']}, "
-          f"{result['steps']} step(s))")
+          f"{result['steps']} step(s), from "
+          f"{result['sender']})")
     _print_probe(result["probe"], "this trace")
     return 0
 
@@ -5432,6 +5448,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="the receiver's http(s) endpoint")
     p.add_argument("--key-file", metavar="FILE",
                    help="HMAC key (else APPROXIMATELY_SIGNING_KEY)")
+    p.add_argument("--from", dest="sender", metavar="LABEL",
+                   help="who is shipping (default: this host's "
+                        "hostname) - the receiver's census counts "
+                        "shippers by this label")
     p.set_defaults(func=cmd_webhook_ship)
 
     p = sub.add_parser("inbox-import", parents=[common],
@@ -5464,6 +5484,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="how many recent rows to show (default 20)")
     p.add_argument("--kind", metavar="K",
                    help="only rows of this kind")
+    p.add_argument("--sender", metavar="LABEL",
+                   help="only rows shipped by this label "
+                        "(the ship door's --from)")
     p.add_argument("--unverified-only", action="store_true",
                    help="only rows the open tap marked unverified")
     p.add_argument("--include-rotated", action="store_true",

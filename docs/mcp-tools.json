@@ -1275,7 +1275,7 @@
     },
     {
       "name": "inbox",
-      "description": "The receiver's archive, read back: what the webhook channel has delivered \u2014 row counts, the verified split, the kind census, and the most recent rows (newest last). Rows are evidence of what arrived, not of what was true; redact scrubs them before they leave the box.",
+      "description": "The receiver's archive, read back: what the webhook channel has delivered \u2014 row counts, the verified split, the kind census, the sender census (who shipped), and the most recent rows (newest last). Rows are evidence of what arrived, not of what was true; redact scrubs them before they leave the box.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1301,6 +1301,10 @@
           "contains": {
             "type": "string",
             "description": "only rows whose JSON contains this substring (case-insensitive)"
+          },
+          "sender": {
+            "type": "string",
+            "description": "only rows shipped by this label (the ship door's sender)"
           },
           "unverified_only": {
             "type": "boolean",
@@ -1357,6 +1361,10 @@
           "url": {
             "type": "string",
             "description": "the receiver's http(s) endpoint"
+          },
+          "sender": {
+            "type": "string",
+            "description": "who is shipping (default: this host's hostname)"
           }
         },
         "required": [

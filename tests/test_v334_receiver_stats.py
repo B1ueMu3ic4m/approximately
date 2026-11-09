@@ -41,7 +41,8 @@ def test_stats_on_an_empty_archive():
         assert status == 200
         assert data["archive"] == {"rows": 0, "verified": 0,
                                    "unverified": 0, "malformed": 0,
-                                   "kinds": {}, "bytes": 0,
+                                   "kinds": {}, "senders": {},
+                                   "bytes": 0,
                                    "last_received_at": None,
                                    "first_malformed": None}
         assert data["received"] == 0 and data["refused"] == 0

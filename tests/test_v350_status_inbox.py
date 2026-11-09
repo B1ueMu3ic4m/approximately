@@ -37,7 +37,8 @@ def test_payload_counts_the_inbox():
     # count (the brief's next-step note counts from the same set)
     assert payload["webhook_inbox"] == {
         "present": True, "rows": 5, "verified": 2, "unverified": 3,
-        "kinds": {"spool": 5}, "shipments_awaiting": 0}
+        "kinds": {"spool": 5}, "senders": {},
+            "shipments_awaiting": 0}
 
 
 def test_absent_archive_is_present_false():
