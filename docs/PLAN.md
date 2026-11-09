@@ -4787,3 +4787,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          dropped, persistent failures stay with attempts
          incremented. The MCP tool speaks the same two moves
          (spool / flush).
+523. **v3.95.0 - the brief counts the outbox too** (planned):
+       - The brief counted the evidence waiting at the door it
+         opens ONTO but not the line at the door it opens
+         FROM: --spool held refused shipments in silence. The
+         digest brief and the status frame count
+         ship-spool.jsonl now — a held shipment names its own
+         next step, the outbox counts even when no archive
+         exists, an empty spool is one honest silence, and a
+         corrupt line counts as nothing (the spool door
+         already drops it loudly).

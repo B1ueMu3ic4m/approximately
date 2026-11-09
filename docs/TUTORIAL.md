@@ -286,7 +286,9 @@ shipment is no longer a loss: `--spool` queues it (the
 reference, not the body) and `--flush` re-ships the queue
 when the receiver is back — delivered rows leave, gone
 traces drop loudly, persistent failures count their
-attempts. One box's history becomes another box's inbox.
+attempts. The brief keeps the queue visible: the digest and
+the status frame count the spool and name the flush, so the
+outbox never goes quiet while it owes work. One box's history becomes another box's inbox.
 
 The brief reads the store's webhook inbox too: **overnight
 arrivals (webhook)** — the window's delivered rows with their
