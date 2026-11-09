@@ -245,7 +245,12 @@ nonce, then the archive read back scoped to that nonce - under
 concurrent traffic a global count proves nothing about YOUR
 ping; a nonce matches only the row it rode in on (a receiver
 that predates the query filters falls back to the global
-count, honestly labelled). `webhook-ship TRACE URL` moves
+count, honestly labelled). A busy receiver can slow the world
+down in the sender's own dialect: `webhook-serve --rate N`
+caps accepted posts per rolling minute and answers the excess
+429 with Retry-After - exactly the signal the sender's retry
+loop already honors. Garbage buys nothing: the gate spends
+budget only on posts that survived every earlier check. `webhook-ship TRACE URL` moves
 evidence the same way: a recorded trace posts through the
 signed channel as a `trace_ship` row, integrity block intact,
 and the scoped readback proves THIS trace landed. The

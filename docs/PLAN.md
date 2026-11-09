@@ -4754,3 +4754,15 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          status instead of dying on the first problem), and
          trace: "all" is the MCP spelling. The sender label
          rides every row.
+520. **v3.92.0 - the receiver can say "slow down" in the
+       sender's own dialect** (planned):
+       - An unbounded receiver is a denial target twice over:
+         a post flood fills the archive (max-rows rotates) and
+         eats the box. --rate N caps ACCEPTED posts per rolling
+         minute and answers the excess 429 with Retry-After -
+         exactly the signal the sender's own retry loop already
+         honors, so both ends speak one protocol. The gate
+         consumes budget only for posts that survived every
+         earlier check: garbage cannot buy a denial against
+         honest senders, and a refused post never reaches the
+         archive.
