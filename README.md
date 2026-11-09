@@ -147,6 +147,30 @@ The same trace also renders a visual HTML postmortem: the verdict, the evidence 
 
 ---
 
+## Moving evidence between boxes (the signed channel)
+
+One box records; another box wants the evidence. The signed channel moves it without a queue service, a broker, or trust in the network:
+
+```bash
+# box B (the receiver) — verify-and-archive what arrives
+APPROXIMATELY_SIGNING_KEY=... approximately webhook-serve --port 8080 --rate 120
+
+# box A (the sender) — one trace, the whole store, or a retry-safe batch
+approximately webhook-ship <trace-id> http://box-b:8080 --from box-a
+approximately webhook-ship --all http://box-b:8080 --since 7 --dry-run   # plan first
+approximately webhook-ship --all http://box-b:8080 --spool               # refusals queue
+approximately webhook-ship --flush                                       # ...and retry later
+
+# box B — read the inbox, then import what you trust
+approximately received --sender box-a
+approximately inbox-import            # plan: verified rows, chain verdicts, conflicts
+approximately inbox-import --apply    # import (foreign chains stay foreign)
+```
+
+Every row is HMAC-signed (an open receiver marks rows `verified: false` instead), every import keeps the sender's integrity chain (`stamp=False`), a tampered chain is named and refused by default, and `--rate` answers floods with `429 + Retry-After` in exactly the dialect the sender's retry already speaks. The digest, the status frame and `doctor` all count what is waiting at either door.
+
+---
+
 ## The capabilities at a glance
 
 | Capability | In one sentence | Command / API |

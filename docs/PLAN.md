@@ -1635,6 +1635,15 @@ framework adapters import lazily and degrade when the framework is absent.
          are counted and named, the counts ride the JSON
          report, and the outbox counts even when no archive
          exists.
+529. **v3.99.1 - the front door learns the channel**
+       (planned):
+       - README shipped twelve rounds of signed-channel
+         capability without a section about it: the whole
+         serve/ship/import/received story, sender labels,
+         batch plans, the spool, the rate cap and the chain
+         gate lived only in TUTORIAL. A "Moving evidence
+         between boxes" section now shows the two-box story in
+         ~15 lines — and the promises in one breath.
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
