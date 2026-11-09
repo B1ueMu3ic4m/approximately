@@ -376,15 +376,17 @@ def archive_stats(archive: Path) -> dict:
 
 def filtered_stats(archive: Path, kind: Optional[str] = None,
                    contains: Optional[str] = None,
-                   since: Optional[float] = None) -> dict:
+                   since: Optional[float] = None,
+                   sender: Optional[str] = None) -> dict:
     """archive_stats scoped to the rows that pass the filters —
     the numbers curl checks when it asks "did my kind land".
-    rows/verified/unverified/kinds describe the matches;
+    rows/verified/unverified/kinds/senders describe the matches;
     bytes/malformed/first_malformed/last_received_at stay
     channel-global (properties of the log, not of the filter)."""
     stats = archive_stats(archive)
     rows = read_archive(archive, limit=10 ** 9, kind=kind,
-                        contains=contains, since=since)["recent"]
+                        contains=contains, since=since,
+                        sender=sender)["recent"]
     # _stat_row also writes last_received_at; the key exists so
     # the census helper never KeyErrors — the copy-back below
     # keeps the channel-global value anyway
@@ -402,20 +404,22 @@ def filtered_stats(archive: Path, kind: Optional[str] = None,
 
 
 def parse_stats_query(query: str) -> dict:
-    """The /stats query string, parsed strictly: kind, contains
-    and since are the whole vocabulary; anything else, repeated
-    parameters (an ambiguous request), a non-finite since
-    (``1e309`` is ``inf``, not a timestamp) or a value that will
-    not parse raises ValueError — the caller answers 400."""
+    """The /stats query string, parsed strictly: kind, contains,
+    since and sender are the whole vocabulary; anything else,
+    repeated parameters (an ambiguous request), a non-finite
+    since (``1e309`` is ``inf``, not a timestamp) or a value
+    that will not parse raises ValueError — the caller answers
+    400."""
     import urllib.parse
 
     params = urllib.parse.parse_qs(query, keep_blank_values=True)
-    unknown = set(params) - {"kind", "contains", "since"}
+    unknown = set(params) - {"kind", "contains", "since",
+                             "sender"}
     if unknown:
         raise ValueError("unknown query parameter: "
                          + sorted(unknown)[0])
     filters: dict = {}
-    for key in ("kind", "contains"):
+    for key in ("kind", "contains", "sender"):
         if key in params:
             values = params[key]
             if len(values) > 1:
