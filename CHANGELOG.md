@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.96.0
+
+- curl can ask "what did box-a ship?" too: the /stats query vocabulary was kind, contains, since — sender was the one filter the one-reader served that curl could not name, so a receiver serving several boxes needed the CLI door or the MCP tool just to scope by shipper. sender joins the vocabulary now, with the same strict refusals: an unknown parameter, a repeated parameter (an ambiguous request) or a hostile value is a 400 naming the reason — a typo'd check can never silently look like the truth.
+
 ## v3.95.0
 
 - the brief counts the outbox too: the brief counted the evidence waiting at the door it opens ONTO (shipments_awaiting) but not the queue at the door it opens FROM — `--spool` queued refused shipments in silence, and only an operator who remembered the flag would ever run `--flush`. The digest brief and the status frame count `ship-spool.jsonl` now: a queued shipment names its own next step ("webhook-ship --flush retries them"), the outbox counts even when no archive exists (a queued shipment is owed regardless of what arrived), an empty spool is one honest silence, and a corrupt line counts as nothing (the spool door already drops it loudly).

@@ -4797,3 +4797,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          exists, an empty spool is one honest silence, and a
          corrupt line counts as nothing (the spool door
          already drops it loudly).
+524. **v3.96.0 - curl can ask "what did box-a ship?"
+       too** (planned):
+       - The /stats query vocabulary was kind, contains, since
+         — sender was the one filter the one-reader served
+         that curl could not name. sender joins the vocabulary
+         now, with the same strict refusals: an unknown
+         parameter, a repeated parameter (an ambiguous
+         request) or a hostile value is a 400 naming the
+         reason — a typo'd check can never silently look like
+         the truth.
