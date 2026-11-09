@@ -67,6 +67,7 @@ class ReceiverState:
         self.lock = threading.Lock()
         self.received = 0
         self.refused = 0
+        self.throttled = 0
         self.appended = 0
         self.rows_on_disk = archive_stats(archive)["rows"]
 
@@ -453,6 +454,7 @@ def make_handler(state: ReceiverState) -> type:
                     self._reply(200, {"ok": True,
                                       "received": state.received,
                                       "refused": state.refused,
+                                      "throttled": state.throttled,
                                       "verify_mode": bool(state.key)})
                 return
             if self.path == "/stats" or self.path.startswith(
@@ -469,6 +471,7 @@ def make_handler(state: ReceiverState) -> type:
                     counters = {"ok": True,
                                 "received": state.received,
                                 "refused": state.refused,
+                                "throttled": state.throttled,
                                 "verify_mode": bool(state.key)}
                 self._reply(200, dict(
                     counters,
@@ -516,6 +519,7 @@ def make_handler(state: ReceiverState) -> type:
             if not ok:
                 with state.lock:
                     state.refused += 1
+                    state.throttled += 1
                 self._reply(429, {
                     "error": f"rate limit: max {state.max_rate} "
                              "post(s)/minute",

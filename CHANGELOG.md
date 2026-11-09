@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.97.0
+
+- the throttle names itself: a 429 was just another number in `refused` — 401s, 413s and throttled posts were one count, so an operator tuning `--rate` could not see the pressure the cap applies. The receiver's counters (and /stats) carry `throttled` now: refused stays every gate's refusal, throttled is the rate cap's alone — tuning the cap means watching its own number move.
+
 ## v3.96.0
 
 - curl can ask "what did box-a ship?" too: the /stats query vocabulary was kind, contains, since — sender was the one filter the one-reader served that curl could not name, so a receiver serving several boxes needed the CLI door or the MCP tool just to scope by shipper. sender joins the vocabulary now, with the same strict refusals: an unknown parameter, a repeated parameter (an ambiguous request) or a hostile value is a 400 naming the reason — a typo'd check can never silently look like the truth.
