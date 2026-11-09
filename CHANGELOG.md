@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.91.0
+
+- one box's history becomes another box's inbox: webhook-ship moved ONE trace per call — syncing a box to a collector meant a shell loop over trace ids, and an agent with an MCP client had no way to do it at all. `--all` ships the whole store oldest-first (`--since N` scopes the window) through the same single-shipment mechanics, a refused trace never stops the ones after it (each row is independent evidence — the batch reports per-trace status instead of dying on the first problem), and `trace: "all"` is the MCP spelling of the same move. The sender label rides every row.
+
 ## v3.90.0
 
 - already home, but different: "already_present" was judged by id alone, so a second shipment of one id with DIFFERENT content silently read as done — the plan said nothing, the store kept the first version, and the operator never learned a second version existed. The plan compares records byte for byte now (sorted JSON; to_dict round-trips, so stored and shipped compare exactly): an identical re-ship stays a silent "present", a different version of the same id is named a conflict — between shipped rows and against the store — on both surfaces, and the store keeps the original. The conflict is reported, never auto-resolved.

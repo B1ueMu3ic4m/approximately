@@ -1360,7 +1360,7 @@
           },
           "trace": {
             "type": "string",
-            "description": "trace id, or 'latest'"
+            "description": "trace id, 'latest', or 'all' (ship the whole store, oldest first)"
           },
           "url": {
             "type": "string",

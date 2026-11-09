@@ -4742,3 +4742,15 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          conflict (between shipped rows and against the store)
          on both surfaces, and the store keeps the original.
          The conflict is reported, never auto-resolved.
+519. **v3.91.0 - one box's history becomes another box's
+       inbox** (planned):
+       - webhook-ship moved ONE trace per call: syncing a box
+         to a collector meant a shell loop over ids, and an
+         agent had no way to do it at all. --all ships the
+         store oldest-first (--since scopes the window)
+         through the same _ship_one mechanics, a refused trace
+         never stops the ones after it (each row is
+         independent evidence — the batch reports per-trace
+         status instead of dying on the first problem), and
+         trace: "all" is the MCP spelling. The sender label
+         rides every row.
