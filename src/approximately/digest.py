@@ -113,6 +113,7 @@ def _inbox_section(store: Any, since_days: int = 1) -> dict:
     if not archive.is_file():
         return {"present": False, "rows": 0, "verified": 0,
                 "unverified": 0, "kinds": {},
+                "ship_spool": spool_waiting(store),
                 "first_malformed": None}
     stats = archive_stats(archive)
     window_start = (_dt.datetime.combine(_dt.date.today(),
@@ -132,7 +133,20 @@ def _inbox_section(store: Any, since_days: int = 1) -> dict:
             - verified, "kinds": kinds,
             "shipments_awaiting": shipments_awaiting(store,
                                                      archive),
+            "ship_spool": spool_waiting(store),
             "first_malformed": stats["first_malformed"]}
+
+
+def spool_waiting(store: TraceStore) -> int:
+    """Shipments queued for a later --flush (webhook-ship
+    --spool's outbox) — the brief counts the queue at the door
+    it opens FROM, not only the one it opens ONTO. A corrupt
+    line is not a shipment: the spool door drops it loudly, and
+    the brief just counts what remains."""
+    from .cli import _spool_rows
+
+    return len(_spool_rows(store.directory
+                           / "ship-spool.jsonl"))
 
 
 def shipments_awaiting(store: TraceStore, archive: Path) -> int:
@@ -213,23 +227,38 @@ def _render_triage(payload: dict) -> List[str]:
     return lines
 
 
+def _kinds_census(kinds: dict) -> str:
+    """The kind census as one ", kinds: ..." suffix — the digest's
+    exact format, shared by the renders that name it."""
+    return (", kinds: " + ", ".join(
+        f"{k} x{v}" for k, v in sorted(kinds.items()))) \
+        if kinds else ""
+
+
 def _render_inbox(payload: dict) -> List[str]:
     inbox = payload.get("inbox") or {}
+    # the outbox counts even when the archive does not exist:
+    # a queued shipment is owed regardless of what arrived
+    spooled = inbox.get("ship_spool") or 0
     if not inbox.get("present"):
-        return [("no webhook archive in this store - nothing was "
-                 "delivered here")]
-    line = (f"{inbox['rows']} row(s) in the window: "
-            f"{inbox['verified']} verified, "
-            f"{inbox['unverified']} unverified")
-    kinds = (", kinds: " + ", ".join(
-        f"{k} x{v}" for k, v in sorted(inbox["kinds"].items()))) \
-        if inbox["kinds"] else ""
-    lines = [line + kinds]
+        if not spooled:
+            return [("no webhook archive in this store - "
+                     "nothing was delivered here")]
+        return [(f"  ship spool: {spooled} shipment(s) "
+                 "queued - webhook-ship --flush retries them")]
+    lines = [f"{inbox['rows']} row(s) in the window: "
+             f"{inbox['verified']} verified, "
+             f"{inbox['unverified']} unverified"
+             + _kinds_census(inbox["kinds"])]
     awaiting = inbox.get("shipments_awaiting") or 0
     if awaiting:
         lines.append(f"  shipped evidence awaiting import: "
                      f"{awaiting} trace(s) - inbox-import "
                      "will bring them home")
+    if spooled:
+        lines.append(f"  ship spool: {spooled} shipment(s) "
+                     "queued - webhook-ship --flush retries "
+                     "them")
     if inbox.get("first_malformed"):
         lines.append(f"  first malformed: "
                      f"{inbox['first_malformed']}")

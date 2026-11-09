@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.95.0
+
+- the brief counts the outbox too: the brief counted the evidence waiting at the door it opens ONTO (shipments_awaiting) but not the queue at the door it opens FROM — `--spool` queued refused shipments in silence, and only an operator who remembered the flag would ever run `--flush`. The digest brief and the status frame count `ship-spool.jsonl` now: a queued shipment names its own next step ("webhook-ship --flush retries them"), the outbox counts even when no archive exists (a queued shipment is owed regardless of what arrived), an empty spool is one honest silence, and a corrupt line counts as nothing (the spool door already drops it loudly).
+
 ## v3.94.0
 
 - the network being down must not lose the evidence: a refused shipment died at the door — the error printed, the exit code set, and the operator had to remember the trace id by hand. `webhook-ship --spool` queues the refusal (the reference, never the body — the trace stays the store's to keep honest) in `<store>/ship-spool.jsonl`, and `--flush` drains it later: delivered rows leave the queue, traces gone from the store are reported and dropped, persistent failures stay with attempts incremented. The MCP tool speaks the same two moves (`spool` / `flush`), so an agent can survive a receiver reboot too.

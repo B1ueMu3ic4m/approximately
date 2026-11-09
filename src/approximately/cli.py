@@ -1454,6 +1454,8 @@ def _status_payload(store: Any, traces: list, digest_dir: Any,
         "kinds": inbox["kinds"],
         "senders": inbox.get("senders") or {},
         "shipments_awaiting": awaiting,
+        "ship_spool": len(_spool_rows(store.directory
+                                      / "ship-spool.jsonl")),
     }
     _payload_forecasts(payload, trend, spend_ceiling,
                        failure_allowance)
@@ -1544,12 +1546,9 @@ def _write_drift_line(buf: Any, payload: dict) -> None:
                   f"{'; '.join(parts)}\n")
 
 
-def _write_inbox_lines(buf: Any, inbox: dict) -> None:
-    """The frame's webhook-inbox section: the counts, the kind
-    census (the digest's exact format), and the next-step note
-    when shipped evidence is waiting at the door."""
-    if not inbox.get("present"):
-        return
+def _write_inbox_present(buf: Any, inbox: dict) -> None:
+    """The archive's own lines: counts, kind census, shipper
+    census, and the inbox's next-step note."""
     buf.write(f"  webhook inbox: {inbox['rows']} row(s) "
               f"({inbox['verified']} verified, "
               f"{inbox['unverified']} unverified)\n")
@@ -1569,6 +1568,21 @@ def _write_inbox_lines(buf: Any, inbox: dict) -> None:
         buf.write(f"    shipped evidence awaiting import: "
                   f"{awaiting} trace(s) - inbox-import will "
                   "bring them home\n")
+
+
+def _write_inbox_lines(buf: Any, inbox: dict) -> None:
+    """The frame's webhook-inbox section: the archive's lines
+    when it exists, plus the outbox note when the spool queues
+    — evidence waits at either door."""
+    spooled = inbox.get("ship_spool") or 0
+    if not inbox.get("present") and not spooled:
+        return
+    if inbox.get("present"):
+        _write_inbox_present(buf, inbox)
+    if spooled:
+        buf.write(f"    ship spool: {spooled} shipment(s) "
+                  "queued - webhook-ship --flush retries "
+                  "them\n")
 
 
 def _render_status(args: argparse.Namespace) -> str:
