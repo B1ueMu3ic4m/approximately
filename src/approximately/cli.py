@@ -3325,13 +3325,17 @@ def _ship_core(store_dir: str, trace_spec: str, url: str,
 
 def _ship_batch(store: TraceStore, url: str, key: bytes,
                 sender: str, since_days: Optional[int] = None) -> dict:
-    """Ship the store (oldest first, optionally a --since window)
-    one trace at a time: every trace ships even after one is
-    refused — each row is independent evidence — and the batch
-    reports per-trace status instead of dying on the first
-    problem. Returns {"shipped", "failed", "results"}."""
+    """Ship the store (oldest first — the traces' own created_at,
+    stable-sorted so clock ties keep the store's file order;
+    --since scopes the window) one trace at a time: every trace
+    ships even after one is refused — each row is independent
+    evidence — and the batch reports per-trace status instead of
+    dying on the first problem. Returns {"shipped", "failed",
+    "results"}."""
+    traces = sorted(store.list_traces(since_days=since_days),
+                    key=lambda t: t.created_at or 0.0)
     results: list = []
-    for trace in store.list_traces(since_days=since_days):
+    for trace in traces:
         try:
             results.append(_ship_one(store, trace, url, key,
                                      sender))
