@@ -3342,24 +3342,23 @@ def cmd_webhook_ship(args: argparse.Namespace) -> int:
     return 0
 
 
-def _inbox_plan(archive: Path, store: TraceStore,
-                include_rotated: bool) -> tuple:
-    """The archive's trace_ship rows as (rows, shipments, plan):
-    shipments maps trace id -> {trace, verified, ok, chain} (two
-    rows shipping one trace import it once); a record that will
-    not parse is marked ``ok: False`` at plan time — an open
-    tap's garbage must never reach the apply loop as a crash.
-    The foreign chain is verified at plan time too: evidence
-    that claims integrity it does not have (``tampered``) is
-    named before anything is saved, not after."""
+def _same_record(a: Any, b: Any) -> bool:
+    """Two trace records carry the same evidence: byte-equal as
+    sorted JSON (to_dict round-trips, so stored and shipped
+    records compare exactly)."""
+    return (json.dumps(a, sort_keys=True)
+            == json.dumps(b, sort_keys=True))
+
+
+def _shipments_from_rows(rows: list) -> dict:
+    """trace_ship rows as id -> shipment: first row wins, a
+    duplicate row with different content marks the conflict,
+    parse failures and non-name ids are marked at plan time —
+    the apply loop never sees what the plan did not vouch for."""
     from .integrity import verify
-    from .receiver import read_archive
+    from .store import _safe_id
     from .trace import Trace
 
-    payload = read_archive(archive, limit=10 ** 9,
-                           kind="trace_ship",
-                           include_rotated=include_rotated)
-    rows = payload["recent"]
     shipments: dict = {}
     for row in rows:
         body = row.get("payload")
@@ -3370,36 +3369,67 @@ def _inbox_plan(archive: Path, store: TraceStore,
         tid = trace_data.get("id")
         if not isinstance(tid, str) or not tid:
             continue
-        if tid not in shipments:
-            from .store import _safe_id
+        if tid in shipments:
+            # a second row shipping the same id: identical is a
+            # duplicate, different content is a conflict named
+            # in the plan
+            if not _same_record(trace_data,
+                                shipments[tid]["trace"]):
+                shipments[tid]["conflict"] = True
+            continue
+        chain = "unparsed"
+        try:
+            trace = Trace.from_dict(trace_data)
+            # verify() spells the tamper verdict in caps; the
+            # plan's ladder is lowercase (intact, tampered,
+            # unsigned, keyed, wrong-key) — the raw verdict,
+            # not verdict_payload's, whose rollback rungs
+            # consult OUR ledger, and this is foreign evidence
+            chain = verify(trace).verdict.lower()
+            # the id is about to become a filename on apply:
+            # a name, never a path
+            ok = bool(_safe_id(tid))
+        except (ValueError, TypeError, KeyError):
+            ok = False
+        shipments[tid] = {"trace": trace_data,
+                          "verified": row.get("verified")
+                          is True,
+                          "ok": ok,
+                          "chain": chain}
+    return shipments
 
-            chain = "unparsed"
-            try:
-                trace = Trace.from_dict(trace_data)
-                # verify() spells the tamper verdict in caps; the
-                # plan's ladder is lowercase (intact, tampered,
-                # unsigned, keyed, wrong-key) — the raw verdict,
-                # not verdict_payload's, whose rollback rungs
-                # consult OUR ledger, and this is foreign evidence
-                chain = verify(trace).verdict.lower()
-                # the id is about to become a filename on apply:
-                # a name, never a path
-                ok = bool(_safe_id(tid))
-            except (ValueError, TypeError, KeyError):
-                ok = False
-            shipments[tid] = {"trace": trace_data,
-                              "verified": row.get("verified")
-                              is True,
-                              "ok": ok,
-                              "chain": chain}
-    plan = [{"id": tid,
-             "task": (s["trace"].get("task") or "")[:60],
-             "verified": s["verified"],
-             "malformed": not s["ok"],
-             "chain": s["chain"],
-             "chain_broken": s["chain"] == "tampered",
-             "present": store.load(tid) is not None}
-            for tid, s in shipments.items()]
+
+def _inbox_plan(archive: Path, store: TraceStore,
+                include_rotated: bool) -> tuple:
+    """The archive's trace_ship rows as (rows, shipments, plan):
+    shipments come from _shipments_from_rows (first row wins,
+    conflicts named); the plan also compares each shipment
+    against the store — "already home" is only honest if it is
+    the same evidence — and carries the foreign-chain verdict
+    per row, so everything the apply would do is checkable
+    before anything is saved."""
+    from .receiver import read_archive
+
+    payload = read_archive(archive, limit=10 ** 9,
+                           kind="trace_ship",
+                           include_rotated=include_rotated)
+    rows = payload["recent"]
+    shipments = _shipments_from_rows(rows)
+    plan = []
+    for tid, s in shipments.items():
+        present_trace = store.load(tid)
+        conflict = bool(s.get("conflict")) or (
+            present_trace is not None
+            and not _same_record(s["trace"],
+                                 present_trace.to_dict()))
+        plan.append({"id": tid,
+                     "task": (s["trace"].get("task") or "")[:60],
+                     "verified": s["verified"],
+                     "malformed": not s["ok"],
+                     "chain": s["chain"],
+                     "chain_broken": s["chain"] == "tampered",
+                     "present": present_trace is not None,
+                     "conflict": conflict})
     return rows, shipments, plan
 
 
@@ -3433,6 +3463,8 @@ def _print_inbox_plan(archive: Path, out: dict, plan: list,
                  ("chain: tampered" if p_.get("chain_broken")
                   else ("unverified" if not p_["verified"]
                         else "importable"))))
+        if p_["present"] and p_.get("conflict"):
+            mark = "conflict: same id, different evidence"
         print(f"  {p_['id']}  {p_['task']}  [{mark}]")
 
 
@@ -3463,20 +3495,29 @@ def _inbox_importable(plan: list,
     return importable, skipped
 
 
+def _count(plan: list, pred: Any) -> int:
+    """How many plan rows satisfy pred — the tallies' shared
+    engine, each count one named predicate."""
+    return sum(1 for p_ in plan if pred(p_))
+
+
 def _inbox_counts(plan: list, importable: list) -> dict:
     """The plan's tallies, shared by the CLI door and the MCP
-    tool: present, malformed, chain-broken, and how many
-    tampered rows the apply will actually refuse."""
-    chain_broken = sum(1 for p_ in plan
-                       if p_.get("chain_broken"))
-    return {"already_present": sum(1 for p_ in plan
-                                   if p_["present"]),
-            "malformed": sum(1 for p_ in plan
-                             if p_["malformed"]),
+    tool: present, malformed, chain-broken, conflicts, and how
+    many tampered rows the apply will actually refuse."""
+    chain_broken = _count(plan,
+                          lambda p_: p_.get("chain_broken"))
+    return {"already_present": _count(plan,
+                                      lambda p_: p_["present"]),
+            "malformed": _count(plan,
+                                lambda p_: p_["malformed"]),
             "chain_broken": chain_broken,
+            "conflicts": _count(
+                plan, lambda p_: p_["present"]
+                and p_.get("conflict")),
             "refused_broken": chain_broken
-            - sum(1 for p_ in importable
-                  if p_.get("chain_broken"))}
+            - _count(importable,
+                     lambda p_: p_.get("chain_broken"))}
 
 
 def _inbox_apply(store: TraceStore, shipments: dict,
@@ -3518,6 +3559,7 @@ def cmd_inbox_import(args: argparse.Namespace) -> int:
                "unverified_skipped": skipped_unverified,
                "malformed": counts["malformed"],
                "chain_broken": counts["chain_broken"],
+               "conflicts": counts["conflicts"],
                "traces": plan}
         _inbox_dryrun(args, out, archive, plan, len(importable))
         return 0

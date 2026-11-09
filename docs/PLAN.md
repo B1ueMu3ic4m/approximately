@@ -4731,3 +4731,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          override is explicit and loud (--allow-broken-chain /
          allow_broken_chain). The verdict travels as data either
          way: the plan is checkable before anything is saved.
+518. **v3.90.0 - already home, but different** (planned):
+       - "already_present" was judged by id alone: a second
+         shipment of one id with different content silently
+         read as done — the plan said nothing, the store kept
+         the first version, and the operator never learned a
+         second version existed. The plan compares records byte
+         for byte now: an identical re-ship stays a silent
+         present, a different version of the same id is named a
+         conflict (between shipped rows and against the store)
+         on both surfaces, and the store keeps the original.
+         The conflict is reported, never auto-resolved.

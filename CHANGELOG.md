@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.90.0
+
+- already home, but different: "already_present" was judged by id alone, so a second shipment of one id with DIFFERENT content silently read as done — the plan said nothing, the store kept the first version, and the operator never learned a second version existed. The plan compares records byte for byte now (sorted JSON; to_dict round-trips, so stored and shipped compare exactly): an identical re-ship stays a silent "present", a different version of the same id is named a conflict — between shipped rows and against the store — on both surfaces, and the store keeps the original. The conflict is reported, never auto-resolved.
+
 ## v3.89.0
 
 - the plan reads the chain: inbox-import validated that a shipment parses — never that its evidence holds together. A trace whose own integrity chain does not verify (steps edited after signing) sailed through as importable and got filed next to real evidence. The plan verifies each shipment's foreign chain at plan time now — intact and unsigned and keyed ship (a hand-made record makes no claim; keyed is locked, not broken), a tampered chain is named in the plan with its verdict and refused at the apply — and the override is explicit and loud (`--allow-broken-chain` / `allow_broken_chain`). The verdict travels as data either way, so the plan is checkable before anything is saved.
