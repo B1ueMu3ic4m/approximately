@@ -109,7 +109,7 @@ def test_apply_never_overwrites_the_original(capsys):
     _box, first, second = _receiver_with(identity_ship=False)
     receiver = _receiver_store_with(first, second)
     assert cmd_inbox_import(_args(receiver, apply=True)) == 0
-    out = capsys.readouterr().out
+    capsys.readouterr()  # the apply's own output is not the pin
     store = TraceStore(receiver.directory)
     stored = [t for t in store.list_traces()
               if t.id == first["id"]]
