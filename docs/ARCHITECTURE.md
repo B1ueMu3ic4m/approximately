@@ -266,7 +266,9 @@ layer rather than duplicating it:
   and again at apply time. The plan is the default; deleting is
   explicit — CLI `--apply`, or the MCP tool's `apply`+`confirm`
   two-flag gate — and poison is `doctor`'s job, never
-  retention's.
+  retention's. The import door reads each shipment's foreign
+  chain at plan time: a tampered chain is named, not silently
+  filed, and only its own override imports it.
 - **`receiver.py`** is the signed channel's other end, and one
   reader serves every surface: `archive_stats` (what /stats
   returns), `read_archive` (the kind/contains/since/sender

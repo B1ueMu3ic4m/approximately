@@ -4718,3 +4718,16 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          (--sender on the door, sender on the inbox tool). A
          label is data, never a name used in a path; only a
          non-empty string counts as a shipper.
+517. **v3.89.0 - the plan reads the chain** (planned):
+       - inbox-import validated that a shipment parses, never
+         that its evidence holds together: a trace whose own
+         chain does not verify (steps edited after signing)
+         sailed through as importable and got filed next to
+         real evidence. The plan verifies each shipment's
+         foreign chain at plan time — intact and unsigned and
+         keyed ship (a hand-made record makes no claim; keyed
+         is locked, not broken), a tampered chain is named with
+         its verdict and refused at the apply — and the
+         override is explicit and loud (--allow-broken-chain /
+         allow_broken_chain). The verdict travels as data either
+         way: the plan is checkable before anything is saved.

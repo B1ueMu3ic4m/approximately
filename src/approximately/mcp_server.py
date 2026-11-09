@@ -1247,7 +1247,9 @@ _TOOLS: List[Dict[str, Any]] = [
                        "store. Plan by default; the apply is a "
                        "two-flag gate (apply + confirm). Only "
                        "verified rows are importable unless "
-                       "allow_unverified, and every import "
+                       "allow_unverified, a tampered foreign "
+                       "chain only with allow_broken_chain, and "
+                       "every import "
                        "saves with stamp=False — foreign "
                        "evidence keeps its own integrity chain.",
         "inputSchema": {
@@ -1266,6 +1268,12 @@ _TOOLS: List[Dict[str, Any]] = [
                                      "description": "also import "
                                                     "open-tap rows "
                                                     "(loudly)"},
+                "allow_broken_chain": {"type": "boolean",
+                                       "description": "also import "
+                                                      "traces whose "
+                                                      "own chain is "
+                                                      "tampered "
+                                                      "(loudly)"},
                 "include_rotated": {"type": "boolean",
                                     "description": "fold the "
                                                    "previous log in"},
@@ -2661,9 +2669,12 @@ def _tool_inbox_import(ctx: ServerContext,
     store mutation, and store mutations do not ride on one
     flag. Only verified rows are importable unless
     allow_unverified is set (an open tap's rows could be
-    anything), and foreign evidence keeps its own integrity
-    chain: stamp=False, never re-stamped by our key."""
-    from .cli import _inbox_apply, _inbox_importable, _inbox_plan
+    anything), a tampered foreign chain only with
+    allow_broken_chain (evidence that claims integrity it does
+    not have is not evidence), and foreign evidence keeps its
+    own integrity chain: stamp=False, never re-stamped by our
+    key."""
+    from .cli import _inbox_apply, _inbox_counts, _inbox_importable, _inbox_plan
 
     store = _store(ctx, args)
     archive = store.directory / "webhook-log.jsonl"
@@ -2671,15 +2682,16 @@ def _tool_inbox_import(ctx: ServerContext,
         archive, store,
         bool(args.get("include_rotated", False)))
     importable, skipped_unverified = _inbox_importable(
-        plan, bool(args.get("allow_unverified", False)))
-    already = sum(1 for p_ in plan if p_["present"])
-    malformed = sum(1 for p_ in plan if p_["malformed"])
+        plan, bool(args.get("allow_unverified", False)),
+        bool(args.get("allow_broken_chain", False)))
+    counts = _inbox_counts(plan, importable)
     if not args.get("apply"):
         return {"found": len(plan),
                 "importable": len(importable),
-                "already_present": already,
+                "already_present": counts["already_present"],
                 "unverified_skipped": skipped_unverified,
-                "malformed": malformed,
+                "malformed": counts["malformed"],
+                "chain_broken": counts["chain_broken"],
                 "traces": plan}
     if not args.get("confirm"):
         raise ValueError("inbox_import apply needs confirm: true")
@@ -2687,7 +2699,8 @@ def _tool_inbox_import(ctx: ServerContext,
     return {"applied": imported, "found": len(plan),
             "importable": len(importable),
             "unverified_skipped": skipped_unverified,
-            "malformed": malformed}
+            "malformed": counts["malformed"],
+            "chain_broken": counts["chain_broken"]}
 
 
 def _opt_int(args: Dict[str, Any], key: str) -> Optional[int]:

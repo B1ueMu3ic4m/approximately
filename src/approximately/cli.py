@@ -3345,10 +3345,14 @@ def cmd_webhook_ship(args: argparse.Namespace) -> int:
 def _inbox_plan(archive: Path, store: TraceStore,
                 include_rotated: bool) -> tuple:
     """The archive's trace_ship rows as (rows, shipments, plan):
-    shipments maps trace id -> {trace, verified, ok} (two rows
-    shipping one trace import it once); a record that will not
-    parse is marked ``ok: False`` at plan time — an open tap's
-    garbage must never reach the apply loop as a crash."""
+    shipments maps trace id -> {trace, verified, ok, chain} (two
+    rows shipping one trace import it once); a record that will
+    not parse is marked ``ok: False`` at plan time — an open
+    tap's garbage must never reach the apply loop as a crash.
+    The foreign chain is verified at plan time too: evidence
+    that claims integrity it does not have (``tampered``) is
+    named before anything is saved, not after."""
+    from .integrity import verify
     from .receiver import read_archive
     from .trace import Trace
 
@@ -3369,8 +3373,15 @@ def _inbox_plan(archive: Path, store: TraceStore,
         if tid not in shipments:
             from .store import _safe_id
 
+            chain = "unparsed"
             try:
-                Trace.from_dict(trace_data)
+                trace = Trace.from_dict(trace_data)
+                # verify() spells the tamper verdict in caps; the
+                # plan's ladder is lowercase (intact, tampered,
+                # unsigned, keyed, wrong-key) — the raw verdict,
+                # not verdict_payload's, whose rollback rungs
+                # consult OUR ledger, and this is foreign evidence
+                chain = verify(trace).verdict.lower()
                 # the id is about to become a filename on apply:
                 # a name, never a path
                 ok = bool(_safe_id(tid))
@@ -3379,11 +3390,14 @@ def _inbox_plan(archive: Path, store: TraceStore,
             shipments[tid] = {"trace": trace_data,
                               "verified": row.get("verified")
                               is True,
-                              "ok": ok}
+                              "ok": ok,
+                              "chain": chain}
     plan = [{"id": tid,
              "task": (s["trace"].get("task") or "")[:60],
              "verified": s["verified"],
              "malformed": not s["ok"],
+             "chain": s["chain"],
+             "chain_broken": s["chain"] == "tampered",
              "present": store.load(tid) is not None}
             for tid, s in shipments.items()]
     return rows, shipments, plan
@@ -3416,24 +3430,53 @@ def _print_inbox_plan(archive: Path, out: dict, plan: list,
     for p_ in plan:
         mark = ("present" if p_["present"] else
                 ("malformed" if p_["malformed"] else
-                 ("unverified" if not p_["verified"]
-                  else "importable")))
+                 ("chain: tampered" if p_.get("chain_broken")
+                  else ("unverified" if not p_["verified"]
+                        else "importable"))))
         print(f"  {p_['id']}  {p_['task']}  [{mark}]")
 
 
+def _importable_row(p_: dict, allow_unverified: bool,
+                    allow_broken_chain: bool) -> bool:
+    """One plan row's importability, each gate named and each
+    override its own flag: present is done, malformed is poison,
+    a tampered chain is evidence claiming integrity it does not
+    have, unverified is the open tap's word."""
+    if p_["present"] or p_["malformed"]:
+        return False
+    if p_.get("chain_broken") and not allow_broken_chain:
+        return False
+    return p_["verified"] or allow_unverified
+
+
 def _inbox_importable(plan: list,
-                      allow_unverified: bool) -> tuple:
-    """(importable, unverified_skipped): present ids are never
-    re-imported, records that will not parse are never
-    importable, and unverified rows only with the override —
-    an open tap's rows could be anything."""
-    importable = [p_ for p_ in plan if not p_["present"]
-                  and not p_["malformed"]
-                  and (p_["verified"] or allow_unverified)]
+                      allow_unverified: bool,
+                      allow_broken_chain: bool = False) -> tuple:
+    """(importable, unverified_skipped): the row gates live in
+    _importable_row — the plan vouches for what reaches apply."""
+    importable = [p_ for p_ in plan
+                  if _importable_row(p_, allow_unverified,
+                                     allow_broken_chain)]
     skipped = sum(1 for p_ in plan
                   if not p_["present"] and not p_["verified"]
                   and not p_["malformed"])
     return importable, skipped
+
+
+def _inbox_counts(plan: list, importable: list) -> dict:
+    """The plan's tallies, shared by the CLI door and the MCP
+    tool: present, malformed, chain-broken, and how many
+    tampered rows the apply will actually refuse."""
+    chain_broken = sum(1 for p_ in plan
+                       if p_.get("chain_broken"))
+    return {"already_present": sum(1 for p_ in plan
+                                   if p_["present"]),
+            "malformed": sum(1 for p_ in plan
+                             if p_["malformed"]),
+            "chain_broken": chain_broken,
+            "refused_broken": chain_broken
+            - sum(1 for p_ in importable
+                  if p_.get("chain_broken"))}
 
 
 def _inbox_apply(store: TraceStore, shipments: dict,
@@ -3465,15 +3508,16 @@ def cmd_inbox_import(args: argparse.Namespace) -> int:
         archive, store,
         bool(getattr(args, "include_rotated", False)))
     importable, skipped_unverified = _inbox_importable(
-        plan, bool(getattr(args, "allow_unverified", False)))
+        plan, bool(getattr(args, "allow_unverified", False)),
+        bool(getattr(args, "allow_broken_chain", False)))
+    counts = _inbox_counts(plan, importable)
     if not getattr(args, "apply", False):
         out = {"archive": str(archive), "found": len(plan),
                "importable": len(importable),
-               "already_present": sum(1 for p_ in plan
-                                      if p_["present"]),
+               "already_present": counts["already_present"],
                "unverified_skipped": skipped_unverified,
-               "malformed": sum(1 for p_ in plan
-                                if p_["malformed"]),
+               "malformed": counts["malformed"],
+               "chain_broken": counts["chain_broken"],
                "traces": plan}
         _inbox_dryrun(args, out, archive, plan, len(importable))
         return 0
@@ -3482,6 +3526,10 @@ def cmd_inbox_import(args: argparse.Namespace) -> int:
           f"(stamp=False: foreign evidence keeps its own chain)")
     for tid in imported:
         print(f"  {tid}")
+    if counts["refused_broken"]:
+        print(f"skipped {counts['refused_broken']} trace(s) with "
+              "a tampered chain - pass --allow-broken-chain to "
+              "import them loudly", file=sys.stderr)
     if skipped_unverified:
         print(f"skipped {skipped_unverified} unverified row(s) - "
               "an open tap's rows could be anything",
@@ -5467,6 +5515,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--allow-unverified", action="store_true",
                    help="also import rows the open tap marked "
                         "unverified (loudly)")
+    p.add_argument("--allow-broken-chain", action="store_true",
+                   help="also import traces whose own integrity "
+                        "chain does not verify (loudly)")
     p.add_argument("--include-rotated", action="store_true",
                    help="fold the previous log (<archive>.1) in")
     p.add_argument("--json", action="store_true",
