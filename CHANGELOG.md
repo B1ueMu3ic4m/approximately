@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.92.0
+
+- the receiver can say "slow down" in the sender's own dialect: an unbounded receiver is a denial target twice over — a post flood fills the archive (max-rows already rotates) and eats the box. `webhook-serve --rate N` caps ACCEPTED posts per rolling minute and answers the excess `429` with a whole-second `Retry-After` — exactly the signal the sender's own retry loop already honors, so both ends speak one protocol and nobody needed a new word. The gate consumes budget only for posts that survived every earlier check: garbage cannot buy a denial against honest senders, and a refused post never reaches the archive.
+
 ## v3.91.0
 
 - one box's history becomes another box's inbox: webhook-ship moved ONE trace per call — syncing a box to a collector meant a shell loop over trace ids, and an agent with an MCP client had no way to do it at all. `--all` ships the whole store oldest-first (`--since N` scopes the window) through the same single-shipment mechanics, a refused trace never stops the ones after it (each row is independent evidence — the batch reports per-trace status instead of dying on the first problem), and `trace: "all"` is the MCP spelling of the same move. The sender label rides every row.
