@@ -1613,6 +1613,17 @@ framework adapters import lazily and degrade when the framework is absent.
          `throttled` now — refused stays every gate's refusal,
          throttled is the rate cap's alone; tuning the cap
          means watching its own number move.
+527. **v3.98.0 - one protocol, tested end to end** (planned):
+       - "Both ends speak one protocol" was a design claim:
+         the halves were only ever tested apart, and the
+         window was a hard-coded 60s no test could sleep
+         through. --rate-window SECONDS opens the window
+         (default stays a minute; sub-second refused at the
+         fence) and the e2e test runs the REAL loop: the
+         sender's own notify_webhook posts into a rate-capped
+         receiver, eats a 429, sleeps the Retry-After the
+         receiver named, and lands on the retry — no mock in
+         sight.
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

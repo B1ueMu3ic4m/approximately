@@ -3868,7 +3868,9 @@ def cmd_webhook_serve(args: argparse.Namespace) -> int:
                                args, "max_bytes", 1_048_576)),
                            max_rows=int(getattr(
                                args, "max_rows", 100_000)),
-                           max_rate=int(getattr(args, "rate", 0)))
+                           max_rate=int(getattr(args, "rate", 0)),
+                           rate_window=float(getattr(
+                               args, "rate_window", 60.0)))
     # SIGTERM lands the same clean shutdown as Ctrl-C: the archive
     # line in flight finishes, the socket closes, exit 0 - a
     # systemd stop must not look like a crash
@@ -5785,6 +5787,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="cap accepted posts per rolling minute; "
                         "the excess is answered 429 with "
                         "Retry-After (default 0 = unlimited)")
+    p.add_argument("--rate-window", type=float, default=60.0,
+                   metavar="SECONDS",
+                   help="the rolling window --rate counts over "
+                        "(default 60)")
     p.set_defaults(func=cmd_webhook_serve)
 
     p = sub.add_parser("webhook-ping", parents=[common],

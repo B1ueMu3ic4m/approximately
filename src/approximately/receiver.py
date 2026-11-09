@@ -57,12 +57,14 @@ class ReceiverState:
                  key: Optional[bytes] = None,
                  max_bytes: int = DEFAULT_MAX_BYTES,
                  max_rows: int = DEFAULT_MAX_ROWS,
-                 max_rate: int = 0):
+                 max_rate: int = 0,
+                 rate_window: float = 60.0):
         self.archive = archive
         self.key = key
         self.max_bytes = max(1, int(max_bytes))
         self.max_rows = max(0, int(max_rows))
         self.max_rate = max(0, int(max_rate))
+        self.rate_window = max(1.0, float(rate_window))
         self.post_stamps: List[float] = []
         self.lock = threading.Lock()
         self.received = 0
@@ -72,18 +74,20 @@ class ReceiverState:
         self.rows_on_disk = archive_stats(archive)["rows"]
 
     def rate_admit(self, now: float) -> Tuple[bool, int]:
-        """(admitted, retry_after) against the rolling one-minute
-        window (0 = unlimited). The stamps live under the state
-        lock — parallel posts must share one budget, not one
-        each. retry_after is the whole seconds until the oldest
-        stamp leaves the window (at least 1, never 0)."""
+        """(admitted, retry_after) against the rolling window
+        (``rate_window`` seconds; 0 = unlimited). The stamps
+        live under the state lock — parallel posts must share
+        one budget, not one each. retry_after is the whole
+        seconds until the oldest stamp leaves the window (at
+        least 1, never 0)."""
         if not self.max_rate:
             return True, 0
         with self.lock:
             self.post_stamps = [s for s in self.post_stamps
-                                if now - s < 60.0]
+                                if now - s < self.rate_window]
             if len(self.post_stamps) >= self.max_rate:
-                wait = 60.0 - (now - self.post_stamps[0])
+                wait = self.rate_window - (now
+                                           - self.post_stamps[0])
                 return False, max(1, int(wait) + 1)
             self.post_stamps.append(now)
             return True, 0
@@ -580,16 +584,19 @@ def serve(archive: Path, port: int = 0,
           key: Optional[bytes] = None,
           max_bytes: int = DEFAULT_MAX_BYTES,
           max_rows: int = DEFAULT_MAX_ROWS,
-          max_rate: int = 0
+          max_rate: int = 0,
+          rate_window: float = 60.0
           ) -> Tuple[ThreadingHTTPServer, ReceiverState]:
     """Bind the receiver; returns the server (call shutdown() from
     the controlling thread) and its state. ``max_rows`` rotates
     the archive when it fills (0 = unbounded, not advised);
-    ``max_rate`` caps accepted posts per rolling minute (0 =
-    unlimited) and answers the excess with 429 + Retry-After —
-    the sender's own retry already honors that signal."""
+    ``max_rate`` caps accepted posts per rolling ``rate_window``
+    (default a minute; 0 = unlimited) and answers the excess
+    with 429 + Retry-After — the sender's own retry already
+    honors that signal."""
     state = ReceiverState(archive, key=key, max_bytes=max_bytes,
-                          max_rows=max_rows, max_rate=max_rate)
+                          max_rows=max_rows, max_rate=max_rate,
+                          rate_window=rate_window)
     server = ReceiverHTTPServer(("127.0.0.1", port),
                                 make_handler(state))
     thread = __import__("threading").Thread(
