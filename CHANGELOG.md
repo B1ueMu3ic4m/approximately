@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.89.0
+
+- the plan reads the chain: inbox-import validated that a shipment parses — never that its evidence holds together. A trace whose own integrity chain does not verify (steps edited after signing) sailed through as importable and got filed next to real evidence. The plan verifies each shipment's foreign chain at plan time now — intact and unsigned and keyed ship (a hand-made record makes no claim; keyed is locked, not broken), a tampered chain is named in the plan with its verdict and refused at the apply — and the override is explicit and loud (`--allow-broken-chain` / `allow_broken_chain`). The verdict travels as data either way, so the plan is checkable before anything is saved.
+
 ## v3.88.0
 
 - the inbox knows who shipped it: every trace_ship row arrived anonymous, so a receiver serving three boxes read one undifferentiated pile. The ship door labels its rows now (`--from BOX`, default this host's hostname; `sender` on the MCP tool), the census counts shippers by label (`senders` in the stats, `from BOX: n` in the received door and the status frame), and the reader narrows by label (`--sender` on the door, `sender` on the inbox tool) — the ops story works without anyone remembering a flag. A label is data, never a name used in a path, and only a non-empty string counts as a shipper.

@@ -1319,7 +1319,7 @@
     },
     {
       "name": "inbox_import",
-      "description": "The receiving half of webhook_ship: read trace_ship rows back into the local store. Plan by default; the apply is a two-flag gate (apply + confirm). Only verified rows are importable unless allow_unverified, and every import saves with stamp=False \u2014 foreign evidence keeps its own integrity chain.",
+      "description": "The receiving half of webhook_ship: read trace_ship rows back into the local store. Plan by default; the apply is a two-flag gate (apply + confirm). Only verified rows are importable unless allow_unverified, a tampered foreign chain only with allow_broken_chain, and every import saves with stamp=False \u2014 foreign evidence keeps its own integrity chain.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1337,6 +1337,10 @@
           "allow_unverified": {
             "type": "boolean",
             "description": "also import open-tap rows (loudly)"
+          },
+          "allow_broken_chain": {
+            "type": "boolean",
+            "description": "also import traces whose own chain is tampered (loudly)"
           },
           "include_rotated": {
             "type": "boolean",

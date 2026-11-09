@@ -254,7 +254,13 @@ rows back into the local store — a plan by default (--apply to
 import), verified rows only (an open tap's rows could be
 anything; --allow-unverified imports them loudly), and every
 import saves with stamp=False: foreign evidence keeps its own
-integrity chain, never re-stamped by the receiver's key. Rows
+integrity chain, never re-stamped by the receiver's key. The
+plan reads each shipment's foreign chain too: a tampered chain
+— steps rewritten after signing — is named in the plan and
+refused at the apply (`--allow-broken-chain` / allow_broken_
+chain imports it loudly); unsigned records ship (a hand-made
+record claims no integrity), keyed ones stay locked-not-
+broken. Rows
 carry a sender label now (webhook-ship --from BOX; the default
 is this host's hostname): the archive's census counts shippers
 by label, `received --sender BOX` narrows to one shipper's
