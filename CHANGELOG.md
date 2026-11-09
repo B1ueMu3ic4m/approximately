@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.99.1
+
+- the front door learns the channel: README shipped twelve rounds of signed-channel capability without a single section about it — webhook-serve/ping/ship/inbox-import/received, sender labels, batch plans, the spool, the rate cap and the chain gate all lived only in TUTORIAL. A "Moving evidence between boxes" section now shows the two-box story in ~15 lines: serve, ship (one / all / plan / spool / flush), read, import (plan, then apply) — and the promises in one breath: HMAC rows, foreign chains stay foreign, tampered is named and refused, rate answers 429+Retry-After in the sender's own dialect.
+
 ## v3.99.0
 
 - the nightly pass sees the outbox: doctor walked the store's records, ledger, locks and the receiver's archive — but the SHIP spool (`--spool`'s queue of refused shipments) was invisible to it, so a queue could sit owed for days while every nightly pass said healthy. doctor counts the spool now: waiting is not unhealthy (it is owed — the report names the flush that clears it), unreadable lines are counted and named, the counts ride the JSON report, and the outbox counts even when no archive exists.
