@@ -260,7 +260,11 @@ plan reads each shipment's foreign chain too: a tampered chain
 refused at the apply (`--allow-broken-chain` / allow_broken_
 chain imports it loudly); unsigned records ship (a hand-made
 record claims no integrity), keyed ones stay locked-not-
-broken. Rows
+broken. A re-ship of an id the store already holds is read
+honestly too: identical content stays a silent "present", a
+different version is named a conflict in the plan (the store
+keeps the original — the conflict is reported, never
+auto-resolved). Rows
 carry a sender label now (webhook-ship --from BOX; the default
 is this host's hostname): the archive's census counts shippers
 by label, `received --sender BOX` narrows to one shipper's

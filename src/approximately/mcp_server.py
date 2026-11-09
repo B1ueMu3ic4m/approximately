@@ -2692,6 +2692,7 @@ def _tool_inbox_import(ctx: ServerContext,
                 "unverified_skipped": skipped_unverified,
                 "malformed": counts["malformed"],
                 "chain_broken": counts["chain_broken"],
+                "conflicts": counts["conflicts"],
                 "traces": plan}
     if not args.get("confirm"):
         raise ValueError("inbox_import apply needs confirm: true")
