@@ -1295,7 +1295,9 @@ _TOOLS: List[Dict[str, Any]] = [
             "properties": {
                 "store": {"type": "string"},
                 "trace": {"type": "string",
-                          "description": "trace id, or 'latest'"},
+                          "description": "trace id, 'latest', or "
+                                         "'all' (ship the whole "
+                                         "store, oldest first)"},
                 "url": {"type": "string",
                         "description": "the receiver's http(s) "
                                        "endpoint"},
@@ -2649,8 +2651,15 @@ def _tool_webhook_ship(ctx: ServerContext, args: Dict[str, Any]) -> dict:
         raise ValueError("no signing key (APPROXIMATELY_SIGNING_KEY): "
                          "a shipment without a signature tests "
                          "nothing")
-    from .cli import _ship_core
+    from .cli import _ship_batch, _ship_core
 
+    if trace_spec == "all":
+        import socket
+
+        batch = _ship_batch(store, url, key,
+                            sender or socket.gethostname())
+        return dict(batch, sender=sender
+                    or socket.gethostname())
     result = _ship_core(store.directory, trace_spec or "latest",
                         url, key, sender=sender)
     probe = result.pop("probe")

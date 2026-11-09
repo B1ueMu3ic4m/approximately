@@ -3271,32 +3271,18 @@ def _print_probe(probe: dict, noun: str) -> None:
               "signature was not checked", file=sys.stderr)
 
 
-def _ship_core(store_dir: str, trace_spec: str, url: str,
-               key: bytes, sender: Optional[str] = None) -> dict:
-    """The ship mechanics, shared by the CLI door and the MCP
-    tool: resolve the trace, post it signed, read the scoped
-    probe back. Returns {"trace_id", "steps", "status",
-    "sender", "probe"}; raises ValueError on a bad URL, an
-    unknown trace or a refused shipment — the message is the
-    user-facing hint, so both surfaces say the same thing.
-    ``sender`` names the shipping box (default: this host's
-    hostname) so the receiver's census can tell shippers apart."""
-    import socket
+def _ship_one(store: TraceStore, trace: Trace, url: str,
+              key: bytes, sender: str) -> dict:
+    """Post one recorded trace signed and read the scoped probe
+    back — the single-shipment mechanics _ship_core and the
+    batch share. Raises ValueError on a refused shipment; the
+    message is the user-facing hint."""
     import time as _time
-    from urllib.parse import urlparse
 
     from .fleet import notify_webhook
 
-    if urlparse(url).scheme not in ("http", "https"):
-        raise ValueError("webhook URL must be http(s)")
-    try:
-        store = TraceStore(Path(store_dir))
-        trace = _load_trace(trace_spec, store)
-    except SystemExit as exc:
-        raise ValueError(str(exc)) from None
-    who = sender or socket.gethostname()
     payload = {"kind": "trace_ship", "trace": trace.to_dict(),
-               "shipped_at": _time.time(), "sender": who}
+               "shipped_at": _time.time(), "sender": sender}
     try:
         status = notify_webhook([], url, signing_key=key,
                                 payload=payload)
@@ -3309,8 +3295,73 @@ def _ship_core(store_dir: str, trace_spec: str, url: str,
             status, "receiver answered, not accepted")
         raise ValueError(f"ship NOT accepted: {status} ({hint})")
     return {"trace_id": trace.id, "steps": len(trace.steps),
-            "status": status, "sender": who,
+            "status": status, "sender": sender,
             "probe": _delivery_probe(url, "trace_ship", trace.id)}
+
+
+def _ship_core(store_dir: str, trace_spec: str, url: str,
+               key: bytes, sender: Optional[str] = None) -> dict:
+    """The ship mechanics, shared by the CLI door and the MCP
+    tool: resolve the trace, post it signed, read the scoped
+    probe back. Returns {"trace_id", "steps", "status",
+    "sender", "probe"}; raises ValueError on a bad URL, an
+    unknown trace or a refused shipment — the message is the
+    user-facing hint, so both surfaces say the same thing.
+    ``sender`` names the shipping box (default: this host's
+    hostname) so the receiver's census can tell shippers apart."""
+    import socket
+    from urllib.parse import urlparse
+
+    if urlparse(url).scheme not in ("http", "https"):
+        raise ValueError("webhook URL must be http(s)")
+    try:
+        store = TraceStore(Path(store_dir))
+        trace = _load_trace(trace_spec, store)
+    except SystemExit as exc:
+        raise ValueError(str(exc)) from None
+    return _ship_one(store, trace, url, key,
+                     sender or socket.gethostname())
+
+
+def _ship_batch(store: TraceStore, url: str, key: bytes,
+                sender: str, since_days: Optional[int] = None) -> dict:
+    """Ship the store (oldest first — the traces' own created_at,
+    stable-sorted so clock ties keep the store's file order;
+    --since scopes the window) one trace at a time: every trace
+    ships even after one is refused — each row is independent
+    evidence — and the batch reports per-trace status instead of
+    dying on the first problem. Returns {"shipped", "failed",
+    "results"}."""
+    traces = sorted(store.list_traces(since_days=since_days),
+                    key=lambda t: t.created_at or 0.0)
+    results: list = []
+    for trace in traces:
+        try:
+            results.append(_ship_one(store, trace, url, key,
+                                     sender))
+        except ValueError as exc:
+            results.append({"trace_id": trace.id,
+                            "steps": len(trace.steps),
+                            "error": str(exc)})
+    shipped = sum(1 for r in results if "error" not in r)
+    return {"shipped": shipped, "failed": len(results) - shipped,
+            "results": results}
+
+
+def _ship_batch_report(batch: dict, sender: str) -> int:
+    """The batch's terminal report: one line per trace (errors
+    on stderr), the summary, and an exit code that fails when
+    anything was refused."""
+    for r in batch["results"]:
+        if "error" in r:
+            print(f"  {r['trace_id']}: {r['error']}",
+                  file=sys.stderr)
+        else:
+            print(f"  {r['trace_id']}: HTTP {r['status']} "
+                  f"({r['steps']} step(s))")
+    print(f"shipped {batch['shipped']} trace(s) from {sender} "
+          f"({batch['failed']} failed)")
+    return 0 if not batch["failed"] else 1
 
 
 def cmd_webhook_ship(args: argparse.Namespace) -> int:
@@ -3319,7 +3370,12 @@ def cmd_webhook_ship(args: argparse.Namespace) -> int:
     trace_ship) with its own integrity block intact — the
     receiver archives it as evidence of delivery, and importing
     it back is the receiving box's call (foreign evidence must
-    not acquire OUR integrity chain)."""
+    not acquire OUR integrity chain). --all ships the whole
+    store (oldest first; --since scopes the window): one box's
+    history becomes another box's inbox, and a refused trace
+    never stops the ones after it."""
+    import socket
+
     from .integrity import load_key
 
     key = load_key(getattr(args, "key_file", None))
@@ -3327,6 +3383,17 @@ def cmd_webhook_ship(args: argparse.Namespace) -> int:
         print("error: no signing key (APPROXIMATELY_SIGNING_KEY or "
               "--key-file): a shipment without a signature tests "
               "nothing", file=sys.stderr)
+        return 2
+    sender = getattr(args, "sender", None) or socket.gethostname()
+    if getattr(args, "all", False):
+        store = TraceStore(Path(args.store))
+        batch = _ship_batch(store, str(args.url), key, sender,
+                            since_days=getattr(args, "since",
+                                               None))
+        return _ship_batch_report(batch, sender)
+    if not getattr(args, "trace", None):
+        print("error: a trace id (or 'latest') is required - "
+              "or --all to ship the whole store", file=sys.stderr)
         return 2
     try:
         result = _ship_core(str(args.store), str(args.trace),
@@ -5532,10 +5599,18 @@ def build_parser() -> argparse.ArgumentParser:
                        help="ship a recorded trace to another "
                             "box's receiver over the signed "
                             "channel")
-    p.add_argument("trace", metavar="TRACE",
-                   help="trace id, or 'latest'")
+    p.add_argument("trace", nargs="?", metavar="TRACE",
+                   help="trace id, or 'latest' (required unless "
+                        "--all)")
     p.add_argument("url", metavar="URL",
                    help="the receiver's http(s) endpoint")
+    p.add_argument("--all", action="store_true",
+                   help="ship the whole store (oldest first) - "
+                        "one box's history becomes another "
+                        "box's inbox")
+    p.add_argument("--since", type=int, metavar="DAYS",
+                   help="with --all: only traces from the last "
+                        "N days")
     p.add_argument("--key-file", metavar="FILE",
                    help="HMAC key (else APPROXIMATELY_SIGNING_KEY)")
     p.add_argument("--from", dest="sender", metavar="LABEL",

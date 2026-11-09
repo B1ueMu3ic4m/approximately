@@ -269,7 +269,12 @@ carry a sender label now (webhook-ship --from BOX; the default
 is this host's hostname): the archive's census counts shippers
 by label, `received --sender BOX` narrows to one shipper's
 rows, and the status frame names who shipped — a receiver
-serving three boxes reads three shippers, not one pile.
+serving three boxes reads three shippers, not one pile. And a
+whole box moves in one call now: `webhook-ship --all URL`
+ships the store oldest-first (`--since N` scopes the window) —
+a refused trace never stops the ones after it, the report is
+per-trace, and `trace: "all"` is the MCP spelling of the same
+move. One box's history becomes another box's inbox.
 
 The brief reads the store's webhook inbox too: **overnight
 arrivals (webhook)** — the window's delivered rows with their
