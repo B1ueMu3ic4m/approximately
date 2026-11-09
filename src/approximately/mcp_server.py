@@ -1198,7 +1198,8 @@ _TOOLS: List[Dict[str, Any]] = [
         "name": "inbox",
         "description": "The receiver's archive, read back: what the "
                        "webhook channel has delivered — row counts, "
-                       "the verified split, the kind census, and the "
+                       "the verified split, the kind census, the "
+                       "sender census (who shipped), and the "
                        "most recent rows (newest last). Rows are "
                        "evidence of what arrived, not of what was "
                        "true; redact scrubs them before they leave "
@@ -1223,6 +1224,10 @@ _TOOLS: List[Dict[str, Any]] = [
                              "description": "only rows whose JSON "
                                             "contains this substring "
                                             "(case-insensitive)"},
+                "sender": {"type": "string",
+                           "description": "only rows shipped by "
+                                          "this label (the ship "
+                                          "door's sender)"},
                 "unverified_only": {"type": "boolean",
                                     "description": "only rows the "
                                                    "open tap marked "
@@ -1286,6 +1291,10 @@ _TOOLS: List[Dict[str, Any]] = [
                 "url": {"type": "string",
                         "description": "the receiver's http(s) "
                                        "endpoint"},
+                "sender": {"type": "string",
+                           "description": "who is shipping "
+                                          "(default: this host's "
+                                          "hostname)"},
             },
             "required": ["url"],
         },
@@ -2582,18 +2591,15 @@ def _tool_inbox(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     """The webhook archive read back: the receiver's stats plus the
     most recent rows, newest last. Rows are what arrived — the log
     records delivery, never truth. One reader with the CLI's
-    `received` door (read_archive): since, kind, contains and
-    unverified_only narrow the view the same way --since, --kind,
-    --grep and --unverified-only do."""
+    `received` door (read_archive): since, kind, contains, sender
+    and unverified_only narrow the view the same way --since,
+    --kind, --grep, --sender and --unverified-only do."""
     from .receiver import read_archive
 
     store = _store(ctx, args)
-    contains = args.get("contains")
-    if contains is not None and not isinstance(contains, str):
-        raise ValueError("contains must be a string")
-    kind = args.get("kind")
-    if kind is not None and not isinstance(kind, str):
-        raise ValueError("kind must be a string")
+    contains = _opt_str(args, "contains")
+    kind = _opt_str(args, "kind")
+    sender = _opt_str(args, "sender")
     payload = read_archive(
         store.directory / "webhook-log.jsonl",
         limit=_opt_int(args, "limit") or 20,
@@ -2601,7 +2607,8 @@ def _tool_inbox(ctx: ServerContext, args: Dict[str, Any]) -> dict:
         kind=kind,
         contains=contains,
         include_rotated=bool(args.get("include_rotated", False)),
-        unverified_only=bool(args.get("unverified_only", False)))
+        unverified_only=bool(args.get("unverified_only", False)),
+        sender=sender)
     rows = payload["recent"]
     if args.get("redact"):
         from .redact import redact_value
@@ -2616,16 +2623,16 @@ def _tool_webhook_ship(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     own integrity block intact — foreign evidence never
     acquires the receiver's chain. The signature comes from
     APPROXIMATELY_SIGNING_KEY (no key file at the tool
-    boundary); the scoped probe proves THIS trace landed."""
+    boundary); the scoped probe proves THIS trace landed. The
+    optional sender names the shipping box (default: this
+    host's hostname) so the receiver's census can tell shippers
+    apart."""
     from .integrity import load_key
 
     store = _store(ctx, args)
-    url = args.get("url")
-    if url is not None and not isinstance(url, str):
-        raise ValueError("url must be a string")
-    trace_spec = args.get("trace")
-    if trace_spec is not None and not isinstance(trace_spec, str):
-        raise ValueError("trace must be a string")
+    url = _opt_str(args, "url")
+    trace_spec = _opt_str(args, "trace")
+    sender = _opt_str(args, "sender")
     if url is None:
         raise ValueError("url is required: the receiver's "
                          "http(s) endpoint")
@@ -2637,7 +2644,7 @@ def _tool_webhook_ship(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .cli import _ship_core
 
     result = _ship_core(store.directory, trace_spec or "latest",
-                        url, key)
+                        url, key, sender=sender)
     probe = result.pop("probe")
     return dict(result,
                 delivered=bool(probe.get("scoped")
@@ -2686,6 +2693,15 @@ def _tool_inbox_import(ctx: ServerContext,
 def _opt_int(args: Dict[str, Any], key: str) -> Optional[int]:
     value = args.get(key)
     return int(value) if value is not None else None
+
+
+def _opt_str(args: Dict[str, Any], key: str) -> Optional[str]:
+    """An optional string argument, refused at the boundary: a
+    wrong type names the field, never a traceback."""
+    value = args.get(key)
+    if value is not None and not isinstance(value, str):
+        raise ValueError(f"{key} must be a string")
+    return value
 
 
 _HANDLERS = {

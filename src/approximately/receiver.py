@@ -101,13 +101,15 @@ def read_archive(archive: Path, limit: int = 20,
                  unverified_only: bool = False,
                  include_rotated: bool = False,
                  since: Optional[float] = None,
-                 contains: Optional[str] = None) -> dict:
+                 contains: Optional[str] = None,
+                 sender: Optional[str] = None) -> dict:
     """The archive read back with a filter: the /stats shape plus
     the most recent matching rows, newest last. Used by the
     ``received`` CLI door and the MCP inbox tool — one reader,
     every surface. ``include_rotated`` folds the previous log
     (``<archive>.1``, where rotation moves it) in ahead of the
-    current one, so yesterday's night is still one query."""
+    current one, so yesterday's night is still one query;
+    ``sender`` narrows the view to one shipper's rows."""
     _refuse_hostile_filters(since, contains)
     stats = archive_stats(archive)
     paths = [archive]
@@ -122,7 +124,7 @@ def read_archive(archive: Path, limit: int = 20,
         lines = path.read_text(
             encoding="utf-8", errors="replace").splitlines()
         rows.extend(_matching_rows(lines, kind, unverified_only,
-                                   since, contains))
+                                   since, contains, sender))
     stats["rows_total"] = stats["rows"]
     keep = max(0, int(limit))
     # rows[-0:] is the whole list — a slice quirk would turn
@@ -140,20 +142,40 @@ def _matches_contains(row: dict, contains: str) -> bool:
     return contains.lower() in text
 
 
+def _shipped_by(row: dict) -> Optional[str]:
+    """The row's sender label, or None: the ship door's label
+    lives inside the posted body, and only a non-empty string
+    counts as a name — anything else is noise, not a shipper."""
+    body = row.get("payload")
+    sender = body.get("sender") if isinstance(body, dict) else None
+    return sender if isinstance(sender, str) and sender else None
+
+
+def _stamp_passes(row: dict, since: float) -> bool:
+    """The arrival stamp clears the since floor — a non-stamp
+    (malformed or absent) clears nothing."""
+    stamp = row.get("received_at")
+    return isinstance(stamp, (int, float)) and stamp >= since
+
+
 def row_passes(row: dict, kind: Optional[str],
-                unverified_only: bool,
-                since: Optional[float],
-                contains: Optional[str] = None) -> bool:
+               unverified_only: bool,
+               since: Optional[float],
+               contains: Optional[str] = None,
+               sender: Optional[str] = None) -> bool:
     """The row filters — a hostile ``since`` was refused at the
-    boundary, so the stamp check is just time arithmetic."""
+    boundary, so the stamp check is just time arithmetic. The
+    sender filter compares the ship door's label exactly: census
+    is case-sensitive by design, two labels that differ only in
+    case are two shippers."""
     if kind is not None and row.get("kind") != kind:
         return False
     if unverified_only and row.get("verified") is True:
         return False
-    if since is not None:
-        stamp = row.get("received_at")
-        if not (isinstance(stamp, (int, float)) and stamp >= since):
-            return False
+    if since is not None and not _stamp_passes(row, since):
+        return False
+    if sender is not None and _shipped_by(row) != sender:
+        return False
     return (contains is None
             or _matches_contains(row, contains))
 
@@ -161,7 +183,8 @@ def row_passes(row: dict, kind: Optional[str],
 def _matching_rows(lines: list, kind: Optional[str],
                    unverified_only: bool,
                    since: Optional[float] = None,
-                   contains: Optional[str] = None) -> list:
+                   contains: Optional[str] = None,
+                   sender: Optional[str] = None) -> list:
     """The lines that pass the filter — malformed lines are
     skipped here (archive_stats already counted them) and never
     guessed at."""
@@ -172,8 +195,9 @@ def _matching_rows(lines: list, kind: Optional[str],
         except ValueError:
             continue
         if isinstance(row, dict) and row_passes(row, kind,
-                                                 unverified_only,
-                                                 since, contains):
+                                                unverified_only,
+                                                since, contains,
+                                                sender):
             rows.append(row)
     return rows
 
@@ -274,8 +298,11 @@ def _open_log(stats: dict, archive: Path) -> Optional[str]:
 
 def _stat_row(stats: dict, row: dict) -> None:
     """One good row's census: the verified split, the kind bucket,
-    the last arrival. A kind that is not a string buckets by its
-    json form — the census must never crash on what arrived."""
+    the sender census, the last arrival. A kind that is not a
+    string buckets by its json form — the census must never crash
+    on what arrived. The sender lives inside the posted body (the
+    ship door's payload), and only a non-empty string counts:
+    anything else is noise, not a name."""
     if row.get("verified") is True:
         stats["verified"] += 1
     else:
@@ -285,6 +312,10 @@ def _stat_row(stats: dict, row: dict) -> None:
         kind = json.dumps(kind, sort_keys=True,
                           ensure_ascii=False)
     stats["kinds"][kind] = stats["kinds"].get(kind, 0) + 1
+    sender = _shipped_by(row)
+    if sender:
+        stats["senders"][sender] = \
+            stats["senders"].get(sender, 0) + 1
     stamp = row.get("received_at")
     if isinstance(stamp, (int, float)) and \
             (stats["last_received_at"] is None
@@ -298,8 +329,8 @@ def archive_stats(archive: Path) -> dict:
     arrival and the byte size. A malformed line is counted as
     ``malformed`` and never guessed at (poison is evidence too)."""
     stats: dict = {"rows": 0, "verified": 0, "unverified": 0,
-                   "malformed": 0, "kinds": {}, "bytes": 0,
-                   "last_received_at": None,
+                   "malformed": 0, "kinds": {}, "senders": {},
+                   "bytes": 0, "last_received_at": None,
                    "first_malformed": None}
     text = _open_log(stats, archive)
     if text is None:
@@ -339,13 +370,14 @@ def filtered_stats(archive: Path, kind: Optional[str] = None,
     # keeps the channel-global value anyway
     scoped: dict = {"rows": len(rows), "verified": 0,
                     "unverified": 0, "kinds": {},
-                    "last_received_at": None}
+                    "senders": {}, "last_received_at": None}
     for row in rows:
         _stat_row(scoped, row)
     stats["rows"] = scoped["rows"]
     stats["verified"] = scoped["verified"]
     stats["unverified"] = scoped["unverified"]
     stats["kinds"] = scoped["kinds"]
+    stats["senders"] = scoped["senders"]
     return stats
 
 
