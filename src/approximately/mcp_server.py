@@ -1305,6 +1305,10 @@ _TOOLS: List[Dict[str, Any]] = [
                            "description": "who is shipping "
                                           "(default: this host's "
                                           "hostname)"},
+                "dry_run": {"type": "boolean",
+                            "description": "with trace 'all': "
+                                           "return the manifest "
+                                           "without posting"},
             },
             "required": ["url"],
         },
@@ -2651,15 +2655,21 @@ def _tool_webhook_ship(ctx: ServerContext, args: Dict[str, Any]) -> dict:
         raise ValueError("no signing key (APPROXIMATELY_SIGNING_KEY): "
                          "a shipment without a signature tests "
                          "nothing")
-    from .cli import _ship_batch, _ship_core
+    from .cli import _batch_traces, _ship_batch, _ship_core
 
     if trace_spec == "all":
         import socket
 
-        batch = _ship_batch(store, url, key,
-                            sender or socket.gethostname())
-        return dict(batch, sender=sender
-                    or socket.gethostname())
+        who = sender or socket.gethostname()
+        if args.get("dry_run"):
+            # the plan as data: what would post, nothing posted
+            return {"would_ship": [
+                {"trace_id": t.id, "steps": len(t.steps),
+                 "task": (t.task or "")[:60]}
+                for t in _batch_traces(store)],
+                "sender": who}
+        batch = _ship_batch(store, url, key, who)
+        return dict(batch, sender=who)
     result = _ship_core(store.directory, trace_spec or "latest",
                         url, key, sender=sender)
     probe = result.pop("probe")

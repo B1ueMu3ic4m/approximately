@@ -3323,6 +3323,17 @@ def _ship_core(store_dir: str, trace_spec: str, url: str,
                      sender or socket.gethostname())
 
 
+def _batch_traces(store: TraceStore,
+                  since_days: Optional[int] = None) -> list:
+    """The batch's manifest, oldest first — the traces' own
+    created_at, stable-sorted so clock ties keep the store's
+    file order; --since scopes the window. Shared by the ship
+    loop and the plan: the plan must be the SAME list the post
+    would walk."""
+    return sorted(store.list_traces(since_days=since_days),
+                  key=lambda t: t.created_at or 0.0)
+
+
 def _ship_batch(store: TraceStore, url: str, key: bytes,
                 sender: str, since_days: Optional[int] = None) -> dict:
     """Ship the store (oldest first — the traces' own created_at,
@@ -3332,10 +3343,8 @@ def _ship_batch(store: TraceStore, url: str, key: bytes,
     evidence — and the batch reports per-trace status instead of
     dying on the first problem. Returns {"shipped", "failed",
     "results"}."""
-    traces = sorted(store.list_traces(since_days=since_days),
-                    key=lambda t: t.created_at or 0.0)
     results: list = []
-    for trace in traces:
+    for trace in _batch_traces(store, since_days):
         try:
             results.append(_ship_one(store, trace, url, key,
                                      sender))
@@ -3364,6 +3373,19 @@ def _ship_batch_report(batch: dict, sender: str) -> int:
     return 0 if not batch["failed"] else 1
 
 
+def _ship_batch_plan(store: TraceStore, sender: str,
+                     since_days: Optional[int] = None) -> int:
+    """The batch's plan: what --all WOULD post, named per trace,
+    and nothing posted — reading is not deciding, even when the
+    reading is a hundred rows."""
+    traces = _batch_traces(store, since_days)
+    print(f"would ship {len(traces)} trace(s) from {sender}:")
+    for trace in traces:
+        print(f"  {trace.id}: {len(trace.steps)} step(s) - "
+              f"{(trace.task or '')[:60]}")
+    return 0
+
+
 def cmd_webhook_ship(args: argparse.Namespace) -> int:
     """Ship a recorded trace to another box's receiver over the
     signed channel: the trace rides as a JSON row (kind=
@@ -3387,6 +3409,11 @@ def cmd_webhook_ship(args: argparse.Namespace) -> int:
     sender = getattr(args, "sender", None) or socket.gethostname()
     if getattr(args, "all", False):
         store = TraceStore(Path(args.store))
+        if getattr(args, "dry_run", False):
+            return _ship_batch_plan(store, sender,
+                                    since_days=getattr(args,
+                                                       "since",
+                                                       None))
         batch = _ship_batch(store, str(args.url), key, sender,
                             since_days=getattr(args, "since",
                                                None))
@@ -5616,6 +5643,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--since", type=int, metavar="DAYS",
                    help="with --all: only traces from the last "
                         "N days")
+    p.add_argument("--dry-run", action="store_true",
+                   help="with --all: name what would ship - "
+                        "nothing is posted")
     p.add_argument("--key-file", metavar="FILE",
                    help="HMAC key (else APPROXIMATELY_SIGNING_KEY)")
     p.add_argument("--from", dest="sender", metavar="LABEL",

@@ -4766,3 +4766,13 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          earlier check: garbage cannot buy a denial against
          honest senders, and a refused post never reaches the
          archive.
+521. **v3.93.0 - the batch gets a plan** (planned):
+       - --all posted a hundred rows on one flag with no
+         preview: the operator and the agent learned what would
+         ship only from the receiver's side of the wire.
+         --dry-run names what WOULD post, per trace, and posts
+         nothing; the MCP tool answers dry_run with the
+         manifest as data. The plan is the same manifest the
+         post would walk (_batch_traces), so the preview cannot
+         drift from the shipment — reading is not deciding,
+         even when the reading is a hundred rows.

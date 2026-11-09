@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.93.0
+
+- the batch gets a plan: `--all` posted a hundred rows on one flag with no preview — the operator (and the agent) learned what would ship only from the receiver's side of the wire. `webhook-ship --all --dry-run` names what WOULD post, per trace, and posts nothing; the MCP tool answers `dry_run` with the manifest as data. The plan is the same manifest the post would walk (`_batch_traces`), so the preview cannot drift from the shipment — reading is not deciding, even when the reading is a hundred rows.
+
 ## v3.92.0
 
 - the receiver can say "slow down" in the sender's own dialect: an unbounded receiver is a denial target twice over — a post flood fills the archive (max-rows already rotates) and eats the box. `webhook-serve --rate N` caps ACCEPTED posts per rolling minute and answers the excess `429` with a whole-second `Retry-After` — exactly the signal the sender's own retry loop already honors, so both ends speak one protocol and nobody needed a new word. The gate consumes budget only for posts that survived every earlier check: garbage cannot buy a denial against honest senders, and a refused post never reaches the archive.
