@@ -49,6 +49,8 @@ class DoctorReport:
     archive_rows: int = 0
     archive_malformed: int = 0
     archive_rotated: int = 0
+    ship_spool_waiting: int = 0
+    ship_spool_unreadable: int = 0
     spool_dir: str = ""
     spool_pending: int = 0
     spool_unparsed: List[str] = field(default_factory=list)
@@ -99,8 +101,25 @@ class DoctorReport:
             "chain_failed": self.chain_failed,
             "archive_rows": self.archive_rows,
             "archive_malformed": self.archive_malformed,
+            "ship_spool_waiting": self.ship_spool_waiting,
+            "ship_spool_unreadable": self.ship_spool_unreadable,
             "archive_rotated": self.archive_rotated,
         }
+
+    def _render_ship_spool(self) -> str:
+        """The outbox line: waiting is not unhealthy — it is
+        owed, and the report names the flush that clears it."""
+        if not (self.ship_spool_waiting
+                or self.ship_spool_unreadable):
+            return ""
+        note = (f"  ship spool: {self.ship_spool_waiting} "
+                "shipment(s) waiting - webhook-ship --flush "
+                "retries them")
+        if self.ship_spool_unreadable:
+            note += (f", {self.ship_spool_unreadable} "
+                     "unreadable line(s) (the flush drops them "
+                     "loudly)")
+        return note
 
     def _render_archive(self) -> str:
         if not (self.archive_rows or self.archive_malformed):
@@ -155,6 +174,9 @@ class DoctorReport:
         archive_note = self._render_archive()
         if archive_note:
             lines.append(archive_note)
+        spool_note = self._render_ship_spool()
+        if spool_note:
+            lines.append(spool_note)
         if self.spool_dir:
             note = (f"  spool {self.spool_dir}: "
                     f"{self.spool_pending} pending file(s)")
@@ -380,6 +402,19 @@ def _check_archive(directory: Path, report: DoctorReport) -> None:
     touches it."""
     from .receiver import archive_stats
 
+    # the outbox counts even when the archive does not exist:
+    # a queued shipment is owed regardless of what arrived
+    spool = directory / "ship-spool.jsonl"
+    if spool.is_file():
+        from .cli import _spool_rows
+
+        raw_lines = [line for line
+                     in spool.read_text(encoding="utf-8",
+                                        errors="replace")
+                     .splitlines() if line.strip()]
+        report.ship_spool_waiting = len(_spool_rows(spool))
+        report.ship_spool_unreadable = (len(raw_lines)
+                                        - report.ship_spool_waiting)
     archive = directory / "webhook-log.jsonl"
     if not archive.is_file():
         return
