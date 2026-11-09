@@ -1373,6 +1373,14 @@
           "dry_run": {
             "type": "boolean",
             "description": "with trace 'all': return the manifest without posting"
+          },
+          "spool": {
+            "type": "boolean",
+            "description": "queue refused shipments for a later flush"
+          },
+          "flush": {
+            "type": "boolean",
+            "description": "drain the spool: re-ship every queued shipment"
           }
         },
         "required": [

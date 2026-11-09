@@ -281,8 +281,12 @@ a refused trace never stops the ones after it, the report is
 per-trace, and `trace: "all"` is the MCP spelling of the same
 move. Preview first: `--all --dry-run` names what would post
 (and posts nothing; `dry_run: true` is the MCP spelling) —
-the plan is the same manifest the post walks. One box's
-history becomes another box's inbox.
+the plan is the same manifest the post walks. And a refused
+shipment is no longer a loss: `--spool` queues it (the
+reference, not the body) and `--flush` re-ships the queue
+when the receiver is back — delivered rows leave, gone
+traces drop loudly, persistent failures count their
+attempts. One box's history becomes another box's inbox.
 
 The brief reads the store's webhook inbox too: **overnight
 arrivals (webhook)** — the window's delivered rows with their

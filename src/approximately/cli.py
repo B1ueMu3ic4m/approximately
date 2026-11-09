@@ -3386,6 +3386,166 @@ def _ship_batch_plan(store: TraceStore, sender: str,
     return 0
 
 
+def _spool_path(store_dir: str) -> Path:
+    """The failed-shipments queue: <store>/ship-spool.jsonl —
+    next to the traces it refers to."""
+    return Path(store_dir) / "ship-spool.jsonl"
+
+
+def _spool_append(path: Path, trace_id: str, url: str,
+                  sender: str) -> None:
+    """Queue a refused shipment: the reference (id, url, label),
+    not the body — the trace stays the store's to keep honest,
+    and a flush re-reads it fresh."""
+    import time as _time
+
+    row = {"queued_at": _time.time(), "trace_id": trace_id,
+           "url": url, "sender": sender, "attempts": 0}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(row, sort_keys=True) + "\n")
+
+
+def _spool_rows(path: Path) -> list:
+    """The queue read back: parseable rows only, poison skipped
+    (a corrupt line is dropped loudly, not grown silently)."""
+    if not path.is_file():
+        return []
+    rows: list = []
+    for line in path.read_text(
+            encoding="utf-8", errors="replace").splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+            if not isinstance(row, dict) \
+                    or not isinstance(row.get("trace_id"), str) \
+                    or not isinstance(row.get("url"), str):
+                raise ValueError("not a spool row")
+        except ValueError:
+            print(f"approximately: dropping unreadable spool "
+                  f"line: {line.strip()[:60]}", file=sys.stderr)
+            continue
+        rows.append(row)
+    return rows
+
+
+def _spool_flush(store: TraceStore, path: Path,
+                 key: bytes) -> dict:
+    """Drain the queue: each row re-reads its trace fresh and
+    re-ships to its recorded URL — delivered rows leave the
+    queue, traces gone from the store are reported and dropped
+    (nothing to ship), failures stay with attempts incremented.
+    Returns {"flushed", "kept", "dropped", "results"}."""
+    import socket
+
+    rows = _spool_rows(path)
+    results: list = []
+    kept: list = []
+    dropped = 0
+    for row in rows:
+        trace = store.load(row["trace_id"])
+        if trace is None:
+            results.append({"trace_id": row["trace_id"],
+                            "dropped": True,
+                            "note": "gone from the store"})
+            dropped += 1
+            continue
+        try:
+            _ship_one(store, trace, row["url"], key,
+                      row.get("sender")
+                      or socket.gethostname())
+            results.append({"trace_id": row["trace_id"],
+                            "flushed": True})
+        except ValueError as exc:
+            row["attempts"] = int(row.get("attempts", 0)) + 1
+            kept.append(row)
+            results.append({"trace_id": row["trace_id"],
+                            "error": str(exc),
+                            "attempts": row["attempts"]})
+    if rows:
+        with path.open("w", encoding="utf-8") as fh:
+            for row in kept:
+                fh.write(json.dumps(row, sort_keys=True) + "\n")
+    return {"flushed": sum(1 for r in results
+                           if r.get("flushed")),
+            "kept": len(kept), "dropped": dropped,
+            "results": results}
+
+
+def _spool_failures(store: TraceStore, batch: dict,
+                    args: argparse.Namespace) -> int:
+    """With --spool: every refused shipment in the batch is
+    queued for a later flush — the network being down must not
+    lose the evidence, only delay it. Returns how many rows
+    were queued."""
+    if not getattr(args, "spool", False):
+        return 0
+    import socket
+
+    path = _spool_path(str(args.store))
+    for r in batch["results"]:
+        if "error" in r:
+            _spool_append(path, r["trace_id"], str(args.url),
+                          getattr(args, "sender", None)
+                          or socket.gethostname())
+    return sum(1 for r in batch["results"] if "error" in r)
+
+
+def _spool_report(report: dict) -> int:
+    """The flush's terminal report and its exit code: flushed
+    rows are the win, kept and dropped rows explain themselves."""
+    for r in report["results"]:
+        if r.get("flushed"):
+            print(f"  {r['trace_id']}: delivered")
+        elif r.get("dropped"):
+            print(f"  {r['trace_id']}: {r['note']} (dropped)",
+                  file=sys.stderr)
+        else:
+            print(f"  {r['trace_id']}: {r['error']} "
+                  f"(attempts: {r['attempts']})", file=sys.stderr)
+    print(f"flushed {report['flushed']} shipment(s) "
+          f"({report['kept']} kept, {report['dropped']} dropped)")
+    return 0 if not report["kept"] else 1
+
+
+def _ship_single(args: argparse.Namespace, key: bytes,
+                 sender: str) -> int:
+    """One trace, one post: resolve, ship, spool-or-error — the
+    single-shipment branch, kept apart so the door stays
+    readable."""
+    from urllib.parse import urlparse
+
+    if urlparse(str(args.url)).scheme not in ("http", "https"):
+        print("error: webhook URL must be http(s)",
+              file=sys.stderr)
+        return 2
+    try:
+        store = TraceStore(Path(args.store))
+        trace = _load_trace(str(args.trace), store)
+    except SystemExit as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    try:
+        result = _ship_one(store, trace, str(args.url), key,
+                           sender)
+    except ValueError as exc:
+        if getattr(args, "spool", False):
+            _spool_append(_spool_path(str(args.store)),
+                          trace.id, str(args.url), sender)
+            print(f"error: {exc}", file=sys.stderr)
+            print("queued in the spool - webhook-ship --flush "
+                  "retries it", file=sys.stderr)
+            return 1
+        print(f"error: {exc}", file=sys.stderr)
+        return 2 if "must be http(s)" in str(exc) or             "no trace found" in str(exc) else 1
+    print(f"shipped: HTTP 200 (trace {result['trace_id']}, "
+          f"{result['steps']} step(s), from "
+          f"{result['sender']})")
+    _print_probe(result["probe"], "this trace")
+    return 0
+
+
 def cmd_webhook_ship(args: argparse.Namespace) -> int:
     """Ship a recorded trace to another box's receiver over the
     signed channel: the trace rides as a JSON row (kind=
@@ -3407,6 +3567,10 @@ def cmd_webhook_ship(args: argparse.Namespace) -> int:
               "nothing", file=sys.stderr)
         return 2
     sender = getattr(args, "sender", None) or socket.gethostname()
+    if getattr(args, "flush", False):
+        store = TraceStore(Path(args.store))
+        return _spool_report(_spool_flush(
+            store, _spool_path(str(args.store)), key))
     if getattr(args, "all", False):
         store = TraceStore(Path(args.store))
         if getattr(args, "dry_run", False):
@@ -3417,23 +3581,17 @@ def cmd_webhook_ship(args: argparse.Namespace) -> int:
         batch = _ship_batch(store, str(args.url), key, sender,
                             since_days=getattr(args, "since",
                                                None))
+        spooled = _spool_failures(store, batch, args)
+        if spooled:
+            print(f"queued {spooled} refused shipment(s) in "
+                  "the spool - webhook-ship --flush retries "
+                  "them")
         return _ship_batch_report(batch, sender)
     if not getattr(args, "trace", None):
         print("error: a trace id (or 'latest') is required - "
               "or --all to ship the whole store", file=sys.stderr)
         return 2
-    try:
-        result = _ship_core(str(args.store), str(args.trace),
-                            str(args.url), key,
-                            sender=getattr(args, "sender", None))
-    except ValueError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 2 if "must be http(s)" in str(exc) or             "no trace found" in str(exc) else 1
-    print(f"shipped: HTTP 200 (trace {result['trace_id']}, "
-          f"{result['steps']} step(s), from "
-          f"{result['sender']})")
-    _print_probe(result["probe"], "this trace")
-    return 0
+    return _ship_single(args, key, sender)
 
 
 def _same_record(a: Any, b: Any) -> bool:
@@ -5646,6 +5804,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--dry-run", action="store_true",
                    help="with --all: name what would ship - "
                         "nothing is posted")
+    p.add_argument("--spool", action="store_true",
+                   help="queue refused shipments in <store>/"
+                        "ship-spool.jsonl for a later --flush")
+    p.add_argument("--flush", action="store_true",
+                   help="drain the spool: re-ship every queued "
+                        "shipment to its recorded URL")
     p.add_argument("--key-file", metavar="FILE",
                    help="HMAC key (else APPROXIMATELY_SIGNING_KEY)")
     p.add_argument("--from", dest="sender", metavar="LABEL",

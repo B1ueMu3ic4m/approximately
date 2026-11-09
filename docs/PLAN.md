@@ -4776,3 +4776,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          post would walk (_batch_traces), so the preview cannot
          drift from the shipment — reading is not deciding,
          even when the reading is a hundred rows.
+522. **v3.94.0 - the network being down must not lose the
+       evidence** (planned):
+       - A refused shipment died at the door: the error
+         printed, the exit code set, and the operator had to
+         remember the trace id by hand. --spool queues the
+         refusal (the reference, never the body) in
+         <store>/ship-spool.jsonl; --flush drains it later —
+         delivered rows leave, gone traces are reported and
+         dropped, persistent failures stay with attempts
+         incremented. The MCP tool speaks the same two moves
+         (spool / flush).

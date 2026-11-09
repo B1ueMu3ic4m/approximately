@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.94.0
+
+- the network being down must not lose the evidence: a refused shipment died at the door — the error printed, the exit code set, and the operator had to remember the trace id by hand. `webhook-ship --spool` queues the refusal (the reference, never the body — the trace stays the store's to keep honest) in `<store>/ship-spool.jsonl`, and `--flush` drains it later: delivered rows leave the queue, traces gone from the store are reported and dropped, persistent failures stay with attempts incremented. The MCP tool speaks the same two moves (`spool` / `flush`), so an agent can survive a receiver reboot too.
+
 ## v3.93.0
 
 - the batch gets a plan: `--all` posted a hundred rows on one flag with no preview — the operator (and the agent) learned what would ship only from the receiver's side of the wire. `webhook-ship --all --dry-run` names what WOULD post, per trace, and posts nothing; the MCP tool answers `dry_run` with the manifest as data. The plan is the same manifest the post would walk (`_batch_traces`), so the preview cannot drift from the shipment — reading is not deciding, even when the reading is a hundred rows.
