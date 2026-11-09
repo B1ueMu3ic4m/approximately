@@ -4807,3 +4807,14 @@ Anthropic, *Effective Context Engineering for AI Agents*, 2025.
          request) or a hostile value is a 400 naming the
          reason — a typo'd check can never silently look like
          the truth.
+525. **v3.96.0 addendum - main again, caught before push**
+       (recorded):
+       - The fourth direct-to-main slip of the session (after
+         v3.58.0, v3.59.1, v3.83.0): the round's commit landed
+         on local main because the branch checkout was missed
+         after the previous merge. Recovery was the practiced
+         one — branch-at-sha, reset main to origin/main, push
+         the branch, PR — and nothing reached the remote main.
+         The checkout step stays on the round checklist; the
+         slip is recorded because a near-miss that ships is
+         still worth naming.
