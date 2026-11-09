@@ -62,6 +62,9 @@ def test_the_cap_answers_429_with_retry_after():
         assert int(headers.get("Retry-After", 0)) >= 1, \
             "the refusal says when to come back"
         assert state.received == 2 and state.refused == 1
+        assert state.throttled == 1, \
+            "the throttle names itself - tuning --rate needs \
+to see the pressure it applies"
         rows = archive.read_text().splitlines()
         assert len(rows) == 2, \
             "the refused post never reaches the archive"

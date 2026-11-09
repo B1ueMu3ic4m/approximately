@@ -1605,6 +1605,14 @@ framework adapters import lazily and degrade when the framework is absent.
      fine-tuning export, with the teacher cache tally. Docs-only.
 
 
+526. **v3.97.0 - the throttle names itself** (planned):
+       - A 429 was just another number in refused: 401s, 413s
+         and rate-capped posts were one count, so an operator
+         tuning --rate could not see the pressure the cap
+         applies. The receiver's counters and /stats carry
+         `throttled` now — refused stays every gate's refusal,
+         throttled is the rate cap's alone; tuning the cap
+         means watching its own number move.
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
