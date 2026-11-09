@@ -1309,6 +1309,14 @@ _TOOLS: List[Dict[str, Any]] = [
                             "description": "with trace 'all': "
                                            "return the manifest "
                                            "without posting"},
+                "spool": {"type": "boolean",
+                          "description": "queue refused "
+                                         "shipments for a later "
+                                         "flush"},
+                "flush": {"type": "boolean",
+                          "description": "drain the spool: "
+                                         "re-ship every queued "
+                                         "shipment"},
             },
             "required": ["url"],
         },
@@ -2631,6 +2639,36 @@ def _tool_inbox(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     return payload
 
 
+def _tool_ship_all(store: Any, url: str, key: bytes,
+                   sender: Optional[str],
+                   args: Dict[str, Any]) -> dict:
+    """The tool's batch branch: trace 'all' ships the store
+    oldest-first; dry_run answers the manifest as data and
+    spool queues refusals for a later flush. Kept apart from
+    the single-shipment branch so neither grows the other."""
+    import socket
+
+    from .cli import _batch_traces, _ship_batch, _spool_append, _spool_path
+
+    who = sender or socket.gethostname()
+    if args.get("dry_run"):
+        # the plan as data: what would post, nothing posted
+        return {"would_ship": [
+            {"trace_id": t.id, "steps": len(t.steps),
+             "task": (t.task or "")[:60]}
+            for t in _batch_traces(store)],
+            "sender": who}
+    batch = _ship_batch(store, url, key, who)
+    if args.get("spool"):
+        path = _spool_path(store.directory)
+        for r in batch["results"]:
+            if "error" in r:
+                _spool_append(path, r["trace_id"], url, who)
+        batch["spooled"] = sum(1 for r in batch["results"]
+                               if "error" in r)
+    return dict(batch, sender=who)
+
+
 def _tool_webhook_ship(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     """Ship a recorded trace to another box's receiver over the
     signed channel: the trace rides as a trace_ship row with its
@@ -2655,21 +2693,13 @@ def _tool_webhook_ship(ctx: ServerContext, args: Dict[str, Any]) -> dict:
         raise ValueError("no signing key (APPROXIMATELY_SIGNING_KEY): "
                          "a shipment without a signature tests "
                          "nothing")
-    from .cli import _batch_traces, _ship_batch, _ship_core
+    from .cli import _ship_core, _spool_flush, _spool_path
 
+    if args.get("flush"):
+        return _spool_flush(store, _spool_path(store.directory),
+                            key)
     if trace_spec == "all":
-        import socket
-
-        who = sender or socket.gethostname()
-        if args.get("dry_run"):
-            # the plan as data: what would post, nothing posted
-            return {"would_ship": [
-                {"trace_id": t.id, "steps": len(t.steps),
-                 "task": (t.task or "")[:60]}
-                for t in _batch_traces(store)],
-                "sender": who}
-        batch = _ship_batch(store, url, key, who)
-        return dict(batch, sender=who)
+        return _tool_ship_all(store, url, key, sender, args)
     result = _ship_core(store.directory, trace_spec or "latest",
                         url, key, sender=sender)
     probe = result.pop("probe")
