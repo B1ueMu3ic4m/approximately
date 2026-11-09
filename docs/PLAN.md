@@ -1624,6 +1624,17 @@ framework adapters import lazily and degrade when the framework is absent.
          receiver, eats a 429, sleeps the Retry-After the
          receiver named, and lands on the retry — no mock in
          sight.
+528. **v3.99.0 - the nightly pass sees the outbox**
+       (planned):
+       - doctor walked the store's records, ledger, locks and
+         the receiver's archive — but the SHIP spool's queue
+         was invisible to it, so a queue could sit owed for
+         days while every nightly pass said healthy. doctor
+         counts the spool now: waiting is not unhealthy (it is
+         owed — the report names the flush), unreadable lines
+         are counted and named, the counts ride the JSON
+         report, and the outbox counts even when no archive
+         exists.
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

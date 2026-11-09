@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.99.0
+
+- the nightly pass sees the outbox: doctor walked the store's records, ledger, locks and the receiver's archive — but the SHIP spool (`--spool`'s queue of refused shipments) was invisible to it, so a queue could sit owed for days while every nightly pass said healthy. doctor counts the spool now: waiting is not unhealthy (it is owed — the report names the flush that clears it), unreadable lines are counted and named, the counts ride the JSON report, and the outbox counts even when no archive exists.
+
 ## v3.98.0
 
 - one protocol, tested end to end: "both ends speak one protocol" was a design claim — the receiver's 429 carries Retry-After and the sender's retry honors it, but the halves were only ever tested apart, and the window was a hard-coded 60s no test could afford to sleep through. `--rate-window SECONDS` opens the window (default stays a minute; sub-second is refused at the fence), and the new test runs the REAL loop: the sender's own `notify_webhook` posts into a rate-capped receiver, eats a 429, sleeps the Retry-After the receiver named, and lands the post on the retry — both halves, one conversation, no mock in sight.
