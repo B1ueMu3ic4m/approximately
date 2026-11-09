@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v3.98.0
+
+- one protocol, tested end to end: "both ends speak one protocol" was a design claim — the receiver's 429 carries Retry-After and the sender's retry honors it, but the halves were only ever tested apart, and the window was a hard-coded 60s no test could afford to sleep through. `--rate-window SECONDS` opens the window (default stays a minute; sub-second is refused at the fence), and the new test runs the REAL loop: the sender's own `notify_webhook` posts into a rate-capped receiver, eats a 429, sleeps the Retry-After the receiver named, and lands the post on the retry — both halves, one conversation, no mock in sight.
+
 ## v3.97.0
 
 - the throttle names itself: a 429 was just another number in `refused` — 401s, 413s and throttled posts were one count, so an operator tuning `--rate` could not see the pressure the cap applies. The receiver's counters (and /stats) carry `throttled` now: refused stays every gate's refusal, throttled is the rate cap's alone — tuning the cap means watching its own number move.
