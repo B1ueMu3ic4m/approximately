@@ -27,7 +27,12 @@ def _store_with(n=5):
         rec = Recorder(f"limit task {i}", store=store)
         rec.tool("sh", {"cmd": f"run {i}"}, result="ok")
         rec.respond("done", success=True)
-        store.save(rec.trace)
+        # distinct stamps: Windows coarse clocks tie created_at,
+        # and ties are the store's to break - the test pins
+        # which traces a limit keeps, so the order is the
+        # fixture's to make deterministic (v3.82's lesson)
+        rec.trace.created_at = 1700000000.0 + i
+        store.save(rec.trace, stamp=False)
         ids.append(rec.trace.id)
     return store, ids
 
@@ -59,7 +64,8 @@ def test_limit_composes_with_since():
         rec = Recorder(f"fresh {i}", store=store)
         rec.tool("sh", {"cmd": "y"}, result="ok")
         rec.respond("done", success=True)
-        store.save(rec.trace)
+        rec.trace.created_at = _time.time() - 3600.0 + i
+        store.save(rec.trace, stamp=False)
         ids.append(rec.trace.id)
     manifest = _batch_traces(store, since_days=7, limit=2)
     assert [t.id for t in manifest] == ids[-2:], \
