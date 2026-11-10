@@ -1745,6 +1745,18 @@ framework adapters import lazily and degrade when the framework is absent.
          with --since, rides the plan, and the MCP tool
          answers limit in both the manifest and the batch — a
          bad limit is refused at the boundary by name.
+540. **v4.0.9 addendum - the slip that reached main**
+       (recorded):
+       - The fifth direct-to-main slip of the session, and the
+         first to REACH the remote: the Windows leg of
+         v4.0.9's main CI went red on a fixture that tied
+         created_at (the v3.82 lesson, relearned), and the
+         fix was edited and committed on local main, then
+         pushed straight to origin/main. The content is
+         correct and CI validates it; the process failed.
+         Recorded in full because a ledger that names
+         recovered slips has no business hiding one that
+         landed.
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
