@@ -35,7 +35,11 @@ def test_a_busy_port_refuses_cleanly(capsys, monkeypatch):
     def busy(*_a, **_k):
         raise OSError(48, "Address already in use")
 
-    monkeypatch.setattr(cli, "serve", busy)
+    # the door imports serve lazily from the receiver module:
+    # patch it there
+    from approximately import receiver
+
+    monkeypatch.setattr(receiver, "serve", busy)
     code = cmd_webhook_serve(_serve_args(8080))
     err = capsys.readouterr().err
     assert code == 2, "a busy port is a misconfiguration"
