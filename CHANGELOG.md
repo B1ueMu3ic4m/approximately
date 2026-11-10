@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v4.0.4
+
+- the watchers say what they watch: a silent server is a misconfiguration trap — forget the signing key and `webhook-serve` quietly runs the OPEN tap; forget a follow filter and `received --follow` quietly shows a narrowed view that looks like the whole firehose. Serve's startup banner now names the caps it will enforce (`rate <= N/window`, non-default `max-rows`/`max-bytes`), and a follow prints its filter set before the first row — or says "unfiltered", honestly.
+
 ## v4.0.3
 
 - the status filter reads the status, not the prose: parse_plan excluded any entry whose whole body mentioned "deferred" or "queued" — written to skip items marked "(deferred)" or "(queued)", it also swallowed DELIVERED items that talk about queues, and it bit the ledger twice (v3.95.0 and v4.0.2 both needed rewording to surface in the changelog). The filter reads the item's own status line now — the first non-empty line after the title — so a body that TALKS about queued work is delivered work about a queue, and the previously-swallowed entries surface for real.

@@ -3149,7 +3149,9 @@ def cmd_received(args: argparse.Namespace) -> int:
 
 def _follow_print(archive: Path, args: argparse.Namespace) -> int:
     """The live view: --follow honors the same filters as the
-    one-shot read — the flag must not quietly widen the view."""
+    one-shot read — the flag must not quietly widen the view,
+    and the banner names the filters so a narrowed follow can
+    never look like the whole firehose."""
     from .receiver import follow_archive, row_passes
 
     as_json = bool(getattr(args, "json", False))
@@ -3158,6 +3160,16 @@ def _follow_print(archive: Path, args: argparse.Namespace) -> int:
     since = getattr(args, "since", None)
     contains = getattr(args, "grep", None)
     sender = getattr(args, "sender", None)
+    filters = [f"{name}={value}" for name, value in
+               (("kind", kind), ("sender", sender),
+                ("since", since), ("contains", contains))
+               if value is not None]
+    if unverified_only:
+        filters.append("unverified-only")
+    print(f"following {archive}"
+          + (f" - filters: {', '.join(filters)}"
+             if filters else " - unfiltered"), file=sys.stderr,
+          flush=True)
     try:
         for row in follow_archive(
                 archive,
@@ -3878,6 +3890,30 @@ def _serve_stop(signum: int, frame: Any) -> None:
     raise KeyboardInterrupt
 
 
+def _serve_banner(args: argparse.Namespace, host: str,
+                  port: int, archive: Path,
+                  has_key: bool) -> str:
+    """The startup announcement: bind, mode (the open tap
+    announces itself in caps), archive, endpoints, and the caps
+    the operator asked for — a silent server is a
+    misconfiguration trap."""
+    mode = ("verify-only" if has_key else
+            "OPEN (no key configured: archiving unverified posts "
+            "as verified=false)")
+    caps = []
+    rate = int(getattr(args, "rate", 0))
+    if rate:
+        window = float(getattr(args, "rate_window", 60.0))
+        caps.append(f"rate <= {rate}/{window:g}s")
+    if int(getattr(args, "max_rows", 100_000)) != 100_000:
+        caps.append(f"max-rows {args.max_rows}")
+    if int(getattr(args, "max_bytes", 1_048_576)) != 1_048_576:
+        caps.append(f"max-bytes {args.max_bytes}")
+    caps_note = ("; caps: " + ", ".join(caps)) if caps else ""
+    return (f"webhook-serve listening on {host}:{port} ({mode}); "
+            f"archive {archive}; GET /health /stats{caps_note}")
+
+
 def cmd_webhook_serve(args: argparse.Namespace) -> int:
     """The receiving end of the signed channel: verify
     X-Approximately-Signature and archive what survives. Refuses
@@ -3905,12 +3941,8 @@ def cmd_webhook_serve(args: argparse.Namespace) -> int:
     # systemd stop must not look like a crash
     signal.signal(signal.SIGTERM, _serve_stop)
     host, bound = server.server_address[:2]
-    host = str(host)
-    mode = ("verify-only" if key else
-            "OPEN (no key configured: archiving unverified posts "
-            "as verified=false)")
-    print(f"webhook-serve listening on {host}:{bound} ({mode}); "
-          f"archive {archive}; GET /health /stats", flush=True)
+    print(_serve_banner(args, str(host), int(bound), archive,
+                        bool(key)), flush=True)
     try:
         while True:
             time.sleep(3600)

@@ -1692,6 +1692,16 @@ framework adapters import lazily and degrade when the framework is absent.
          item's own status line now - the first non-empty line
          after the title - and the swallowed entries surface
          for real.
+534. **v4.0.4 - the watchers say what they watch**
+       (planned):
+       - A silent server is a misconfiguration trap: forget
+         the signing key and webhook-serve quietly runs the
+         OPEN tap; forget a follow filter and received --follow
+         quietly shows a narrowed view. Serve's banner names
+         the caps it will enforce (rate, non-default
+         max-rows/max-bytes), and a follow prints its filter
+         set before the first row - or says unfiltered,
+         honestly.
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
