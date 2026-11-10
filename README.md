@@ -281,8 +281,10 @@ this README stays lean. The delivered capability eras, in order:
 - **Prove the fix** — replay, regression guards, `bisect`, structural diff, failure-to-test pipeline
 - **Ask anything** — query DSL + stats, reports (HTML/Mermaid/SARIF/Prometheus), fleet dashboards, trend gates
 - **Learn from real data** — MAST-Data annotations + benchmarks, prose detector family, leaderboard, distillation
-- **Meet agents where they are** — 7 framework adapters, 32-tool MCP server, OpenAI/OTel/native import-export
+- **Meet agents where they are** — 7 framework adapters, 52-tool MCP server, OpenAI/OTel/native import-export
 - **Slowness is a signal** — per-tool & fleet latency baselines, anomaly surfacing in reports and CI
+- **The on-call loop** — digest briefs, the status frame, value-weighted retention, prices and spend alarms, the composed nightly audit
+- **The signed channel between boxes** — webhook serve/ship/import/received with sender identity, chain-gated imports, whole-store batches with plans, a retry spool, and a rate cap that speaks the sender's dialect (the v4.0.0 era; the versioning story lives in [docs/VERSIONING.md](docs/VERSIONING.md))
 
 What ships next is decided item by item in [docs/PLAN.md](docs/PLAN.md).
 
