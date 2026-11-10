@@ -3590,6 +3590,28 @@ def _ship_single(args: argparse.Namespace, key: bytes,
     return 0
 
 
+def _ship_flush_door(args: argparse.Namespace, key: bytes) -> int:
+    """The --flush branch: plan (--dry-run), JSON (--json), or
+    the prose report — the queue is read once and rendered
+    three ways, never three reads."""
+    store = TraceStore(Path(args.store))
+    report = _spool_flush(store, _spool_path(str(args.store)),
+                          key,
+                          dry_run=bool(getattr(args, "dry_run",
+                                               False)))
+    if getattr(args, "json", False):
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+        return 0 if not report["kept"] else 1
+    if report.get("dry_run"):
+        print(f"would retry {len(report['results'])} "
+              "shipment(s):")
+        for r in report["results"]:
+            print(f"  {r['trace_id']} -> {r['url']} "
+                  f"(attempts: {r['attempts']})")
+        return 0
+    return _spool_report(report)
+
+
 def cmd_webhook_ship(args: argparse.Namespace) -> int:
     """Ship a recorded trace to another box's receiver over the
     signed channel: the trace rides as a JSON row (kind=
@@ -3612,20 +3634,7 @@ def cmd_webhook_ship(args: argparse.Namespace) -> int:
         return 2
     sender = getattr(args, "sender", None) or socket.gethostname()
     if getattr(args, "flush", False):
-        store = TraceStore(Path(args.store))
-        report = _spool_flush(store,
-                              _spool_path(str(args.store)),
-                              key,
-                              dry_run=bool(getattr(
-                                  args, "dry_run", False)))
-        if report.get("dry_run"):
-            print(f"would retry {len(report['results'])} "
-                  "shipment(s):")
-            for r in report["results"]:
-                print(f"  {r['trace_id']} -> {r['url']} "
-                      f"(attempts: {r['attempts']})")
-            return 0
-        return _spool_report(report)
+        return _ship_flush_door(args, key)
     if getattr(args, "all", False):
         store = TraceStore(Path(args.store))
         if getattr(args, "dry_run", False):
@@ -3640,7 +3649,11 @@ def cmd_webhook_ship(args: argparse.Namespace) -> int:
         if spooled:
             print(f"queued {spooled} refused shipment(s) in "
                   "the spool - webhook-ship --flush retries "
-                  "them")
+                  "them", file=sys.stderr)
+        if getattr(args, "json", False):
+            print(json.dumps(dict(batch, sender=sender),
+                             indent=2, ensure_ascii=False))
+            return 0 if not batch["failed"] else 1
         return _ship_batch_report(batch, sender)
     if not getattr(args, "trace", None):
         print("error: a trace id (or 'latest') is required - "
@@ -5891,6 +5904,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--flush", action="store_true",
                    help="drain the spool: re-ship every queued "
                         "shipment to its recorded URL")
+    p.add_argument("--json", action="store_true",
+                   help="emit the batch/flush report as JSON")
     p.add_argument("--key-file", metavar="FILE",
                    help="HMAC key (else APPROXIMATELY_SIGNING_KEY)")
     p.add_argument("--from", dest="sender", metavar="LABEL",

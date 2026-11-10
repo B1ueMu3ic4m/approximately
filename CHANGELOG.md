@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v4.0.5
+
+- the reports go machine-readable: the flush and the batch reported in prose — fine for a terminal, useless for a script or an agent piping results; exit codes say pass/fail but nothing about WHICH trace failed or how many attempts it has. `webhook-ship --json` turns both reports into data — the flush report carries every kept row's attempts, the batch report carries per-trace status, the same shapes the MCP tools already answer with — one flag on the door the cron and the shell already use. The spooled-shipments notice moves to stderr so JSON stdout stays parseable.
+
 ## v4.0.4
 
 - the watchers say what they watch: a silent server is a misconfiguration trap — forget the signing key and `webhook-serve` quietly runs the OPEN tap; forget a follow filter and `received --follow` quietly shows a narrowed view that looks like the whole firehose. Serve's startup banner now names the caps it will enforce (`rate <= N/window`, non-default `max-rows`/`max-bytes`), and a follow prints its filter set before the first row — or says "unfiltered", honestly.

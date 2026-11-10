@@ -1702,6 +1702,16 @@ framework adapters import lazily and degrade when the framework is absent.
          max-rows/max-bytes), and a follow prints its filter
          set before the first row - or says unfiltered,
          honestly.
+535. **v4.0.5 - the reports go machine-readable**
+       (planned):
+       - The flush and the batch reported in prose - exit
+         codes say pass/fail but nothing about WHICH trace
+         failed or how many attempts it has. --json turns both
+         reports into data: the flush report carries every
+         kept row's attempts, the batch report carries
+         per-trace status, the same shapes the MCP tools
+         already answer with. The spooled-shipments notice
+         moves to stderr so JSON stdout stays parseable.
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
