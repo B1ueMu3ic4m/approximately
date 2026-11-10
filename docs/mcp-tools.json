@@ -1381,6 +1381,10 @@
           "flush": {
             "type": "boolean",
             "description": "drain the spool: re-ship every queued shipment"
+          },
+          "flush_dry_run": {
+            "type": "boolean",
+            "description": "with flush: return the queue without posting"
           }
         },
         "required": [

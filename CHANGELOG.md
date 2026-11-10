@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v4.0.2
+
+- the flush gets a plan too: every mutating door learned plan-first — retention plans, the import plans, the batch ships a manifest — but the spool's flush still posted on one flag with no preview. `webhook-ship --flush --dry-run` reads the same queue the flush would walk and posts nothing (per row: the id, the recorded URL, the attempt count); the MCP tool answers `flush_dry_run` with the queue as data, and a flush no longer demands a `url` — every queued row carries the URL it failed against.
+
 ## v4.0.1
 
 - the rule is executable: "the minor is one digit" was prose in VERSIONING.md and the CHANGELOG — prose is a promise only a test keeps. A new audit file parses pyproject and refuses any minor above 9, checks the versioning document still states the rule, the reclassification and the no-rewrite promise (a doc edit cannot quietly drop them), names the drifted tail instead of hiding it, and proves the 3.99.1 squash commit still sits in git history verbatim — reclassified, not rewritten. The living VERSIONING doc's stale "50 MCP tools" became 52; the dated announcement and ledger entries stay as published (they are artifacts of the record).

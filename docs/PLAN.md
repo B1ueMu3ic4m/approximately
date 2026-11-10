@@ -1672,6 +1672,15 @@ framework adapters import lazily and degrade when the framework is absent.
          VERSIONING doc's stale "50 MCP tools" became 52;
          dated artifacts (announcement, ledger entries) stay
          as published.
+532. **v4.0.2 - the flush gets a plan too** (planned):
+       - Every mutating door learned plan-first, but the
+         spool's flush still posted on one flag with no
+         preview. --flush --dry-run reads the same line-up the
+         flush would walk and posts nothing (per row: id,
+         recorded URL, attempts); the MCP tool answers
+         flush_dry_run with the line-up as data, and a flush
+         no longer demands a url - each held row carries the
+         URL it failed against.
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
