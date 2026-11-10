@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v4.0.0
+
+- the versioning discipline, restored: the 3.x line let its minor race to 99 on per-round bumps — ninety numbers that were batches-then-patches under the old habit. The rule is policy now (**the minor is one digit, never 10+**; a ninth minor is the last before the major rolls; patch is the routine beat; a major is a capability milestone with a real contract change), the history is reclassified honestly in [docs/VERSIONING.md](docs/VERSIONING.md) — 0.x birth, 1.x instrumented analysis, 2.x the ops loop, 3.0–3.9 the channel begins, 3.10–3.99 the reclassified drift — and **history is never rewritten**: every tag from 0.1.0 to 3.99.1 stays as published, because a project whose product is a tamper-evident ledger does not get to re-tag its own past. The capability half of the milestone: the toolkit is a complete agent-ops loop — 52 MCP tools, 66 doors, and a signed channel with sender identity, chain gating, batch plans, a retry spool and a rate cap. The showcase caught up too: README's MCP row says 52, the signed-channel loop has its own row, and the versioning promise sits under Design principles.
+
 ## v3.99.1
 
 - the front door learns the channel: README shipped twelve rounds of signed-channel capability without a single section about it — webhook-serve/ping/ship/inbox-import/received, sender labels, batch plans, the spool, the rate cap and the chain gate all lived only in TUTORIAL. A "Moving evidence between boxes" section now shows the two-box story in ~15 lines: serve, ship (one / all / plan / spool / flush), read, import (plan, then apply) — and the promises in one breath: HMAC rows, foreign chains stay foreign, tampered is named and refused, rate answers 429+Retry-After in the sender's own dialect.

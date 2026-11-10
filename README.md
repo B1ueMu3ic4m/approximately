@@ -226,11 +226,12 @@ Every row is HMAC-signed (an open receiver marks rows `verified: false` instead)
 | 📖 Mode explainer | "What does FM-1.3 mean *for my agent*?" — definition, published share, the detectors watching it, engineering fixes | `approximately explain FM-1.3` |
 | 👥 Agent scoreboard | Who did what in a multi-agent run: steps, tokens, errors, and the failure rate of traces each agent touched | `Recorder(agent="researcher")` + `approximately stats --by-agent` |
 | 📥📤 Log interop | Logs already on disk become tamper-evident traces — and traces export back out as OpenAI chat JSONL, lossless native, or OTLP spans for tracing backends; roundtrips restore ids | `approximately import logs/*.jsonl` · `approximately export out.otlp.json --format otel` |
+| 📦 Signed channel between boxes | Record on one box, import on another: HMAC-signed rows, sender labels (`--from`, `received --sender`), whole-store batches with plans (`webhook-ship --all --dry-run`), a retry spool (`--spool` / `--flush`), a rate cap that answers floods `429 + Retry-After`, and import plans that verify each shipment's foreign chain (a tampered chain is named and refused) | `approximately webhook-serve` · `webhook-ship --all` · `inbox-import` · `received` |
 | 🐢 Slowness & token burn | Per-tool latency AND token baselines per trace and fleet-wide, burn/spend trends over days, `--alert-anomalies` / `--alert-tokens` paging — slow or expensive runs are failures too | `approximately anomalies --all --tokens` |
 | 💰 Spend is a signal | Adapters/OTLP capture real usage; per-model prices turn tokens into a per-store spend estimate, `--fail-over` alarms in CI, `--alert-spend` pages the watch | `approximately stats --prices prices.json --fail-over 50` |
 | 🚦 CI quality gates | One command composes the ceilings (failure rate, p95 step latency, tokens, estimated spend, stamped budget breaches) into a pipeline-native verdict: exit 0 pass, 1 breach, 2 misconfiguration — an empty store is refused, a gate over zero runs proves nothing. `--format junit` renders natively in GitHub Actions / GitLab | `approximately ci --max-failure-rate 0.2 --max-p95-latency-ms 8000 --max-budget-breaches 0 --format junit` |
 | 🧹 Retention by count | `clean --max-traces N` keeps only the newest N runs — an age cap alone lets one busy afternoon accumulate a thousand records forever; both caps compose, dry-run stays honest | `approximately clean --keep-days 30 --max-traces 500` |
-| 🔌 MCP server | The whole toolkit as a Model Context Protocol stdio server (40 tools and counting — the committed [mcp-tools.json](docs/mcp-tools.json) mirrors it; `tools/list` is authoritative) — query failures and agent scoreboards from any MCP client | `approximately mcp` |
+| 🔌 MCP server | The whole toolkit as a Model Context Protocol stdio server (52 tools and counting — the committed [mcp-tools.json](docs/mcp-tools.json) mirrors it; `tools/list` is authoritative) — query failures and agent scoreboards from any MCP client | `approximately mcp` |
 | 🧪 Attribution quality gates | Gold-corpus + large-n synthetic floors run in CI — a detector refactor that degrades P/R fails the build | `python scripts/bench_gate.py [--synth]` |
 | 🚦 Gate as a GitHub Action | The same attribution gate as a drop-in action for your own repo's workflow | `uses: B1ueMu3ic4m/approximately@v0` |
 
@@ -244,6 +245,8 @@ Advanced: **local small-model judge** (`distill` exports training data; per-serv
 2. **Evidence or it didn't happen** — every verdict carries a readable evidence chain pointing at exact steps, and every trace carries a **tamper-evident hash chain**: `approximately verify` proves the evidence wasn't edited after the fact
 3. **Never make it worse** — no API key, no network? Attribution degrades gracefully; your program never crashes because of us
 4. **Failures are engineering, not vibes** — every fix suggestion is backed by published intervention numbers
+
+**On version numbers** — semver with its teeth intact: a patch is the routine beat, the **minor is one digit** (never 10+ — a ninth minor is the last before the major rolls), and a major is a capability milestone with a real contract change. The 3.x line drifted past that rule (its tail is reclassified in [docs/VERSIONING.md](docs/VERSIONING.md)); v4.0.0 is the discipline restored, and history is never rewritten.
 
 ## FAQ
 

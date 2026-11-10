@@ -1644,6 +1644,24 @@ framework adapters import lazily and degrade when the framework is absent.
          gate lived only in TUTORIAL. A "Moving evidence
          between boxes" section now shows the two-box story in
          ~15 lines — and the promises in one breath.
+530. **v4.0.0 - the versioning discipline, restored** (planned):
+       - The 3.x line let its minor race to 99 on per-round
+         bumps. The rule is policy now: the minor is one
+         digit, never 10+; a ninth minor is the last before
+         the major rolls; patch is the routine beat; a major
+         is a capability milestone with a real contract
+         change. The history is reclassified honestly in
+         VERSIONING.md (0.x birth, 1.x instrumented analysis,
+         2.x the ops loop, 3.0-3.9 the channel begins,
+         3.10-3.99 the reclassified drift) and history is
+         never rewritten - every tag stays as published. The
+         capability half: the toolkit is a complete agent-ops
+         loop (52 MCP tools, 66 doors, signed channel with
+         sender identity, chain gating, batch plans, retry
+         spool, rate cap). The showcase caught up: README's
+         MCP row says 52, the channel loop has its own row,
+         and the versioning promise sits under Design
+         principles.
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
