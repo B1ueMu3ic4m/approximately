@@ -1719,6 +1719,16 @@ framework adapters import lazily and degrade when the framework is absent.
          channel join the list, the MCP count reads 52, and
          the versioning eras point at VERSIONING.md. The
          repo's topics gain flight-recorder.
+537. **v4.0.7 - one flush at a time** (planned):
+       - Two --flush processes rewriting the queue in parallel
+         would clobber each other: both post (the receiver
+         dedups on import, so evidence stays safe) and both
+         rewrite the file - the loser's kept rows and attempt
+         counts vanish, and a forever-failing shipment forgets
+         it has been failing. The read-modify-write holds the
+         spool's exclusive lock: O_EXCL create, zero deps,
+         Windows included; a stale lock (>5 min) is taken
+         over; a live lock refuses by name; plans never lock.
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

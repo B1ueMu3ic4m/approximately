@@ -3470,6 +3470,45 @@ def _spool_plan(rows: list) -> dict:
                         for r in rows]}
 
 
+LOCK_STALE_SECONDS = 300.0
+
+
+def _acquire_lock(lock: Path,
+                  stale_after: float = LOCK_STALE_SECONDS) -> None:
+    """Take the spool's exclusive lock, or refuse: two flushes
+    rewriting the queue in parallel would lose each other's
+    attempt counts. An O_EXCL create is the whole protocol
+    (zero dependencies, Windows included); a lock older than
+    ``stale_after`` is a crashed flush's leftover and is taken
+    over. Raises ValueError naming the holder otherwise."""
+    import os
+    import time as _time
+
+    while True:
+        try:
+            fd = os.open(lock, os.O_CREAT | os.O_EXCL
+                         | os.O_WRONLY, 0o644)
+            with os.fdopen(fd, "w") as fh:
+                fh.write(str(os.getpid()))
+            return
+        except FileExistsError:
+            age = _time.time() - lock.stat().st_mtime
+            if age > stale_after:
+                lock.unlink(missing_ok=True)
+                continue
+            raise ValueError(
+                f"spool is locked by another flush "
+                f"(held {int(age)}s, pid "
+                f"{lock.read_text(encoding='utf-8').strip() or '?'}"
+                ") - wait for it, or remove the stale lock") from None
+        except FileNotFoundError:
+            continue  # a stale takeover raced the unlink: retry
+
+
+def _release_lock(lock: Path) -> None:
+    lock.unlink(missing_ok=True)
+
+
 def _spool_flush(store: TraceStore, path: Path,
                  key: bytes, dry_run: bool = False) -> dict:
     """Drain the queue: each row re-reads its trace fresh and
@@ -3477,13 +3516,26 @@ def _spool_flush(store: TraceStore, path: Path,
     queue, traces gone from the store are reported and dropped
     (nothing to ship), failures stay with attempts incremented.
     A dry run reads the same queue and posts nothing — the
-    plan is what the flush would walk. Returns {"flushed",
-    "kept", "dropped", "results"}."""
-    import socket
+    plan is what the flush would walk. The read-modify-write
+    holds the spool's exclusive lock: parallel flushes refuse
+    instead of clobbering each other's attempt counts. Returns
+    {"flushed", "kept", "dropped", "results"}."""
 
     rows = _spool_rows(path)
     if dry_run:
         return _spool_plan(rows)
+    lock = path.with_name(path.name + ".lock")
+    _acquire_lock(lock)
+    try:
+        return _spool_flush_locked(store, path, key, rows)
+    finally:
+        _release_lock(lock)
+
+
+def _spool_flush_locked(store: TraceStore, path: Path,
+                        key: bytes, rows: list) -> dict:
+    import socket
+
     results: list = []
     kept: list = []
     dropped = 0
