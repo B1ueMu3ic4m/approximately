@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v4.0.7
+
+- one flush at a time: two `--flush` processes rewriting the queue in parallel would clobber each other — both read the same rows, both post (the receiver dedups on import, so evidence stays safe), and then BOTH rewrite the file — the loser's kept rows and attempt counts vanish, and a forever-failing shipment forgets it has been failing. The read-modify-write holds the spool's exclusive lock now: O_EXCL create, zero dependencies, Windows included; a lock older than five minutes is a crashed flush's leftover and is taken over; a live lock refuses by name (pid in the lockfile); plans never lock — reading is not deciding, and it is also not contention.
+
 ## v4.0.6
 
 - the roadmap catches up: the era list still said "32-tool MCP server" and stopped at slowness baselines — three eras behind the shipped toolkit. The list now carries all eight eras: the on-call loop (digest briefs, the status frame, retention, spend alarms, the nightly audit) and the signed channel between boxes (sender identity, chain-gated imports, batch plans, the retry spool, the rate cap) join, the MCP count reads 52, and the versioning eras point at docs/VERSIONING.md. The repo's topics gain `flight-recorder`.
