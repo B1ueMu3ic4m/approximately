@@ -62,6 +62,6 @@ def test_history_is_never_rewritten():
         encoding="utf-8")
     assert "## v3.99.1" in changelog, \
         "the last 3.x release stays in the record as published"
-    assert "## v4.0.0" in changelog, \
-        "the discipline's start is recorded after it, not " \
-        "instead of it"
+    assert "## v4.0.0" in changelog, (
+        "the discipline's start is recorded after it, not "
+        "instead of it")
