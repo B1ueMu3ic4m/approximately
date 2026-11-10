@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v4.0.3
+
+- the status filter reads the status, not the prose: parse_plan excluded any entry whose whole body mentioned "deferred" or "queued" — written to skip items marked "(deferred)" or "(queued)", it also swallowed DELIVERED items that talk about queues, and it bit the ledger twice (v3.95.0 and v4.0.2 both needed rewording to surface in the changelog). The filter reads the item's own status line now — the first non-empty line after the title — so a body that TALKS about queued work is delivered work about a queue, and the previously-swallowed entries surface for real.
+
 ## v4.0.2
 
 - the flush gets a plan too: every mutating door learned plan-first — retention plans, the import plans, the batch ships a manifest — but the spool's flush still posted on one flag with no preview. `webhook-ship --flush --dry-run` reads the same queue the flush would walk and posts nothing (per row: the id, the recorded URL, the attempt count); the MCP tool answers `flush_dry_run` with the queue as data, and a flush no longer demands a `url` — every queued row carries the URL it failed against.

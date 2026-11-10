@@ -1681,6 +1681,17 @@ framework adapters import lazily and degrade when the framework is absent.
          flush_dry_run with the line-up as data, and a flush
          no longer demands a url - each held row carries the
          URL it failed against.
+533. **v4.0.3 - the status filter reads the status, not the
+       prose** (planned):
+       - parse_plan excluded any entry whose whole body
+         mentioned "deferred" or "queued" - written to skip
+         items marked "(deferred)" or "(queued)", it also
+         swallowed DELIVERED items that talk about queues, and
+         it bit the ledger twice (v3.95.0 and v4.0.2 both
+         needed rewording to surface). The filter reads the
+         item's own status line now - the first non-empty line
+         after the title - and the swallowed entries surface
+         for real.
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
