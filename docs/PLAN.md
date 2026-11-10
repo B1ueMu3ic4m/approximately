@@ -1662,6 +1662,16 @@ framework adapters import lazily and degrade when the framework is absent.
          MCP row says 52, the channel loop has its own row,
          and the versioning promise sits under Design
          principles.
+531. **v4.0.1 - the rule is executable** (planned):
+       - "The minor is one digit" was prose. The audit file
+         parses pyproject and refuses any minor above 9,
+         checks the versioning document still states the rule,
+         the reclassification and the no-rewrite promise,
+         names the drifted tail, and proves the 3.99.1 squash
+         commit still sits in history verbatim. The living
+         VERSIONING doc's stale "50 MCP tools" became 52;
+         dated artifacts (announcement, ledger entries) stay
+         as published.
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
