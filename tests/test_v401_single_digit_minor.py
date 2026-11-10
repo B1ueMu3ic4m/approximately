@@ -55,13 +55,13 @@ def test_the_drift_is_named_not_hidden():
 
 
 def test_history_is_never_rewritten():
-    # the drift's end must remain in git history verbatim: the
-    # reclassification regrouped the story, it did not touch
-    # the record (works without tags - CI checkouts have none)
-    import subprocess
-
-    out = subprocess.run(["git", "log", "--oneline", "-200"],
-                         capture_output=True, text=True,
-                         cwd=ROOT)
-    assert "v3.99.1" in out.stdout, \
-        "the last 3.x release stays in history as published"
+    # the drift's end must remain in the published record: the
+    # CHANGELOG keeps the v3.99.1 section verbatim (works in
+    # shallow CI checkouts, where git history is depth-1)
+    changelog = (ROOT / "CHANGELOG.md").read_text(
+        encoding="utf-8")
+    assert "## v3.99.1" in changelog, \
+        "the last 3.x release stays in the record as published"
+    assert "## v4.0.0" in changelog, \
+        "the discipline's start is recorded after it, not " \
+        "instead of it"
