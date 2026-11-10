@@ -3444,16 +3444,34 @@ def _spool_rows(path: Path) -> list:
     return rows
 
 
+def _spool_plan(rows: list) -> dict:
+    """The flush's plan as data: what would retry, posted
+    nowhere — the same queue the flush walks, row for row."""
+    return {"flushed": 0,
+            "kept": sum(1 for r in rows),
+            "dropped": 0, "dry_run": True,
+            "results": [{"trace_id": r["trace_id"],
+                         "url": r["url"],
+                         "sender": r.get("sender"),
+                         "attempts": r.get("attempts", 0),
+                         "would_retry": True}
+                        for r in rows]}
+
+
 def _spool_flush(store: TraceStore, path: Path,
-                 key: bytes) -> dict:
+                 key: bytes, dry_run: bool = False) -> dict:
     """Drain the queue: each row re-reads its trace fresh and
     re-ships to its recorded URL — delivered rows leave the
     queue, traces gone from the store are reported and dropped
     (nothing to ship), failures stay with attempts incremented.
-    Returns {"flushed", "kept", "dropped", "results"}."""
+    A dry run reads the same queue and posts nothing — the
+    plan is what the flush would walk. Returns {"flushed",
+    "kept", "dropped", "results"}."""
     import socket
 
     rows = _spool_rows(path)
+    if dry_run:
+        return _spool_plan(rows)
     results: list = []
     kept: list = []
     dropped = 0
@@ -3583,8 +3601,19 @@ def cmd_webhook_ship(args: argparse.Namespace) -> int:
     sender = getattr(args, "sender", None) or socket.gethostname()
     if getattr(args, "flush", False):
         store = TraceStore(Path(args.store))
-        return _spool_report(_spool_flush(
-            store, _spool_path(str(args.store)), key))
+        report = _spool_flush(store,
+                              _spool_path(str(args.store)),
+                              key,
+                              dry_run=bool(getattr(
+                                  args, "dry_run", False)))
+        if report.get("dry_run"):
+            print(f"would retry {len(report['results'])} "
+                  "shipment(s):")
+            for r in report["results"]:
+                print(f"  {r['trace_id']} -> {r['url']} "
+                      f"(attempts: {r['attempts']})")
+            return 0
+        return _spool_report(report)
     if getattr(args, "all", False):
         store = TraceStore(Path(args.store))
         if getattr(args, "dry_run", False):

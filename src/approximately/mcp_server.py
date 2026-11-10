@@ -1317,6 +1317,11 @@ _TOOLS: List[Dict[str, Any]] = [
                           "description": "drain the spool: "
                                          "re-ship every queued "
                                          "shipment"},
+                "flush_dry_run": {"type": "boolean",
+                                  "description": "with flush: "
+                                                 "return the "
+                                                 "queue without "
+                                                 "posting"},
             },
             "required": ["url"],
         },
@@ -2685,9 +2690,6 @@ def _tool_webhook_ship(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     url = _opt_str(args, "url")
     trace_spec = _opt_str(args, "trace")
     sender = _opt_str(args, "sender")
-    if url is None:
-        raise ValueError("url is required: the receiver's "
-                         "http(s) endpoint")
     key = load_key(None)
     if not key:
         raise ValueError("no signing key (APPROXIMATELY_SIGNING_KEY): "
@@ -2696,8 +2698,15 @@ def _tool_webhook_ship(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .cli import _ship_core, _spool_flush, _spool_path
 
     if args.get("flush"):
+        # a flush needs no url of its own: every queued row
+        # carries the URL it failed against
         return _spool_flush(store, _spool_path(store.directory),
-                            key)
+                            key,
+                            dry_run=bool(args.get(
+                                "flush_dry_run")))
+    if url is None:
+        raise ValueError("url is required: the receiver's "
+                         "http(s) endpoint")
     if trace_spec == "all":
         return _tool_ship_all(store, url, key, sender, args)
     result = _ship_core(store.directory, trace_spec or "latest",
