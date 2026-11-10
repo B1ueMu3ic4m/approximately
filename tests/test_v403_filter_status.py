@@ -13,6 +13,7 @@ body that TALKS about queued work is delivered work about a
 queue.
 """
 
+import re
 from pathlib import Path
 
 from approximately.changelog import parse_plan
@@ -60,9 +61,13 @@ def test_status_elsewhere_in_the_body_is_not_a_status(tmp_path):
 
 
 def test_the_real_ledger_parses_clean_newest_first():
-    entries = parse_plan(Path(__file__).resolve().parent.parent
-                         / "docs" / "PLAN.md")
+    root = Path(__file__).resolve().parent.parent
+    entries = parse_plan(root / "docs" / "PLAN.md")
     versions = [e[0] for e in entries]
-    assert versions[0] == "v4.0.2"
+    expected = re.search(r'^version = "(.+?)"',
+                         (root / "pyproject.toml").read_text(
+                             encoding="utf-8"), re.M).group(1)
+    assert versions[0] == f"v{expected}", \
+        "the newest plan entry tracks the release version"
     # the previously-swallowed entries surface now
     assert "v3.95.0" in versions and "v4.0.2" in versions
