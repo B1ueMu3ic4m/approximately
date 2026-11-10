@@ -13,7 +13,6 @@ import argparse
 import tempfile
 from pathlib import Path
 
-from approximately import cli
 from approximately.cli import cmd_webhook_serve
 
 
