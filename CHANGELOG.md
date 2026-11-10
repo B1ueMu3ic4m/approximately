@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v4.0.8
+
+- the busy port is a refusal, not a crash: `webhook-serve --port X` on an occupied port died with a raw OSError traceback — the operator got a stack trace where a next step belonged, and the door's own contract (exit 2 on a bad port) was half-kept: a malformed port was refused, a busy one exploded. The bind is a refusal now: the error names the port, the reason, and the next step (another receiver is listening there — use a different --port).
+
 ## v4.0.7
 
 - one flush at a time: two `--flush` processes rewriting the queue in parallel would clobber each other — both read the same rows, both post (the receiver dedups on import, so evidence stays safe), and then BOTH rewrite the file — the loser's kept rows and attempt counts vanish, and a forever-failing shipment forgets it has been failing. The read-modify-write holds the spool's exclusive lock now: O_EXCL create, zero dependencies, Windows included; a lock older than five minutes is a crashed flush's leftover and is taken over; a live lock refuses by name (pid in the lockfile); plans never lock — reading is not deciding, and it is also not contention.

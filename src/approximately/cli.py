@@ -3993,14 +3993,23 @@ def cmd_webhook_serve(args: argparse.Namespace) -> int:
     key = load_key(getattr(args, "key_file", None))
     archive = Path(getattr(args, "log",
                            "") or Path(args.store) / "webhook-log.jsonl")
-    server, _state = serve(archive, port=port, key=key,
-                           max_bytes=int(getattr(
-                               args, "max_bytes", 1_048_576)),
-                           max_rows=int(getattr(
-                               args, "max_rows", 100_000)),
-                           max_rate=int(getattr(args, "rate", 0)),
-                           rate_window=float(getattr(
-                               args, "rate_window", 60.0)))
+    try:
+        server, _state = serve(archive, port=port, key=key,
+                               max_bytes=int(getattr(
+                                   args, "max_bytes", 1_048_576)),
+                               max_rows=int(getattr(
+                                   args, "max_rows", 100_000)),
+                               max_rate=int(getattr(args, "rate",
+                                                    0)),
+                               rate_window=float(getattr(
+                                   args, "rate_window", 60.0)))
+    except OSError as exc:
+        # a busy port is a refusal, not a crash: the operator
+        # gets the bind error and a next step, no traceback
+        print(f"error: cannot bind port {port}: {exc} - "
+              "another receiver is listening there? "
+              "(use a different --port)", file=sys.stderr)
+        return 2
     # SIGTERM lands the same clean shutdown as Ctrl-C: the archive
     # line in flight finishes, the socket closes, exit 0 - a
     # systemd stop must not look like a crash

@@ -1729,6 +1729,14 @@ framework adapters import lazily and degrade when the framework is absent.
          spool's exclusive lock: O_EXCL create, zero deps,
          Windows included; a stale lock (>5 min) is taken
          over; a live lock refuses by name; plans never lock.
+538. **v4.0.8 - the busy port is a refusal, not a crash**
+       (planned):
+       - webhook-serve on an occupied port died with a raw
+         OSError traceback, and the door's contract (exit 2 on
+         a bad port) was half-kept: a malformed port was
+         refused, a busy one exploded. The bind is a refusal
+         now - the error names the port, the reason, and the
+         next step.
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
