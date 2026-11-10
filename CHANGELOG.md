@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v4.0.9
+
+- `--limit` — the newest N, not a random slice: `--since` scoped the batch by age, but "sync just the latest K runs" had no answer — a busy store's newest ten sat inside a thousand-row manifest, and shipping the whole history to save ten was the only move. `webhook-ship --all --limit N` keeps the newest N, applied AFTER the oldest-first sort (the newest of the window, not a random slice), it composes with `--since`, it rides the plan (`--dry-run` shows the same list the post walks), and the MCP tool answers `limit` in both the manifest and the batch — a negative or non-integer limit is refused at the boundary by name.
+
 ## v4.0.8
 
 - the busy port is a refusal, not a crash: `webhook-serve --port X` on an occupied port died with a raw OSError traceback — the operator got a stack trace where a next step belonged, and the door's own contract (exit 2 on a bad port) was half-kept: a malformed port was refused, a busy one exploded. The bind is a refusal now: the error names the port, the reason, and the next step (another receiver is listening there — use a different --port).
