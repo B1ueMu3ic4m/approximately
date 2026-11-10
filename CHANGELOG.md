@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v4.0.6
+
+- the roadmap catches up: the era list still said "32-tool MCP server" and stopped at slowness baselines — three eras behind the shipped toolkit. The list now carries all eight eras: the on-call loop (digest briefs, the status frame, retention, spend alarms, the nightly audit) and the signed channel between boxes (sender identity, chain-gated imports, batch plans, the retry spool, the rate cap) join, the MCP count reads 52, and the versioning eras point at docs/VERSIONING.md. The repo's topics gain `flight-recorder`.
+
 ## v4.0.5
 
 - the reports go machine-readable: the flush and the batch reported in prose — fine for a terminal, useless for a script or an agent piping results; exit codes say pass/fail but nothing about WHICH trace failed or how many attempts it has. `webhook-ship --json` turns both reports into data — the flush report carries every kept row's attempts, the batch report carries per-trace status, the same shapes the MCP tools already answer with — one flag on the door the cron and the shell already use. The spooled-shipments notice moves to stderr so JSON stdout stays parseable.

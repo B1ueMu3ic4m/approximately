@@ -1712,6 +1712,13 @@ framework adapters import lazily and degrade when the framework is absent.
          per-trace status, the same shapes the MCP tools
          already answer with. The spooled-shipments notice
          moves to stderr so JSON stdout stays parseable.
+536. **v4.0.6 - the roadmap catches up** (planned):
+       - The era list still said "32-tool MCP server" and
+         stopped at slowness baselines - three eras behind the
+         shipped toolkit. The on-call loop and the signed
+         channel join the list, the MCP count reads 52, and
+         the versioning eras point at VERSIONING.md. The
+         repo's topics gain flight-recorder.
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
