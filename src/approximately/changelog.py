@@ -44,7 +44,16 @@ def parse_plan(plan_path: Path) -> List[Tuple[str, str, str]]:
         version = match.group(1)
         title = " ".join(match.group(2).split())
         rest = " ".join(match.group("rest").split())
-        if re.search(r"\bdeferred\b|\bqueued\b", rest, re.I):
+        # the status marker is the parenthetical on the item's
+        # own line - "(deferred):", "(queued):" - and only that
+        # counts: a body that TALKS about queued work (a spool
+        # entry, an awaiting-evidence note) is delivered work
+        # about a queue, not a deferred item
+        status_line = next((line for line
+                            in match.group("rest").split("\n")
+                            if line.strip()), "")
+        if re.search(r"\bdeferred\b|\bqueued\b", status_line,
+                     re.I):
             continue
         body = _DELIVERED.sub("", rest).strip()
         entries.append((version, title, body))
