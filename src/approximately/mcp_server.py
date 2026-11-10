@@ -1305,6 +1305,9 @@ _TOOLS: List[Dict[str, Any]] = [
                            "description": "who is shipping "
                                           "(default: this host's "
                                           "hostname)"},
+                "limit": {"type": "number",
+                          "description": "with trace 'all': only "
+                                         "the newest N traces"},
                 "dry_run": {"type": "boolean",
                             "description": "with trace 'all': "
                                            "return the manifest "
@@ -2644,6 +2647,17 @@ def _tool_inbox(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     return payload
 
 
+def _opt_limit(args: Dict[str, Any]) -> Optional[int]:
+    """The batch's --limit at the tool boundary: a non-negative
+    integer, or the refusal names the field."""
+    limit = args.get("limit")
+    if limit is not None and (not isinstance(limit, int)
+                              or isinstance(limit, bool)
+                              or limit < 0):
+        raise ValueError("limit must be a non-negative integer")
+    return limit
+
+
 def _tool_ship_all(store: Any, url: str, key: bytes,
                    sender: Optional[str],
                    args: Dict[str, Any]) -> dict:
@@ -2656,14 +2670,15 @@ def _tool_ship_all(store: Any, url: str, key: bytes,
     from .cli import _batch_traces, _ship_batch, _spool_append, _spool_path
 
     who = sender or socket.gethostname()
+    limit = _opt_limit(args)
     if args.get("dry_run"):
         # the plan as data: what would post, nothing posted
         return {"would_ship": [
             {"trace_id": t.id, "steps": len(t.steps),
              "task": (t.task or "")[:60]}
-            for t in _batch_traces(store)],
+            for t in _batch_traces(store, limit=limit)],
             "sender": who}
-    batch = _ship_batch(store, url, key, who)
+    batch = _ship_batch(store, url, key, who, limit=limit)
     if args.get("spool"):
         path = _spool_path(store.directory)
         for r in batch["results"]:

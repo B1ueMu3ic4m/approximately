@@ -1737,6 +1737,14 @@ framework adapters import lazily and degrade when the framework is absent.
          refused, a busy one exploded. The bind is a refusal
          now - the error names the port, the reason, and the
          next step.
+539. **v4.0.9 - --limit, the newest N** (planned):
+       - --since scoped the batch by age, but "sync just the
+         latest K runs" had no answer. --limit keeps the
+         newest N, applied AFTER the oldest-first sort (the
+         newest of the window, not a random slice), composes
+         with --since, rides the plan, and the MCP tool
+         answers limit in both the manifest and the batch — a
+         bad limit is refused at the boundary by name.
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

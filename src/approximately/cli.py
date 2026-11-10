@@ -3350,18 +3350,25 @@ def _ship_core(store_dir: str, trace_spec: str, url: str,
 
 
 def _batch_traces(store: TraceStore,
-                  since_days: Optional[int] = None) -> list:
+                  since_days: Optional[int] = None,
+                  limit: Optional[int] = None) -> list:
     """The batch's manifest, oldest first — the traces' own
     created_at, stable-sorted so clock ties keep the store's
-    file order; --since scopes the window. Shared by the ship
-    loop and the plan: the plan must be the SAME list the post
-    would walk."""
-    return sorted(store.list_traces(since_days=since_days),
-                  key=lambda t: t.created_at or 0.0)
+    file order; --since scopes the window, --limit keeps the
+    newest N (applied after the sort: the newest of a window,
+    not a random slice). Shared by the ship loop and the plan:
+    the plan must be the SAME list the post would walk."""
+    traces = sorted(store.list_traces(since_days=since_days),
+                    key=lambda t: t.created_at or 0.0)
+    if limit is not None and int(limit) >= 0:
+        traces = traces[len(traces) - int(limit):] \
+            if int(limit) else []
+    return traces
 
 
 def _ship_batch(store: TraceStore, url: str, key: bytes,
-                sender: str, since_days: Optional[int] = None) -> dict:
+                sender: str, since_days: Optional[int] = None,
+                limit: Optional[int] = None) -> dict:
     """Ship the store (oldest first — the traces' own created_at,
     stable-sorted so clock ties keep the store's file order;
     --since scopes the window) one trace at a time: every trace
@@ -3370,7 +3377,7 @@ def _ship_batch(store: TraceStore, url: str, key: bytes,
     dying on the first problem. Returns {"shipped", "failed",
     "results"}."""
     results: list = []
-    for trace in _batch_traces(store, since_days):
+    for trace in _batch_traces(store, since_days, limit):
         try:
             results.append(_ship_one(store, trace, url, key,
                                      sender))
@@ -3400,11 +3407,12 @@ def _ship_batch_report(batch: dict, sender: str) -> int:
 
 
 def _ship_batch_plan(store: TraceStore, sender: str,
-                     since_days: Optional[int] = None) -> int:
+                     since_days: Optional[int] = None,
+                     limit: Optional[int] = None) -> int:
     """The batch's plan: what --all WOULD post, named per trace,
     and nothing posted — reading is not deciding, even when the
     reading is a hundred rows."""
-    traces = _batch_traces(store, since_days)
+    traces = _batch_traces(store, since_days, limit)
     print(f"would ship {len(traces)} trace(s) from {sender}:")
     for trace in traces:
         print(f"  {trace.id}: {len(trace.steps)} step(s) - "
@@ -3693,10 +3701,13 @@ def cmd_webhook_ship(args: argparse.Namespace) -> int:
             return _ship_batch_plan(store, sender,
                                     since_days=getattr(args,
                                                        "since",
-                                                       None))
+                                                       None),
+                                    limit=getattr(args, "limit",
+                                                  None))
         batch = _ship_batch(store, str(args.url), key, sender,
                             since_days=getattr(args, "since",
-                                               None))
+                                               None),
+                            limit=getattr(args, "limit", None))
         spooled = _spool_failures(store, batch, args)
         if spooled:
             print(f"queued {spooled} refused shipment(s) in "
@@ -5956,6 +5967,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--since", type=int, metavar="DAYS",
                    help="with --all: only traces from the last "
                         "N days")
+    p.add_argument("--limit", type=int, metavar="N",
+                   help="with --all: only the newest N traces "
+                        "(newest of the window, not a slice)")
     p.add_argument("--dry-run", action="store_true",
                    help="with --all: name what would ship - "
                         "nothing is posted")

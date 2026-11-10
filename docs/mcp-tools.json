@@ -1370,6 +1370,10 @@
             "type": "string",
             "description": "who is shipping (default: this host's hostname)"
           },
+          "limit": {
+            "type": "number",
+            "description": "with trace 'all': only the newest N traces"
+          },
           "dry_run": {
             "type": "boolean",
             "description": "with trace 'all': return the manifest without posting"
