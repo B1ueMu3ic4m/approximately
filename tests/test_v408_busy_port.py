@@ -10,12 +10,11 @@ receiver is listening there — use a different --port).
 """
 
 import argparse
-import signal
 import tempfile
 from pathlib import Path
 
+from approximately import cli
 from approximately.cli import cmd_webhook_serve
-from approximately.receiver import serve
 
 
 def _serve_args(port, **kw):
@@ -27,19 +26,19 @@ def _serve_args(port, **kw):
     return argparse.Namespace(**base)
 
 
-def test_a_busy_port_refuses_cleanly(capsys):
+def test_a_busy_port_refuses_cleanly(capsys, monkeypatch):
+    # the bind failure is simulated, not staged: Windows'
+    # SO_REUSEADDR lets a second bind SUCCEED against an
+    # active listener, so a real second bind would hang this
+    # test inside the serve loop — the door's refusal path is
+    # what we pin, deterministically on every OS
+    def busy(*_a, **_k):
+        raise OSError(48, "Address already in use")
 
-    original = signal.getsignal(signal.SIGTERM)
-    server, _state = serve(Path(tempfile.mkdtemp())
-                           / "webhook-log.jsonl", port=0)
-    port = server.server_address[1]
-    try:
-        code = cmd_webhook_serve(_serve_args(port))
-        err = capsys.readouterr().err
-        assert code == 2, "a busy port is a misconfiguration"
-        assert f"cannot bind port {port}" in err
-        assert "another receiver is listening" in err
-        assert "Traceback" not in err, "no raw crash"
-    finally:
-        server.shutdown()
-        signal.signal(signal.SIGTERM, original)
+    monkeypatch.setattr(cli, "serve", busy)
+    code = cmd_webhook_serve(_serve_args(8080))
+    err = capsys.readouterr().err
+    assert code == 2, "a busy port is a misconfiguration"
+    assert "cannot bind port 8080" in err
+    assert "another receiver is listening" in err
+    assert "Traceback" not in err, "no raw crash"
