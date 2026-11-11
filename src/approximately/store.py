@@ -32,7 +32,7 @@ def stamped_breach(meta: object) -> bool:
             and meta["budget"].get("exceeded") is True)
 
 
-SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 
 
 def _safe_id(trace_id: str) -> bool:

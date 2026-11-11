@@ -3360,9 +3360,10 @@ def _batch_traces(store: TraceStore,
     the plan must be the SAME list the post would walk."""
     traces = sorted(store.list_traces(since_days=since_days),
                     key=lambda t: t.created_at or 0.0)
-    if limit is not None and int(limit) >= 0:
-        traces = traces[len(traces) - int(limit):] \
-            if int(limit) else []
+    if limit is not None:
+        # a negative start clamps to the list head: limit 5 on a
+        # 3-trace store ships all 3, never a silent subset
+        traces = traces[-int(limit):] if int(limit) > 0 else []
     return traces
 
 
@@ -3454,9 +3455,11 @@ def _spool_rows(path: Path) -> list:
             row = json.loads(line)
             if not isinstance(row, dict) \
                     or not isinstance(row.get("trace_id"), str) \
-                    or not isinstance(row.get("url"), str):
+                    or not isinstance(row.get("url"), str) \
+                    or not isinstance(row.get("attempts", 0),
+                                      int):
                 raise ValueError("not a spool row")
-        except ValueError:
+        except (ValueError, RecursionError):
             print(f"approximately: dropping unreadable spool "
                   f"line: {line.strip()[:60]}", file=sys.stderr)
             continue
@@ -3481,6 +3484,33 @@ def _spool_plan(rows: list) -> dict:
 LOCK_STALE_SECONDS = 300.0
 
 
+def _lock_verdict(lock: Path,
+                  stale_after: float) -> Any:
+    """(age, holder) to refuse, True to take over, None to
+    retry: the takeover unlinks ONLY the inode it staled — a
+    survivor's fresh lock is a different inode and stays."""
+    import time as _time
+
+    try:
+        staled = lock.stat()
+        age = _time.time() - staled.st_mtime
+    except FileNotFoundError:
+        return None
+    if age > stale_after:
+        try:
+            if (lock.stat().st_ino == staled.st_ino
+                    and lock.stat().st_dev == staled.st_dev):
+                lock.unlink(missing_ok=True)
+        except FileNotFoundError:
+            pass
+        return True
+    try:
+        holder = lock.read_text(encoding="utf-8").strip() or "?"
+    except FileNotFoundError:
+        return None
+    return age, holder
+
+
 def _acquire_lock(lock: Path,
                   stale_after: float = LOCK_STALE_SECONDS) -> None:
     """Take the spool's exclusive lock, or refuse: two flushes
@@ -3488,9 +3518,11 @@ def _acquire_lock(lock: Path,
     attempt counts. An O_EXCL create is the whole protocol
     (zero dependencies, Windows included); a lock older than
     ``stale_after`` is a crashed flush's leftover and is taken
-    over. Raises ValueError naming the holder otherwise."""
+    over — by inode: two takers racing the takeover unlink must
+    not both win (the survivor's FRESH lock is a different
+    inode; whoever unlinks a lock that is not the staled one
+    retries). Raises ValueError naming the holder otherwise."""
     import os
-    import time as _time
 
     while True:
         try:
@@ -3500,14 +3532,15 @@ def _acquire_lock(lock: Path,
                 fh.write(str(os.getpid()))
             return
         except FileExistsError:
-            age = _time.time() - lock.stat().st_mtime
-            if age > stale_after:
-                lock.unlink(missing_ok=True)
-                continue
+            verdict = _lock_verdict(lock, stale_after)
+            if verdict is None:
+                continue  # released mid-inspection: retry
+            if verdict is True:
+                continue  # stale and taken over: retry the create
+            age, holder = verdict
             raise ValueError(
                 f"spool is locked by another flush "
-                f"(held {int(age)}s, pid "
-                f"{lock.read_text(encoding='utf-8').strip() or '?'}"
+                f"(held {int(age)}s, pid {holder}"
                 ") - wait for it, or remove the stale lock") from None
         except FileNotFoundError:
             continue  # a stale takeover raced the unlink: retry
@@ -3535,6 +3568,11 @@ def _spool_flush(store: TraceStore, path: Path,
     lock = path.with_name(path.name + ".lock")
     _acquire_lock(lock)
     try:
+        # the read lives INSIDE the lock: a snapshot taken before
+        # it would let a concurrent --spool append vanish when
+        # this flush rewrites the file — the exact loss the lock
+        # exists to prevent
+        rows = _spool_rows(path)
         return _spool_flush_locked(store, path, key, rows)
     finally:
         _release_lock(lock)
@@ -3544,10 +3582,18 @@ def _spool_flush_locked(store: TraceStore, path: Path,
                         key: bytes, rows: list) -> dict:
     import socket
 
+    lock = path.with_name(path.name + ".lock")
     results: list = []
     kept: list = []
     dropped = 0
+    import os
     for row in rows:
+        # heartbeat: a long flush must not look stale — the
+        # takeover window is measured from the last heartbeat
+        try:
+            lock.touch()
+        except OSError:
+            pass
         trace = store.load(row["trace_id"])
         if trace is None:
             results.append({"trace_id": row["trace_id"],
@@ -3568,9 +3614,13 @@ def _spool_flush_locked(store: TraceStore, path: Path,
                             "error": str(exc),
                             "attempts": row["attempts"]})
     if rows:
-        with path.open("w", encoding="utf-8") as fh:
+        # atomic: a crash mid-write must not take the whole
+        # queue with it (the store's save sets the precedent)
+        tmp = path.with_name(path.name + ".tmp")
+        with tmp.open("w", encoding="utf-8") as fh:
             for row in kept:
                 fh.write(json.dumps(row, sort_keys=True) + "\n")
+        os.replace(tmp, path)
     return {"flushed": sum(1 for r in results
                            if r.get("flushed")),
             "kept": len(kept), "dropped": dropped,
@@ -3661,6 +3711,8 @@ def _ship_flush_door(args: argparse.Namespace, key: bytes) -> int:
                                                False)))
     if getattr(args, "json", False):
         print(json.dumps(report, indent=2, ensure_ascii=False))
+        if report.get("dry_run"):
+            return 0  # a plan is a read, not a failure
         return 0 if not report["kept"] else 1
     if report.get("dry_run"):
         print(f"would retry {len(report['results'])} "
@@ -3670,6 +3722,36 @@ def _ship_flush_door(args: argparse.Namespace, key: bytes) -> int:
                   f"(attempts: {r['attempts']})")
         return 0
     return _spool_report(report)
+
+
+def _ship_all_door(args: argparse.Namespace, key: bytes,
+                   sender: str) -> int:
+    """The --all branch: the URL gate, the plan, the batch, the
+    spool notice, the JSON/prose report — one coherent move."""
+    from urllib.parse import urlparse
+
+    if urlparse(str(args.url)).scheme not in ("http", "https"):
+        print("error: webhook URL must be http(s)", file=sys.stderr)
+        return 2
+    store = TraceStore(Path(args.store))
+    if getattr(args, "dry_run", False):
+        return _ship_batch_plan(store, sender,
+                                since_days=getattr(args, "since",
+                                                   None),
+                                limit=getattr(args, "limit", None))
+    batch = _ship_batch(store, str(args.url), key, sender,
+                        since_days=getattr(args, "since", None),
+                        limit=getattr(args, "limit", None))
+    spooled = _spool_failures(store, batch, args)
+    if spooled:
+        print(f"queued {spooled} refused shipment(s) in the "
+              "spool - webhook-ship --flush retries them",
+              file=sys.stderr)
+    if getattr(args, "json", False):
+        print(json.dumps(dict(batch, sender=sender), indent=2,
+                         ensure_ascii=False))
+        return 0 if not batch["failed"] else 1
+    return _ship_batch_report(batch, sender)
 
 
 def cmd_webhook_ship(args: argparse.Namespace) -> int:
@@ -3694,30 +3776,14 @@ def cmd_webhook_ship(args: argparse.Namespace) -> int:
         return 2
     sender = getattr(args, "sender", None) or socket.gethostname()
     if getattr(args, "flush", False):
-        return _ship_flush_door(args, key)
+        try:
+            return _ship_flush_door(args, key)
+        except ValueError as exc:
+            # the lock refusal is a message, not a traceback
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
     if getattr(args, "all", False):
-        store = TraceStore(Path(args.store))
-        if getattr(args, "dry_run", False):
-            return _ship_batch_plan(store, sender,
-                                    since_days=getattr(args,
-                                                       "since",
-                                                       None),
-                                    limit=getattr(args, "limit",
-                                                  None))
-        batch = _ship_batch(store, str(args.url), key, sender,
-                            since_days=getattr(args, "since",
-                                               None),
-                            limit=getattr(args, "limit", None))
-        spooled = _spool_failures(store, batch, args)
-        if spooled:
-            print(f"queued {spooled} refused shipment(s) in "
-                  "the spool - webhook-ship --flush retries "
-                  "them", file=sys.stderr)
-        if getattr(args, "json", False):
-            print(json.dumps(dict(batch, sender=sender),
-                             indent=2, ensure_ascii=False))
-            return 0 if not batch["failed"] else 1
-        return _ship_batch_report(batch, sender)
+        return _ship_all_door(args, key, sender)
     if not getattr(args, "trace", None):
         print("error: a trace id (or 'latest') is required - "
               "or --all to ship the whole store", file=sys.stderr)
@@ -3799,8 +3865,19 @@ def _inbox_plan(archive: Path, store: TraceStore,
     rows = payload["recent"]
     shipments = _shipments_from_rows(rows)
     plan = []
+    from .store import _safe_id
+
     for tid, s in shipments.items():
-        present_trace = store.load(tid)
+        # the id came off the wire: only a safe id may become a
+        # lookup (a path-shaped id is a file-existence probe and
+        # a parse-crash vector), and the read is contained — an
+        # unreadable target is "not present", never a crash
+        present_trace = None
+        if _safe_id(tid):
+            try:
+                present_trace = store.load(tid)
+            except (OSError, ValueError):
+                present_trace = None
         conflict = bool(s.get("conflict")) or (
             present_trace is not None
             and not _same_record(s["trace"],
@@ -3846,7 +3923,7 @@ def _print_inbox_plan(archive: Path, out: dict, plan: list,
                  ("chain: tampered" if p_.get("chain_broken")
                   else ("unverified" if not p_["verified"]
                         else "importable"))))
-        if p_["present"] and p_.get("conflict"):
+        if p_.get("conflict"):
             mark = "conflict: same id, different evidence"
         print(f"  {p_['id']}  {p_['task']}  [{mark}]")
 
@@ -3874,7 +3951,8 @@ def _inbox_importable(plan: list,
                                      allow_broken_chain)]
     skipped = sum(1 for p_ in plan
                   if not p_["present"] and not p_["verified"]
-                  and not p_["malformed"])
+                  and not p_["malformed"]
+                  and not p_.get("chain_broken"))
     return importable, skipped
 
 
@@ -3895,9 +3973,7 @@ def _inbox_counts(plan: list, importable: list) -> dict:
             "malformed": _count(plan,
                                 lambda p_: p_["malformed"]),
             "chain_broken": chain_broken,
-            "conflicts": _count(
-                plan, lambda p_: p_["present"]
-                and p_.get("conflict")),
+            "conflicts": _count(plan, lambda p_: p_.get("conflict")),
             "refused_broken": chain_broken
             - _count(importable,
                      lambda p_: p_.get("chain_broken"))}
@@ -3906,14 +3982,22 @@ def _inbox_counts(plan: list, importable: list) -> dict:
 def _inbox_apply(store: TraceStore, shipments: dict,
                  importable: list) -> list:
     """Save the planned traces: foreign evidence keeps its own
-    integrity chain — stamp=False, never re-stamped by our key."""
+    integrity chain — stamp=False, never re-stamped by our key.
+    Each row saves in isolation: one hostile disk write must
+    not abort the rest of the batch (the plan vouched for
+    parseability, not for the disk's cooperation)."""
     from .trace import Trace
 
     imported: list = []
     for p_ in importable:
-        trace = Trace.from_dict(shipments[p_["id"]]["trace"])
-        store.save(trace, stamp=False)
-        imported.append(p_["id"])
+        try:
+            trace = Trace.from_dict(shipments[p_["id"]]["trace"])
+            store.save(trace, stamp=False)
+            imported.append(p_["id"])
+        except OSError as exc:
+            print(f"approximately: could not import "
+                  f"{p_['id']}: {exc}", file=sys.stderr)
+            continue
     return imported
 
 
@@ -5967,7 +6051,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--since", type=int, metavar="DAYS",
                    help="with --all: only traces from the last "
                         "N days")
-    p.add_argument("--limit", type=int, metavar="N",
+    def _non_negative(text: str) -> int:
+        value = int(text)
+        if value < 0:
+            raise argparse.ArgumentTypeError(
+                "must be >= 0")
+        return value
+
+    p.add_argument("--limit", type=_non_negative, metavar="N",
                    help="with --all: only the newest N traces "
                         "(newest of the window, not a slice)")
     p.add_argument("--dry-run", action="store_true",

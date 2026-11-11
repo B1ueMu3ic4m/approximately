@@ -31,6 +31,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import re
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -104,6 +105,10 @@ class ReceiverState:
         expected = hmac.new(self.key, body,
                             hashlib.sha256).hexdigest()
         got = signature[len("sha256="):]
+        if not re.fullmatch(r"[0-9a-f]{64}", got):
+            # non-hex (a non-ASCII header crashes compare_digest)
+            # is refused by shape, not by comparison
+            return False, "refused"
         if hmac.compare_digest(expected, got):
             return True, "verified"
         return False, "refused"
@@ -121,6 +126,27 @@ def _refuse_hostile_filters(since: Optional[float],
         raise ValueError("contains must be a string")
 
 
+def _fold_stats(stats: dict, path_stats: dict) -> None:
+    """Fold one file's census into the view's totals — the
+    counts describe every row the view draws from, so a folded
+    read's numbers can never contradict its rows."""
+    stats["rows"] += path_stats["rows"]
+    stats["verified"] += path_stats["verified"]
+    stats["unverified"] += path_stats["unverified"]
+    stats["malformed"] += path_stats["malformed"]
+    stats["bytes"] += path_stats["bytes"]
+    for bucket in ("kinds", "senders"):
+        for key, count in path_stats[bucket].items():
+            stats[bucket][key] = stats[bucket].get(key, 0) + count
+    if path_stats["last_received_at"] is not None and \
+            (stats["last_received_at"] is None
+             or path_stats["last_received_at"]
+             > stats["last_received_at"]):
+        stats["last_received_at"] = path_stats["last_received_at"]
+    if stats["first_malformed"] is None:
+        stats["first_malformed"] = path_stats["first_malformed"]
+
+
 def read_archive(archive: Path, limit: int = 20,
                  kind: Optional[str] = None,
                  unverified_only: bool = False,
@@ -136,18 +162,28 @@ def read_archive(archive: Path, limit: int = 20,
     current one, so yesterday's night is still one query;
     ``sender`` narrows the view to one shipper's rows."""
     _refuse_hostile_filters(since, contains)
-    stats = archive_stats(archive)
     paths = [archive]
     if include_rotated:
         rotated = archive.with_name(archive.name + ".1")
         if rotated.is_file():
             paths.insert(0, rotated)
+    stats: dict = {"rows": 0, "verified": 0, "unverified": 0,
+                   "malformed": 0, "kinds": {}, "senders": {},
+                   "bytes": 0, "last_received_at": None,
+                   "first_malformed": None}
     rows: list = []
     for path in paths:
+        # stats describe every row the view draws from: with the
+        # rotated log folded in, the counts cover BOTH files —
+        # counts that contradict the rows shown are a lie
+        _fold_stats(stats, archive_stats(path))
         if not path.is_file():
             continue
-        lines = path.read_text(
-            encoding="utf-8", errors="replace").splitlines()
+        try:
+            lines = path.read_text(
+                encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
         rows.extend(_matching_rows(lines, kind, unverified_only,
                                    since, contains, sender))
     stats["rows_total"] = stats["rows"]
@@ -165,6 +201,22 @@ def _matches_contains(row: dict, contains: str) -> bool:
     text = json.dumps(row, sort_keys=True,
                       ensure_ascii=False).lower()
     return contains.lower() in text
+
+
+CENSUS_BUCKETS = 64
+CENSUS_KEY_MAX = 120
+
+
+def _census(bucket: dict, key: str) -> None:
+    """One census bucket, bounded: a hostile poster mints unique
+    ~1 KB kinds/senders to grow the stats response without
+    bound — keys are capped in length and the bucket folds the
+    overflow into one honest "many more" line."""
+    if len(key) > CENSUS_KEY_MAX:
+        key = key[:CENSUS_KEY_MAX] + "…"
+    if key not in bucket and len(bucket) >= CENSUS_BUCKETS:
+        key = "…many more"
+    bucket[key] = bucket.get(key, 0) + 1
 
 
 def _shipped_by(row: dict) -> Optional[str]:
@@ -217,7 +269,7 @@ def _matching_rows(lines: list, kind: Optional[str],
     for line in lines:
         try:
             row = json.loads(line)
-        except ValueError:
+        except (ValueError, RecursionError):
             continue
         if isinstance(row, dict) and row_passes(row, kind,
                                                 unverified_only,
@@ -310,10 +362,16 @@ def _read_new_rows(archive: Path, offset: int, rows: List[dict],
 
 def _open_log(stats: dict, archive: Path) -> Optional[str]:
     """Fill in the byte size and return the decoded text, BOM
-    stripped; None when the log does not exist yet."""
+    stripped; None when the log does not exist yet — or exists
+    only for a blink (a concurrent rotation's os.replace makes
+    the path vanish between exists and read: read that as
+    empty, never as a crash)."""
     if not archive.is_file():
         return None
-    raw = archive.read_bytes()
+    try:
+        raw = archive.read_bytes()
+    except OSError:
+        return None
     stats["bytes"] = len(raw)
     text = raw.decode("utf-8", errors="replace")
     if text.startswith("\ufeff"):
@@ -336,11 +394,10 @@ def _stat_row(stats: dict, row: dict) -> None:
     if not isinstance(kind, str):
         kind = json.dumps(kind, sort_keys=True,
                           ensure_ascii=False)
-    stats["kinds"][kind] = stats["kinds"].get(kind, 0) + 1
+    _census(stats["kinds"], kind)
     sender = _shipped_by(row)
     if sender:
-        stats["senders"][sender] = \
-            stats["senders"].get(sender, 0) + 1
+        _census(stats["senders"], sender)
     stamp = row.get("received_at")
     if isinstance(stamp, (int, float)) and \
             (stats["last_received_at"] is None
@@ -452,6 +509,10 @@ def make_handler(state: ReceiverState) -> type:
     servers get fresh state; nothing is class-level)."""
 
     class Handler(BaseHTTPRequestHandler):
+        # a client that stalls mid-request pins its thread and
+        # buffer: the socket answers silence with a timeout
+        timeout = 30
+
         def do_GET(self) -> None:
             if self.path == "/health":
                 with state.lock:
@@ -485,10 +546,21 @@ def make_handler(state: ReceiverState) -> type:
             self._reply(404, {"error": "not found"})
 
         def do_POST(self) -> None:
-            length = int(self.headers.get("Content-Length", 0) or 0)
-            if length > state.max_bytes:
-                # refused BEFORE the read: a hostile Content-Length
-                # must not buy a hostile read
+            raw = self.headers.get("Content-Length", 0) or 0
+            try:
+                length = int(raw)
+            except (TypeError, ValueError):
+                # a malformed Content-Length is answered, not
+                # dropped: the operator's monitor reads statuses
+                with state.lock:
+                    state.refused += 1
+                self._reply(400, {"error": "invalid Content-Length"})
+                return
+            # refused BEFORE the read: a hostile Content-Length
+            # must not buy a hostile read — and a negative one
+            # must not become read-until-EOF (-1 is BufferedReader's
+            # unbounded sentinel)
+            if not 0 <= length <= state.max_bytes:
                 with state.lock:
                     state.refused += 1
                 self._reply(413, {"error": f"body exceeds "
@@ -506,7 +578,7 @@ def make_handler(state: ReceiverState) -> type:
                 payload = json.loads(body.decode("utf-8"))
                 if not isinstance(payload, dict):
                     raise ValueError("payload must be a JSON object")
-            except (ValueError, UnicodeDecodeError):
+            except (ValueError, UnicodeDecodeError, RecursionError):
                 with state.lock:
                     state.refused += 1
                 self._reply(400, {"error": "body must be a JSON "
@@ -546,7 +618,12 @@ def make_handler(state: ReceiverState) -> type:
                     state.appended = 0
                 state.archive.parent.mkdir(parents=True, exist_ok=True)
                 with state.archive.open("a", encoding="utf-8") as fh:
-                    fh.write(json.dumps(row, ensure_ascii=False,
+                    # ensure_ascii (the default) is load-bearing:
+                    # lone surrogates crash a UTF-8 write after the
+                    # rotation side effects, and raw U+2028/U+0085
+                    # in a payload split the archived line on
+                    # readback — escapes are integrity, not noise
+                    fh.write(json.dumps(row,
                                         sort_keys=True) + "\n")
                 state.received += 1
                 state.appended += 1

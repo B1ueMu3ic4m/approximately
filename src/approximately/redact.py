@@ -35,6 +35,9 @@ _BUILTIN_SOURCE: Tuple[Tuple[str, str], ...] = (
     ("jwt", (r"\beyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}"
              r"\.[A-Za-z0-9_\-]{5,}\b")),
     ("bearer", r"(?i)\bbearer[ \t]+[A-Za-z0-9._~+/=\-]{16,}"),
+    ("kv_secret", (r"(?i)\b(pass(word)?|secret|api_?key|"
+                   r"auth_?token|access_?token)\s*[=:]\s*['\"]?"
+                   r"[A-Za-z0-9._~+/=\-]{8,}['\"]?")),
     ("private_key", (r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----"
                      r"[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----")),
 )

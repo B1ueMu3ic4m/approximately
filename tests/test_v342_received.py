@@ -99,8 +99,9 @@ def test_include_rotated_folds_the_previous_log_in():
     payload = read_archive(archive, limit=20, include_rotated=True)
     assert [r["received_at"] for r in payload["recent"]] == \
         [0, 1, 2, 10, 11], "the previous log comes first"
-    assert payload["rows_total"] == 2, \
-        "rows_total keeps meaning the current archive"
+    assert payload["rows_total"] == 5,  (
+        "counts describe every row the folded view draws from  "
+        "(v4.1.0: counts that contradict the rows shown are a lie)")
 
 
 def test_since_keeps_only_rows_at_or_after_the_epoch():
