@@ -1368,7 +1368,7 @@ def _tool_attribute(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .attributor import attribute
 
     store = _store(ctx, args)
-    trace = store.load(str(args["trace"]))
+    trace = _mcp_trace(store, args.get("trace"))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     judge = bool(args.get("judge"))
@@ -1420,7 +1420,7 @@ def _tool_verify(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                          "verdict": result.verdict})
         return {"all": True, "traces": len(rows), "tally": counts,
                 "rows": rows}
-    trace = store.load(str(args["trace"]))
+    trace = _mcp_trace(store, args.get("trace"))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     return {"trace": trace.id,
@@ -1526,8 +1526,8 @@ def _tool_bisect(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .diff import first_fault
 
     store = _store(ctx, args)
-    trace_a = store.load(str(args["trace"]))
-    trace_b = store.load(str(args["other"]))
+    trace_a = _mcp_trace(store, args.get("trace"))
+    trace_b = _mcp_trace(store, args.get("other"))
     if trace_a is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     if trace_b is None:
@@ -1772,7 +1772,7 @@ def _tool_budget_sim(ctx: ServerContext, args: Dict[str, Any]) -> dict:
         raise KeyError("pass tokens and/or usd: a simulation with "
                        "no ceiling proves nothing")
     store = _store(ctx, args)
-    trace = store.load(str(args["trace"]))
+    trace = _mcp_trace(store, args.get("trace"))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     try:
@@ -1952,7 +1952,7 @@ def _tool_similar(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .align import similar_payload
 
     store = _store(ctx, args)
-    trace = store.load(str(args["trace"]))
+    trace = _mcp_trace(store, args.get("trace"))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     top = int(args["top"]) if args.get("top") else 5
@@ -1990,7 +1990,7 @@ def _tool_counterfactual(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .counterfactual import counterfactual, report_payload
 
     store = _store(ctx, args)
-    trace = store.load(str(args["trace"]))
+    trace = _mcp_trace(store, args.get("trace"))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     return report_payload(counterfactual(trace))
@@ -2000,7 +2000,7 @@ def _tool_predict(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .precursor import PrecursorModel
 
     store = _store(ctx, args)
-    trace = store.load(str(args["trace"]))
+    trace = _mcp_trace(store, args.get("trace"))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     model = PrecursorModel()
@@ -2017,7 +2017,7 @@ def _tool_context(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .context import default_facts, forecast, forecast_payload
 
     store = _store(ctx, args)
-    trace = store.load(str(args["trace"]))
+    trace = _mcp_trace(store, args.get("trace"))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     if args.get("composition") or args.get("truncate_results") \
@@ -2037,7 +2037,7 @@ def _tool_curve(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .curve import budget_curve, curve_payload
 
     store = _store(ctx, args)
-    trace = store.load(str(args["trace"]))
+    trace = _mcp_trace(store, args.get("trace"))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     return curve_payload(budget_curve(trace))
@@ -2072,7 +2072,7 @@ def _tool_regression_test(ctx: ServerContext,
     from .regress import render_regression
 
     store = _store(ctx, args)
-    trace = store.load(str(args["trace"]))
+    trace = _mcp_trace(store, args.get("trace"))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     report = attribute(trace)
@@ -2116,7 +2116,7 @@ def _tool_anomalies(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                                "robust_z": a.robust_z,
                                "direction": a.direction}
                               for a in fleet[:50]]}
-    trace = store.load(str(args["trace"]))
+    trace = _mcp_trace(store, args.get("trace"))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     anomalies = detect_latency_anomalies(
@@ -2163,7 +2163,7 @@ def _result_anomalies(store: Any, args: Dict[str, Any],
                 "summary": summarize_result_anomalies([]) if not fleet
                 else f"{len(fleet)} fleet result-bloat outlier(s)",
                 "isError": bool(fleet)}
-    trace = store.load(str(args["trace"]))
+    trace = _mcp_trace(store, args.get("trace"))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     anomalies = detect_result_anomalies(trace, threshold=threshold)
@@ -2209,7 +2209,7 @@ def _token_anomalies(store: Any, args: Dict[str, Any],
                                "robust_z": a.robust_z,
                                "direction": a.direction}
                               for a in fleet[:50]]}
-    trace = store.load(str(args["trace"]))
+    trace = _mcp_trace(store, args.get("trace"))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     anomalies = detect_token_anomalies(
@@ -2233,10 +2233,10 @@ def _tool_diff(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .diff import diff as trace_diff
 
     store = _store(ctx, args)
-    a = store.load(str(args["trace"]))
+    a = _mcp_trace(store, args.get("trace"))
     if a is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
-    b = store.load(str(args["other"]))
+    b = _mcp_trace(store, args.get("other"))
     if b is None:
         raise KeyError(f"no trace {args['other']!r} in store")
     td = trace_diff(a, b)
@@ -2255,7 +2255,7 @@ def _tool_plan_repair(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .repair import plan_repair
 
     store = _store(ctx, args)
-    trace = store.load(str(args["trace"]))
+    trace = _mcp_trace(store, args.get("trace"))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     result = plan_repair(trace)
@@ -2335,7 +2335,7 @@ def _tool_redact(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     except ValueError as exc:
         raise KeyError(f"redact refused: {exc}") from exc
     store = _store(ctx, args)
-    trace = store.load(str(args["trace"]))
+    trace = _mcp_trace(store, args.get("trace"))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     share, report = redact_trace(
@@ -2415,7 +2415,7 @@ def _tool_handoff(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .handoff import brief
 
     store = _store(ctx, args)
-    trace = store.load(str(args["trace"]))
+    trace = _mcp_trace(store, args.get("trace"))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     table = None
@@ -2630,9 +2630,10 @@ def _tool_inbox(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     contains = _opt_str(args, "contains")
     kind = _opt_str(args, "kind")
     sender = _opt_str(args, "sender")
+    _limit = _opt_int(args, "limit")
     payload = read_archive(
         store.directory / "webhook-log.jsonl",
-        limit=_opt_int(args, "limit") or 20,
+        limit=_limit if _limit is not None else 20,
         since=args.get("since"),
         kind=kind,
         contains=contains,
@@ -2959,7 +2960,7 @@ def _resources(ctx: ServerContext) -> List[dict]:
 
 def _resources_read(msg: Dict[str, Any], ctx: Any,
                     request_id: Any) -> dict:
-    uri = str(((msg.get("params") or {}).get("uri")) or "")
+    uri = str((_params_of(msg).get("uri")) or "")
     if not uri.startswith("approximately://"):
         return _error(request_id, -32602,
                       f"unsupported uri scheme: {uri[:40]!r}")
@@ -3018,8 +3019,10 @@ def handle_request(msg: Dict[str, Any], ctx: ServerContext) -> Optional[dict]:
         raise ValueError("not a JSON-RPC 2.0 message")
     method = str(msg.get("method"))
     request_id = msg.get("id")
-    if request_id is None:
+    if "id" not in msg:
         return None  # notification: accepted, never answered
+    # an EXPLICIT null id is a request per JSON-RPC 2.0 and gets
+    # an answer (with a null id)
     if method == "initialize":
         return {"jsonrpc": "2.0", "id": request_id,
                 "result": {"protocolVersion": PROTOCOL_VERSION,
@@ -3041,9 +3044,38 @@ def handle_request(msg: Dict[str, Any], ctx: ServerContext) -> Optional[dict]:
     return _error(request_id, -32601, f"unknown method {method!r}")
 
 
+def _mcp_trace(store: Any, spec: Any) -> Any:
+    """A trace the CLIENT names, at the tool boundary: safe ids
+    and 'latest' resolve inside the store. The CLI's cat-like
+    explicit-path load is a local operator's feature and does
+    not cross the wire — a client-supplied '/etc/x' or '../y'
+    would turn the toolkit into an arbitrary-file reader and
+    (via webhook_ship) an arbitrary-file poster."""
+    from .store import _safe_id
+
+    spec = str(spec or "")
+    if spec != "latest" and not _safe_id(spec):
+        raise ValueError("trace must be a safe id (or 'latest') "
+                         "- path-like refs are a local "
+                         "operator's feature")
+    return store.load(spec)
+
+
+def _params_of(msg: Dict[str, Any]) -> Dict[str, Any]:
+    """The request's params, or a refusal: a truthy non-dict
+    (a string, a list) must answer -32602, never crash the
+    dispatch loop — one hostile line must not kill the server."""
+    params = msg.get("params")
+    if params is None:
+        return {}
+    if not isinstance(params, dict):
+        raise ValueError("params must be an object")
+    return params
+
+
 def _tools_call(msg: Dict[str, Any], ctx: Any,
                 request_id: Any) -> dict:
-    params: Dict[str, Any] = msg.get("params") or {}
+    params: Dict[str, Any] = _params_of(msg)
     name = str(params.get("name") or "")
     handler = _HANDLERS.get(name)
     if handler is None:
@@ -3053,6 +3085,11 @@ def _tools_call(msg: Dict[str, Any], ctx: Any,
         payload = handler(ctx, tool_args)
     except KeyError as exc:
         payload = {"error": str(exc)}
+    except OSError as exc:
+        # a filesystem error's message carries absolute paths:
+        # the client gets the shape of the failure, not the map
+        payload = {"error": f"OSError: store or file unavailable "
+                            f"({exc.strerror or 'I/O error'})"}
     except Exception as exc:  # tool-level failure, still a result
         payload = {"error": f"{type(exc).__name__}: {exc}"}
     return {"jsonrpc": "2.0", "id": request_id,

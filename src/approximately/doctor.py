@@ -266,8 +266,16 @@ def _check_hygiene(directory: Path, report: DoctorReport) -> None:
         if age > _STALE_LOCK_SECONDS:
             locks.append(lock.name)
     report.stale_locks = locks
-    report.temp_files.extend(
-        p.name for p in sorted(directory.glob(".*.tmp")))
+    # a temp file gets the same staleness courtesy as a lock:
+    # a live writer's .{id}.{pid}.tmp is mid-rename, and
+    # deleting it breaks that save
+    for tmp in sorted(directory.glob(".*.tmp")):
+        try:
+            age = now - tmp.stat().st_mtime
+        except OSError:
+            age = _STALE_LOCK_SECONDS + 1.0
+        if age > _STALE_LOCK_SECONDS:
+            report.temp_files.append(tmp.name)
 
 
 def _check_digests(digest_dir: Path, report: DoctorReport) -> None:
@@ -279,9 +287,14 @@ def _check_digests(digest_dir: Path, report: DoctorReport) -> None:
 
 
 def _digest_days(digest_dir: Path) -> List[str]:
-    return sorted(p.stem.replace("digest-", "")
-                  for p in digest_dir.glob("digest-*.jsonl")
-                  if len(p.stem.replace("digest-", "")) == 8)
+    stamps = []
+    for p in digest_dir.glob("digest-*.jsonl"):
+        stamp = p.stem.replace("digest-", "")
+        # only a real yyyymmdd counts: an attacker-shaped or
+        # half-written filename is not a calendar day
+        if len(stamp) == 8 and stamp.isdigit():
+            stamps.append(stamp)
+    return sorted(stamps)
 
 
 def _torn_lines(digest_dir: Path) -> int:
@@ -305,8 +318,13 @@ def _gap_days(stamps: List[str]) -> List[str]:
     gaps: List[str] = []
     import datetime
 
-    cursor = datetime.datetime.strptime(stamps[0], "%Y%m%d").date()
-    last = datetime.datetime.strptime(stamps[-1], "%Y%m%d").date()
+    try:
+        cursor = datetime.datetime.strptime(stamps[0],
+                                            "%Y%m%d").date()
+        last = datetime.datetime.strptime(stamps[-1],
+                                          "%Y%m%d").date()
+    except ValueError:
+        return []  # a non-date slipped the digit check
     present = set(stamps)
     while cursor < last:
         cursor += datetime.timedelta(days=1)
@@ -355,7 +373,7 @@ def _check_spool(spool: Path, report: DoctorReport) -> None:
             break
         try:
             import_file(path, store, dry_run=True)
-        except ValueError:
+        except (ValueError, OSError):
             report.spool_unparsed.append(path.name)
 
 
@@ -439,9 +457,15 @@ def _check_chains(directory: Path, report: DoctorReport) -> None:
             payload = json.loads(path.read_text(encoding="utf-8"))
             trace = Trace.from_dict(payload)
         except (json.JSONDecodeError, AttributeError, KeyError,
-                TypeError, ValueError):
+                TypeError, ValueError, OSError):
             continue          # already reported by _check_records
-        result = verify(trace)
+        try:
+            result = verify(trace)
+        except (ValueError, TypeError, OSError):
+            # a poison record's chain must be a finding, not a
+            # crash of the deep pass
+            report.chain_failed.append(path.name)
+            continue
         if not result.signed:
             continue
         report.chain_checked += 1

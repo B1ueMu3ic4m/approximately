@@ -257,6 +257,11 @@ def notify_webhook(summaries: List[StoreSummary], url: str,
         # also blocks file:// and custom schemes from sneaking in
         # through configuration
         raise RuntimeError(f"webhook URL must be http(s), got {scheme!r}")
+    if any(ord(ch) < 0x20 or ch == "\x7f" for ch in url):
+        # control characters in the URL escape the documented
+        # exception contract (http.client raises bare ValueError
+        # from putrequest) — refuse here, in contract
+        raise RuntimeError("webhook URL contains control characters")
 
     if payload is None:
         # the fleet summary is the one poster that never said what
@@ -285,9 +290,11 @@ def notify_webhook(summaries: List[StoreSummary], url: str,
         except urllib.error.HTTPError as exc:
             if exc.code == 429 or exc.code >= 500:
                 last_error = RuntimeError(f"HTTP {exc.code}")
+                exc.close()  # the error body holds a socket
                 if attempt < attempts:
                     time.sleep(_retry_delay(exc, attempt))
                 continue
+            exc.close()
             return f"HTTP {exc.code}"
         except (urllib.error.URLError, OSError) as exc:
             last_error = exc

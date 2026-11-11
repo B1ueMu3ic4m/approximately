@@ -1745,6 +1745,22 @@ framework adapters import lazily and degrade when the framework is absent.
          with --since, rides the plan, and the MCP tool
          answers limit in both the manifest and the batch — a
          bad limit is refused at the boundary by name.
+541. **v4.1.0 - the hardening minor** (planned):
+       - A three-way audit with every finding reproduced, then
+         fixed: the P0 Content-Length read-until-EOF fence;
+         escaped archive lines (surrogates crashed the write,
+         U+2028 split the read); the MCP server surviving
+         non-dict params; tool-boundary trace refs pinned to
+         safe ids (the cat-like path load stays local);
+         plan-time hostile-id lookups gated; the batch limit
+         math corrected; the lock takeover made inode-safe
+         with heartbeats and an atomic spool rewrite; shape
+         checks before compare_digest; 30s handler timeouts;
+         rotation TOCTOU read as empty; census buckets
+         capped; --limit/flush/apply exit-code and isolation
+         contracts; SAFE_ID anchored at string end; a
+         kv_secret redact builtin; and the HMAC replay window
+         documented as v4.2's known limitation.
 540. **v4.0.9 addendum - the slip that reached main**
        (recorded):
        - The fifth direct-to-main slip of the session, and the

@@ -55,8 +55,10 @@ def test_the_census_stays_the_current_logs_stats_shape():
     today = _tool_inbox(ctx, {})
     assert today["kinds"] == {"new": 1}
     both = _tool_inbox(ctx, {"include_rotated": True})
-    assert both["kinds"] == {"new": 1} and both["rows"] == 1, \
-        "the census is the current log's, same shape /stats answers"
+    assert both["kinds"] == {"old": 1, "new": 1} \
+        and both["rows"] == 2, (
+        "counts cover every row the folded view draws from "
+        "(v4.1.0: counts contradicting the rows shown are a lie)")
 
 
 def test_security_md_names_the_probe_refusal_posture():

@@ -32,11 +32,22 @@ def _stale_lock(store):
     return lock
 
 
+def _age_stale(path):
+    """Backdate a hygiene artifact past the staleness window."""
+    import os
+    import time
+
+    old = time.time() - 7200.0
+    os.utime(path, (old, old))
+    return path
+
+
 def test_fix_removes_stale_lock_and_temp(tmp_path):
     store = _store(tmp_path)
     lock = _stale_lock(store)
     tmp = store.directory / ".fx-0.4242.tmp"
     tmp.write_text("partial", encoding="utf-8")
+    _age_stale(tmp)
     report = doctor(store.directory)
     removed = fix_hygiene(store.directory, report)
     assert ".fx-0.lock" in removed and ".fx-0.4242.tmp" in removed
@@ -60,7 +71,9 @@ def test_fix_never_touches_records_or_ledger(tmp_path):
 def test_fix_via_cli_restores_health(tmp_path, capsys):
     store = _store(tmp_path)
     _stale_lock(store)
-    (store.directory / ".x.1.tmp").write_text("t", encoding="utf-8")
+    xtmp = store.directory / ".x.1.tmp"
+    xtmp.write_text("t", encoding="utf-8")
+    _age_stale(xtmp)
     args = argparse.Namespace(store=str(store.directory),
                               digest_dir=None, json=False, fix=True)
     rc = cmd_doctor(args)

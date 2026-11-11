@@ -27,6 +27,16 @@ def _store(tmp_path, n=2, signed=False):
     return store, recs
 
 
+def _age_stale(path):
+    """Backdate a hygiene artifact past the staleness window."""
+    import os
+    import time
+
+    old = time.time() - 7200.0
+    os.utime(path, (old, old))
+    return path
+
+
 def test_healthy_store_reports_healthy(tmp_path):
     store, _ = _store(tmp_path)
     report = doctor(store.directory)
@@ -75,7 +85,9 @@ def test_stale_lock_and_temp_files_found(tmp_path):
     lock.write_text("", encoding="utf-8")
     old = time.time() - 7200
     os.utime(lock, (old, old))
-    (store.directory / ".d-9.4242.tmp").write_text("partial", encoding="utf-8")
+    tmp = store.directory / ".d-9.4242.tmp"
+    tmp.write_text("partial", encoding="utf-8")
+    _age_stale(tmp)
     report = doctor(store.directory)
     assert ".d-9.lock" in report.stale_locks
     assert any(".tmp" in name for name in report.temp_files)

@@ -56,6 +56,7 @@ def test_every_builtin_fires_on_its_own_fixture():
         "bearer": "Authorization: Bearer abcdef1234567890ab",
         "private_key": "-----BEGIN RSA PRIVATE KEY-----\nabc\n"
                        "-----END RSA PRIVATE KEY-----",
+        "kv_secret": "x password=hunter2supersecret y",
     }
     assert set(fixtures) == set(BUILTIN_PATTERNS)
     for name, blob in fixtures.items():

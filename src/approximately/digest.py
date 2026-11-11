@@ -157,6 +157,7 @@ def shipments_awaiting(store: TraceStore, archive: Path) -> int:
     window): the brief's next-step note must not hide behind a
     window boundary."""
     from .receiver import read_archive
+    from .store import _safe_id
 
     seen: set = set()
     awaiting = 0
@@ -170,6 +171,8 @@ def shipments_awaiting(store: TraceStore, archive: Path) -> int:
             else None
         tid = trace.get("id") if isinstance(trace, dict) \
             else None
+        if not isinstance(tid, str) or not _safe_id(tid):
+            continue  # a hostile id is not a lookup
         if row.get("verified") is True and \
                 isinstance(tid, str) and tid not in seen:
             seen.add(tid)
@@ -259,10 +262,21 @@ def _render_inbox(payload: dict) -> List[str]:
         lines.append(f"  ship spool: {spooled} shipment(s) "
                      "queued - webhook-ship --flush retries "
                      "them")
-    if inbox.get("first_malformed"):
-        lines.append(f"  first malformed: "
-                     f"{inbox['first_malformed']}")
+    line = _first_malformed_line(inbox)
+    if line:
+        lines.append(line)
     return lines
+
+
+def _first_malformed_line(inbox: dict) -> Optional[str]:
+    """The torn-line note, or None: hostile bytes land in a
+    terminal, so only printable characters survive the trip."""
+    if not inbox.get("first_malformed"):
+        return None
+    printable = "".join(
+        ch if ch.isprintable() else "?"
+        for ch in str(inbox["first_malformed"]))
+    return f"  first malformed: {printable}"
 
 
 def _render_arrivals(payload: dict) -> List[str]:
@@ -293,9 +307,9 @@ def build_fleet_digest(stores: List[Any],
     return {
         "kind": "fleet_digest",
         "generated": _dt.datetime.now().isoformat(timespec="seconds"),
-        "week": _week_section(stores[0], digest_dir, today
-                              or _dt.date.today())
-        if digest_dir else None,
+        "week": (_week_section(stores[0], digest_dir,
+                               today or _dt.date.today())
+                 if digest_dir and stores else None),
         "stores": briefs,
     }
 
