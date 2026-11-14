@@ -27,26 +27,31 @@ KEY = b"plan-key"
 
 
 def _store_with_spool(n=2):
+    # n distinct traces, one spool entry each: v4.2's upsert
+    # dedupes a repeated (trace_id, url), so a multi-row queue
+    # is a multi-trace queue now
     store = TraceStore(tempfile.mkdtemp())
-    rec = Recorder("flush plan task", store=store)
-    rec.tool("sh", {"cmd": "x"}, result="ok")
-    rec.respond("done", success=True)
-    store.save(rec.trace)
     spool = cli._spool_path(str(store.directory))
-    for _ in range(n):
+    ids = []
+    for i in range(n):
+        rec = Recorder(f"flush plan task {i}", store=store)
+        rec.tool("sh", {"cmd": "x"}, result="ok")
+        rec.respond("done", success=True)
+        store.save(rec.trace)
         _spool_append(spool, rec.trace.id,
                       "http://127.0.0.1:1/", "box-a")
-    return store, spool, rec.trace.id
+        ids.append(rec.trace.id)
+    return store, spool, ids
 
 
 def test_the_flush_plan_posts_nothing():
-    store, spool, tid = _store_with_spool(2)
+    store, spool, ids = _store_with_spool(2)
     archive = Path(tempfile.mkdtemp()) / "webhook-log.jsonl"
     report = _spool_flush(store, spool, KEY, dry_run=True)
     assert report["dry_run"] is True
     assert report["kept"] == 2 and report["flushed"] == 0
     assert [r["trace_id"] for r in report["results"]] == \
-        [tid, tid], "the plan is what the flush would walk"
+        ids, "the plan is what the flush would walk"
     assert all(r["would_retry"] for r in report["results"])
     assert not archive.exists(), "a plan posts nothing"
     assert len(_spool_rows(spool)) == 2, \
@@ -59,7 +64,7 @@ def test_the_cli_plan_names_rows_and_exits_zero(capsys,
 
     monkeypatch.setattr(integrity, "load_key",
                         lambda *a, **k: KEY)
-    store, _spool, tid = _store_with_spool(1)
+    store, _spool, (tid,) = _store_with_spool(1)
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
         code = cmd_webhook_ship(argparse.Namespace(
@@ -82,7 +87,7 @@ def test_the_real_flush_still_works_after_a_plan(monkeypatch):
     archive = Path(tempfile.mkdtemp()) / "webhook-log.jsonl"
     server, _state = serve(archive, key=KEY, port=0)
     url = f"http://127.0.0.1:{server.server_address[1]}"
-    store, spool, tid = _store_with_spool(1)
+    store, spool, (tid,) = _store_with_spool(1)
     try:
         # plan first, post second - the plan cannot drift
         plan = _spool_flush(store, spool, KEY, dry_run=True)
@@ -105,7 +110,7 @@ def test_the_mcp_tool_answers_the_queue_as_data(monkeypatch):
 
     monkeypatch.setattr(integrity, "load_key",
                         lambda *a, **k: KEY)
-    store, spool, tid = _store_with_spool(1)
+    store, spool, (tid,) = _store_with_spool(1)
     ctx = ServerContext(store.directory)
     plan = _tool_webhook_ship(ctx, {"flush": True,
                                     "flush_dry_run": True})

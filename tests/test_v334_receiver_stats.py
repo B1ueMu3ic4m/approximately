@@ -99,8 +99,10 @@ def test_health_contract_unchanged_and_404_holds():
         status, data = _get(addr, "/health")
         assert status == 200
         # v397: the throttle names itself in the counters
+        # v420: duplicates joins them (idempotent delivery)
         assert set(data) == {"ok", "received", "refused",
-                             "throttled", "verify_mode"}
+                             "throttled", "duplicates",
+                             "verify_mode"}
         status, data = _get(addr, "/nope")
         assert status == 404 and "error" in data
     finally:

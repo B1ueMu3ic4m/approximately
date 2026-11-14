@@ -1773,6 +1773,34 @@ framework adapters import lazily and degrade when the framework is absent.
          Recorded in full because a ledger that names
          recovered slips has no business hiding one that
          landed.
+542. **v4.2.0 - the replay dies at the window, the retry
+       lives** (planned):
+       - The signed channel's documented v4.2 protocol work,
+         shipped. The sender stamps every post
+         (X-Approximately-Timestamp) and the MAC covers
+         stamp+newline+body; a timestamp outside the
+         receiver's replay window (--replay-window, default
+         300s) is refused 401 by name, and a signature
+         claimed once inside the window is idempotent
+         delivery — 200 duplicate:true, no second row, a
+         duplicates counter on /health and /stats. The claim
+         happens at acceptance, not at verification: a post
+         refused by the rate gate claims nothing, so its
+         honest retry lands fresh (the two-ends protocol test
+         caught the first draft's poison-the-retry mistake).
+         Legacy body-only posts still verify — receivers
+         meet pre-4.2 senders in the wild — and
+         --require-timestamp refuses them outright when the
+         fleet has upgraded. Archived rows carry their
+         scheme (timestamped/legacy). The spool dedupes:
+         appending a (trace_id, url) already present is a
+         refresh — fresh stamp, moved to the back,
+         accumulated attempts kept — so a nightly cron's
+         re-spools stop growing the queue by one duplicate a
+         day and the waiting counts tell the truth. 20 new
+         pins (test_v420_replay_window,
+         test_v420_spool_upsert).
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

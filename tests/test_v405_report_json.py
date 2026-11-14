@@ -24,16 +24,20 @@ KEY = b"json-key"
 
 
 def _store_with_spool(n=2):
+    # n distinct traces: v4.2's upsert dedupes a repeated
+    # (trace_id, url), so a two-row queue is a two-trace queue
     store = TraceStore(tempfile.mkdtemp())
-    rec = Recorder("json report task", store=store)
-    rec.tool("sh", {"cmd": "x"}, result="ok")
-    rec.respond("done", success=True)
-    store.save(rec.trace)
     spool = cli._spool_path(str(store.directory))
-    for _ in range(n):
+    ids = []
+    for i in range(n):
+        rec = Recorder(f"json report task {i}", store=store)
+        rec.tool("sh", {"cmd": "x"}, result="ok")
+        rec.respond("done", success=True)
+        store.save(rec.trace)
         _spool_append(spool, rec.trace.id,
                       "http://127.0.0.1:1/", "box-a")
-    return store, spool, rec.trace.id
+        ids.append(rec.trace.id)
+    return store, spool, ids
 
 
 def test_the_flush_report_is_json(capsys, monkeypatch):
@@ -41,7 +45,7 @@ def test_the_flush_report_is_json(capsys, monkeypatch):
 
     monkeypatch.setattr(integrity, "load_key",
                         lambda *a, **k: KEY)
-    store, _spool, tid = _store_with_spool(2)
+    store, _spool, ids = _store_with_spool(2)
     code = cmd_webhook_ship(argparse.Namespace(
         store=str(store.directory), trace=None,
         url="http://127.0.0.1:1/", all=False, dry_run=False,
@@ -51,8 +55,8 @@ def test_the_flush_report_is_json(capsys, monkeypatch):
     assert code == 1, "kept shipments still fail the flush"
     report = json.loads(out)
     assert report["flushed"] == 0 and report["kept"] == 2
-    assert all(r["trace_id"] == tid and r["attempts"] == 1
-               for r in report["results"]), \
+    assert [r["trace_id"] for r in report["results"]] == ids
+    assert all(r["attempts"] == 1 for r in report["results"]), \
         "the report carries the per-row attempt count"
 
 
@@ -61,7 +65,7 @@ def test_the_flush_plan_is_json_too(capsys, monkeypatch):
 
     monkeypatch.setattr(integrity, "load_key",
                         lambda *a, **k: KEY)
-    store, _spool, _tid = _store_with_spool(1)
+    store, _spool, (_tid,) = _store_with_spool(1)
     cmd_webhook_ship(argparse.Namespace(
         store=str(store.directory), trace=None,
         url="http://127.0.0.1:1/", all=False, dry_run=True,

@@ -35,6 +35,7 @@ class _Capture(BaseHTTPRequestHandler):
         _Capture.received.append({
             "body": body,
             "signature": self.headers.get("X-Approximately-Signature"),
+            "timestamp": self.headers.get("X-Approximately-Timestamp"),
             "content_type": self.headers.get("Content-Type"),
         })
         self.send_response(200)
@@ -94,7 +95,10 @@ class TestDelivery:
         status = notify_webhook(populated, server, signing_key=key)
         assert status == "200"
         sent = _Capture.received[0]
-        expected = hmac.new(key, sent["body"], hashlib.sha256).hexdigest()
+        # v4.2: the timestamp rides inside the MAC
+        expected = hmac.new(
+            key, sent["timestamp"].encode() + b"\n" + sent["body"],
+            hashlib.sha256).hexdigest()
         assert sent["signature"] == f"sha256={expected}"
 
     def test_signature_covers_body(self, populated, server):

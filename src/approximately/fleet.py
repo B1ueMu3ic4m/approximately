@@ -251,6 +251,7 @@ def notify_webhook(summaries: List[StoreSummary], url: str,
     import hashlib
     import hmac
     import json as _json
+    import time as _time
 
     scheme = urllib.parse.urlparse(url).scheme.lower()
     if scheme not in ("http", "https"):
@@ -274,7 +275,15 @@ def notify_webhook(summaries: List[StoreSummary], url: str,
                        sort_keys=True).encode("utf-8")
     headers = {"Content-Type": "application/json"}
     if signing_key:
-        digest = hmac.new(signing_key, body, hashlib.sha256).hexdigest()
+        # the timestamp rides inside the MAC: a captured request
+        # is dead at the receiver's replay window's edge, and the
+        # seen-cache kills replays inside the window — the
+        # body-only MAC could be replayed forever
+        stamp = str(int(_time.time()))
+        headers["X-Approximately-Timestamp"] = stamp
+        digest = hmac.new(signing_key,
+                          stamp.encode("ascii") + b"\n" + body,
+                          hashlib.sha256).hexdigest()
         headers["X-Approximately-Signature"] = f"sha256={digest}"
     attempts = max(1, int(attempts))
     last_error: Exception = RuntimeError("no attempt made")

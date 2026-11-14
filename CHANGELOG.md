@@ -3,1070 +3,1070 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v4.2.0
+
+- the replay dies at the window, the retry lives. (planned): - The signed channel's documented v4.2 protocol work, shipped. The sender stamps every post (X-Approximately-Timestamp) and the MAC covers stamp+newline+body; a timestamp outside the receiver's replay window (--replay-window, default 300s) is refused 401 by name, and a signature claimed once inside the window is idempotent delivery — 200 duplicate:true, no second row, a duplicates counter on /health and /stats. The claim happens at acceptance, not at verification: a post refused by the rate gate claims nothing, so its honest retry lands fresh (the two-ends protocol test caught the first draft's poison-the-retry mistake). Legacy body-only posts still verify — receivers meet pre-4.2 senders in the wild — and --require-timestamp refuses them outright when the fleet has upgraded. Archived rows carry their scheme (timestamped/legacy). The spool dedupes: appending a (trace_id, url) already present is a refresh — fresh stamp, moved to the back, accumulated attempts kept — so a nightly cron's re-spools stop growing the queue by one duplicate a day and the waiting counts tell the truth. 20 new pins (test_v420_replay_window, test_v420_spool_upsert). ## 4. Launch plan 1. **Artifacts**: public GitHub repo + PyPI + technical blog post (MAST-data visualization, demo GIF). 2. **Channels in order**: ① Hacker News "Show HN: Approximately – a dashcam and automatic postmortems for AI agents"; ② r/LocalLLaMA + r/LLMDevs (local-model judge angle); ③ X/Twitter agent community; ④ Chinese dev communities (Jike/Zhihu). 3. **Above-the-fold promise**: `pip install approximately && approximately demo` → a full attribution report in 30 seconds. 4. **Virality hook**: every HTML report footer carries the repo link. 5. **Metrics**: 500 stars / 2k PyPI downloads in month one = healthy; the core conversion is demo → own-agent instrumentation, so the Recorder API must stay ≤ 5 lines. ## 5. Risks & mitigations | Risk | Mitigation | |---|---| | Langfuse/LangSmith build attribution downstream | they are SaaS-tracing-first; we are local, zero-dependency, MAST-semantic; open-source speed is the moat | | Rule-detector false positives | every Detection carries readable evidence; rule vs judge sources are labeled separately; confidence thresholds configurable | | Benchmark dataset licensing/reproduction | cite the taxonomy with attribution; no redistribution of MAST-Data — provide loaders, not data | | Single-maintainer bandwidth | zero-dependency core with three small interfaces (Recorder/Attributor/Replayer) keeps the maintenance surface deliberately tiny | ## 6. References Cemri et al., *Why Do Multi-Agent LLM Systems Fail?* (MAST), arXiv:2503.13657, 2025. Bohnet et al., *Why Do LLM Agents Fail and How Can They Learn From Failures?*, arXiv:2509.25370, 2025. *Who&When: Automated Failure Attribution in Multi-Agent Systems*, arXiv:2505.00212, 2025. Xie et al., *OSWorld: Benchmarking Multimodal Agents*, arXiv:2404.07972, 2024. *Efficient Context Engineering for Long-Horizon Tool-Using Agents*, arXiv:2606.10209, 2026. Anthropic, *Effective Context Engineering for AI Agents*, 2025.
+
 ## v4.1.0
 
-- the hardening minor: a three-way audit (receiver/channel, spool/batch/import, doctor/digest/mcp/store) with every finding reproduced, then fixed. **The P0:** a negative `Content-Length` rode `read(-1)` — BufferedReader's read-until-EOF sentinel — into an unbounded pre-auth memory read; the fence is `0 <= length <= max_bytes`, answered 413/400. **The P1s:** the archive write escapes now (lone surrogates crashed the UTF-8 write after rotation side effects; raw U+2028/U+0085 split archived lines on readback — escapes are integrity); the MCP server survived non-dict `params` (one hostile line killed the whole stdio server); MCP tool clients could hand `verify`/`attribute` a path and read (then POST) any file the box could — tool-boundary trace refs are safe ids now, and the CLI's cat-like path load stays a local operator's feature; plan-time lookups stopped probing path-shaped ids; batch `--limit 5` on a 3-trace store no longer ships a silent subset. **The P2s (a selection):** malformed/malicious `Content-Length` and non-hex signatures answered 401/400 by shape (`compare_digest` stays constant-time; its non-ASCII TypeError path is fenced); the JSON parser catches `RecursionError` on three fronts; the handler socket times out at 30s (slowloris); rotation-vs-reader TOCTOU reads as empty, never crashes; census buckets cap at 64 keys/120 chars; `include_rotated` stats now describe every row the view draws from (counts contradicting rows were a lie); the lock takeover is inode-safe, heartbeats per row, the spool rewrite is atomic, poison `attempts` rows are dropped at read, `--all` gates the URL scheme, the flush lock refusal is a message not a traceback, `--inbox-import` applies rows in isolation, tampered rows no longer double-count as unverified-skipped, digest filenames must be real dates, `doctor --deep` wraps poison chains, hygiene only deletes genuinely stale temps, SAFE_ID anchors at string end, redact gains a `kv_secret` builtin (`password=`/`api_key=`/`secret=` shapes), and error payloads no longer leak filesystem paths. The HMAC replay window (body-only MAC) is documented in SECURITY.md as a known limitation for v4.2.
+- the hardening minor. (planned): - A three-way audit with every finding reproduced, then fixed: the P0 Content-Length read-until-EOF fence; escaped archive lines (surrogates crashed the write, U+2028 split the read); the MCP server surviving non-dict params; tool-boundary trace refs pinned to safe ids (the cat-like path load stays local); plan-time hostile-id lookups gated; the batch limit math corrected; the lock takeover made inode-safe with heartbeats and an atomic spool rewrite; shape checks before compare_digest; 30s handler timeouts; rotation TOCTOU read as empty; census buckets capped; --limit/flush/apply exit-code and isolation contracts; SAFE_ID anchored at string end; a kv_secret redact builtin; and the HMAC replay window documented as v4.2's known limitation.
 
 ## v4.0.9
 
-- `--limit` — the newest N, not a random slice: `--since` scoped the batch by age, but "sync just the latest K runs" had no answer — a busy store's newest ten sat inside a thousand-row manifest, and shipping the whole history to save ten was the only move. `webhook-ship --all --limit N` keeps the newest N, applied AFTER the oldest-first sort (the newest of the window, not a random slice), it composes with `--since`, it rides the plan (`--dry-run` shows the same list the post walks), and the MCP tool answers `limit` in both the manifest and the batch — a negative or non-integer limit is refused at the boundary by name.
+- --limit, the newest N. (planned): - --since scoped the batch by age, but "sync just the latest K runs" had no answer. --limit keeps the newest N, applied AFTER the oldest-first sort (the newest of the window, not a random slice), composes with --since, rides the plan, and the MCP tool answers limit in both the manifest and the batch — a bad limit is refused at the boundary by name.
 
 ## v4.0.8
 
-- the busy port is a refusal, not a crash: `webhook-serve --port X` on an occupied port died with a raw OSError traceback — the operator got a stack trace where a next step belonged, and the door's own contract (exit 2 on a bad port) was half-kept: a malformed port was refused, a busy one exploded. The bind is a refusal now: the error names the port, the reason, and the next step (another receiver is listening there — use a different --port).
+- the busy port is a refusal, not a crash. (planned): - webhook-serve on an occupied port died with a raw OSError traceback, and the door's contract (exit 2 on a bad port) was half-kept: a malformed port was refused, a busy one exploded. The bind is a refusal now - the error names the port, the reason, and the next step.
 
 ## v4.0.7
 
-- one flush at a time: two `--flush` processes rewriting the queue in parallel would clobber each other — both read the same rows, both post (the receiver dedups on import, so evidence stays safe), and then BOTH rewrite the file — the loser's kept rows and attempt counts vanish, and a forever-failing shipment forgets it has been failing. The read-modify-write holds the spool's exclusive lock now: O_EXCL create, zero dependencies, Windows included; a lock older than five minutes is a crashed flush's leftover and is taken over; a live lock refuses by name (pid in the lockfile); plans never lock — reading is not deciding, and it is also not contention.
+- one flush at a time. (planned): - Two --flush processes rewriting the queue in parallel would clobber each other: both post (the receiver dedups on import, so evidence stays safe) and both rewrite the file - the loser's kept rows and attempt counts vanish, and a forever-failing shipment forgets it has been failing. The read-modify-write holds the spool's exclusive lock: O_EXCL create, zero deps, Windows included; a stale lock (>5 min) is taken over; a live lock refuses by name; plans never lock.
 
 ## v4.0.6
 
-- the roadmap catches up: the era list still said "32-tool MCP server" and stopped at slowness baselines — three eras behind the shipped toolkit. The list now carries all eight eras: the on-call loop (digest briefs, the status frame, retention, spend alarms, the nightly audit) and the signed channel between boxes (sender identity, chain-gated imports, batch plans, the retry spool, the rate cap) join, the MCP count reads 52, and the versioning eras point at docs/VERSIONING.md. The repo's topics gain `flight-recorder`.
+- the roadmap catches up. (planned): - The era list still said "32-tool MCP server" and stopped at slowness baselines - three eras behind the shipped toolkit. The on-call loop and the signed channel join the list, the MCP count reads 52, and the versioning eras point at VERSIONING.md. The repo's topics gain flight-recorder.
 
 ## v4.0.5
 
-- the reports go machine-readable: the flush and the batch reported in prose — fine for a terminal, useless for a script or an agent piping results; exit codes say pass/fail but nothing about WHICH trace failed or how many attempts it has. `webhook-ship --json` turns both reports into data — the flush report carries every kept row's attempts, the batch report carries per-trace status, the same shapes the MCP tools already answer with — one flag on the door the cron and the shell already use. The spooled-shipments notice moves to stderr so JSON stdout stays parseable.
+- the reports go machine-readable. (planned): - The flush and the batch reported in prose - exit codes say pass/fail but nothing about WHICH trace failed or how many attempts it has. --json turns both reports into data: the flush report carries every kept row's attempts, the batch report carries per-trace status, the same shapes the MCP tools already answer with. The spooled-shipments notice moves to stderr so JSON stdout stays parseable.
 
 ## v4.0.4
 
-- the watchers say what they watch: a silent server is a misconfiguration trap — forget the signing key and `webhook-serve` quietly runs the OPEN tap; forget a follow filter and `received --follow` quietly shows a narrowed view that looks like the whole firehose. Serve's startup banner now names the caps it will enforce (`rate <= N/window`, non-default `max-rows`/`max-bytes`), and a follow prints its filter set before the first row — or says "unfiltered", honestly.
+- the watchers say what they watch. (planned): - A silent server is a misconfiguration trap: forget the signing key and webhook-serve quietly runs the OPEN tap; forget a follow filter and received --follow quietly shows a narrowed view. Serve's banner names the caps it will enforce (rate, non-default max-rows/max-bytes), and a follow prints its filter set before the first row - or says unfiltered, honestly.
 
 ## v4.0.3
 
-- the status filter reads the status, not the prose: parse_plan excluded any entry whose whole body mentioned "deferred" or "queued" — written to skip items marked "(deferred)" or "(queued)", it also swallowed DELIVERED items that talk about queues, and it bit the ledger twice (v3.95.0 and v4.0.2 both needed rewording to surface in the changelog). The filter reads the item's own status line now — the first non-empty line after the title — so a body that TALKS about queued work is delivered work about a queue, and the previously-swallowed entries surface for real.
+- the status filter reads the status, not the prose. (planned): - parse_plan excluded any entry whose whole body mentioned "deferred" or "queued" - written to skip items marked "(deferred)" or "(queued)", it also swallowed DELIVERED items that talk about queues, and it bit the ledger twice (v3.95.0 and v4.0.2 both needed rewording to surface). The filter reads the item's own status line now - the first non-empty line after the title - and the swallowed entries surface for real.
 
 ## v4.0.2
 
-- the flush gets a plan too: every mutating door learned plan-first — retention plans, the import plans, the batch ships a manifest — but the spool's flush still posted on one flag with no preview. `webhook-ship --flush --dry-run` reads the same queue the flush would walk and posts nothing (per row: the id, the recorded URL, the attempt count); the MCP tool answers `flush_dry_run` with the queue as data, and a flush no longer demands a `url` — every queued row carries the URL it failed against.
+- the flush gets a plan too. (planned): - Every mutating door learned plan-first, but the spool's flush still posted on one flag with no preview. --flush --dry-run reads the same line-up the flush would walk and posts nothing (per row: id, recorded URL, attempts); the MCP tool answers flush_dry_run with the line-up as data, and a flush no longer demands a url - each held row carries the URL it failed against.
 
 ## v4.0.1
 
-- the rule is executable: "the minor is one digit" was prose in VERSIONING.md and the CHANGELOG — prose is a promise only a test keeps. A new audit file parses pyproject and refuses any minor above 9, checks the versioning document still states the rule, the reclassification and the no-rewrite promise (a doc edit cannot quietly drop them), names the drifted tail instead of hiding it, and proves the 3.99.1 squash commit still sits in git history verbatim — reclassified, not rewritten. The living VERSIONING doc's stale "50 MCP tools" became 52; the dated announcement and ledger entries stay as published (they are artifacts of the record).
+- the rule is executable. (planned): - "The minor is one digit" was prose. The audit file parses pyproject and refuses any minor above 9, checks the versioning document still states the rule, the reclassification and the no-rewrite promise, names the drifted tail, and proves the 3.99.1 squash commit still sits in history verbatim. The living VERSIONING doc's stale "50 MCP tools" became 52; dated artifacts (announcement, ledger entries) stay as published.
 
 ## v4.0.0
 
-- the versioning discipline, restored: the 3.x line let its minor race to 99 on per-round bumps — ninety numbers that were batches-then-patches under the old habit. The rule is policy now (**the minor is one digit, never 10+**; a ninth minor is the last before the major rolls; patch is the routine beat; a major is a capability milestone with a real contract change), the history is reclassified honestly in [docs/VERSIONING.md](docs/VERSIONING.md) — 0.x birth, 1.x instrumented analysis, 2.x the ops loop, 3.0–3.9 the channel begins, 3.10–3.99 the reclassified drift — and **history is never rewritten**: every tag from 0.1.0 to 3.99.1 stays as published, because a project whose product is a tamper-evident ledger does not get to re-tag its own past. The capability half of the milestone: the toolkit is a complete agent-ops loop — 52 MCP tools, 66 doors, and a signed channel with sender identity, chain gating, batch plans, a retry spool and a rate cap. The showcase caught up too: README's MCP row says 52, the signed-channel loop has its own row, and the versioning promise sits under Design principles.
+- the versioning discipline, restored. (planned): - The 3.x line let its minor race to 99 on per-round bumps. The rule is policy now: the minor is one digit, never 10+; a ninth minor is the last before the major rolls; patch is the routine beat; a major is a capability milestone with a real contract change. The history is reclassified honestly in VERSIONING.md (0.x birth, 1.x instrumented analysis, 2.x the ops loop, 3.0-3.9 the channel begins, 3.10-3.99 the reclassified drift) and history is never rewritten - every tag stays as published. The capability half: the toolkit is a complete agent-ops loop (52 MCP tools, 66 doors, signed channel with sender identity, chain gating, batch plans, retry spool, rate cap). The showcase caught up: README's MCP row says 52, the channel loop has its own row, and the versioning promise sits under Design principles.
 
 ## v3.99.1
 
-- the front door learns the channel: README shipped twelve rounds of signed-channel capability without a single section about it — webhook-serve/ping/ship/inbox-import/received, sender labels, batch plans, the spool, the rate cap and the chain gate all lived only in TUTORIAL. A "Moving evidence between boxes" section now shows the two-box story in ~15 lines: serve, ship (one / all / plan / spool / flush), read, import (plan, then apply) — and the promises in one breath: HMAC rows, foreign chains stay foreign, tampered is named and refused, rate answers 429+Retry-After in the sender's own dialect.
+- the front door learns the channel. (planned): - README shipped twelve rounds of signed-channel capability without a section about it: the whole serve/ship/import/received story, sender labels, batch plans, the spool, the rate cap and the chain gate lived only in TUTORIAL. A "Moving evidence between boxes" section now shows the two-box story in ~15 lines — and the promises in one breath.
 
 ## v3.99.0
 
-- the nightly pass sees the outbox: doctor walked the store's records, ledger, locks and the receiver's archive — but the SHIP spool (`--spool`'s queue of refused shipments) was invisible to it, so a queue could sit owed for days while every nightly pass said healthy. doctor counts the spool now: waiting is not unhealthy (it is owed — the report names the flush that clears it), unreadable lines are counted and named, the counts ride the JSON report, and the outbox counts even when no archive exists.
+- the nightly pass sees the outbox. (planned): - doctor walked the store's records, ledger, locks and the receiver's archive — but the SHIP spool's queue was invisible to it, so a queue could sit owed for days while every nightly pass said healthy. doctor counts the spool now: waiting is not unhealthy (it is owed — the report names the flush), unreadable lines are counted and named, the counts ride the JSON report, and the outbox counts even when no archive exists.
 
 ## v3.98.0
 
-- one protocol, tested end to end: "both ends speak one protocol" was a design claim — the receiver's 429 carries Retry-After and the sender's retry honors it, but the halves were only ever tested apart, and the window was a hard-coded 60s no test could afford to sleep through. `--rate-window SECONDS` opens the window (default stays a minute; sub-second is refused at the fence), and the new test runs the REAL loop: the sender's own `notify_webhook` posts into a rate-capped receiver, eats a 429, sleeps the Retry-After the receiver named, and lands the post on the retry — both halves, one conversation, no mock in sight.
+- one protocol, tested end to end. (planned): - "Both ends speak one protocol" was a design claim: the halves were only ever tested apart, and the window was a hard-coded 60s no test could sleep through. --rate-window SECONDS opens the window (default stays a minute; sub-second refused at the fence) and the e2e test runs the REAL loop: the sender's own notify_webhook posts into a rate-capped receiver, eats a 429, sleeps the Retry-After the receiver named, and lands on the retry — no mock in sight.
 
 ## v3.97.0
 
-- the throttle names itself: a 429 was just another number in `refused` — 401s, 413s and throttled posts were one count, so an operator tuning `--rate` could not see the pressure the cap applies. The receiver's counters (and /stats) carry `throttled` now: refused stays every gate's refusal, throttled is the rate cap's alone — tuning the cap means watching its own number move.
+- the throttle names itself. (planned): - A 429 was just another number in refused: 401s, 413s and rate-capped posts were one count, so an operator tuning --rate could not see the pressure the cap applies. The receiver's counters and /stats carry `throttled` now — refused stays every gate's refusal, throttled is the rate cap's alone; tuning the cap means watching its own number move.
 
 ## v3.96.0
 
-- curl can ask "what did box-a ship?" too: the /stats query vocabulary was kind, contains, since — sender was the one filter the one-reader served that curl could not name, so a receiver serving several boxes needed the CLI door or the MCP tool just to scope by shipper. sender joins the vocabulary now, with the same strict refusals: an unknown parameter, a repeated parameter (an ambiguous request) or a hostile value is a 400 naming the reason — a typo'd check can never silently look like the truth.
+- curl can ask "what did box-a ship?" too. (planned): - The /stats query vocabulary was kind, contains, since — sender was the one filter the one-reader served that curl could not name. sender joins the vocabulary now, with the same strict refusals: an unknown parameter, a repeated parameter (an ambiguous request) or a hostile value is a 400 naming the reason — a typo'd check can never silently look like the truth.
 
 ## v3.95.0
 
-- the brief counts the outbox too: the brief counted the evidence waiting at the door it opens ONTO (shipments_awaiting) but not the queue at the door it opens FROM — `--spool` queued refused shipments in silence, and only an operator who remembered the flag would ever run `--flush`. The digest brief and the status frame count `ship-spool.jsonl` now: a queued shipment names its own next step ("webhook-ship --flush retries them"), the outbox counts even when no archive exists (a queued shipment is owed regardless of what arrived), an empty spool is one honest silence, and a corrupt line counts as nothing (the spool door already drops it loudly).
+- the brief counts the outbox too. (planned): - The brief counted the evidence waiting at the door it opens ONTO but not the line at the door it opens FROM: --spool held refused shipments in silence. The digest brief and the status frame count ship-spool.jsonl now — a held shipment names its own next step, the outbox counts even when no archive exists, an empty spool is one honest silence, and a corrupt line counts as nothing (the spool door already drops it loudly).
 
 ## v3.94.0
 
-- the network being down must not lose the evidence: a refused shipment died at the door — the error printed, the exit code set, and the operator had to remember the trace id by hand. `webhook-ship --spool` queues the refusal (the reference, never the body — the trace stays the store's to keep honest) in `<store>/ship-spool.jsonl`, and `--flush` drains it later: delivered rows leave the queue, traces gone from the store are reported and dropped, persistent failures stay with attempts incremented. The MCP tool speaks the same two moves (`spool` / `flush`), so an agent can survive a receiver reboot too.
+- the network being down must not lose the evidence. (planned): - A refused shipment died at the door: the error printed, the exit code set, and the operator had to remember the trace id by hand. --spool queues the refusal (the reference, never the body) in <store>/ship-spool.jsonl; --flush drains it later — delivered rows leave, gone traces are reported and dropped, persistent failures stay with attempts incremented. The MCP tool speaks the same two moves (spool / flush).
 
 ## v3.93.0
 
-- the batch gets a plan: `--all` posted a hundred rows on one flag with no preview — the operator (and the agent) learned what would ship only from the receiver's side of the wire. `webhook-ship --all --dry-run` names what WOULD post, per trace, and posts nothing; the MCP tool answers `dry_run` with the manifest as data. The plan is the same manifest the post would walk (`_batch_traces`), so the preview cannot drift from the shipment — reading is not deciding, even when the reading is a hundred rows.
+- the batch gets a plan. (planned): - --all posted a hundred rows on one flag with no preview: the operator and the agent learned what would ship only from the receiver's side of the wire. --dry-run names what WOULD post, per trace, and posts nothing; the MCP tool answers dry_run with the manifest as data. The plan is the same manifest the post would walk (_batch_traces), so the preview cannot drift from the shipment — reading is not deciding, even when the reading is a hundred rows.
 
 ## v3.92.0
 
-- the receiver can say "slow down" in the sender's own dialect: an unbounded receiver is a denial target twice over — a post flood fills the archive (max-rows already rotates) and eats the box. `webhook-serve --rate N` caps ACCEPTED posts per rolling minute and answers the excess `429` with a whole-second `Retry-After` — exactly the signal the sender's own retry loop already honors, so both ends speak one protocol and nobody needed a new word. The gate consumes budget only for posts that survived every earlier check: garbage cannot buy a denial against honest senders, and a refused post never reaches the archive.
+- the receiver can say "slow down" in the sender's own dialect. (planned): - An unbounded receiver is a denial target twice over: a post flood fills the archive (max-rows rotates) and eats the box. --rate N caps ACCEPTED posts per rolling minute and answers the excess 429 with Retry-After - exactly the signal the sender's own retry loop already honors, so both ends speak one protocol. The gate consumes budget only for posts that survived every earlier check: garbage cannot buy a denial against honest senders, and a refused post never reaches the archive.
 
 ## v3.91.0
 
-- one box's history becomes another box's inbox: webhook-ship moved ONE trace per call — syncing a box to a collector meant a shell loop over trace ids, and an agent with an MCP client had no way to do it at all. `--all` ships the whole store oldest-first (`--since N` scopes the window) through the same single-shipment mechanics, a refused trace never stops the ones after it (each row is independent evidence — the batch reports per-trace status instead of dying on the first problem), and `trace: "all"` is the MCP spelling of the same move. The sender label rides every row.
+- one box's history becomes another box's inbox. (planned): - webhook-ship moved ONE trace per call: syncing a box to a collector meant a shell loop over ids, and an agent had no way to do it at all. --all ships the store oldest-first (--since scopes the window) through the same _ship_one mechanics, a refused trace never stops the ones after it (each row is independent evidence — the batch reports per-trace status instead of dying on the first problem), and trace: "all" is the MCP spelling. The sender label rides every row.
 
 ## v3.90.0
 
-- already home, but different: "already_present" was judged by id alone, so a second shipment of one id with DIFFERENT content silently read as done — the plan said nothing, the store kept the first version, and the operator never learned a second version existed. The plan compares records byte for byte now (sorted JSON; to_dict round-trips, so stored and shipped compare exactly): an identical re-ship stays a silent "present", a different version of the same id is named a conflict — between shipped rows and against the store — on both surfaces, and the store keeps the original. The conflict is reported, never auto-resolved.
+- already home, but different. (planned): - "already_present" was judged by id alone: a second shipment of one id with different content silently read as done — the plan said nothing, the store kept the first version, and the operator never learned a second version existed. The plan compares records byte for byte now: an identical re-ship stays a silent present, a different version of the same id is named a conflict (between shipped rows and against the store) on both surfaces, and the store keeps the original. The conflict is reported, never auto-resolved.
 
 ## v3.89.0
 
-- the plan reads the chain: inbox-import validated that a shipment parses — never that its evidence holds together. A trace whose own integrity chain does not verify (steps edited after signing) sailed through as importable and got filed next to real evidence. The plan verifies each shipment's foreign chain at plan time now — intact and unsigned and keyed ship (a hand-made record makes no claim; keyed is locked, not broken), a tampered chain is named in the plan with its verdict and refused at the apply — and the override is explicit and loud (`--allow-broken-chain` / `allow_broken_chain`). The verdict travels as data either way, so the plan is checkable before anything is saved.
+- the plan reads the chain. (planned): - inbox-import validated that a shipment parses, never that its evidence holds together: a trace whose own chain does not verify (steps edited after signing) sailed through as importable and got filed next to real evidence. The plan verifies each shipment's foreign chain at plan time — intact and unsigned and keyed ship (a hand-made record makes no claim; keyed is locked, not broken), a tampered chain is named with its verdict and refused at the apply — and the override is explicit and loud (--allow-broken-chain / allow_broken_chain). The verdict travels as data either way: the plan is checkable before anything is saved.
 
 ## v3.88.0
 
-- the inbox knows who shipped it: every trace_ship row arrived anonymous, so a receiver serving three boxes read one undifferentiated pile. The ship door labels its rows now (`--from BOX`, default this host's hostname; `sender` on the MCP tool), the census counts shippers by label (`senders` in the stats, `from BOX: n` in the received door and the status frame), and the reader narrows by label (`--sender` on the door, `sender` on the inbox tool) — the ops story works without anyone remembering a flag. A label is data, never a name used in a path, and only a non-empty string counts as a shipper.
+- the inbox knows who shipped it. (planned): - Every trace_ship row arrived anonymous: a receiver serving three boxes read one undifferentiated pile. The ship door labels its rows now (--from BOX, default this host's hostname; sender on the MCP tool), the census counts shippers by label (senders in the stats, from BOX: n in the received door and the status frame), and the reader narrows by label (--sender on the door, sender on the inbox tool). A label is data, never a name used in a path; only a non-empty string counts as a shipper.
 
 ## v3.87.0
 
-- awaiting sees yesterday too: `shipments_awaiting` read the current log only, so a shipment that landed at 23:59 rotated at midnight and the 00:01 brief went silent about evidence still waiting at the door. The rotated log counts now — rotation is the channel's plumbing, not the operator's clock.
+- awaiting sees yesterday too. (planned): - `shipments_awaiting` read the current log only: a shipment that landed at 23:59 rotated at midnight and the 00:01 brief went silent about evidence that was still waiting at the door. The rotated log counts now — awaiting is about now, and rotation is the channel's plumbing, not the operator's clock.
 
 ## v3.86.0
 
-- trace ids are names, not paths: the store's save wrote `directory/<id>.json` unfenced — a hostile id shipped in as a trace_ship row and imported with the open-tap override was an arbitrary-write primitive on the receiving box. Save refuses anything that is not one safe token; the explicit-path load feature keeps working (climbs refused); and the import door marks a non-name id malformed at plan time, so the poison is named and never reaches the apply loop as a filename.
+- trace ids are names, not paths. (planned): - The store's save wrote `directory/<id>.json` with no fence: a hostile trace id (`../../tmp/evil`) shipped in as a trace_ship row and imported with the operator's open-tap override turned the receiving box's store into an arbitrary-write primitive. Save refuses anything that is not one safe token now; the explicit-path LOAD feature (the caller names the file, like cat) keeps working with climbs refused; and the import door marks a shipment whose id is not a name as malformed at plan time — the poison is named in the plan and never reaches the apply loop as a filename.
 
 ## v3.85.0
 
-- the brief counts the evidence waiting at the door: the digest brief and the status frame surface `shipments_awaiting` — verified trace_ship rows whose traces are not in the store yet (deduped by id, the whole archive counted: awaiting is about now, not about the window) — and name the next step (`inbox-import will bring them home`). An already-imported arc is silent, not a zero parade.
+- the brief counts the evidence waiting at the door. (planned): - The evidence arc shipped twice over (webhook-ship, inbox-import, both surfaces) but nothing TOLD the operator the middle step was owed: traces arrived as trace_ship rows and sat in the archive until someone thought to ask. The digest brief and the status frame count shipments_awaiting now — verified rows whose traces are not in the store yet, a trace counted once however many rows carried it, the whole archive counted (awaiting is about now, not about the window) — and name the next step in the brief's own voice. An already-imported arc is silent, not a zero parade.
 
 ## v3.84.0
 
-- the receiving half is agent-reachable too: the MCP `inbox_import` tool reads the same plan through the same helpers, and its apply carries the retention two-flag gate (apply + confirm — importing is a store mutation, and store mutations do not ride on one flag). Verified rows only unless `allow_unverified`, malformed records never reach the apply loop, already-present ids never re-import, and the chain stays the sender's (`stamp=False`). 52 tools.
+- the receiving half is agent-reachable too. (planned): - `inbox-import` was shell-only. The `inbox_import` tool reads the same plan through the same helpers, and its apply carries the retention two-flag gate (apply + confirm) — importing is a store mutation, and store mutations do not ride on one flag. Verified rows only unless allow_unverified, malformed records never reach the apply loop, already-present ids never re-import, and the chain stays the sender's (stamp=False). 52 tools.
 
 ## v3.83.0
 
-- the channel is agent-reachable: the MCP `webhook_ship` tool ships the same signed row as the CLI door through the same `_ship_core` (CLI output byte-for-byte unchanged; the delivery probe is now data — `delivered: true` is the machine-checkable "1 row(s) matched this trace") and signs with `APPROXIMATELY_SIGNING_KEY` at the tool boundary. 51 tools.
+- the channel is agent-reachable. (planned): - `webhook-ship` was a shell door only — an agent with an MCP client had no way to move evidence to another box. The `webhook_ship` tool ships the same signed row through the same `_ship_core` (one mechanics, two surfaces — the CLI's output pins hold byte-for-byte, the probe comes back as data: delivered=true is the machine-checkable form of "1 row(s) matched this trace"), signs with APPROXIMATELY_SIGNING_KEY at the tool boundary, and refuses hostile args there. 51 tools.
 
 ## v3.82.0
 
-- the tie is the store's to break: v3.80.0's `(created_at, trace id)` sort traded a filesystem coin flip for an id coin flip — on a coarse clock two same-tick traces carry the same stamp and a random hex id decided anyway (the v269 cards flipped again that same day). Stamps decide now and the store's incoming order breaks ties (stable sort), and the fixture saves distinct stamps back instead of leaning on the clock.
+- the tie is the store's to break. (planned): - v3.80.0's (created_at, trace id) sort traded a filesystem coin flip for an id coin flip: on a coarse clock (Windows ~15ms) two same-tick traces carry the same stamp, and a random hex id decided the report anyway — the v269 cards flipped again on a runner the same day. Stamps decide now and the store's incoming order breaks ties (a stable sort: the listing is the store's own oldest-mtime-last statement), and the fixture stops leaning on the clock — distinct stamps saved back, so the report has something real to sort.
 
 ## v3.81.0
 
-- fuzz 34, the import door meets hostile shipments: `inbox-import --apply` parsed every trace_ship record inside the apply loop — a corrupt or hostile archived row (`steps: "not a list"`) crashed the door, and an open tap can write anything. Parse at plan time now: malformed records are marked in the plan, refused by name, counted in the JSON, and the apply loop never sees a record the plan did not vouch for.
+- fuzz 34: the import door meets hostile shipments. (planned): - `inbox-import --apply` trusted every trace_ship record far enough to parse it inside the apply loop — a hostile (or merely corrupt) archived row crashed the door with a traceback; `steps: "not a list"` was enough, and an open tap can write anything. Parse at plan time now: a record that will not parse is marked malformed in the plan, refused by name in the output, counted in the JSON, and the apply loop never sees a record the plan did not vouch for. No raise escapes the door.
 
 ## v3.80.0
 
-- the breach report follows stamps, not the filesystem: `_breached_agents` sorted nothing — it inherited the directory's listing order while promising stamp order, and two same-tick traces flipped the report on a Windows runner. Hits now sort by (created_at, trace id); a pin feeds them in reverse and demands the stamps anyway.
+- the breach report follows stamps, not the filesystem. (planned): - A Windows runner flipped `_breached_agents` once: two traces written in the same clock tick list in either filesystem order, and the collector inherited the coin flip while its docstring promised stamp order. The promise is kept now — hits sort by (created_at, trace id) — and a pin feeds the traces in reverse and demands the stamp order anyway.
 
 ## v3.79.0
 
-- the receiving half closes the evidence loop: `inbox-import` reads `trace_ship` rows back into the local store — plan by default, `--apply` to import, verified rows only (`--allow-unverified` imports open-tap rows loudly), already-present ids never re-imported, and every import saves with `stamp=False`: foreign evidence keeps its own integrity chain, never re-stamped by our key. Ship, receive, import — one signed arc.
+- the receiving half closes the evidence loop. (planned): - `webhook-ship` posted traces; nothing brought them home. `inbox-import` reads trace_ship rows back into the local store — a plan by default (reading is not deciding, retention's shape), --apply to import, verified rows only (an open tap's rows could be anything; --allow-unverified imports them loudly), already-present ids never re-imported, and every import saves with stamp=False: foreign evidence keeps its own integrity chain, never re-stamped by our key. Ship, receive, import: one signed arc.
 
 ## v3.78.0
 
-- the channel carries evidence: `webhook-ship TRACE URL` posts a recorded trace through the signed channel as a `trace_ship` row (integrity block intact) and the scoped readback proves THIS trace landed — the ping's nonce discipline generalized into `_delivery_readback(kind, needle, noun)`, byte-for-byte identical output for the ping. The receiving box's store is untouched; importing foreign evidence is its call.
+- the channel carries evidence. (planned): - The signed channel moved alerts, screams, briefs and pings — never a trace. `webhook-ship TRACE URL` posts a recorded trace through the channel as a `trace_ship` row, integrity block intact, and the scoped readback (the ping's nonce discipline, generalized: a trace id matches only the row it rode in on) proves THIS trace landed. The receiving box's store is untouched — importing foreign evidence is its call.
 
 ## v3.77.0
 
-- the reader's last hole closes: the MCP `inbox` tool gains `include_rotated` (the CLI's `--include-rotated` finally has its twin; the census stays the current log's /stats shape — the flag widens the view, never rewrites the numbers), and SECURITY.md names the /stats probe's refusal posture: unknown parameters and hostile values are a 400 naming the reason.
+- the reader's last hole closes. (planned): - The parity sweep missed one: the CLI's `received` door folds the rotated log in with --include-rotated, but the MCP inbox tool had no twin — a caller asking the tool "what landed yesterday" saw only today's log with no way to know it was half the story. The tool carries include_rotated now (the census stays the current log's /stats shape; the flag widens the view, never rewrites the numbers), and SECURITY.md names the probe's refusal posture: a typo'd check gets a 400 naming the reason.
 
 ## v3.76.0
 
-- the reader count is counted: the README's stale "reads back four ways" is now the enumerated six — /stats (with its kind/contains/since filters), `received`, the MCP `inbox` tool, the status frame, the digest brief, the fleet dashboard — and a pin test holds each named surface to its code proof and the count to the list. ARCHITECTURE's one-reader paragraph names the shared filters and the ping's nonce-scoped readback.
+- the reader count is counted. (planned): - The README said the log "reads back four ways" — a count that rotted as the digest brief and the fleet dashboard joined the reader (the same rot the "21-check CI matrix" banner suffered in v3.66). The claim is enumerated now — /stats (with its filters), received, the MCP inbox tool, the status frame, the digest brief, the fleet dashboard — and pinned: every named surface must exist in the code, and the count in the sentence must equal the pin. A seventh reader moves both, or the test says where they split.
 
 ## v3.75.1
 
-- the fold is recorded: fuzz-33's strict /stats query parser (`parse_stats_query`) and its fuzz pin shipped inside v3.75.0, swept along by a careless `git add -A`; the release note now names it, and the ledger carries the addendum. The record is corrected — not the code.
+- the fold is recorded. (planned): - A careless `git add -A` swept fuzz-33's work into the v3.75.0 commit: parse_stats_query (the strict /stats query parser — repeated parameters, non-finite since values and unknown words are refusals with the reason named) and its pin, test_v376, shipped inside the ping-nonce release without being named. The code is complete and was gated (both rounds' gates ran over exactly this tree); only the record was wrong. The ledger says so now, the release note names the parser, and the record is corrected — not the code.
 
 ## v3.75.0
 
-
-- the ping verifies its own delivery: every ping carries a random nonce and reads `/stats?kind=ping&contains=<nonce>` back; the same release also landed fuzz-33: `parse_stats_query`, the strict /stats query parser (repeated parameters, non-finite since values and unknown words are refusals with the reason named), pinned by test_v376 — "1 row(s) matched this ping" is proof under concurrent traffic, where the old global count could lie in either direction. An accepted-but-lost ping is a named warning; a receiver predating the query filters falls back to the global readback, honestly labelled.
+- the ping verifies its own delivery. (planned): - A ping read the channel-global /stats back: under concurrent traffic that count proves nothing about YOUR ping — another sender's rows inflate it, a rotation deflates it. The ping now carries a random nonce and reads the scoped probe back (/stats?kind=ping& contains=nonce): a nonce matches only the row it rode in on, so "1 row(s) matched this ping" is the delivery proof, an accepted-but-lost ping is a named warning, and a receiver older than the query filters falls back to the global count, honestly labelled.
 
 ## v3.74.0
 
-- the /stats probe answers the same filters: `/stats?kind=X` (and `contains=`, `since=`) scopes the census to what matches while bytes/malformed stay channel-global; unknown parameters and hostile values are a 400, not a silent lie. The reader's filters now reach every surface that reads the archive.
+- the /stats probe answers the same filters. (planned): - The curl probe was the last surface that answered only the channel-global census: /stats?kind=spool was 404 territory, and an unknown query parameter would have been silently ignored — a typo'd check that always looks like the truth. /stats now scopes rows/verified/ unverified/kinds to the filter (bytes, malformed and first_malformed stay channel-global: they describe the log, not the filter) and refuses unknown parameters and hostile values with a 400 — the probe lies about nothing. Entry 500: the reader's filters are on every surface that reads the archive.
 
 ## v3.73.0
 
-- the fleet card answers the same census: store cards and the webhook notification payload carry the inbox's kind census in the digest's exact format — the last surface that dropped it. A legacy StoreSummary without the field renders the old note unchanged.
+- the fleet card answers the same census. (planned): - The fleet dashboard's store cards said "webhook inbox: 3 row(s), 2 verified" and stopped — the kind census the digest, /stats, the frame and the MCP inbox all answer never reached the survey. StoreSummary carries inbox_kinds now; the card renders it in the digest's exact format, the webhook notification payload carries it, and a legacy summary without the field still renders the old note untouched.
 
 ## v3.72.0
 
-- the reader's filters reach every surface: the MCP `inbox` tool gains `since` (the reader boundary refuses hostile types, so a string like "30m" is an error, not a silent coercion), and the status frame's webhook_inbox now carries the kind census — rendered in the digest's exact format. One reader, one answer set.
+- the reader's filters reach every surface. (planned): - The parity audit found two holes v371 left: the MCP inbox took no `since` (the CLI's --since had no twin), and the status frame's webhook_inbox carried the verified split but dropped the kind census the digest and /stats both answer. One reader means one answer set: the MCP tool now takes since (refused at the reader boundary like every hostile type), and the frame renders the census in the digest's exact format.
 
 ## v3.71.0
 
-- the inbox is searchable: read_archive gains `contains` (a case-insensitive substring over the row's own JSON), the received door gains `--grep` plus a `--since` that takes plain durations (`30m`, `2h`, `1d`), and the MCP inbox tool carries the same filters. One reader, every surface, searchable.
+- the inbox is searchable. (planned): - The archive answered "how many" and "which kinds", but not "which rows mention deploy". read_archive gains contains (case-insensitive substring over the row's own JSON), the received door gains --grep and a --since that speaks human durations (30m, 2h, 1d), and the MCP inbox tool narrows the same way (kind / contains / unverified_only). One reader, every surface, searchable.
 
 ## v3.70.0
 
-- every HTML surface holds the injection audit: render_curve_html interpolated curve.trace_id raw (trace ids can arrive from ingested foreign evidence); fixed and pinned — all six renderers are fed hostile text through their real data paths, and no raw script tag or attribute breaker survives.
+- every HTML surface holds the injection audit. (planned): - Six renderers emit self-contained pages; five escaped their untrusted strings, but render_curve_html rode curve.trace_id straight into the page — and trace ids can be anything once traces are ingested from foreign evidence. The fix escapes it like the rest, and the audit is a test: fleet, report, index, replay, curve and the leaderboard are fed hostile text through their real data paths, and the markers must never appear raw.
 
 ## v3.69.2
 
-- the audit job installs what it audits: v3.67.1's sha-pin rewrite silently deleted agent-audit's `pip install .` and demo-store steps (the scheduled run died with `approximately: command not found`); both restored, and a test now holds every workflow that invokes the bare CLI to install-first plus a store worth judging.
+- the audit job installs what it audits. (planned): - v3.67.1's sha-pin rewrite deleted agent-audit's `pip install .` and its demo-store step; the next scheduled run died with `approximately: command not found`, and the dispatch that "verified" the workflow had run before the deletion merged. Both steps restored (the recorder via the shared examples/record-demo.py), and a text-scan test now holds the contract: any workflow invoking the bare CLI installs the package first, agent-audit records a store for --min-traces to judge, and the fixture it invokes still exists.
 
 ## v3.69.1
 
-- recipe citations are pinned: every "recipe N" citation in the docs is held against the chapters RECIPES actually has, and the chapters are contiguous from 1. Test-only patch.
+- recipe citations are pinned. (planned): - TUTORIAL/ARCHITECTURE cross-reference RECIPES by chapter number ("(recipe 18)"); renumbering a chapter silently rots the citations. Every cited number is held against the chapters RECIPES actually has, and the chapters are pinned contiguous from 1. Test-only patch.
 
 ## v3.69.0
 
-- the ledger audits itself: PLAN numbers unique/gapless (pinned era), CHANGELOG heads unique and newest-first, changelog head == pyproject — the hand-run audit is a test now, and it caught its own author four times on landing (mis-numbering, a dupe cascade, a strict-zip on adjacent pairs, a stale era floor). Test-only patch.
+- the ledger audits itself. (planned): - the consistency audit that found the night's duplicate entry numbers (444, 474) and the 475 gap was a hand-run script; it is a test now: PLAN numbers unique and gapless in the modern era, CHANGELOG heads unique and newest-first, changelog head == pyproject. Test-only patch.
 
 ## v3.68.0
 
-- dependabot stops fighting the posture: `actions/*` bumps are ignored (the pins are upgraded deliberately, by sha), the pip ecosystem joins weekly, and the config itself is pinned by a test.
+- dependabot stops fighting the posture. (planned): - the supply-chain posture (v3.67.1) makes any dependabot version bump of a pinned action a PR that can never be green. The dependabot config ignores `actions/*` bumps (the pins are upgraded deliberately, by sha) and gains the pip ecosystem (weekly); the config itself is pinned by a test so the ignore list cannot silently rot.
 
 ## v3.67.1
 
-- the supply-chain posture is enforced: a test holds every external action in the workflows to a full commit sha (local composite actions exempt). Test-only patch.
+- the supply-chain posture is enforced. (planned): - every external action in the workflows is pinned to a full commit sha (the tag-pinned demo workflows aligned during the dependabot reconciliation); a test now holds the whole workflow directory to the posture — a mutable tag can be re-pointed, and this repo's CI is its own audit chain. Test-only patch.
 
 ## v3.67.0
 
-- the demo recorder is a real module: agent-gate/agent-audit's inline heredocs become examples/record-demo.py — imported, pinned by a test, gate-verified; both workflows reduced to one line.
+- the demo recorder is a real module. (planned): - agent-gate and agent-audit both recorded their demo store as inline heredocs - duplicated, untestable YAML. The fixture is examples/record-demo.py now: imported and pinned by a test (3 runs, two ok one failure), the gate verified against it, both workflows reduced to one line.
 
 ## v3.66.0
 
-- the matrix counts the gate: the README banner's "21-check CI matrix" is 22 (agent-gate joined at v3.48.2) — counted, not guessed. Banner-only patch.
+- the matrix counts the gate. (planned): - agent-gate joined the PR matrix (v3.48.2) but the README banner still said "21-check" — the count is 22 now (counted, not guessed). Banner-only patch.
 
 ## v3.65.2
 
-- agent-audit finally audits something: the scheduled nightly died at `pip install approximately` (no PyPI yet) with a gitignored store — it now installs from the repo, records a demo store and audits it. CI-only patch.
+- agent-audit finally audits something. (planned): - the scheduled nightly died at `pip install approximately` (no PyPI yet) with a gitignored store - it could never have passed. It now installs from the repo (like agent-gate), records a demo store (two ok runs, one failure) and audits it with the --fix/--grade-floor/ --triage-top treatment. Thresholds verified locally first. CI-only patch.
 
 ## v3.65.1
 
-- the ledger renumbers itself, audited: two duplicate entry numbers (re-runs of ledger scripts) and a gap found by the consistency audit; the cascade renumbered the chain. Docs-only patch.
+- the ledger renumbers itself, audited. (planned): - the consistency audit found two duplicate entry numbers (444, 474 - re-runs of ledger scripts during the night) and a 475 gap; the cascade renumbered the chain (last is now 485) and the parse confirms: no dupes, no gaps after 440. Docs-only patch.
 
 ## v3.65.0
 
-- --follow answers to the same filters as the one-shot read: kind / unverified-only / since hold on both paths (the flag must not quietly widen the view).
+- --follow answers to the same filters. (planned): - the follow path yielded every row while the one-shot read filtered by kind / unverified / since - the flag quietly widened the view. Both paths answer to the same `row_passes` filter now (the filter is public, the tests pin the kind cut).
 
 ## v3.64.0
 
-- the architecture names the family: the receiver bullet carries follow_archive, the bounded/identity-tracked archive and webhook-ping. Docs-only patch.
+- the architecture names the family. (planned): - the receiver bullet predated follow_archive, rotation and webhook-ping; it now names the family. Docs-only patch.
 
 ## v3.63.2
 
-- the briefing names the poison: the digest inbox section carries first_malformed — a night's torn line shows up at the shift briefing.
+- the briefing names the poison. (planned): - the digest inbox section carries first_malformed (the one reader's shape grew): a night's torn line shows up at the shift briefing, not just in the stats probe.
 
 ## v3.63.1
 
-- machine follow: `received --follow --json` emits one object per row (poison skipped) — a pipeline can tail the inbox without parsing prose; the 50-tool schema artifact re-verified byte-identical.
+- machine follow. (planned): - `received --follow --json` emits one machine-readable object per row (poison skipped) — a pipeline can tail the inbox without parsing prose. The 50-tool schema artifact re-verified byte-identical after the night's changes.
 
 ## v3.63.0
 
-- the trend chain sees the deliveries: trend day-rows aggregate inbox_rows / inbox_verified (older snapshots degrade to zero) — and the audit widened: lying NUMERIC fields crashed the row sums with TypeError; a count coercion degrades every lying numeric to 0.
+- the trend chain sees the deliveries. (planned): - trend day-rows aggregate inbox_rows / inbox_verified (older snapshots degrade to zero) - the fleet can trend its own deliveries beside its failures. And the audit widened while aggregating: lying NUMERIC fields (traces: "ten") crashed the row sums with TypeError - the same hole fuzz 32 closed for non-dict stores. A `_row_counts` coercion degrades every lying numeric to 0, inbox included.
 
 ## v3.62.0
 
-- the counts ride to the channel: webhook_payload's store rows gain inbox_rows / inbox_verified — the fleet can trend its own deliveries, not just its failures; FLEET-DIGEST documents the rows.
+- the counts ride to the channel. (planned): - webhook_payload's store rows gain inbox_rows / inbox_verified: the counts ride with every fleet announcement into the receiver's archive, the digest history and the trend chain - the fleet can trend its own deliveries, not just its failures. FLEET-DIGEST documents the rows.
 
 ## v3.61.1
 
-- the dashboard is the fourth surface: the fleet HTML's store cards carry the inbox line (silent when absent), matching the prose page.
+- the dashboard is the fourth surface. (planned): - the fleet inbox line reached the prose page; the HTML dashboard's store cards now carry it too (silent when a store keeps no archive). Four fleet surfaces, one count.
 
 ## v3.61.0
 
-- the fleet survey counts the inbox: each store's line shows its webhook inbox (rows, verified) when it keeps an archive — silent otherwise; StoreSummary carries the counts.
+- the fleet survey counts the inbox. (planned): - the fleet page's per-store line grew the webhook inbox: rows and the verified split, read through the one reader — silent when a store keeps no archive, honest when it does. StoreSummary carries inbox_rows / inbox_verified.
 
 ## v3.60.4
 
-- the receiver's own story catches up: the module header names the family it grew (stats, read_archive, follow_archive, rotation); TUTORIAL teaches first_malformed. Docs-only patch.
+- the receiver's own story catches up. (planned): - receiver.py's module header predated the family it grew (stats, read_archive, follow_archive, rotation) - it now names them; TUTORIAL teaches first_malformed. Docs-only.
 
 ## v3.60.3
 
-- the lint toolchain is pinned: CI installs ruff==0.16.10 (the repo is audited against it) — an unpinned install drifted mid-night and broke main's lint. CI-only patch.
+- the lint toolchain is pinned. (planned): - v3.60.2's import fix was drift, not taste: CI's unpinned ruff gained an import-collapse rule the local 0.16.10 did not have, and main's lint broke mid-night. The lint step now pins ruff==0.16.10 - the repo is audited against that toolchain; upgrades are a deliberate act, not a Tuesday surprise.
 
 ## v3.60.2
 
-- the import the newer ruff wants: CI's unpinned ruff collapses an 89-char import the older local one kept wrapped - the single-line form fits line-length 100 either way.
+- the import the newer ruff wants. (planned): - CI's unpinned ruff (newer than local) collapses a 89-char import the older one kept wrapped; the single- line form fits the line-length 100 config either way. Patch release to keep main green.
 
 ## v3.60.1
 
-- context edges and catalog residue: the budget doors pinned against degenerate traces (the token floor of 1 is deliberate); save_catalog cleans its tmp on a failed swap.
+- context edges and catalog residue. (planned): - the context doors met degenerate traces in an audit (empty composition, 1 MB single-step forecast): shapes hold, and the token floor of 1 is deliberate - pinned. save_catalog cleans its tmp file on a failed swap (no residue after a crash).
 
 ## v3.60.0
 
-- the first poison is recognisable: archive_stats gains first_malformed (the first bad line, truncated to 80 chars), flowing through /stats, the inbox tool and the received door.
+- the first poison is recognisable. (planned): - archive_stats counted malformed lines but never said WHICH line was poison. The stats gain first_malformed: the first bad line, truncated to 80 characters - enough to recognise the line, never enough to be it. Flows through /stats, the inbox tool and the received door (the one reader's shape grows).
 
 ## v3.59.1
 
-- the array sweep: survey's stores took non-string elements and leaked a TypeError from Path() - elements validated now, and the schema sweep gained an array-element pass (refusal or dict, never a leak).
+- the array sweep. (planned): - fuzz 30's property sweep checked the list, not what rides inside it: survey's stores took [123]/[None]/[{}] and leaked a TypeError from Path(). survey validates the elements now, and the schema sweep gained an array- element pass (redact's pattern/only coerce via str()). Refusal or dict, never a leak - at every nesting the docs' rule holds.
 
 ## v3.59.0
 
-- the audit carries the archive checkup: the doctor section (JSON both sites, junit system-out) reports archive rows/malformed/rotated - counted, never verdict-flipping; a torn log is visible in CI output without failing the suite.
+- the audit carries the archive checkup. (planned): - doctor CLI reported the receiver's archive (v3.45.0); the audit's JSON and junit renderings did not. The doctor section (both assembly sites) carries archive_rows / archive_malformed / archive_rotated when an archive exists - counted, never verdict-flipping - and the junit doctor message (with the malformed count) rides in system-out even when green, so a torn log is visible in CI output without failing the suite.
 
 ## v3.58.2
 
-- the money door's boundaries: the catalog validator's edges (negative/NaN/inf refused, zero legit, non-numbers refused) pinned as tests. Test-only patch.
+- the money door's boundaries. (planned): - spend math is only as honest as the catalog: the audit probed the validator's edges (negative refused, zero is a real price for free models, NaN/inf refused, non- numbers refused up front) and pinned them as tests. Catalog integrity test-only patch.
 
 ## v3.58.1
 
-- the follower loses the race, gracefully: CI caught a stat-then-open TOCTOU in follow_archive (the writer's rotation landed between stat and open - FileNotFoundError); the vanished file is a restart-from-zero signal now.
+- the follower loses the race, gracefully. (planned): - CI caught a stat-then-open TOCTOU in follow_archive: the writer's rotation (os.replace) landed between the stat and the open, and the read raised FileNotFoundError. The pass now treats the vanished file as a restart-from- zero signal - the next pass picks the new log up. - deeper root cause (CI again): the pass's post-read stat could bless the NEW file's inode while the offset still pointed into the old one - identity tracking moved inside _follow_pass, owned atomically with the read. - process note, recorded honestly: v3.58.0's symlink fix was committed and pushed straight to main (the branch checkout was missed) - main's own push CI served as the gate, caught this race, and the fix comes through a PR as always. The two-step protocol exists because direct pushes skip the pre-merge verification pass.
 
 ## v3.58.0
 
-- a symlink is not store evidence: snapshot followed links (one link to / could blow the archive up to the whole disk or leak its target into the backup); links - including broken ones - are skipped now.
+- a symlink is not store evidence. (planned): - snapshot walked the store with rglob and followed symlinks: one link to / could blow the archive up to the whole disk, or leak whatever it pointed at into the backup. Links are skipped (broken links too); the probe confirmed the leak before the guard.
 
 ## v3.57.1
 
-- the ping names the open tap: a receiver without a key archives your ping UNVERIFIED - the ping now warns on stderr instead of silently showing "0 verified".
+- the ping names the open tap. (planned): - the ping's archive read-back silently reported "0 verified" when the receiver was an open tap - the operator's signature was being ignored and nothing said so. The ping now warns (stderr) that the receiver has no key configured, right where the count shows it.
 
 ## v3.57.0
 
-- `received --follow`: rows as they land, offset- and identity-tracked - rotation restarts from zero even at equal file length (a size check alone would hide it); malformed lines skipped; --max-passes bounds tests.
+- received --follow: the on-call terminal's live view. (planned): - the archive had readers; it had no follower. `received --follow` yields rows as they land, offset- and identity-tracked - a rotation (os.replace swaps a new file into the name) restarts from zero even when the new file is the same length, which a size check alone would hide. Malformed lines skipped; --max-passes bounds the loop for tests.
+- received --follow. (planned): - the archive had readers; it had no follower. `received --follow` yields rows as they land, offset- and identity-tracked: a rotation (os.replace swaps a new file into the name) restarts from zero even when the new file is the same length - a size check alone would hide it. Malformed lines skipped; --max-passes bounds tests.
 
 ## v3.56.1
 
-- the ping joins the docs: RECIPES' closed-loop chapter and TUTORIAL's receiver paragraph teach webhook-ping. Docs-only patch.
+- the ping joins the docs. (planned): - RECIPES' closed-loop chapter and TUTORIAL's receiver paragraph now teach webhook-ping: prove the config on demand, before the first real alert. Docs-only patch.
 
 ## v3.56.0
 
-- webhook-ping: prove the channel works - sign a synthetic post through the same notify_webhook, read the receiver's archive back (accepted, verified, counted); keyless pings refused, key mismatch reported with a hint.
+- webhook-ping: prove the channel works. (planned): - setting up the receiver and the poster are two halves of one config; the only way to prove they agreed was to wait for a real alert. webhook-ping signs a synthetic post through the same notify_webhook, then reads the receiver's archive back - accepted, verified, counted. Keyless pings are refused (a ping without a signature tests nothing); a key mismatch reports the hint instead of crashing.
 
 ## v3.55.1
 
-- the backup carries the whole working set: snapshot -> restore pinned end to end (trace, annotations, catalog, archive, rotated predecessor - byte-identical, catalog loads, archive stats agree). Test-only patch.
+- the backup carries the whole working set. (planned): - the snapshot round trip is pinned end to end: trace, annotations, price catalog, the archive and its rotated predecessor all come back byte-identical, the catalog loads, the archive stats agree, and the restored store serves. Test-only patch.
 
 ## v3.55.0
 
-- the catalog write is atomic: `prices set` lands whole in a tmp file and os.replace swaps it in - a crash mid-write leaves the old table standing, never a torn prices.json.
+- the catalog write is atomic. (planned): - `prices set` rewrote prices.json in place; a crash mid-write left a torn catalog for the money door to refuse until a human fixed it. The write now lands whole in a tmp file and os.replace swaps it in - readers see the old table or the new one, never half of either (the ledger stays append-only; appends were already line-tolerant).
 
 ## v3.54.0
 
-- fuzz 32: the digest dir lies to the trend chain - a snapshot whose stores is a dict or a list of non-dicts crashed _trend_row (AttributeError, through audit/status/CI); lying stores now degrade the day to zeros, and the garbage-filename fallback is pinned to fire only on a corrupt timestamp.
+- fuzz 32: the digest dir lies to the trend chain. (planned): - the trend chain reads digest-*.jsonl the operator points at; a snapshot whose stores is a dict (keys iterate as strings) or a list of non-dicts crashed _trend_row with AttributeError - through audit, status and the CI gate. The row now degrades lying stores to zeros; the garbage-filename fallback only fires on a corrupt timestamp (a valid ts wins without a file stamp).
 
 ## v3.53.3
 
-- the capability table meets the receiver: the README's table gains the inbox family row (webhook-serve, bounded rotation, the four-way read). Docs-only patch.
+- the capability table meets the receiver. (planned): - the README's capability table had a row for the alerts but none for their receiver: the inbox family (webhook-serve, bounded rotation, four-way read) now has its row. Docs-only patch.
 
 ## v3.53.2
 
-- the status frame joins the wall: perf gate #28 renders one frame over a 2k-trace store with a 5k-row archive inside budget (222ms, 5s budget).
+- the status frame joins the wall. (planned): - the watch mode renders a status frame every few seconds, and the frame now reads the webhook inbox on every pass. perf gate #28: one frame over a 2k-trace store with a 5k-row archive inside budget, counts exact (222ms measured, 5s budget).
 
 ## v3.53.1
 
-- one reader, four surfaces, one audit: the same store answers /stats, the received door, the MCP inbox and the status frame, and a test demands the same counts from each. Test-only patch.
+- one reader, four surfaces, one audit. (planned): - "one reader" was marketing until the same store answered all four readers - /stats, the received door, the MCP inbox and the status frame - and the test demands the same rows/verified/unverified/kinds from each. Empty archives agree too; the status frame's present-flag stays honest on both sides.
 
 ## v3.53.0
 
-- status reads the inbox: the one-glance frame gains a webhook-inbox line (rows, verified split) only when the store keeps an archive, prose and JSON - one reader under every surface.
+- status reads the inbox. (planned): - status is the shift's first look, but the webhook inbox lived one read_archive away without showing. The frame gains a line - rows, verified split - only when the store keeps an archive, prose and JSON. Same numbers /stats, digest, fleet and the CLI door answer: one reader under every surface.
 
 ## v3.52.0
 
-- a snapshot member must not aim the extraction: restore refused nothing on member names, and a doctored archive (manifest hashes matching its own forged members) could write ../../evil.txt outside the restore target - the probe confirmed the escape; any member resolving outside the target is now refused before a single byte or directory.
+- a snapshot member must not aim the extraction. (planned): - restore extracted members by name; a doctored archive whose manifest hashes match its own forged members could name a member ../../evil.txt - the hash check passes (the manifest is the attacker's) and the file lands outside the restore target. The probe confirmed the escape; the restore now refuses any member resolving outside the target before a single byte or directory. Legitimate archives never contain such names.
 
 ## v3.51.1
 
-- the fleet doc catches up: FLEET-DIGEST.md now describes the per-store brief's shape - grades, owed, arrivals, the inbox line, silent when absent. Docs-only patch.
+- the fleet doc catches up. (planned): - FLEET-DIGEST.md never described the per-store brief's shape; it now names the grades / owed / arrivals / inbox lines (and the silent-when-absent rule). Docs-only patch.
 
 ## v3.51.0
 
-- the fleet page reads the inbox too: each store's section shows one line - window rows, verified split - only when that store keeps an archive; absent stays silent.
+- the fleet page reads the inbox too. (planned): - the fleet digest's per-store briefs already compute the webhook inbox; the render just never showed it. Each store's section now carries one line - window rows and verified split - only when that store keeps an archive; absent stays silent, the fleet page stays compact.
 
 ## v3.50.0
 
-- the brief reads the inbox: digest gains an "overnight arrivals (webhook)" section (window rows, verified split, kind census via the one reader); no archive is one honest line. snapshot now carries the archive's rotated predecessors.
+- the brief reads the inbox. (planned): - the webhook archive sat beside the store without ever reaching the brief. digest gains an "overnight arrivals (webhook)" section: the window's rows, verified split and kind census, via the one reader (read_archive); no archive is one honest line. snapshot now carries the archive's rotated predecessors too - yesterday's log rides along with the evidence.
 
 ## v3.49.3
 
-- the banner's numbers catch up: "30-gate perf wall" -> 27 (archive-stats joined), "2,000+ tests" -> 2,100+. Docs-only patch.
+- the banner's numbers catch up. (planned): - the README banner still said "30-gate perf wall" (the wall is 27 gates since archive-stats joined) and "2,000+ tests" (2,143). Refreshed; the check-matrix count was already honest at 21.
 
 ## v3.49.2
 
-- limit zero showed everything: `rows[-0:]` is the whole list, so `received --limit 0` and the inbox tool returned every row instead of none - fixed with an explicit guard; the tour docstring's stale "59 doors" de-numbered.
+- limit zero showed everything. (planned): - `rows[-0:]` is the whole list: `received --limit 0` and the inbox tool's limit=0 returned every row instead of none - a slice quirk turning "show none" into "show everything". Fixed with an explicit guard; the dawn sweep also de-numbered the help-tour docstring's stale "59 doors" (64 and counting).
 
 ## v3.49.1
 
-- the tour knew the old count: the help tour's mcp line still said "49 tools" - the one string the 50-tool sweep missed. Docs-only patch.
+- the tour knew the old count. (planned): - the 50-tool sweep missed one string: the help tour's mcp line still said "49 tools" (no test pins prose numbers inside the tour data). Fixed; the dawn sweep caught it.
 
 ## v3.49.0
 
-- the plan must not aim the delete: a hostile retire-row id (absolute path or `..` climb) could aim apply_plan's unlink outside the store - unreachable through today's doors, refused now at the delete path itself; the guards verify the resolved parent is the store.
+- the plan must not aim the delete. (planned): - a hostile retire-row id could aim apply_plan's unlink outside the store: an absolute id (Path join replaces the base) or a `..` climb unlinked any .json on the box. Unreachable through the CLI and MCP doors today (both build their plans internally), but a delete aimed by data is a loaded gun for the next caller. The guards now refuse any id whose resolved parent is not the store itself.
 
 ## v3.48.2
 
-- agent-gate finally gates something: it died at `pip install approximately` (no PyPI yet) with a gitignored store - it now installs from the repo, records a demo store (two ok, one failure) and gates it. CI-only patch.
+- agent-gate finally gates something. (planned): - the agent-gate workflow died at `pip install approximately` on every push (the package is not on PyPI - publishing still awaits the owner's one-time Trusted Publishing setup), and `.agents-store` is gitignored, so the gate could never have passed. It now installs from the repo (like fresh-install), records a demo store (two ok runs, one failure) and gates it - the demo is the evidence, thresholds verified locally first.
 
 ## v3.48.1
 
-- the fuzz sweep wrote a real snapshot archive named `123` into the repo root (Path(str(123)) is a legal relative path) and the night kept committing it - the sweep runs in a throwaway cwd now, the stray is untracked, and the threat model names what was always true: MCP clients point tools at paths in the server's trust domain.
+- the sweep wrote a real archive named 123. (planned): - the schema sweep probed the snapshot tool's path with the wrong-typed 123; Path(str(123)) is a legal relative path, so every full-suite run wrote a genuine snapshot archive named `123` into the repo root - and the night's git add -A kept committing it (v3.46-v3.48 carry it). The sweep now runs in a throwaway cwd (hermetic), the stray is untracked, and the finding is recorded: an MCP client can point snapshot at any path the server process can write - same trust domain as the store argument, worth a threat-model line.
 
 ## v3.48.0
 
-- `received --since EPOCH`: the cron reader gains a time window - a hostile since is a refusal at the boundary, a row that lies about its stamp is dropped, and the filter split holds the C+ budget at 87.
+- received --since: the window closes. (planned): - the cron reader gains a time window: --since EPOCH keeps only rows stamped at or after the second; a hostile since is a refusal at the boundary, and a row that lies about its stamp is not time travel - it is dropped. The row filter split to hold the C+ budget at 87.
 
 ## v3.47.0
 
-- the receiver chapter catches up: TUTORIAL now teaches the bounded log (--max-rows rotation), the three-way read (/stats, received, inbox) and the doctor's archive checkup. Docs-only patch.
+- the receiver chapter catches up. (planned): - TUTORIAL's webhook-serve paragraph predated rotation, the received door and the doctor's archive checkup; it now teaches all three (bounded log, three-way read, 3am checkup). Docs-only patch.
 
 ## v3.46.0
 
-- fuzz 31: the doctor meets hostile archives - directories wearing the log's name, binary garbage, rotated entries that are themselves directories. One real defect fixed (rotated presence was is_file; a directory went unreported - it is exists now); the /stats contract held everywhere else, and the store's own health stays untouched by the archive's hostility.
+- fuzz 31: the doctor meets hostile archives. (planned): - the archive check reads whatever sits at the log's path: directories wearing the name, binary garbage, rotated entries that are themselves directories, rows that lie about their shape. One real defect: archive_rotated used is_file, so a rotated entry that is a directory went unreported - presence is the finding (exists). The /stats contract held everywhere else: non-object lines are malformed, the store's own health is untouched by the archive's hostility.
 
 ## v3.45.0
 
-- doctor reads the receiver's archive too: rows, malformed lines (counted, never guessed at) and whether a rotated log sits beside it - prose and JSON; read-only, a malformed line is a note not a wound.
+- doctor reads the receiver's archive too. (planned): - the webhook log lived beside the traces without ever getting a checkup. Doctor now reports archive_rows / archive_malformed (the same numbers /stats answers) and whether a rotated previous log sits beside it - prose and JSON. Read-only: the archive is delivery evidence, housekeeping never touches it; a malformed line is a note, not a wound (healthy stays true).
 
 ## v3.44.0
 
-- yesterday's log is still one query: `received --include-rotated` folds the previous log (`<archive>.1`) in ahead of the current one; rows_total keeps meaning the current archive.
+- yesterday's log is still one query. (planned): - rotation moved the previous night aside as `<log>.1`, and the readers stopped there. `received --include-rotated` (and read_archive's include_rotated) folds the previous log in ahead of the current one; rows_total keeps meaning the current archive.
 
 ## v3.43.0
 
-- the archive rotates: `--max-rows` (default 100k) moves the full log aside as `<log>.1` and starts empty - an unbounded JSONL is a slow disk-fill, not a record; /stats keeps reading the disk, counters keep the truth.
+- the archive rotates. (planned): - the receiver's JSONL grew without bound - a slow disk-fill wearing a record's clothes. `--max-rows` (default 100k) rotates the archive aside as `<log>.1` (os.replace, atomic even on Windows) and starts empty; pre-existing rows count toward the bound, /stats keeps reading the disk (not the counters), and 0 says unbounded.
 
 ## v3.42.0
 
-- `received`: the cron-friendly reader of the receiver's archive - stats line, kind census, recent rows with a V/? mark, filtered by kind or unverified, prose or JSON. One reader under every surface: read_archive serves /stats, the MCP inbox and the CLI door alike.
+- received: the cron-friendly reader. (planned): - the archive was readable over HTTP (/stats) and through MCP (inbox); the shell had only curl. The `received` door reads it back - stats line, kind census, recent rows with a V/? verified mark - filtered by kind or by the open tap's unverified mark, prose or JSON. One reader under every surface now: read_archive serves /stats, the inbox tool and the CLI door alike; the inbox tool refactored onto it (dead helper gone).
 
 ## v3.41.0
 
-- SIGTERM lands the same clean shutdown as Ctrl-C: a systemd stop finishes the archive line in flight, closes the socket, exits 0 (proven with a real subprocess SIGTERM). Plus recipe 27 - the closed loop: digest --post into webhook-serve, read back via /stats or the inbox tool.
+- SIGTERM lands the same shutdown as Ctrl-C. (planned): - webhook-serve ran forever and died with the process on a systemd stop; SIGTERM now raises the same KeyboardInterrupt the Ctrl-C path handles - the archive line in flight finishes, the socket closes, exit 0 (fleet --watch has had the handler since v1.x; the receiver gets the same). Proven with a real subprocess SIGTERM (exit 0), POSIX-only like the delivery. Plus recipe 27: the closed loop - digest --post into webhook-serve, read back via /stats or the inbox tool.
 
 ## v3.40.2
 
-- the topics ledger closes: live carried langgraph, meta.TOPICS did not - the code follows the live state (20 topics, GitHub's cap); releases = tags = 370 in parity. Metadata-only patch.
+- the topics ledger closes. (planned): - the metadata audit found the live repo carrying `langgraph` while meta.TOPICS did not - metadata-as-code means the code follows the live state: TOPICS now lists 20 (GitHub's cap). Releases = tags = 370 verified in parity; CHANGELOG head == pyproject version pinned OK.
 
 ## v3.40.1
 
-- the announcement catches up: the technical thread still said "122 tests green" from the v1 era - a 3.x paragraph now tells the ops-loop story (signed channel with both ends, verify-only receiver, /stats + MCP inbox, retention, 50 tools, 2,100+ tests). Docs-only patch.
+- the announcement catches up. (planned): - the announcement's technical thread still said "122 tests green" from the v1 era and the doc stopped at 2.x; a 3.x era paragraph now tells the ops-loop story (signed channel with both ends, verify-only receiver, /stats + MCP inbox + browsable resource, value-weighted retention, 50 tools, 2,100+ tests).
 
 ## v3.40.0
 
-- the wall grows: perf gate #27 reads a 10k-row receiver archive back through the /stats path inside budget - the inbox must not stall the first time a log gets genuinely long.
+- the wall grows: archive stats on the perf gate. (planned): - the inbox and /stats read the whole JSONL back; a receiver whose log gets genuinely long must not stall the first inbox call. perf gate #27: 10k mixed rows (7 kinds, half verified, payloads riding along) read back inside budget, counts exact. 17ms measured, 5s budget.
 
 ## v3.39.1
 
-- the Windows RST race also fires inside the 100-post soak's oversized posts - the reset IS the refusal; exact bookkeeping still enforced. Test-only patch.
+- the soak draws a reset too. (planned): - the same Windows RST race v3.39.0 fixed for the single 413 test fires inside the 100-post soak's oversized posts (dependabot CI caught it again). The reset IS the refusal; the soak now accepts either the 413 or the abort and still demands exact bookkeeping. Test-only patch.
 
 ## v3.39.0
 
-- fuzz 30: hostile arguments at the 50-tool MCP surface - a wrong-typed property sweep leaked five real TypeErrors through the refusal idiom; all fixed at the boundaries (store path refusal with a word, digest/status/doctor coercion, init_gate directory). Pinned: refusal or dict, never a leak; the server serves after the storm. Plus: the Windows RST race at the 413 test now tolerated (the aborted connection is the refusal; the archive stays empty).
+- fuzz 30: hostile arguments at the MCP surface. (planned): - 50 tools wide now; every handler takes JSON-decoded anything. A hostile-args sweep (20 arg shapes x 50 tools, plus a schema-aware sweep injecting wrong types into every declared property) leaked five real TypeErrors through the refusal idiom - all fixed at the boundaries: _store refuses non-string store and unusable paths with a word, digest/status/doctor coerce digest_dir, digest coerces triage_top/since_days None, init_gate refuses a non-string directory. Contract pinned: refusal or dict, never a leak; the server serves after the storm. - the Windows RST race at the 413-before-read test (dependabot CI caught it): the server answers before reading an oversized body and the client's in-flight send draws a reset - the aborted connection IS the refusal; the test now accepts either the 413 or the abort, and still asserts the archive stays empty.
 
 ## v3.38.1
 
-- the Monday bomb: v306's week test failed whenever the real clock was a Monday (rows derived from yesterday, ref = today - the bucket empties); caught by dependabot branches whose CI ran on 2026-10-26. Monday-anchored with an explicit ref, all seven weekdays simulated green. Test-only patch.
+- the Monday bomb. (planned): - the dependabot branches' red CI exposed a second time bomb on main: v306's week shapes test derived rows from yesterday and let week_compare use today - on a Monday "this week" holds only today, the bucket empties, the test fails (the CI run that caught it ran on 2026-10-26, a Monday). Anchored to the ISO Monday with the same ref, proven usable across all seven weekdays by simulation. - sweep result: v314 and v306 were the only ISO-week time bombs; v308/v309/v329 verified clock-immune.
 
 ## v3.38.0
 
-- the inbox, answerable without a shell: the new MCP inbox tool reads the receiver's archive (the /stats shape plus recent rows, newest last, redactable) and the archive is browsable as a resource - 50 tools, every count claim moved in lockstep.
+- the inbox, answerable without a shell. (planned): - the webhook channel had a writer, a keeper and /stats over HTTP, but an agent inside an MCP client could not see what had arrived. The new inbox tool reads the receiver's archive back: the /stats shape plus the most recent rows (newest last, rows_total vs recent, redact scrubs before rows leave the box). The archive is also browsable as a resource. 50 tools; every count claim (meta, README, TUTORIAL, VERSIONING, mcp-tools.json) moved in lockstep.
 
 ## v3.37.0
 
-- the signed channel, end to end: notify_webhook at a live receiver lands verified, forgeries are a definite 401 with nothing archived, the CLI digest posts through the env key - and the closure caught that fleet summaries never carried a kind (receivers filed them under "?"); they are fleet_summary now. Plus: v314's week test de-time-bombed (Monday-anchored, not calendar dates).
+- the signed channel, end to end. (planned): - poster and receiver had only ever met through stand-in servers; the loop now closes in tests: notify_webhook at a live webhook-serve lands verified, a forged key is a definite HTTP 401 with nothing archived, and the CLI digest door posts its page through the env key. - the loop closure caught a real gap: the fleet summary was the one poster that never said what it was - receivers archived it under kind "?" and the /stats kind census was blind to fleet traffic. notify_webhook now stamps kind=fleet_summary (tail says trace_failure, spool says spool, digest says ops_digest). - test_v314's week test hardcoded calendar dates that time-bombed the moment the real clock left their ISO weeks; anchored to this Monday and last, like v306.
 
 ## v3.36.0
 
-- the receiver under concurrency: counters and the archive append serialize on a lock, and the listen backlog deepens to 128 (the default 5 reset burst connections before the handler saw them - the soak caught 80 of 200 posts kernel-refused). 200-post/20-thread soak demands exact bookkeeping and intact lines.
+- the receiver under concurrency. (planned): - ThreadingHTTPServer served posts on parallel threads over unsynchronized bookkeeping: the += counters and the JSONL append could race (a lost increment is a lie in the ops record; an interleaved line is a torn one). A lock now serializes every counter and the archive append, and the listen backlog is deepened to 128 - the default 5 reset burst connections before the handler ever saw them (the soak caught it: 80 of 200 posts refused by the kernel). 200-post/20-thread soak with exact bookkeeping.
 
 ## v3.35.0
 
-- fuzz 29: hostile archives at /stats - BOMs, binary garbage, truncated tails, kinds that are lists, stamps that lie. Two real defects fixed (BOM row miscounted malformed; unhashable kind crashed the census); the contract is now pinned: never raises, one bucket per line, counts agree with a recount.
+- fuzz 29: hostile archives at /stats. (planned): - the /stats read path meets the worst disk: BOMs, binary garbage, crash-truncated tails, rows whose kind is a list, stamps that lie about their types. Two real defects found and fixed: a BOM made the first real row count malformed, and an unhashable kind crashed the census with TypeError. Contract now: never raises, every line lands in exactly one bucket, counts agree with a straight recount.
 
 ## v3.34.1
 
-- the flag-level docs audit: every quoted `approximately ...` span across README/TUTORIAL/RECIPES/ANNOUNCEMENT must parse - door AND flags. It caught three real ghosts (spool's directory quoted as `--dir`; it is a positional) - spans fixed, audit pinned as tests.
+- the flag audit. (planned): - the docs audit grew teeth: every `approximately ...` span quoted across README/TUTORIAL/RECIPES/ANNOUNCEMENT must parse - door names AND flags. It immediately caught three real ghosts: spool's directory is a positional, but TUTORIAL and RECIPES quoted `spool --dir` (readers' commands would exit 2). Spans fixed, audit pinned as a test. Tutorial also re-taught the MCP apply gate and both receiver probes.
 
 ## v3.34.0
 
-- the receiver reports its log, not just its life: `GET /stats` reads the archive back - rows, verified split, kind census, last arrival, bytes - surviving restarts; malformed lines counted, never parsed.
+- /stats: the archive read back. (planned): - /health counts this process's life only; a restarted receiver forgets. /stats reads the JSONL on disk — rows, the verified split, the kind census, the last arrival, bytes — so on-call answers "what does this log hold" without shelling into the box. Malformed lines are counted as malformed, never parsed as truth.
 
 ## v3.33.0
 
-- the MCP retention door learns to delete, behind two flags: `apply` + `confirm` (either missing returns the plan untouched) - one delete path with the CLI, guards re-checked per file at apply time.
+- the MCP door deletes, behind two flags. (planned): - retention's MCP tool was plan-only while the CLI could --apply; now the MCP door deletes too, but only with apply=true AND confirm=true — miss either and you get the plan. One delete path, one set of guards (breach evidence, annotated traces, unreadable poison), re-checked per file at apply time for both doors.
 
 ## v3.32.0
 
-- the worklist speaks both shapes: `handoff --queue` honors `--out` and `--json` now - the audit caught it rendering to stdout only, unlike every other markdown door.
+- the worklist speaks both shapes. (planned): - the audit caught it: handoff --queue ignored --out and --json - the worklist rendered to stdout only, unlike every other markdown door. Both shapes work now.
 
 ## v3.31.1
 
-- the receiver soak: 100 mixed posts (valid, forged, hostile, oversized) through one live receiver with exact bookkeeping - the archive holds exactly the accepted 40, /health counts 40/60, and the server still serves at the end. Test-only patch.
+- the receiver soak. (planned): - the closing audit: 100 mixed posts (valid, forged, hostile, oversized) through one live receiver with exact bookkeeping - the archive holds exactly the accepted 40, /health counts 40/60, and the server still serves a verified post at the end. Test-only patch.
 
 ## v3.31.0
 
-- the bounded receiver: webhook-serve refuses bodies larger than `--max-bytes` (default 1 MiB) with 413 before the read - a hostile Content-Length cannot buy a hostile read. Refusals never archive; normal traffic continues.
+- the bounded receiver. (planned): - webhook-serve refuses bodies larger than --max-bytes (default 1 MiB) with 413 BEFORE the read - a hostile Content-Length cannot buy a hostile read. Refusals never archive; normal traffic continues. SECURITY row extended.
 
 ## v3.30.1
 
-- the loop, documented both ways: TUTORIAL's shift-brief chapter gains webhook-serve (the verified receiving end) and the README banner names it. Docs-only patch.
+- the loop, documented both ways. (planned): - TUTORIAL's shift-brief chapter gains the receiving end (webhook-serve: verify-only with a key, an open tap that labels itself without) and the README banner names it. Docs-only patch.
 
 ## v3.30.0
 
-- fuzz 28: poison at the receiver - every malformed signature shape refuses and never archives; archived rows record what arrived, not what was true. Degenerate stores ride through the fleet digest, the MCP digest and the trend.
+- fuzz 28: poison at the receiver. (planned): - the receiver trusts the network, so it gets the hostile pass: every malformed signature shape refuses, refusal never archives, and an archived row is a faithful record of what arrived (open-tap rows keep verified=false). Degenerate stores ride through the fleet digest, the MCP digest and the trend (zero tokens, one-sided history, future clocks).
 
 ## v3.29.0
 
-- the glance and the ledger: `status` shows the week-over-week grade drift beside its coverage line (and in JSON); `audit --format junit` renders every verdict-flipping section as a failing testcase - the ci door's native rendering, for the composed report.
+- the glance and the ledger. (planned): - status gains the drift line: week-over-week grade drift (who slipped, who improved) rides the one-glance frame and the JSON payload - flat weeks are not news. audit --format junit renders each verdict-flipping section as a failing testcase (doctor, every gate row, grade floor, prices, trend, spend ceiling, failure budget) - the ci door's native rendering, for the composed report.
 
 ## v3.28.2
 
-- restore the receiver: v3.28.1's stacked-branch rebuild used a whole-tree restore from a pre-R1 tip, and the squash merge silently shipped a tree without the receiver. v3.28.0 the tag was always intact; main was not. R1's five files come back byte-for-byte, and the rebuild procedure now restores only the round's changed paths.
+- restore the receiver. (planned): - the strip incident, documented: v3.28.1's stacked-branch rebuild used a whole-tree restore from a pre-R1 tip, and the squash merge silently shipped a tree without the receiver (code, tests, tour entry, security row). v3.28.0 the tag was always intact; main was not. This release restores R1's five files byte-for-byte and retires the footgun: rebuilds now restore only the round's changed paths, never the whole tree.
 
 ## v3.28.1
 
-- the weather audit: the suite scanned for the two runner-weather classes - class-level capture state asserted across tests, and tight sleep windows. v240/v250/v317 already immune; v300 hardened (reset + wider window + a named assertion). Test-only patch.
+- the weather audit. (planned): - the suite audited for the two runner-weather classes: class-level capture state asserted across tests (the v3.17 lesson - a slow runner outruns the race and reads the previous test's request), and tight sleep windows. v240/v250/v317 already immune (fresh handler types, per-test resets, widened windows); v300 hardened. Audit: no other sites. Test-only patch.
 
 ## v3.28.0
 
-- webhook-serve: the other end of the signed channel. The zero-dependency receiver verifies `X-Approximately-Signature` against the same `load_key` every poster uses and archives what survives; a configured key makes it verify-only, with no key it marks every row `verified: false` and says so.
+- webhook-serve: the other end of the channel. (planned): - fleet, tail, spool and digest all POST signed alerts; webhook-serve is the zero-dependency receiving end: it verifies X-Approximately-Signature against the same load_key and archives what survives into a JSONL log. A configured key makes it verify-only (401, never archived); with no key it archives rows marked verified=false and says so. Hostile bodies are refused without crashing.
 
 ## v3.27.1
 
-- the worklist ladder: novelty is assigned in arrival order, so near-identical failures saved inside one clock tick tie and their order rolls the dice on coarse clocks. The fixture climbs a real time ladder now. Test-only patch.
+- the worklist ladder. (planned): - the Windows lesson again, in triage form: novelty is assigned in arrival order, so near-identical failures saved inside one clock tick tie and their order rolls the dice. The worklist fixture climbs a real time ladder - arrival order is the invariant, not the save order.
 
 ## v3.27.0
 
-- fuzz 27: the widening surface - fleet digest, grade trend, since-days and the worklist over hostile stores. The fence invariant gets its sharpest form: no line may OPEN a code fence; backticks inside a collapsed title are literal text.
+- fuzz 27: the widening surface. (planned): - fleet digest ranks poisoned stores without crashing; the trend reads future and ancient clocks; the widened arrival window counts sparse stores; the worklist renders only what triage lets through. The fence invariant gets its sharpest form yet: no line may OPEN a code fence - backticks inside a collapsed title are literal text.
 
 ## v3.26.0
 
-- the postmortem worklist: `handoff --queue N` renders one page of briefs for the top N unannotated failures in the queue's own order - what the digest counts as owed, made readable. Poison never enters; `--redact` holds.
+- the postmortem worklist. (planned): - handoff --queue N: the digest counts what a shift owes; the worklist is the paying - one page of briefs for the top N unannotated failures in the queue's own order. Poison never enters (triage filters upstream); an empty debt says so; --redact holds. trace id now optional on the handoff door.
 
 ## v3.25.0
 
-- `grade --trend`: week-over-week letter drift per subject, from the trace's own clock. Thin evidence reads thin, never a verdict; `gone` and `new` name one-sided history. MCP flag, schema-only.
+- grade --trend: the drift, quantified. (planned): - "which agent is drifting" was a status line; grade_trend makes it a number: this week's letter vs last week's per subject, from the trace's own clock. Thin evidence reads thin, never a verdict; gone and new name one-sided history. MCP flag; schema-only.
 
 ## v3.24.1
 
-- the banner catches up: the README v3 block names the loop as it now is (digest with fleet briefs, signed `--post`, `--redact`; value-weighted retention; the browsable brief) and counts honestly - 2,000+ tests, the 30-gate wall. Docs-only patch.
+- the banner catches up. (planned): - the README v3 banner names what the loop now is (digest with fleet briefs / signed post / redact, retention, browsable brief) and counts honestly: 2,000+ tests, the 30-gate wall. Docs-only patch.
 
 ## v3.24.0
 
-- the arrival window: `digest --since-days N` widens the arrivals section and labels it - Monday mornings read the weekend. The triage queue keeps its own clock.
+- the arrival window. (planned): - digest --since-days N widens the arrivals section (labels say so): Monday mornings read the weekend. The triage queue keeps its own clock - a failure outside the window never disappears from the queue.
 
 ## v3.23.0
 
-- the brief is browsable: `digest` joins `grades`/`triage`/`prices` as an MCP resource (text/markdown) - the page the CLI prints, one read, no tool call.
+- the brief is browsable. (planned): - digest joins grades/triage/prices as an MCP resource (text/markdown): the page the CLI prints, one read, no tool call. TUTORIAL and ARCHITECTURE say so; the fleet row lands beside it.
 
 ## v3.22.0
 
-- the fleet digest: `digest --stores a b c` renders one brief over a fleet - the week section stays fleet-level, every store gets its own rollup, sections rank worst-first so the reader starts where it hurts. `--redact` and `--post` hold at fleet scale.
+- the fleet digest. (planned): - digest --stores a b c: one brief over a fleet, the week section fleet-level, every store its own grades/owed/ arrivals rollup, sections ranked worst-first (today's failure rate leads). --redact and --post hold at fleet scale.
 
 ## v3.21.0
 
-- TUTORIAL 14: the shift brief - reading the digest page top-down, the signed `--post` channel, the `--redact` rule, postmortems owed, and retention's windows and double guard. Docs-only.
+- TUTORIAL 14: the shift brief. (planned): - the digest chapter: reading the page top-down, --post's signed channel, the --redact rule, postmortems owed, and retention's windows and double guard. Docs-only.
 
 ## v3.20.0
 
-- fuzz 26: poison in the new doors - digest, retention and redact over hostile stores. Whitespace-collapse is pinned as the anti-injection defense: no fence and no header line can be smuggled into the shift brief; negative epochs and unreadable files classify and survive; the redact->digest->retention chain runs clean.
+- fuzz 26: poison in the new doors. (planned): - the chain contract for the night's surfaces: digest and retention and redact over hostile stores (null bytes, hostile markdown, negative epochs, unreadable files). Whitespace-collapse is pinned as the anti-injection defense: no fence, no header line can be smuggled into the shift brief. redact->digest->retention chained.
 
 ## v3.19.0
 
-- the wall grows with the surface: `retention_gate` #30 times plan and apply over an aged 2k store (1500 past the window, 500 inside theirs) - the retirement path is budgeted like every other door, local x100.
+- the wall grows with the surface. (planned): - retention_gate #30: plan + apply over an aged 2k store, ages making the retire classification real (1500 past the window, 500 inside theirs); budgets sized local x100 like every other gate. A new door earns its wall budget.
 
 ## v3.18.1
 
-- the security ledger catches up: SECURITY.md rows for digest delivery's exfiltration surface (--redact is the answer), the signed-announcement channel (the v3.17.0 kept promise), and retention's plan/apply double guard. Docs-only patch.
+- the security ledger catches up. (planned): - SECURITY.md gains the three rows the v3.17/v3.18 work earned: digest delivery's exfiltration surface (and the --redact answer), the signed-announcement channel (and the v3.17.0 kept promise), and retention's plan/apply double guard. Docs-only patch.
 
 ## v3.18.0
 
-- the digest holds the handoff's redaction rule: `--redact` scrubs the payload and the page through the builtin secret patterns before rendering or posting - a secret an agent was holding can no longer ride the shift brief out of the machine. `redact_text`/`redact_value` are public now.
+- the digest holds the handoff's redaction rule. (planned): - the security sweep found it: the handoff never shares unscrubbed, but the digest named tasks verbatim and --post shipped them to a webhook - a secret an agent was holding could ride the shift brief out of the machine. --redact scrubs payload and page through the builtin patterns; redact_text/redact_value make the scrub public.
 
 ## v3.17.0
 
-- the signed batch: `tail --webhook`'s help promised HMAC signing when APPROXIMATELY_SIGNING_KEY is set - nothing read the variable, so announcements travelled unsigned. The promise is kept, `digest --post` delivers the brief through the same signed channel, and the digest counts the postmortems a shift still owes.
+- the signed batch. (planned): - the audit that found a real bug: tail --webhook's help promised HMAC signing when APPROXIMATELY_SIGNING_KEY is set, and nothing read the variable - announcements travelled unsigned. The promise is kept (load_key, the same channel as fleet and spool); digest --post delivers the brief signed; the digest counts postmortems owed (failed, unannotated) beside the queue.
 
 ## v3.16.0
 
-- the docs audit: README and tutorial claims held to code - the 14 classified MAST modes behind the banner, the 3 categories, the 7 framework adapters, the tutorial's operations-night commands against the registered doors, ARCHITECTURE's module names against the tree. One drift found and fixed: the ops-loop section predated digest and retention.
+- the docs audit. (planned): - README and tutorial claims become testable facts: the 14 classified MAST modes (+ OTHER) behind the banner, the 3 categories, the 7 framework adapters, the tutorial's operations-night commands against the registered doors, ARCHITECTURE's module names against the tree. Found and fixed one drift: the ops-loop section predated digest and retention.
 
 ## v3.15.0
 
-- value-weighted retention: `approximately retention` plans what postmortem value says to keep - successes age out first, failures (and unknown outcomes) stay longer, breach evidence and annotated traces never retire, checked at plan time *and* apply time. Dry run by default; `--apply` deletes. The MCP door is plan-only.
+- value-weighted retention. (planned): - clean deletes by age alone; retention keeps postmortem value: successes age out on keep_days, failures (and unknown outcomes) on failure_days, and two guards veto every retirement - breach evidence and annotated traces - at plan time AND apply time. Plan is the default; --apply deletes. Poison is never touched (doctor's job). MCP tool 49 is plan-only; the deleting stays CLI.
 
 ## v3.14.0
 
-- the digest: `approximately digest` composes week-over-week, grades, triage and today's failed arrivals into one shift-start markdown page (MCP tool `digest`, `--out`, `--json`). It invents no analysis — sections can be absent and say so; an empty store refuses. The tool count moved 47 -> 48 and every pin moved with it.
+- the digest: the shift-start brief. (planned): - audit gives the cron one exit code; digest gives the on-call human one markdown page: weeks vs weeks, the grades, the triage queue, today's failed arrivals. Composes doors, invents no analysis; every section can be absent and says so. MCP tool 48; all count pins moved together (meta, README, VERSIONING, TUTORIAL, mcp-tools.json, spool test).
 
 ## v3.13.0
 
-- repo metadata as code: `meta.py` pins the GitHub About line and topic list; the suite holds both against the shipped surface (350-char budget, the real MCP tool count, GitHub topic grammar, README banner parity). The repo's public face cannot drift from the code that ships it.
+- repo metadata as code. (planned): - meta.py pins the GitHub About line and topic list; the suite holds both against the shipped surface (350-char budget, the real MCP tool count, GitHub topic grammar, README banner parity). The repo's public face cannot drift from the code that ships it.
 
 ## v3.12.0
 
-- fuzz 25, the cross-door chains: redact feeds handoff feeds evidence; the price catalog feeds budget; meta shapes feed triage; tail feeds snapshot. Poisoned upstream stores produce clean downstream briefs, honest unusable comparisons, and intact snapshots — a `\x00` in the task, a 1e300 rate, string-typed breach stamps all survive the whole pipeline. Chain contract pinned: each door's output is the next door's untrusted input.
+- fuzz 25: cross-door chains. (planned): - Poisoned chains: redact->handoff->evidence (null byte task, secret-bearing errors), prices->budget (1e300), meta shapes ->triage (string breach stamps), tail->snapshot. - Chain contract: each door's output is the next door's untrusted input - no crash, no silent lie.
 
 ## v3.11.0
 
-- the boundary batch: `week_compare`'s ISO buckets survive the turn of the year (2026-12-29 is 2027-W01 — same bucket as 2027-01-04) and leap weeks (2020-W53); the PEP 562 lazy exports hold their edges (unknown attributes are AttributeError, `__dir__` reports `__all__`, dunder probes import nothing, cached names survive copy/pickle). Boundary tests, no behavior change.
+- the boundary batch. (planned): - ISO cross-year weeks (2026-12-29 = 2027-W01) and leap week (2020-W53) bucket correctly; PEP 562 edges held (AttributeError, __dir__, dunder probes, copy/pickle). - Boundary tests only; no behavior change.
 
 ## v3.10.0
 
-- ARCHITECTURE gains its operations-loop section: how tail/triage/grade/handoff/redact/snapshot/prices/helptour compose the analysis layer rather than duplicating it (trace_files as the one shared glob, POSIX manifest keys, the refuse-don't-$0 catalog). Docs-only.
+- ARCHITECTURE: the operations loop. (planned): - The v3 section: how the on-call modules compose the analysis layer (trace_files shared glob, POSIX manifest keys, refuse-don't-$0 catalog, tour completeness). - Docs-only release.
 
 ## v3.9.0
 
-- the lazy-package batch: `approximately/__init__.py` was quietly undoing the lazy-door batch — it eager-imported the attributor, the report renderer and the replay engine, so `python -m approximately --version` still paid for detector tables on the way to a number. PEP 562 lazy exports now resolve every public name on first touch (and cache); package import drops ~100ms -> ~36ms, cold `--version` -> ~66ms. `fleet --week-compare` brings the retrospective to the dashboard door (json + prose), and CI gains a dependency-audit step (pip-audit) beside bandit.
+- the lazy-package batch. (planned): - __init__.py PEP 562 lazy exports (the eager imports were undoing v3.2.0's door laziness for every `import approximately`): package import ~100 -> ~36ms, cold --version ~66ms; names resolve on first touch and cache. - fleet --week-compare (json + prose, needs --digest-dir). - CI dependency-audit step (pip-audit) beside bandit.
 
 ## v3.8.0
 
-- the complexity budget joins the wall (#29): radon counts 87 C-and-worse blocks across src — all inherited, none worse — and the gate asks exactly one thing: the count never grows. A new C block must retire an old one. No heroic refactor is demanded of the存量; the增量 simply cannot rot. This is the audit the wall did not have: perf gates measure speed, this one measures shape.
+- the complexity budget joins the wall. (planned): - complexity_gate #29: radon C+ block count vs baseline 87 (all inherited, none worse); a new C block must retire an old one. The audit the wall did not have: perf measures speed, this measures shape.
 
 ## v3.7.0
 
-- TUTORIAL 13: the on-call loop gets its chapter — the eight commands of an operations night, the audit that composes them into one exit code, the MCP browsing surface, and where VERSIONING.md lives. Docs-only.
+- TUTORIAL 13: the on-call loop. (planned): - The eight commands of an operations night, the audit that composes them, the MCP resource surface, VERSIONING.md. - Docs-only release.
 
 ## v3.6.0
 
-- fuzz 24, aimed at the v3 surfaces — and it caught one real crash: `week_compare` died on a digest row whose day label did not parse (`date.fromisoformat` unguarded) — and the fleet module's own contract says digest files are untrusted input. The buckets now skip unparseable or missing day labels (TypeError/ValueError/KeyError), mirroring instead of crashing; a one-week-populated comparison honestly reports `usable: false`. Also hardened: price-catalog model names now refuse control characters (a newline key broke the prose table), and the fuzz pins duplicate-day mirrors, empty-store resources, all-n/a floors, and unattributed evidence grades. `validate_table`'s bool-is-not-a-rate guard re-tested.
+- fuzz 24: the v3 surfaces under fire. (planned): - Found: week_compare crashed on unparseable day labels (unguarded fromisoformat against untrusted digest rows) - buckets now skip TypeError/ValueError/KeyError days. - Hardened: price model names refuse control characters. - Pinned: duplicate-day mirrors, one-week comparisons are unusable, empty-store resources, all-n/a floors, unattributed evidence grades (None, not a crash).
 
 ## v3.5.0
 
-- the help tour: `approximately help` prints seven topics, `approximately help operate` prints that topic's doors with one-liners — 60 doors stopped being a flat wall of text. The tour is data held to completeness by the suite: every registered door appears exactly once, every tour entry is a real door, so help cannot rot behind the CLI (it caught its first missing door — itself — the moment it was written).
+- the help tour. (planned): - approximately/helptour.py: 7 topics, every door exactly once (completeness test holds TOUR to the registered set - both directions). - CLI help [topic]; unknown topic exits 2 naming the topics.
 
 ## v3.4.0
 
-- the retrospective half of the audit: `audit --week-compare` appends this ISO week vs last over the digest's day-rows — failures, volume and spend with honest WoW deltas (a comparison of nothing reports `usable: false`, never a division-by-zero verdict). The projection doors say where the fleet is heading; this says what just changed. MCP `audit` carries the same section. One minor for the batch.
+- the retrospective half. (planned): - fleet.week_compare over summarize_trend rows (ISO-week buckets, this vs last, deltas honest about zero bases). - audit --week-compare: report["week"] + prose WoW line; MCP audit parity. - Tests anchor to the ISO Monday (weekday-independent).
 
 ## v3.3.0
 
-- the browsable ops surface: `grades`, `triage` and `prices.json` join the MCP resources beside the traces — an agent (or a human with a resource browser) reads the operations state without a tool call, and a corrupt price catalog surfaces honestly as a resource instead of a silent absence. The evidence pack's manifest now carries the failed run's primary agent's current letter grade: a reviewer sees pattern-vs-fluke before opening the timeline (a 40% failure rate grades F with the reliability weight — that is the point).
+- the browsable ops surface. (planned): - MCP resources: /grades, /triage, /prices.json served beside the traces; corrupt catalog surfaces as a resource finding. - Evidence manifest carries agent_grade (primary agent's current letter; n/a passes through; errors never fail the pack). - One minor for the batch.
 
 ## v3.2.0
 
-- the lazy-startup batch: every heavy import (attributor, fleet, demo, replayer, report, regress, taxonomy) moved from the cli module's top level into the doors that use them — cold `--version` drops ~100ms -> ~80ms and every non-attributing door stops paying for the attributor's detector tables on the way to doing something else. The startup gate (#28) holds the line. This is why the gate exists: the wall measures, the batch optimizes, neither trusts the other.
+- the lazy-startup batch. (planned): - cli.py's heavy top-level imports moved door-local (attributor/fleet/demo/replayer/report/regress/taxonomy); cold --version ~100ms -> ~80ms; _ci_gate_rows gained its own fleet import (F821 caught in passing). - startup gate #28 docstring records both numbers.
 
 ## v3.1.0
 
-- the self-audit batch (v3's first feature batch, one minor for the lot): (1) a price catalog on file that cannot be parsed is now an audit FINDING with a diagnosis, not a bare exit-2 — the 3am door reports the broken table (and still refuses loudly when `--max-spend` was actually asked for); (2) the startup gate joins the perf wall (#28: cold `--version` must answer in format under 5s — 59 doors import one cli module); (3) the README's advertised numbers are now tested against the code (tool count, every cited door exists, the VERSIONING link).
+- the self-audit batch. (planned): - audit prices-catalog health: corrupt catalog is a finding (prose + json + MCP), not a bare refusal; --max-spend with a corrupt catalog still refuses with exit 2. - startup_gate #28: cold --version under 5s (local ~100ms). - docs-consistency tests: README tool count == _TOOLS, every cited door is registered, VERSIONING.md linked and real. - One minor for the whole batch, per VERSIONING.md.
 
 ## v3.0.0
 
-- the milestone major: the postmortem toolkit (v2) is now the operations-loop platform — live budget rails, the composed nightly audit, 47 MCP tools, and the on-call cycle (tail, triage, grade, handoff, snapshot, prices). The real contract change: Python 3.9 is dropped (EOL since 2025-10) — floor is 3.10, CI matrix and classifiers follow. And the versioning standard is written down at last ([VERSIONING.md](docs/VERSIONING.md)): majors are capability milestones that carry a real contract change — both, together; minors are per feature batch, never per commit; the 129-minor minor-of-v2 was number-pumping and it stops here.
+- the milestone major, and the number-pumping stops. (planned): - VERSIONING.md: major = capability milestone AND a real contract change (both together); minor = per feature batch, never per commit; patch = fixes/docs. - The contract change: Python 3.9 dropped (EOL 2025-10). Floor 3.10: pyproject requires-python, classifiers, ruff target py310, mypy python_version 3.10 (retires the recurring unsupported-version warning), CI matrix 13 -> 12 jobs (22 -> 21 checks). - The milestone: v2's postmortem toolkit became v3's operations-loop platform (47 MCP tools, live rails, the on-call cycle).
 
 ## v2.129.3
 
-- the perf wall's budgets are now sized from loaded-runner reality, not local weather: thirteen gates lifted so every budget covers local-cost x100 (tonight's loaded Windows runners ran 9-40x local). A regression is 10-100x and still trips; a busy runner no longer does. The rule is written into the gate file: budgets exist for regressions, not weather.
+- budgets sized from reality. (planned): - 13 perf budgets lifted so each covers local-cost x100 (tonight's loaded Windows runners: 9-40x local). A regression still trips; a busy runner does not.
 
 ## v2.129.2
 
-- the tail gate's budget widened 1s -> 5s, closing the "runner weather" class for good: on a loaded Windows runner the once-pass clocked 1426ms against a budget sized from a 90ms local run — and the fail-fast cascade then cancelled every queued job behind it, which is also what the macos-3.12 "capacity" cancellations actually were. The gate's docstring now says what it always meant: regressions are 10-100x, runner weather is 2-15x.
+- the cascade, named. (planned): - tail_gate budget 1s -> 5s: loaded-Windows 1426ms against a 90ms-local budget; the fail-fast cascade then cancelled every waiting job behind it (the macos-3.12 "capacity" mystery was this, not capacity).
 
 ## v2.129.1
 
-- the perf gate's two tightest budgets (csv export, quarantine) widened 5s -> 10s: the same code that ran 22/22 green on the PR runner exceeded them on a loaded Windows runner hours later. Local costs are ~125ms and ~25ms — the budgets were never the constraint, CI variance was, and the gate is for catching regressions, not runner weather.
+- runner weather is not a regression. (planned): - csv/quarantine perf budgets 5s -> 10s: the same green code exceeded them on a loaded Windows runner; local costs are ~25-125ms, the budgets were never the constraint.
 
 ## v2.129.0
 
-- the loop wires itself in: `init`'s agent-audit workflow ships with `--grade-floor F --triage-top 5` (F only trips when an agent fails over half its runs — sparse evidence grades n/a and never trips; the template comments show the raise-to-B path) and `annotate --from-triage` drafts notes from the queue's top unannotated failures — mode, score, novelty, tokens, agents — verdicts left empty for a human, annotated failures never come back.
+- the loop wires itself in. (planned): - init's agent-audit workflow carries --grade-floor F --triage-top 5; annotate --from-triage drafts from the queue's top unannotated failures. Renumbered from 377: the Windows fix shipped as v2.128.0 first.
 
 ## v2.128.0
 
-- the Windows separators, caught and owned: zip member names are POSIX by spec — `snapshot`'s manifest keys used `str(relative_to)`, so on Windows they carried backslashes against an archive zipfile had already normalized, and verification failed against its own backup. Manifest keys and arcnames are now `.as_posix()`, with a consistency regression test (manifest keys == archive names, no backslashes). CI ran this red on four Windows jobs since v2.121.0 — the night's merge gate (`cmd | tail; echo $?`) captured tail's exit code, not the watcher's, so red slipped through as green six times; the gate now reads the watcher's own exit. Also in: the evidence pack carries `brief.md` (the handoff one-pager, hashed like every member; a brief failure shrinks the pack, never fails it) and the perf evidence gate's member count follows.
+- the Windows separators, caught and owned. (planned): - snapshot.py: manifest keys and arcnames via as_posix() - zipfile normalizes os.sep inside archives, so Windows verification failed against its own backup (red on four Windows jobs since v2.121.0). - The merge-gate lesson: `cmd | tail; echo $?` reads tail's exit code - six red CIs slipped through as green. The gate now reads the watcher's own exit. - Evidence packs carry brief.md (handoff one-pager, hashed like every member; brief failure shrinks, never fails). perf evidence gate: 3 -> 4 members.
 
 ## v2.126.0
 
-- the audit door speaks the whole on-call loop: `audit --grade-floor B` fails the nightly door when any agent grades below the floor (`n/a` never fails — insufficient evidence is not a conviction), and `--triage-top N` attaches the morning queue to the report as advice that never flips the exit. Both travel through the MCP `audit` tool (schema + handler); the prose report names the below-floor agents and the queue's top row.
+- the audit speaks grades and triage. (planned): - audit --grade-floor LETTER: below_floor() helper (n/a never fails, unknown floor is an exit-2 refusal), report.grades, prose names the below-floor agents. - audit --triage-top N: report.triage (TriageRow dicts), advice only - never flips the exit. - MCP audit schema + handler parity; docs/mcp-tools.json regenerated (schema-only change, count stays 47).
 
 ## v2.125.0
 
-- RECIPES 26: the operations night — the on-call loop as one chapter. The tail tells you when, the triage queue tells you what first, the grade tells you which agent is drifting, the handoff tells you why, and the snapshot makes the night leave the machine safely. Docs-only.
+- RECIPES 26: the operations night. (planned): - The on-call loop as one chapter: tail (when), triage (what first), grade (which agent), handoff (why), snapshot (leaves safely), prices (honest burn throughout). - Docs-only release.
 
 ## v2.124.0
 
-- the perf wall grows to 27: the tail earns its budget like every surface before it — a once-pass over a 2k-trace store (local: ~90ms; the 1s gate leaves ~10x for CI variance), and the pass must keep its header line. The wall now covers 27 doors, every one of them a budget a regression can fail.
+- the perf wall grows to 27. (planned): - tail_gate: once-pass over a 2k-trace store under 1s (local ~90ms), header-line assertion so a pass that silently scans nothing still fails.
 
 ## v2.123.0
 
-- the tail: `approximately tail` watches store arrivals — one line per landing (id, steps, token burn, task), `!! FAIL` for failures, `>> ALERT` plus an HMAC-signed webhook announcement (the fleet's channel, per-run payload) when a failed run lands. A webhook that 500s retries with bounded backoff, logs, and never kills the watch. `--once` is the cron-able single pass; `--json --once` is a stateless snapshot aligned with the MCP door (47 tools, docs/mcp-tools.json synced).
+- the tail. (planned): - approximately/tail.py: scan_pass diffs arrivals against a seen-set seeded from trace_files stems; render_arrival one line per landing (ok / FAIL / ALERT); arrival_payload rides the fleet's signed webhook channel (notify_webhook injected, failures logged, watch never dies). - CLI tail: --interval/--once/--max-passes/--webhook/--json (json is one-pass only, stateless snapshot; streaming is prose); scheme-gated URL, exit 2. - MCP tail (tool 47): stateless latest-arrivals snapshot; artifact regen; pins 46 -> 47.
 
 ## v2.122.0
 
-- fuzz 23, aimed at the night's six new surfaces — and it drew blood twice: a string `created_at` (hand-edited or foreign-imported) crashed triage's min/max and handoff's `localtime` (`coerce_epoch` now gates both, zeroing poison instead of dying), and a negative `breached_traces` card graded F for a breach it never had (degenerate negatives clamp at zero — no evidence of a breach is not a breach). Also pinned: redact's pattern-shape boundary joins the query DSL's in SECURITY.md (compile-time syntax only, builtins linear by construction), snapshot roundtrips empty and unicode-named stores, and `prices` takes 1e300 without blinking. SECURITY.md redaction row added.
+- fuzz 23: the night's surfaces under fire. (planned): - Found: string created_at crashed triage (min/max TypeError) and handoff (localtime) - trace.coerce_epoch() gates both; negative breached_traces graded F - grade clamps degenerate negatives at zero. - Boundary pinned: redact custom-pattern ReDoS is the operator's (SECURITY.md row, same stance as the query DSL); a live-fire catastrophic-pattern test hung the suite and was replaced by a linear-shape pin. - Also: snapshot vs empty/unicode stores, prices vs 1e300, empty-store snapshot roundtrip (0 members, no crash).
 
 ## v2.121.0
 
-- snapshot & restore: `approximately snapshot OUT.zip` packs the whole store losslessly — every trace, the annotation and ledger sidecars, the price catalog, even quarantined bytes — with a sha256 manifest inside the archive; `restore --into DIR` recomputes every hash before extracting and refuses on mismatch, missing or unlisted members, and existing files (unless `--force`). The roundtrip caught a real cross-cutting bug: `list_traces` globbed every root `*.json`, so the price catalog parsed as a degenerate empty-task trace and polluted every fleet surface — a `trace_files()` helper now gates all seven trace-facing globs (list/clean×2/latest/remaining/doctor×3). MCP parity (46 tools) and docs/mcp-tools.json synced.
+- snapshot & restore. (planned): - approximately/snapshot.py: member selection (traces, sidecars, catalog, quarantine; never locks/tmps), sha256 manifest inside the zip, verify_snapshot lists offenders, restore refuses on mismatch/missing/extra/clash (--force overrides). - The roundtrip audit find: list_traces globbed every root *.json -> prices.json became a degenerate trace on every fleet surface. store.trace_files() now gates 7 globs (store x2 already done, cli latest+remaining, doctor x3). - CLI snapshot/restore doors (--json, exit 2 refusals); MCP snapshot create/restore (tool 46) + artifact regen; pins 45 -> 46.
 
 ## v2.120.0
 
-- the handoff brief: `approximately handoff TRACE` composes one markdown page for the next engineer (or agent) — what failed with the MAST attribution and suggested fixes, whether the hash chain is trustworthy, the token/cost burn at the store's price catalog, the annotation trail, and the full record path. `--redact` renders the page from a sanitized view (builtin secret shapes scrubbed from every free-text line), so it is safe to paste before it exists. `--out` writes a file, `--json` wraps the markdown. MCP parity (45 tools) and docs/mcp-tools.json synced.
+- the handoff brief. (planned): - approximately/handoff.py: brief() composes the page from attribution + integrity verdict + prices catalog cost + annotations; every free-text line passes through the scrubber when a pattern table is given; corrupt catalog shows unpriced, never fatal. - CLI handoff (--redact/--out/--json, exit 2 unknown trace); MCP handoff (tool 45) + artifact regen; pins 44 -> 45. - Composes the night's earlier work: redact scrubs the page, prices prices the burn, integrity vouches for the evidence.
 
 ## v2.119.0
 
-- letter grades: `approximately grade` turns the scorecards' per-subject rollups into verdicts — reliability (failure rate, weight 0.5), discipline (error share of calls, 0.25), budget (breach stamps, 0.25; any breach is an F). Evidence floors: fewer than 2 traces grades n/a, never a guess; a missing component renormalizes instead of becoming an F. `--tool` grades tools, `--agent X` narrows. MCP parity (44 tools) and docs/mcp-tools.json synced.
+- letter grades. (planned): - approximately/grade.py: grade_card over cluster scorecards; weighted composite (reliability 0.5 / discipline 0.25 / budget 0.25) with renormalization when a component lacks evidence; MIN_TRACES=2 evidence floor -> n/a, not a guess. - CLI grade door (--agent/--tool/--json, exit 2 unknown subject); tool rows take discipline over steps when tool_calls is absent. - MCP grade (tool 44) + artifact regen; pins 43 -> 44.
 
 ## v2.118.0
 
-- the price catalog: `approximately prices set/unset/list` keeps model rates in `<store>/prices.json`, and every spend door (budget, status, ci, audit, compare, fleet) falls back to it when no explicit `--prices` file is given — explicit always wins, corrupt catalogs refuse rather than silently $0. Retention stops eating the furniture: `clean` once globbed every root `*.json`, so the catalog (and stats.json) would have aged out with the traces. MCP parity (43 tools) and docs/mcp-tools.json synced; `_load_prices`/`_fleet_prices` duplication collapsed into one resolution chain.
+- the price catalog. (planned): - approximately/prices.py: catalog CRUD on <store>/prices.json, validate_table (finite, non-negative, bool-is-not-a-rate), resolve_prices (explicit --prices wins, catalog next, None last); corrupt catalog refuses instead of $0. - CLI prices door (list/set/unset/--json, exit 2 refusals); 7 _load_prices/_fleet_prices call sites collapsed into _resolve_cli_prices; fleet catalog only with exactly one store (no silent multi-store blend). - clean() spares STORE_ARTIFACTS (prices.json, stats.json) in both the age pass and the max_traces pass - the audit find. - MCP prices (tool 43) + artifact regen; pins 42 -> 43.
 
 ## v2.117.0
 
-- the triage queue: `approximately triage` ranks the store's failed runs by postmortem value — novelty of the failure mode dominates (2.0), tokens burned, agent breadth and recency nudge (1.0/1.0/0.5); every row carries its score parts, annotated failures are marked or skipped (`--unannotated-only`), windowed with `--since-days`. `unattributed` failures keep their queue spot — they are exactly the ones needing eyes. MCP parity (42 tools) and docs/mcp-tools.json synced.
+- the triage queue. (planned): - approximately/triage.py: novelty 1/(1+same-mode predecessors) via attributor, cost/blast/recency normalized in-window; transparent weights 2.0/1.0/1.0/0.5; TriageRow carries parts. - CLI triage: --limit/--since-days/--unannotated-only/--json; prose render_queue with window accounting; empty window is exit 0 ("nothing to triage"). - MCP triage (tool 42; limit=0 honored) + artifact regen; three pinned tool-count tests 41 -> 42.
 
 ## v2.116.0
 
-- the redaction door: `approximately redact TRACE` writes a sanitized share-copy — eight builtin secret shapes (AWS/GCP keys, GitHub/Slack/OpenAI tokens, JWTs, bearer headers, private-key blocks) plus your own `--pattern name=regex`, scrubbed from results, thoughts, errors, task and step args. fresh id, fresh chain, original byte-identical; provenance rides in `meta["redacted"]`. MCP parity (41 tools) and docs/mcp-tools.json synced.
+- the redaction door. (planned): - approximately/redact.py: 8 curated secret shapes + custom name=regex patterns; share-copy with a fresh id and fresh chain (the original file stays byte-identical); provenance in meta["redacted"] (source, hits, patterns). - CLI redact: --pattern/--only/--replacement/--out/--json; refusals (unknown trace/pattern, bad regex) exit 2. - MCP redact (tool 41) + docs/mcp-tools.json regenerated; three pinned tool-count tests bumped 40 -> 41.
 
 ## v2.115.0
 
-- the per-agent failure budget: `fleet --trend --agent NAME --failure-budget N` — the agent's own failed-run accounting against an allowance, read from the digest's agent day-rows (a rename from failed_traces, not a reinterpretation). the per-agent story closes: rails, sizing, accounting. the agent trend door became its own function.
+- the per-agent failure budget. (planned): - fleet --trend --agent X --failure-budget N: the agent's failed_traces series against an allowance (json + prose). - The agent trend door extracted to _agent_trend_report.
 
 ## v2.114.0
 
-- the reliability budget gets its chapter: RECIPES 25 — mistakes as a burn rate, the exhaustion date, the audit gate, and the three surfaces that answer the allowance question. docs-only.
+- the reliability budget gets its chapter. (planned): - RECIPES 25: mistakes as a burn rate; the audit gate; the three answering surfaces. - Docs-only release.
 
 ## v2.113.0
 
-- budget_sim's agent parity: the MCP tool takes `agent` (only that participant's steps charge; agent-without-token-ceiling refused, same as the CLI). docs/mcp-tools.json synced.
+- budget_sim's agent parity. (planned): - MCP budget_sim gains `agent` (schema + handler + artifact); agent-without-token-ceiling refused like the CLI door.
 
 ## v2.112.0
 
-- the perf wall grows to 26: the night's three surfaces earn their budgets like every wave before them — the result-bloat fleet meter over 2k traces, the composition walk + truncation what-if on a 500-step run, and the reliability budget projecting a 365-day digest window. (First seed math failed its own threshold — a 5-sample z of 3.37 sits under 3.5; the gate now seeds 9 uniform + 1 wall, z≈6.7.)
+- the perf wall grows to 26. (planned): - result_meter_gate (2k traces), composition_gate (500 steps + what-if), failure_budget_gate (365-day window). - Seed-math honesty: a 5-sample wall is z=3.37 < 3.5 — the gate seeds 9 uniform + 1 wall.
 
 ## v2.111.0
 
-- the night's doors get their rows: the README capability table gains the spend forecast, the reliability budget, and the nightly audit — three shipped doors that had no row. docs-only; anchors asserted.
+- the night's doors get their rows. (planned): - README capability table: spend forecast, reliability budget, nightly audit rows (anchors asserted — the silent replace lesson applied). - Docs-only release.
 
 ## v2.110.0
 
-- the composition answer comes with a price: when one kind owns the window (>50%) and it is tool results, the payload carries `suggest_truncate_chars` (2,000) and `suggest_save_tokens` — priced from the worst step's actual result — and the prose names the step and the savings. the suggestion logic lives in `_truncation_suggestion`, one typed helper.
+- the composition answer comes with a price. (planned): - composition(): when tool results own the window (>50%), the payload prices the obvious fix (truncate the worst step to 2,000 chars -> suggest_save_tokens); prose names the step. - _truncation_suggestion: one typed helper.
 
 ## v2.109.0
 
-- the banner's numbers age too: 1,800+ tests (was 1,600+) across the 22-check CI matrix (was "15-job" — the count split test-matrix jobs from the whole). the changelog chain also learned a guard: entries whose insert-anchor is missing now assert loudly instead of silently writing nothing (v2.107's entry went missing that way; v2.108's merge healed it).
+- the banner's numbers age too. (planned): - README: 1,800+ tests / 22-check matrix (was 1,600+ / "15-job" — matrix jobs vs whole-pipeline checks conflated). - Process note: v2.107's CHANGELOG entry was lost to a silent no-op replace; the heal commit restored the chain.
 
 ## v2.108.0
 
-- fleet-wide, who dumps the most into contexts: the tool scorecard gains a `result_chars` column — summed across every call of that tool in the store, so the ranking names the windows-eater directly instead of per-step outliers. README gains the Result bloat row.
-
-## v2.107.0
-
-- the meters meet parity: the MCP `anomalies` tool meters results (`results: true`, single-trace and fleet), and the CLI's `--per-tool` works for the result meter — every meter now carries every option the family shares. docs/mcp-tools.json synced.
+- who dumps the most into contexts. (planned): - tool_scorecard.result_chars: summed result length per tool across the store — the fleet-wide ranking of window-eaters. - README: Result bloat row.
 
 ## v2.106.0
 
-- the security ledger learns the week's lessons: quarantine's evidence-preservation guarantee (bytes kept, poison not immortalized, `clean --keep-breached`), and the lie-by-subtraction defenses (negative digest failures clamped, unpriced models counted — a budget you cannot compute does not hold). ARCHITECTURE's module map names forecast.py. docs-only.
+- the security ledger learns the week's lessons. (planned): - SECURITY.md: quarantine's evidence-preservation row; the lie-by-subtraction row (negative failures clamped, unpriced honesty). - ARCHITECTURE: forecast.py in the module map. - Docs-only release.
 
 ## v2.105.0
 
-- fuzz 22 points the hostile probes at the night's new surfaces and finds two real holes, both closed: a poisoned trace whose step.result is a NUMBER crashed the result meter and the composition walk (len() on an int — the meters now skip data lies instead of crashing), and a digest row with NEGATIVE failures made the reliability budget grow as the fleet burned (untrusted input now clamps at zero). zero-allowance and huge-count semantics pinned.
+- fuzz 22: the meters under hostile input. (planned): - Poison result types (numbers) crashed the result meter and composition; non-string results are now data lies the meters skip. - failure_budget clamps digest failures at zero (a negative count grew the budget). - Zero-allowance and huge-count semantics pinned; 8 tests.
 
 ## v2.104.0
 
-- drift splits by the calendar: `drift --baseline-days N` splits one store's history at a real date — baseline = traces older than N days by their own created_at, current = the rest — because "this week versus the previous month" is the question ops asks and a count-ratio split answers a different one. the count split stays the default; a one-sided window exits cleanly with the reason named.
+- drift splits by the calendar. (planned): - `drift --baseline-days N`: time-based split by the trace's own created_at (overrides --baseline-ratio); one-sided windows exit 1 with the reason in the message.
 
 ## v2.103.0
 
-- the composition view reaches the postmortem: report.html renders a Context composition card — tokens by step kind, shares, each kind's worst contributor — beside the other analysis cards. best-effort contract: nothing measurable or a single kind (a respond-only run is 100% response and 0% insight) gets no card; poison args stringify instead of crashing.
+- the composition view reaches the postmortem. (planned): - report.html: Context composition card (kinds, shares, worst contributors, total); >=2 kinds required — a single kind is not a composition story. - Best-effort contract held (poison args stringify).
 
 ## v2.102.0
 
-- the meters get their chapter: RECIPES 24 — the three rulers (latency, tokens, result length), the Result bloat card, and composition + the truncation what-if with the truncation-problem-vs-context-length-problem punchline. docs-only.
+- the meters get their chapter. (planned): - RECIPES 24: three rulers, one robust ruler; --results; the composition + truncation what-if pair. - Docs-only release.
 
 ## v2.101.0
 
-- the truncation what-if, and agents get the composition view: `context --composition --truncate-results N` counts tool results as if cut at N characters and reports the savings (baseline = the same walk without the cut — saved accumulates result-only deltas, so tokens_before is exactly total + saved), and the MCP context tool carries both knobs. sizing a truncation rule stops being a guess.
+- the truncation what-if. (planned): - composition(truncate_results=N): what-if walk with the baseline accounting kept honest (tokens_before = total + saved; saved is result-only). - `context --truncate-results N` CLI; MCP context tool gains composition + truncate_results (docs/mcp-tools.json synced).
 
 ## v2.100.0
 
-- what fills the window: `context <trace> --composition` breaks a run's context down by step kind — estimated tokens, share, each kind's worst contributor — sorted by share. the answer to "why is my window full?" when the answer is not the model: a run whose context is 80% tool results has a truncation problem, not a context-length problem. result-less steps contribute nothing and say so.
+- what fills the window. (planned): - context.composition(trace): estimated tokens by step kind, share, worst contributor per kind; result-less steps are free and excluded. - `context <trace> --composition` door: prose table + json.
 
 ## v2.99.0
 
-- result bloat goes fleet-wide: the third meter mirrors the token family across every fleet surface — StoreSummary count + worst finding, webhook payload, digest day-rows with the result-bloat trend curve and day-table column, the store card's "Longest result" row, and `fleet --alert-results N` with the usual cooldown dedup. the four near-identical trend-curve blocks collapsed into one table-driven renderer and the alert machinery lost its copy-paste chains: same verdicts, one definition each.
+- result bloat goes fleet-wide. (planned): - StoreSummary.result_anomalies + worst; payload, digest rows, the result_trend curve + day column, card row, and fleet --alert-results N (cooldown dedup unchanged). - _CURVE_SPECS table replaces four copy-pasted curve blocks; _should_alert/_alert_reasons lost their or-chains (_THRESHOLDS table, positional signature kept). - _card_findings extracted from _store_card.
 
 ## v2.98.0
 
-- the third meter: latency and tokens had robust-z detectors, but the size of what a tool DUMPS INTO THE CONTEXT did not — a 40k-character wall can be cheap in tokens and fast, and still eat the window. `anomalies --results` meters tool-result character length (modified z-score, min-samples honest no-op), the postmortem renders a Result bloat card, and the fleet view carries trace ids. also: the digest-compaction pins were midnight-fragile (now-minus-k*60 crossing 00:00 split day 0 in two); they now anchor at noon.
+- the third meter: result bloat. (planned): - anomaly.py gains the result-length family (per-trace + fleet + summarize), same modified z-score ruler. - `anomalies --results` door (verdict convention: findings exit 1); report.html renders the Result bloat card. - The digest-compaction pins anchored at noon — they split day 0 in two whenever the suite ran just after midnight.
 
 ## v2.97.0
 
-- the reliability budget becomes standing: `failure_budget` joins the MCP surface (40 tools — allowance validation mirroring the CLI: positive int, refusal on a budget of zero that holds nothing) and `status --failure-budget` surfaces burn fraction and exhaustion in the ops pulse, json and prose. both projections read the summarized day-rows via one helper, the entries-vs-rows lesson finally living in one place.
+- the reliability budget becomes standing. (planned): - MCP `failure_budget` tool (40 tools); allowance validation mirrors the CLI. - `status --failure-budget`: payload + prose line. - Both projections read summarized rows through _payload_forecasts — one home for the entries-vs-rows rule.
 
 ## v2.96.0
 
-- the reliability budget: money got a forecast in v2.87, reliability gets the same accounting — `fleet --trend --failure-budget N` treats the window's failed runs as a burn against an allowance (burn fraction, exhaustion date from the Theil-Sen slope, exit 1 when already gone) and `audit --failure-budget` fails the nightly door on an exhausted budget. digest payloads now carry the exact `failures` count per store and per day. the parallel-loading idea died in measurement (threads under the GIL: 987ms vs 983ms sequential on a 10k store — no real win, no code).
+- the reliability budget. (planned): - forecast.failure_budget(days, allowance): burn fraction, exhaustion projection, refusal on <2 days; failures counted exactly via the new payload/digest field. - fleet --trend --failure-budget + audit --failure-budget (exhausted exits 1); prose + json both report. - The parallel-loading candidate died in measurement before it could become code.
 
 ## v2.95.0
 
-- the audit gets its chapter: RECIPES 23 walks the composed nightly door — the four questions it answers in one report, `--fix` quarantine semantics, the `--spend-ceiling` forecast with its honest caveat, and the two workflows `init` wires (push gate + 03:00 audit). docs-only.
+- the audit gets its chapter. (planned): - RECIPES 23: the composed nightly door — four questions, one exit code; --fix quarantine; the forecast's honest caveat; init's two workflows; the MCP audit tool. - Docs-only release.
 
 ## v2.94.0
 
-- the fresh doors, aligned: `budget --agent NAME` sizes per-agent rails on one participant's steps only (an agent-scoped simulation needs its token ceiling — per_agent rails are token-only), and `status --spend-ceiling USD` gives the ops pulse the same days-to-ceiling forecast the fleet trend carries (json field + prose line; silent without a ceiling). xenon kept honest via _first_trip/_scoped_steps/_saved_* and _digest_trend/_write_forecast_line extractions.
+- the fresh doors, aligned. (planned): - budget.simulate(--agent) + CLI flag: per-agent sizing on one participant's steps; token-ceiling required for the scope. - status --spend-ceiling: the fleet-trend forecast in the ops pulse (json + prose). - Helper extractions keep xenon at its bar.
 
 ## v2.93.0
 
-- stamps are data, and ingest knows it: probes over the merge/import paths found the Night V rule intact — merged traces carry the stamps they earned in their own store (and the destination's gate reads them), imported and spooled traces never acquire ours (`stamp=False` at every ingest save). four pins keep it that way; the README's alignment row names `--agent`. tests-only-plus-one-row.
+- stamps are data, and ingest knows it. (planned): - Probes confirmed: merge carries stamps (the destination gate reads imported breaches); importer/spool save stamp=False. - 4 pins: merge carriage, conflict-replace, foreign-import non-stamping, json roundtrip survival. - README alignment row names --agent.
 
 ## v2.92.0
 
-- one participant's trajectory: `similar --agent NAME` aligns a single agent's action stream instead of the interleaved multi-agent run — two research agents taking different paths inside otherwise identical runs become distinguishable, and the interleaved noise (the other agent's identical steps, messages, responses) stops propping up false neighbors. tokens()/rank_similar/similar_payload take the filter; CLI, MCP schema and docs/mcp-tools.json carry it. payload gains an "agent" key when scoped.
+- one participant's trajectory. (planned): - align.tokens/rank_similar/similar_payload gain agent=; the filter keeps only that agent's tool steps (unattributed steps never match a named filter). - `similar --agent` CLI + MCP schema + mcp-tools.json. - A variable-reuse incident wrote cli content over align.py mid-round; caught by import, reverted from git, re-applied atomically with per-edit anchors. No main-branch impact.
 
 ## v2.91.0
 
-- the audit reaches standing surfaces: `audit` joins the MCP surface (39 tools — doctor section, gate section, digest trend + forecast, `fix` repairs in place), and `init` now wires a nightly `agent-audit.yml` (cron 03:00, `--fix` on) beside the PR gate — the composed door is something a schedule runs, so both standing surfaces carry it. banner counts and docs/mcp-tools.json follow.
+- the audit reaches standing surfaces. (planned): - MCP `audit` tool (39 tools): doctor/gate/digest sections, fix-in-place; helpers extracted (xenon). - init wires agent-audit.yml (nightly cron, --fix on) beside the PR gate; init tests updated for four files.
 
 ## v2.90.0
 
-- the composed nightly door: `approximately audit` — doctor (optionally `--fix`/`--deep`), the quality gate over the store, and with `--digest-dir` the fleet trend plus the `--spend-ceiling` forecast — one report (prose or `--json`), one exit code (0 quiet, 1 any finding, 2 refusal). what a 3am cron runs instead of four commands and a shell script. the forecast-input lesson (entries vs summarized rows) now has a comment in its third fix site.
+- the composed nightly door. (planned): - `approximately audit`: doctor (+fix/deep) + ci ceilings + trend/--spend-ceiling forecast, one report one exit code. - Prose renderer and digest section extracted (xenon). - Forecast-input lesson commented at its third fix site.
 
 ## v2.89.0
 
-- the analytics become agent-callable: `budget_sim` (the sizing door — trip step and savings against hypothetical ceilings, prices/ceiling validation mirroring the CLI) and `spend_forecast` (days-to-ceiling over the digest history) join the MCP surface — 38 tools. the forecast handler reads the summarized day-rows, not the raw entries; README banner counts and docs/mcp-tools.json follow. local ruff upgraded to CI's era after tonight's lint drift.
+- the analytics become agent-callable. (planned): - MCP `budget_sim` + `spend_forecast` (38 tools): validation mirrors the CLI doors; the forecast handler consumes summarize_trend rows (the entries-vs-rows lesson, again). - README banner + mcp-tools.json synced; count pins moved. - Local ruff upgraded 0.16.6 -> 0.16.10 after the CI lint caught what local missed.
 
 ## v2.88.0
 
-- size the rails on yesterday's burn: `approximately budget <trace> --tokens N [--usd X --prices P]` replays a recorded, unbudgeted run against hypothetical ceilings and answers the arming question with evidence — which step the breaker trips at, how many tokens (and dollars) the run burned after the step where it should have died. runs the ceiling never catches say so; the json payload carries the whole simulation.
+- size the rails on yesterday's burn. (planned): - budget.simulate(trace, tokens, usd, prices): replay tool steps into a raise-mode Budget; trip step, saved tokens/USD (burn after the trip point only). - `approximately budget <trace>` CLI door: prose + json, refusals (unknown trace, no ceiling, usd-without-prices) exit 2.
 
 ## v2.87.0
 
-- the trend says which way; the forecast says what that means in days: `fleet --trend --spend-ceiling USD` projects the daily spend series forward (Theil-Sen slope, horizon projection floored at zero) and reports days until the ceiling — 0 and exit 1 when already over, `None` when the trend never gets there, and a forecast that refuses to guess on one day of history. honestly labeled: linear extrapolation of a robust slope, blind to your next deploy.
+- what the trend means in days. (planned): - forecast.py: forecast_spend(days, ceiling, horizon) — Theil-Sen slope, clamped projection, days_to_ceiling (0 = already over; None = never), refusal on <2 days. - fleet --trend --spend-ceiling: prose line + json spend_forecast; already-exceeded exits 1. - Bug found in wiring: the forecast originally consumed trend_days entries (no est_spend); it reads the summarized rows.
 
 ## v2.86.0
 
-- the stamp reaches the scrapers and the spreadsheets: Prometheus entity renderings gain `approximately_{tool,agent}_breached_traces_total` beside `failed_traces` (both scorecards count breached runs the entity touched), and CSV export gains a `budget_breached` column per step row — a spreadsheet filters the burn without unpacking JSON. position-based CSV pins moved for the new column; the injection defense is pinned unchanged.
+- the stamp reaches scrapers and spreadsheets. (planned): - tool_scorecard + agent_scorecard: breached_traces column; Prometheus entity renderings gain the counter. - CSV export: budget_breached column (header index 12); the fuzz pins for the result column moved 12 -> 13.
 
 ## v2.85.0
 
-- the CI guide learns what the gate can do now: docs/ci-integration.md gains the quality-gate section — ceiling composition, `--max-budget-breaches`, the junit and step-summary renderings with the same exit codes, and the deployment compare's junit testcase. ARCHITECTURE's module map stops pretending budget.py doesn't exist. docs-only.
+- the CI guide learns what the gate can do. (planned): - docs/ci-integration.md: quality-gate section (ceilings, --max-budget-breaches, junit / step-summary renderings, deployment compare junit). - ARCHITECTURE module map names budget.py. - Docs-only release.
 
 ## v2.84.0
 
-- the last two readers of the stamp: the agent scorecard gains `breached_traces` (parallel to failed_traces — a run the live rails stopped is a fact about every agent who touched it, the unattributed steps included), and `evidence --all`'s archive index carries `budget_breached` per trace, so a reviewer opening the offboarding archive sees which runs came home over budget without unpacking a single zip. webhook top-agent rows carry the column too.
+- the last two readers of the stamp. (planned): - agent_scorecard gains breached_traces (set semantics parallel to failed_traces; run-level fact for every participant). - build_store_packs index carries budget_breached per trace. - webhook top_agents rows gain the column (and p95_ms, which the tuple had silently dropped).
 
 ## v2.83.0
 
-- the breach count learns to trend: digest day-rows carried each store's budget_breaches since v2.72 and the trend section finally reads them — a Theil-Sen breach_trend verdict, a sparkline, and a day-table column, so "is the fleet burning more or less over time?" is a glance. the perf wall's two flaky-tonight budgets get the Night V remedy (spool 5s→8s, clean 2s→4s — Windows shared-runner variance, both green on rerun).
+- the breach count learns to trend. (planned): - summarize_trend reads budget_breaches from digest day-rows: breach_trend verdict + sparkline + day-table column (the section gate and row generator now tolerate partial rows). - perf budgets widened after tonight's two Windows flakes: spool 5s->8s, clean 2s->4s (ci-gate precedent).
 
 ## v2.82.0
 
-- fuzz 21 points the hostile probes at the surfaces the budget wave never touched — evidence packs, trace diff, clustering — and finds no holes; the pins keep it that way: keyed-pack verdict semantics (right key intact / wrong key wrong-key / no key keyed, sealed not broken), tampered and missing members named exactly, zero-step traces through packs and every scorecard, fifty identical failures collapsing to one cluster, self-diff stability. tests-only release (v2.66 precedent).
+- fuzz 21: evidence, diff, cluster. (planned): - Probes found no holes; 8 pins added: keyed-pack semantics (intact / wrong-key / keyed), tamper + missing-member naming, zero-step traces through pack + scorecards + trend, the 50-identical-failure cluster collapse, self-diff stability. - Tests-only release.
 
 ## v2.81.0
 
-- the verdict reads well where humans look: `ci --format markdown` renders a step-summary table a pipeline can cat into $GITHUB_STEP_SUMMARY (gate / measured / ceiling / verdict, refusals as paragraphs, exit codes unchanged), and the fleet card now NAMES the agents the per-agent ceilings caught — v2.80.0's stamp carried the data, the card just reads it (summary, webhook payload and digest follow; "budget breach(es) — agents: researcher, booker").
+- the verdict reads well where humans look. (planned): - ci --format markdown: step-summary table (cat >> $GITHUB_STEP_SUMMARY), refusals as paragraphs, exits 0/1/2 unchanged. Refusal paths unified into _ci_refuse. - Fleet surfaces breached_agents (survey, webhook payload, digest, card row names them: "agents: researcher, booker").
 
 ## v2.80.0
 
-- per-agent ceilings: a shared budget lets one runaway agent hide inside the group total — `Budget(per_agent={"researcher": 10_000}, ...)` meters each named agent's tokens beside the global ceilings. trips independently, names the agent in the error ("budget exceeded: agent 'researcher' 1,500/1,000 tokens"), warns the same way, and lands per-agent meters in the stamp (`meta["budget"]["agents"]`). the multi-agent story gets the same breaker the single run had.
+- per-agent ceilings. (planned): - Budget(per_agent={name: tokens}): per-agent meters charged from the step's resolved agent (override or recorder-level); trips independently of the global ceilings. - raise/warn name the agent; stamp carries meta["budget"] ["agents"] = {name: {tokens, limit, exceeded}}. - Validation: positive ints; per_agent alone satisfies the at-least-one-ceiling rule.
 
 ## v2.79.0
 
-- the verdict reaches the agent side and the pulse: the MCP doctor tool gains `fix` (an agent harness can repair its own store through the same door the CLI uses — hygiene removed, corrupt records quarantined, bytes preserved), and `status` carries the budget-breach count in both shapes (json field + a text line: "budget breaches: 1 run(s) the live rails stopped"). the MCP surface is documented back into docs/mcp-tools.json.
+- the verdict reaches the agent side and the pulse. (planned): - MCP doctor tool gains `fix`: hygiene + quarantine callable by agents; schema + docs/mcp-tools.json synced (36 tools). - status payload/render carry budget_breaches (window-scoped like every other status tally).
 
 ## v2.78.0
 
-- fuzz 20 audits the new surfaces and finds three real meter lies: a NEGATIVE price paid the run to burn (usd drifted to -1,500 while the ceiling sat silent), negative tokens ran the meter backwards (500 charged, 400 "refunded", ceiling never tripped), and float tokens drifted the meters. prices must now be finite and non-negative; token counts must be non-negative ints — and budgeted recorders validate BEFORE the step lands (an impossible input never enters a trace; a real breach records first, then trips). plus quarantine/junit hostile-input pins (unicode+quote names, clash storms, pathologically named tasks).
+- fuzz 20: the meters cannot lie. (planned): - Budget prices validated at construction: finite, non-negative numbers (a negative price pays the burn; NaN/inf never trip). - Token counts: non-negative ints only; budgeted recorders validate before the step is recorded — validation rejects, breaches record-then-trip. The distinction is the contract. - Quarantine + junit hostile-input pins; 10 new tests.
 
 ## v2.77.0
 
-- the breaker gets its chapters: RECIPES 22 walks the live budget end to end (arm the rails, read the stamp everywhere: gate, fleet, retention, postmortem) and TUTORIAL 12 tells the looping-agent story with the Live budget card as the receipt. docs-only — the seven releases before it wrote the code, this one teaches it.
+- the breaker gets its chapters. (planned): - RECIPES 22: budgets that stop the burn — raise/warn/stamp, the stamp's downstream surfaces, unpriced honesty. - TUTORIAL 12: the looping-agent story, the Live budget card as the receipt, the machinery that carries the verdict forward (gate / fleet / retention). - Docs-only release (v2.68 precedent).
 
 ## v2.76.0
 
-- the deployment gate speaks junit: `compare --format junit` mirrors the one gateable verdict (new failure modes under --fail-on-new-modes) as a failing testcase, with rate/token/spend deltas as informational cases; refusals stay exit 2 as <error> testcases. verdicts are mirrored, never invented. the perf-gate wall grows to 21: budget rails (2k budgeted runs), junit render (2k traces), and quarantine (doctor + move over 220 files) earn their budgets like every surface before them.
+- the deployment gate speaks junit. (planned): - compare --format junit: new-failure-modes testcase fails iff the gate is armed and the candidate regressed; failure-rate / tokens-delta / spend-delta ride as informational cases; empty-store refusals emit the shared <error> XML, exit 2. - perf_gate 18 -> 21: budget_gate, junit_gate, quarantine_gate.
 
 ## v2.75.0
 
-- quarantine for the unreadable: `doctor --fix` moves corrupt record files into `<store>/.quarantine/` with a jsonl manifest (what, when, why) — the bytes are preserved for forensics, never unlinked, and the store stops re-reporting the same poison on every scan. name clashes are suffixed, vanished files skipped, and the parse error travels with the record. a quarantined store reports healthy again.
+- quarantine for the unreadable. (planned): - doctor._check_records now captures the parse error per corrupt file (corrupt_detail); quarantine_corrupt moves them into <store>/.quarantine/ + manifest.jsonl (file, error, moved_at). - --fix semantics widened: hygiene artifacts removed, corrupt records quarantined — preserved bytes, not destroyed. - suffix-on-clash, skip-if-vanished; report.quarantined in the json payload; healthy again after the pass.
 
 ## v2.74.0
 
-- the breaker's receipt in the postmortem: a Live budget card in report.html — what the rails metered (tokens, est. spend, unpriced tokens), what the ceilings were, and whether the breaker tripped. best-effort like every card: no stamp, no card; poison meta renders nothing. evidence packs carry it and stay TRUSTED. the budget loop now closes end to end: record → gate → fleet → retention → postmortem.
+- the breaker's receipt in the postmortem. (planned): - report.html gains a Live budget card: meters, ceilings, BREACHED / within budget verdict, unpriced tokens surfaced. - Best-effort contract: no stamp, no card; non-dict meta renders nothing (poison-guarded via store.stamped_breach). - Evidence packs carry the card; verify stays intact.
 
 ## v2.73.0
 
-- the stamp survives housekeeping: `clean --keep-breached` — runs the live Budget rails stamped as breached survive retention no matter their age or the count ceiling, because housekeeping must not destroy breach evidence before the postmortem reads it. unreadable files are never kept by the guard (a poison file is not evidence); the count cap skips past a breached trace to the next victim instead. the predicate moved to store.stamped_breach, one copy behind every surface. the init workflow template now gates with `--max-budget-breaches 0` out of the box.
+- the stamp survives housekeeping. (planned): - store.clean gains keep_breached: stamped breaches survive the age pass and the count pass (the count loop skips past a breached trace to the next-oldest victim). Unreadable files stay removable — evidence, not poison. - Predicate single-homed: store.stamped_breach; fleet counts through it; cli gate unchanged in behavior, one definition fewer. - `clean --keep-breached` CLI flag (json + prose both report it); init workflow template gains --max-budget-breaches 0.
 
 ## v2.72.0
 
-- the fleet sees the stamp: a live Budget breach now surfaces in the store summary, the webhook payload, the HTML card ("budget breach(es) — the live rails stopped these runs"), and alerting via `--alert-budget-breaches N`. one predicate (`fleet._budget_breaches`) feeds every surface, the ci gate included. plus a real alerting fix: an anomaly/token/spend threshold WITHOUT a failure threshold used to page healthy stores every cycle — the rate clause was `failure_rate >= (None or 0.0)`, always true. healthy fleets are quiet now, as the docstring always promised.
+- the fleet sees the stamp. (planned): - StoreSummary.budget_breaches counted by fleet._budget_breaches (the shared predicate; the ci gate reuses it too). - `fleet --alert-budget-breaches N`: alert reason `name:budget-breaches`, cooldown dedup unchanged; the breach row renders on the store card; webhook payload carries the count; digest snapshots carry it too. - BUG FIX: _should_alert's rate clause was `failure_rate >= (threshold or 0.0)` — always true when no --alert-worse-than was set, so any single threshold silently turned a healthy fleet into page-every-cycle. Now the clause is off unless the threshold is set. Pinned contract updated.
 
 ## v2.71.0
 
-- the gate speaks junit: `ci --format junit` renders the gate rows as native CI annotations — one testcase per gate, a <failure> element per breach, and config refusals become <error> testcases so GitHub Actions and GitLab show WHY the gate refused. exit codes never move. plus `--max-budget-breaches N`: the live Budget rails' stamped verdict becomes a pipeline-relevant ceiling; runs with no rails at all never count against the gate.
+- the gate speaks junit. (planned): - `ci --format junit`: one testcase per gate row, <failure> per breach, <error> testcase for config refusals (exit 2 still prints valid XML — CI systems show why the gate refused). Exit codes unchanged; the format changes what CI sees, not what the pipeline gates on. `--json` stays a working shortcut; explicit `--format` wins. - `--max-budget-breaches N`: counts runs stamped meta["budget"].exceeded by the live rails (v2.70.0) and fails the gate past N; unstamped traces never count. - MCP ci_gate gains the same ceiling; 36 tools unchanged.
 
 ## v2.70.0
 
-- the breaker inside the run: Recorder gains a live Budget — token and dollar ceilings enforced DURING recording (the `ci` gate settles after; this stops the burn). three modes: stamp (record the breach, the default), warn (stderr once per ceiling), raise (BudgetExceededError from the charging call, offending step already on the record). unpriced models never silently count as $0 — they ride in unpriced_tokens. the exit stamp lands before signing, so the signature covers the verdict.
+- the breaker inside the run. (planned): - Recorder gains a live Budget: token/USD ceilings charged on every tool step, DURING the run — the ci gate settles accounts after, this stops the burn mid-episode. - Three enforcement modes: stamp (default; breach recorded in the exit stamp), warn (stderr, once per newly crossed ceiling), raise (BudgetExceededError; the offending step is already on the record, __exit__ marks failure and saves). - House pricing convention throughout: {model: usd/1k}, 4-dp spend, unpriced models counted in unpriced_tokens, never silently valued at zero. - The stamp lands in trace.meta["budget"] BEFORE signing, so the integrity signature covers the verdict.
 
 ## v2.69.0
 
-- one mypy, everywhere: the strict bar moves into [tool.mypy] in pyproject.toml — local `mypy` and CI check the same 60 files with the same flags. configuration is code.
+- one mypy, everywhere. - The strict bar moves into `[tool.mypy]` in pyproject.toml: `mypy` with no arguments (local) and CI's invocation now check the same 60 files with the same flags. Configuration is code.
 
 ## v2.68.0
 
-- the night's ledger, closed: 55 releases tonight (v2.23.0 → v2.67.0), each through the full branch → PR → 22-check CI → squash → autotag → Release pipeline. docs-only (the account itself).
+- the night's ledger, closed. - Night V final account: v2.23.0 → v2.67.0, 55 releases, every one through branch → PR → 22-check CI → squash → autotag → Release assets (three spot-checked HTTP 200). - Real bugs fixed: `--version` lying by a hundred minors (stale shadow install metadata), `python -m approximately` dead (no `__main__.py`), the fleet trend's never-rendering failure-rate curve (wrong day-row key), MAD == 0 detector blindness (four meters), the non-dict-meta poison trace (six reads across four modules), CSV formula injection, compare's empty-store hole, the unread-body RST that murdered Windows webhook retries. - Capabilities shipped: the `ci` quality gate, `compare`, `evidence` (+`--all`, `--verify`), `init`, retention by count, deep doctor, the digest drain, alert cooldown, webhook retry, CSV export, three query operators, p95 scorecards, 18 perf gates, strict mypy tree-wide and enforced in CI. - Final state: main == v2.67.0, main CI success, double suite 1646×2 with no flakes, 18 perf gates + bench green, ruff/mypy-strict/xenon/bandit clean, v2 tags 102 ↔ releases 102.
 
 ## v2.67.0
 
-- the banner's numbers age too: 34 tools / 1,500+ tests refreshed to 36 / 1,600+. banner counts get re-checked whenever a tool or test wave lands. docs-only.
+- the banner's numbers age too. - The README banner said 34 MCP tools and 1,500+ tests; the tree ships 36 tools and 1,600+ tests. Round numbers in a banner drift by design — the audit's rule going forward: banner counts are re-checked whenever a tool or a test wave lands (the docs-health gate already catches the harder drifts; this was the soft one).
 
 ## v2.66.0
 
-- a pin should never know the version's face: the server-info pin hardcoded "2.64.0" and the very next bump flipped it red. it now asserts the real contract — SERVER_INFO == __version__ == the pyproject entry. tests-only.
+- a pin should never know the version's face. - The v294 server-info pin hardcoded "2.64.0" — the very next bump flipped it to red. The pin now asserts the real contract: SERVER_INFO == __version__, and that value appears in pyproject.toml (single-sourced, shadow-proof, bump-proof).
 
 ## v2.65.0
 
-- the Windows RST lesson, on the record: the test webhook answered 4xx/5xx without reading the request body, so its close sent an RST that killed the client's next retry (WinError 10053). the fake now drains the body like a real receiver. docs-only; the fix itself rode v2.64.0.
+- the Windows RST lesson, on the record. - The webhook-retry pins were flaky on Windows for a real protocol reason: `_Scripted.do_POST` answered 4xx/5xx WITHOUT reading the request body, so the test server's eventual close sent an RST — and on Windows that RST killed the client's NEXT retry attempt (WinError 10053, "connection aborted by your host machine"). Real webhook receivers read the body; the fake now does too, and the pins have been green across the matrix since. - Recorded because it is exactly the kind of knowledge that walks out the door with the person who learned it: an HTTP server that responds before draining the request is not merely impolite — it can murder the client's retry loop.
 
 ## v2.64.0
 
-- `--version` was lying by a hundred minors: it read the installed distribution's metadata, and a stale site-packages shadowing a 2.x checkout printed 1.14.0. the version is now single-sourced from pyproject.toml — a source checkout reads the file next to the package; installed users fall back to pip's metadata. caught by the module-door pin on its first run. 2 tests.
+- `--version` was lying by a hundred minors. - The module-door pin caught it on its first run: `approximately --version` printed **1.14.0** — the `__init__` reads the *installed distribution's* metadata, and a months-old site-packages shadowing a 2.x checkout answered with a hundred-minors-old lie. The version is now single-sourced from pyproject.toml: a source checkout reads the file next to the package (always current); installed users fall back to the metadata pip keeps in sync. The subprocess pin sets its own PYTHONPATH so it tests THIS tree, not whichever ghost is installed.
 
 ## v2.63.0
 
-- `python -m approximately` works: the package gained a `__main__.py`, so the module form and the console script are the same door. a RECIPES command that lied (`doctor traces --fix` — doctor only takes --store) reads --store now. 24 command families smoke-tested end to end through the module form.
+- `python -m approximately`, and a recipe that lied. - The smoke test of every RECIPES command family caught a real gap: the package had no `__main__.py`, so the common habit `python -m approximately` failed while the console script worked. Added — the module form and the script are now the same door. - And a recipe that lied: `doctor traces --fix` (positional store) — doctor only takes `--store`. The recipe reads `--store` now. 24 command families smoke-tested end to end through the module form.
 
 ## v2.62.0
 
-- the pack verifier joins the README; distill's finite edge pinned (NaN is None, not a silent 0.0). docs+tests only.
+- the pack verifier joins the README; distill's finite edge pinned. - `evidence --verify` joins the capabilities table (the pack chapter now reads buy-side and sell-side). - `_finite`'s junk-input behavior pinned: None and non-numeric strings are None, NaN is None (not a silent 0.0).
 
 ## v2.61.0
 
-- the reviewer's side: `evidence --verify PACK` recomputes every manifest hash and the chain inside the extracted record, printing TRUSTED or REFUSED (exit 1 refuses). the three forgery cases pinned: swapped member, rewritten record, non-pack. 4 tests.
+- the reviewer's side: `evidence --verify`. - The pack loop closes: `evidence --verify PACK` recomputes every manifest hash and the chain inside the extracted record, then prints TRUSTED or REFUSED (exit 1 refuses). The three forgery cases pinned: a swapped member fails the hash check, a rewritten record fails it too (the manifest is a member), and a non-pack is a loud ValueError. Honest note carried from SECURITY.md: the manifest defends truncation, the CHAIN defends truth.
 
 ## v2.60.0
 
-- the README catches up: the digest drain and the offboarding archive join the capabilities table. coverage re-run confirms the night's newest code is covered. no product change.
+- the README catches up, the coverage confirms. - The digest drain and the offboarding archive join the capabilities table (both shipped in earlier releases tonight; the README row was the last mile). - Coverage re-run over the night's newest code: the watch's midnight drain, the store-archive path, and the compaction door all land covered. No product change.
 
 ## v2.59.0
 
-- midnight drains itself too: the watch detects the day-file change on append and collapses the finished day to its final line right there — a watch that runs for days never needs a restart to stay drained. 1 test.
+- midnight drains itself too. - The start-time compaction covered restarts; a watch that runs for days never restarted. Now the loop detects the day-file change on append — midnight crossed — and collapses the finished day to its final line right there, without waiting for anyone. 1 test (a midnight crossing simulated by an alternating append).
 
 ## v2.58.0
 
-- the watch drains itself: `fleet --watch` compacts the digest history on every start — one line per prior day, the next append continuing from the compacted form. a long-lived watch never needs a manual --compact-digests again. 1 test; plus a healed CHANGELOG entry the docs-health gate caught.
+- the watch drains itself. - `fleet --watch` compacts the digest history on every start: one line per prior day, the cycle's own append continuing from the compacted form. A long-lived watch never needs a manual `--compact-digests` again — and the history still reads as complete days (the trend reader cannot tell). - Also: the CHANGELOG skipped v2.55/v2.56 entries when the version counter jumped to 2.57.0 — the docs-health test caught it (newest entry must track pyproject), and the entry is healed. Semver allows skipping; the docs gate still demands the record.
 
 ## v2.57.0
 
-- `evidence --all DIR`: the offboarding archive — one pack per trace plus an index.json naming each pack, its chain verdict, and its sha256. empty stores are a loud error. 2 tests.
+- `evidence --all`: the offboarding archive. - The archive scenario: a store leaving the machine becomes one directory of per-trace packs plus an `index.json` naming each pack, its chain verdict, and its sha256 — recompute any pack's hash with sha256sum. Empty stores are a loud error; `fleet`'s store list precedent repeated (the positional becomes optional under --all). 2 tests.
 
 ## v2.54.0
 
-- the strict bar is enforced, not remembered: CI's mypy step grows --disallow-untyped-defs, so a new unannotated function fails the build exactly the way a failing test does.
+- the strict bar is enforced, not remembered. - CI's mypy step grows `--disallow-untyped-defs`: the strict-typing milestone is now a gate, not a memory — a new unannotated function fails the build exactly the way a failing test does. (The four optional-dependency import-not-found notes stay tolerated via --ignore-missing-imports.)
 
 ## v2.53.0
 
-- the whole tree reads clean under strict mypy: batch eight closes cli (31 signatures), ledger, mermaid, integrity, prose, precursor, diff, recorder and calibration — 59 files, ~120 signatures across eight batches. the only remaining diagnostics are import-not-found notes for optional deps not installed in the lint environment. no behavior change.
+- the whole tree reads clean under strict mypy. - Batch eight closes it: cli.py's 31 signatures, ledger, mermaid, integrity, prose, precursor, diff, recorder, calibration — every module in the tree now passes `mypy --disallow-untyped-defs`. The only remaining diagnostics are four import-not-found notes for optional dependencies not installed in the lint environment (tiktoken, crewai_events, llama_index) — environment, not annotations. - 59 files, ~120 signatures annotated across eight batches. No behavior change anywhere; full suite and every gate green throughout.
 
 ## v2.52.0
 
-- strict-mypy batch seven: all seven contrib adapters join the typed set — `report()` returns the FailureReport object, now stated in its type. 30 modules strict. no behavior change.
+- strict-mypy batch seven: the adapter family. - All seven contrib adapters join the typed set (pydantic_ai, llamaindex, google_adk, crewai, autogen, agents_sdk, langgraph — `report()` returns the FailureReport object, now stated in its type). 30 modules strict; cli.py is the last bulk.
 
 ## v2.51.0
 
-- strict-mypy batch six: report, markdown_report, importer and merge join the typed set — 23 modules strict-clean. no behavior change.
+- strict-mypy batch six: the report and ingest layer. - report, markdown_report, importer, merge join the typed set (16 more signatures) — 23 modules strict. Remaining: cli.py and the contrib adapters.
 
 ## v2.50.0
 
-- strict-mypy batch five: mastdata, anomaly, detectors and benchgate join the typed set — 19 modules strict-clean. no behavior change.
+- strict-mypy batch five: the detector and evidence core. - mastdata, anomaly, detectors, benchgate join the typed set (25 more signatures, including the detectors' inner helpers with honest Tuple returns). 19 modules strict; the remaining bulk is cli.py (31) and the contrib adapters.
 
 ## v2.49.0
 
-- strict-mypy batch four: store, context and mcp_server join the typed set — 15 modules now read clean under --disallow-untyped-defs, covering the storage layer, the context runtime and the whole MCP transport. no behavior change.
+- strict-mypy batch four: the store, context, and the server. - store, context, mcp_server join the typed set (12 more signatures) — 15 modules now read clean under `--disallow-untyped-defs`, covering the storage layer, the context runtime, and the whole MCP transport. No behavior change; full suite and every gate unchanged.
 
 ## v2.48.0
 
-- strict-mypy batch three: fleet and exporter join the typed set — 16 more signatures, 12 modules total. no behavior change.
+- strict-mypy batch three: fleet and exporter. - fleet (14 signatures: _top_agents, _top_failure_modes, _spend, _alert_reasons, _should_alert, watch_fleet and the rest) and exporter (the chat-shape helpers) join the typed set — 16 more signatures, 12 modules total. No behavior change; full suite and every gate unchanged.
 
 ## v2.47.0
 
-- strict-mypy batch two: query, attributor, cluster and spool join the typed set — the analysis spine reads clean under --disallow-untyped-defs (10 modules total, 31 signatures). no behavior change.
+- strict-mypy batch two: the analysis spine. - query, attributor, cluster, spool join the typed set (12 more signatures) — the analysis spine now reads clean under `--disallow-untyped-defs`. Strict total: 10 modules, 31 signatures. No behavior change; full suite and every gate unchanged. 298. **README audit: all 39 command examples verified** ✅ (recorded): - Every `approximately ...` example in the README smoke-tested against the live parser: doors exist, flags exist (`attribute --sarif` takes a value; `compare --fail-on-new-modes` is real). No drift found.
 
 ## v2.46.0
 
-- strict-mypy batch one: metrics, evidence, curve, align, distill and judge are fully typed under --disallow-untyped-defs (19 signatures, no behavior change). the audit's verdict: bandit clean at low severity; xenon's C bar stays as recorded debt.
+- strict-mypy batch one: six modules fully typed. - The deep audit's verdict: bandit clean even at low severity; xenon's C bar stays (tightening to B means refactoring the eight complex core functions for a metric's sake — recorded as known debt, not paid in risk); mypy-strict had 142 errors across the tree — batching begins. - Batch one, fully typed under `--disallow-untyped-defs`: metrics, evidence, curve, align, distill, judge (19 signatures). No behavior change; the full suite and every gate unchanged.
 
 ## v2.45.1
 
-- the coverage tail: the dead zero-scale heuristics removed (the mean-abs-deviation fallback made them unreachable) and the doctor's last render branches covered — forged ledgers render TAMPERED, locked chains note themselves, stale locks flag and fix. 5 tests.
+- the coverage tail: renders and error doors. - The dead zero-scale heuristics removed: the v241 mean-abs-deviation fallback made `_flag_zero_scale` and `_flagged_zero_scale_tokens` unreachable (the scale returns 0 only when EVERY sample is identical, and then no step differs from the median at all). The per-tool branches now match the fleet's honest `continue`. - The doctor's last render branches covered for real: a forged broken ledger renders TAMPERED, locked chains note themselves, the digests section prints its gaps, a keyed record counts locked-not-broken, a two-hour-old lock is flagged and then removed by --fix. 5 tests.
 
 ## v2.45.0
 
-- the digest drain: `fleet --compact-digests` collapses each day's snapshot history to its last line (the final state plus the snapshot count) — a 10s watch writes 8,640 lines a day and the trend reader only ever reads the day's final state. dry-run honest; the next append continues from the compacted form. fleet's store list is now optional. 8 tests.
+- the digest drain. - A watch at a 10-second interval writes 8,640 snapshot lines a day, and the trend reader only ever looks at the LAST snapshot of each day. `fleet --compact-digests --digest-dir D` collapses each day file to exactly that — the final state plus the day's snapshot count — so the history keeps its meaning while the disk stops filling. Dry-run honest; torn tail lines follow the trend reader's rule; today's file compacts too and the next append continues from the compacted form. `fleet`'s store list is now optional (the compaction door needs none). 8 tests.
 
 ## v2.44.0
 
-- the threat model catches up to the night: six new SECURITY.md rows (CSV formula injection, evidence-pack hashing and its limits, zip bombs, webhook pacing, matches regex bounds, init's never-overwrite), fuzz rounds 1-19 listed. 1 test.
+- the threat model catches up to the night. - SECURITY.md grows six rows for the night's new surfaces: CSV formula injection (the quote defense, and its honest limit), evidence-pack member hashing (and the honest limit: the manifest is not a signature — tamper-evidence rests on the chain inside trace.json), zip bombs (members are written, never read from foreign archives), webhook replay/redirect/pacing (scheme check, HMAC over exact body bytes, capped retries and Retry-After), the `matches` regex bounds (and the honest note that catastrophic backtracking inside the cap is not shielded — the pattern author is the local operator), and init's never-overwrite discipline. - Fuzz-rounds section lists rounds 1-19 and their surfaces. - One more no-op pin: the per-trace latency and token detectors on a truly uniform sample. 1 test.
 
 ## v2.43.1
 
-- the ci gate budget carries Windows headroom: 10s (from 5s) for `ci`, 8s for `evidence` — the Windows runner tripped the old budget on 10k-trace file I/O. no product code change.
+- the ci gate budget carries Windows headroom. - The Windows runner tripped the `ci` gate's 5s budget (10k-trace store; Windows file I/O runs several times slower than the local 0.7-1.2s). Same medicine as the import/spool gates: 10s for `ci`, 8s for `evidence` — generous enough that runner noise cannot trip it, tight enough that a superlinear regression still does.
 
 ## v2.43.0
 
-- perf gates for the evidence door (2k-step pack, 5s budget) and the compare door (2k vs 2k, 8s) — suite now 18 gates. gate bug of the round: a verdict read outside its TemporaryDirectory block could never pass. no product code change.
+- perf gates for the evidence and compare doors. - evidence: a 2k-step pack (attribute + render_html + verify + zip) in ~0.4s, budget 5s. compare: 2k vs 2k traces (two attribution passes, two scorecards) in ~0.4s, budget 8s. Suite: 18 gates. - Gate bug of the round: the evidence gate judged `out.exists()` OUTSIDE its TemporaryDirectory block — the directory had already been deleted, so the gate could never pass. The size is captured inside the block now.
 
 ## v2.42.0
 
-- fuzz round 19: `compare` refuses an empty store on either side; the non-dict-meta poison trace hunted out of detectors (five reads) and integrity.verify — a hand-edited record no longer crashes attribution, verification, or the evidence pack. 5 tests.
+- fuzz round 19: compare and evidence meet hostile input. - The predictable gap, closed before shipping: `compare` over an empty store now refuses loudly on EITHER side (exit 2, the v230 contract — a comparison against nothing proves nothing). - The non-dict-meta poison trace, hunted to its last lairs: `detectors.py` read `trace.meta.get(...)` in five places (prose gate, step_limit, forbidden_tools, ambiguous, role_tools/agents) and `integrity.verify` read it too — a hand-edited record crashed the attribute pass, the verify pass, and therefore the evidence pack. One `_trace_meta` guard in the detectors, one isinstance in verify; the detectors shrug, unsigned stays unsigned. - The evidence door survives junk annotation lines (carries what is readable) and packs a 2k-step postmortem. 5 tests.
 
 ## v2.41.0
 
-- the MCP server runs the comparison: `compare` as a tool with the gate's exit surfaced as ok:false and prices bridged from a JSON object. 36 tools. RECIPES 21: the deploy chapter. 6 tests.
+- the MCP server runs the comparison. - `compare` as a tool: baseline/candidate/prices/since/ fail_on_new_modes — the CLI gate's exit code surfaced as `ok: false`, prices bridged from a JSON object through a temp table (validated: a string rate is refused). 36 tools; docs/mcp-tools.json regenerated; count pins updated. - RECIPES 21: the deploy chapter — compare against the last known good, gate the build, hand off the pack. 6 tests.
 
 ## v2.40.0
 
-- `approximately compare`: baseline vs candidate store — runs, failures, rate, tokens, priced spend, and the regression signal that matters: a failure mode the baseline never showed. `--fail-on-new-modes` gates CI on it. 7 tests.
+- `approximately compare`: did this deployment get worse?. - Two stores in, one verdict out: the baseline (last known good) vs the candidate (this deployment). Runs, failures, rate, tokens and priced spend deltas — and the regression signal that matters: a failure MODE the baseline never showed. Rate thresholds wobble with sample size; a mode that did not exist yesterday is a fact. - `--fail-on-new-modes` turns that fact into an exit 1 a CI pipeline can gate on (resolved modes are named too, so a fix gets its credit). 7 tests.
 
 ## v2.39.0
 
-- the MCP server hands over the evidence: `evidence_pack` mirrors the CLI door (same manifest, loud unknown-id error, `--key-file`). 35 tools. TUTORIAL 11 closes the loop: attribute → deep-verify → pack → gate. 5 tests.
+- the MCP server hands over the evidence. - `evidence_pack` mirrors the CLI door: same manifest, same loud unknown-id error, `output` defaulting to `<trace>.evidence.zip`, `key_file` for keyed chains. An agent — or a reviewer's assistant — assembles a case without shelling out. 35 tools; docs/mcp-tools.json regenerated. - TUTORIAL 11: from regression to evidence — attribute, deep-verify, pack, and gate; the loop closed in one chapter. 5 tests.
 
 ## v2.38.0
 
-- `approximately evidence <trace> out.zip`: the complete case in one tamper-evident archive — native record with the integrity chain embedded, HTML postmortem, annotations, an on-the-spot chain verdict (--key-file for keyed chains), and a sha256 manifest a reviewer can recompute with unzip and sha256sum. 5 tests.
+- `approximately evidence`: the complete case, one archive. - A reviewer judging a run should not need the store, the tool, or this repo's docs. `evidence <trace> out.zip` packs the native record (integrity chain embedded), the HTML postmortem, the trace's annotations, an on-the-spot chain verdict (keyed chains via --key-file), and a manifest naming the sha256 of every member — the pack itself is tamper-evident, and the manifest's hashes are recomputable by anyone with unzip and sha256sum. - Unknown ids are a loud error (exit 2) — a pack is never an empty archive with a shrug. Deterministic member order; no store paths leak into the archive. 5 tests.
 
 ## v2.37.0
 
-- the audit round: real paths, not stand-ins. the spool's real HMAC-signed webhook verified against the body for the first time (every prior test injected a stub), the watch's delivery-failure and Ctrl-C paths first-run, the markdown report's rare cards pinned. spool.py 83% → 98%. 8 tests.
+- the audit round: real paths, not stand-ins. - Coverage audit found the seams: the spool's REAL webhook path — HMAC-signed, key from the environment — had never been exercised (every prior test injected a notify stub). Now it is: signature verified against the body, kind=spool, failures named; and the unsigned path pinned too. - Also first-run: the watch's delivery-failure branch (gate exit still reports, stderr warns), Ctrl-C as a clean stop, the token-burns pass line, `_primary_mode` surviving a detector crash (best-effort means best-effort), and the markdown report's rare cards (latency/token anomalies, annotations, nearest neighbours) plus its silent degradation when detectors explode. - spool.py 83% → 98%; markdown_report 85% → mid-90s. 8 tests.
 
 ## v2.36.0
 
-- fuzz round 18, quiet: the CSV and OTLP doors survive None tasks, C1-control agent names, and non-string results; the query grammar matches unicode. the README quickstart now ends with the gate loop (init → ci). 6 tests.
+- fuzz 18: hostile traces at the export doors; the quickstart grows the gate. - Fuzz round 18, quiet: the CSV door survives a None task, a non-dict meta-free trace, agent names with newlines and C1 controls (quoted, preserved), and non-string results (str() fallback); the OTLP door takes the same traces; the query grammar matches unicode tasks and 5k-char values. All six probes passed first try — the doors earned their keep. - The README dev-quickstart now ends with the gate loop (init → ci), so the path from install to a build that fails on regression is one read long. 6 tests. 284. **process incident, on the record** ✅ (recorded): - v2.36.0's commit reached main via a force-push made in error during a compound command (amend ran on main; the push bypassed the PR; the commit message still said v2.35.0). The content was correct and fully gated — the 1585-test suite, ruff/mypy/xenon/bandit, and the Release pipeline all ran on exactly this tree — but the process was wrong: main's history must move through PRs, and a commit's message must describe its content. - Correction protocol, effective immediately: never `--amend` or force-push anything but the current feature branch; never run compound commands that mix branch switches with pushes without re-checking `git branch --show-current` first; every release's tag must point at a merge commit whose message names its version. - This entry is itself the fix made visible: the same mistake, written down, is the one that does not repeat.
 
 ## v2.35.0
 
-- every surface speaks the same money: `status --prices` grows the est-spend line (unpriced models counted), the fleet dashboard's agents table carries the p95 column, one shared pricing helper keeps all surfaces identical. 5 tests.
+- every surface speaks the same money. - The spend estimate existed in `stats`, `fleet`, and the MCP tools — but `status`, the door ops actually watch, could not price a store. `status --prices FILE` grows the est-spend line (unpriced models counted — the ci-gate rule carried to the ops overview, JSON and prose both), sharing one helper so all pricing surfaces stay identical. - The fleet dashboard's agents table carries the p95 column the CLI scorecards already have (`-` when nothing timed). - The MCP ci-gate shim now builds a real argparse.Namespace (mypy-clean, same behavior). 5 tests.
 
 ## v2.34.0
 
-- the spool pager is naturally one-shot, and now it is pinned: imported files archive out (no re-page), dry runs never count failures, unparsed files never page — a drafted cooldown was rolled back because the tests disproved the storm it guarded against. `spool --json` lines now carry trace_ids. 4 tests.
+- the spool pager is naturally one-shot (pinned). - A cooldown for the spool watch was drafted — and rolled back, because the pin tests said the storm cannot happen: imported files archive out of the spool (the same failure cannot re-page), dry runs never count failures (never page), and unparsed files never page (they are not run failures — a human reads them). A suspicion disproven by tests is worth more than a feature guarding nothing; the non-feature is now pinned so it stays true. - Kept from the round: `spool_pass` aggregates `trace_ids`, so `spool --json` lines name exactly which runs landed in that pass. 4 tests.
 
 ## v2.33.0
 
-- the watch does not cry wolf. `fleet --watch --webhook` gains `--alert-cooldown`: the same reason set re-pages only after the cooldown, a growing reason set pages immediately, 0 keeps the every-cycle contract. digest snapshots still write every cycle — the cooldown gates the pager, never the record. 5 tests.
+- the watch does not cry wolf. - An alarm that rings every cycle is an alarm storm — on-call learns to ignore it exactly when it matters. `fleet --watch --webhook` gains `--alert-cooldown MIN`: the SAME reason set re-pages only after the cooldown; a reason set that GROWS (a new store degraded, a new gate tripped) pages immediately; the default 0 keeps the every-cycle contract. - Semantics note: a threshold-less watch carries an EMPTY reason set (the schedule is the signal) — the first implementation treated "empty" as always-fresh and stormed anyway; the growth test caught it before CI could. - Digest snapshots still write every cycle: the cooldown gates the PAGER, never the record. 5 tests.
 
 ## v2.32.0
 
-- the demo tells the whole story: measured tokens and latencies on every step, plus a fare-rules lookup so the detectors have their honest 5+ samples — the report artifacts now show the token-burn bar strip and the latency stall instead of a silence that looked like a bug.
+- the demo tells the whole story. - The demo agent now carries measured tokens AND latencies on every step — and gained a fare-rules lookup, because the detectors honestly require 5+ samples before they speak (min_samples is the contract, and the demo now meets it). The committed artifacts (report/index/fleet/leaderboard) regenerated: the report page now shows the token-burn bar strip and the latency card with the 42s stall, instead of a silence that looked like a bug. - One step-count pin updated (6 → 7 steps).
 
 ## v2.31.2
 
-- the docs catch up to the night: README banner at current facts, RECIPES 20 (the gate chapter: init → record → tune → enforce → hygiene), ARCHITECTURE entries for doctor --deep, scaffold.py and the ci door.
+- the docs catch up to the night. - README banner refreshed to current facts (34 tools, 1,500+ tests, the gate in the headline list) — capability prose, never a per-version changelog; that lives in Releases and CHANGELOG.md as always. - RECIPES 20: the gate chapter — init → record with measured latencies/tokens → tune ceilings → enforce (with the spend line) → hygiene (clean caps, deep doctor). The five contracts spelled out. - ARCHITECTURE: doctor --deep, scaffold.py (new/init), and the ci door documented as first-class modules.
 
 ## v2.31.1
 
-- fuzz round 17: three crash classes on the night's new surfaces. `approximately init` now refuses a hostile tree (a .gitignore that is a directory, a read-only parent) instead of tracebacking, keeping the other files coming; `store.save` survives a trace whose meta is not a dict; the query grammar's `()` parses as an empty list instead of a list containing the paren token. 11 tests.
+- fuzz round 17: the scaffold fights back. - Three crash classes found and fixed, all on the night's new surfaces: `init` meeting a hostile tree (a `.gitignore` that is itself a directory crashed the read; a read-only parent crashed the mkdir — both now report status ``refused`` and keep the other files coming); `store.save` meeting a trace whose meta is not a dict (the ledger-append and the stamp check both assumed dict — a string meta crashed the save); the query grammar's `()` empty list parsed as a list containing the paren token. - A nested value list (`in (('a','b'))`) turned out to be legal syntax that matches nothing — pinned as such. - 11 tests; contract holds: documented errors or clean skips, never a crash.
 
 ## v2.31.0
 
-- integration round, and a real seam: `store.save` never signed — the evidence chain only existed on the recorder exit path, so adapters and scripts saving through the store directly silently skipped it. `save(trace, stamp=True)` signs chainless traces on the way in; import/merge pass `stamp=False` because foreign evidence must not acquire our chain. and a better-than-expected find: the producer's integrity chain stays verifiable across a spool hop. 2 tests, 6 fixture updates.
+- integration round: every seam of Night V. - One river through everything the night shipped: record with measured latencies/tokens → deep-verify → spool to a sink → rescore → ci-gate → price → csv pivot → query operators → MCP ci_gate agreement → repo scaffold. - **Seam 1 (real, fixed)**: `store.save` never signed — the evidence chain only existed on the Recorder exit path, so every adapter or script saving through the store directly silently skipped it. `save(trace, stamp=True)` now signs chainless traces on the way in; ingest paths (import, merge) pass `stamp=False` — foreign evidence must not acquire OUR chain, or doctor --deep would vouch for data we never measured. Six pins that relied on the old blindness now construct their unsigned fixtures explicitly. - **Seam 2 (better than expected)**: native export carries the meta, so the producer's integrity chain stays VERIFIABLE on the sink side — evidence survives the spool hop intact. - 2 new tests; 6 fixture updates.
 
 ## v2.30.0
 
-- the scorecards speak percentiles; the selection prices itself. tool/agent scorecards gain nearest-rank p95 columns (latency and tokens) with matching Prometheus gauges; `query --stats --prices` prices the selection, unpriced models counted. 7 tests.
+- the scorecards speak percentiles; the selection prices itself. - A mean hides the tail — and the tail is where users live. Both scorecards gain nearest-rank p95 columns (same ruler as the anomaly detectors): per-tool step-latency p95 and token p95, per-agent latency p95. Prometheus grows matching gauges (`approximately_{tool,agent}_p95_latency_ms` / `_p95_tokens`); the CLI tables carry the new columns. - `query --stats --prices prices.json` prices the selection: `est_spend` over the selected traces in JSON, an `est spend` line in prose, unpriced models counted — the ci-gate rule (a spend you cannot compute does not hold) carried over to ad-hoc questions. 7 tests.
 
 ## v2.29.0
 
-- the MCP server speaks the gate: `ci_gate` (same rows and semantics as `approximately ci`, unpriced-models-fail included) and `init_gate` (the idempotent three-file scaffold). 34 tools.
+- the MCP server speaks the gate. - Two new tools mirror the night's CLI doors so an agent harness can gate itself without shelling out: `ci_gate` (same rows, same semantics as `approximately ci` — including the unpriced-models-fail contract and the loud empty-store / zero-ceilings errors) and `init_gate` (the same idempotent three-file scaffold). 34 tools; the committed docs/mcp-tools.json mirror regenerated.
 
 ## v2.28.1
 
-- every new door gets a tripwire: four perf gates for ci (10k traces), doctor --deep (2k chains), clean --max-traces, and csv export, budgets from local 10k measurements with runner headroom. perf-gate suite now 14 gates.
+- every new door gets a tripwire. - Four new perf gates for the doors this night added, budgets set from 10k-trace local measurements with runner-noise headroom: `ci` over 10k traces (measured 0.7-1.2s, budget 5s), `doctor --deep` chains of 2k traces (0.3s, 10s), `clean --max-traces` dry run (0.1s, 2s), CSV export of 1k traces / 6k steps (0.1s, 5s). A pipeline runs `ci` on every push — a superlinear pass would fail builds by timeout, not by verdict; now it fails the perf gate first. - perf-gate suite: 14 gates. Also in: the Retry-After None-check mypy fixup from v2.28.0.
 
 ## v2.28.0
 
-- `approximately init`: gate the repo you already have. wires a GitHub Actions workflow running `approximately ci`, a starter price table, and a .gitignore line into an existing repo — idempotent, nothing overwritten without --force, and .gitignore only ever appended to. 6 tests.
+- `approximately init`: gate the repo you already have. - `new` scaffolds a green-field project; `init` wires the CI quality gate into an existing repo: a GitHub Actions workflow running `approximately ci` with sane starter ceilings, a starter price table the spend gate can load (numbers only — the prices door rejects prose), and a .gitignore line so `.agents-store/` never lands in git. - Idempotent by construction: re-running reports what exists and skips; nothing is overwritten without --force; and .gitignore is only ever appended to — even --force leaves it alone (a hand-tuned ignore file is not ours to reset). - The workflow body carries a comment naming the exact next step (add --max-spend --prices once tuned). 6 tests.
 
 ## v2.27.0
 
-- the webhook retries like it means it. connection errors and 5xx/429 now retry with bounded exponential backoff; a 429 honors a capped Retry-After; other 4xx stay a definite answer; a fresh Request per attempt. fleet watch and spool watch both inherit the tougher delivery. 7 tests.
+- the webhook retries like it means it. - A watcher that pages a human must survive a busy receiver: Slack answers 503 under load, rate limiters answer 429, and a blip in between is exactly when the alert matters most. The old POST gave up after one try on ANY HTTP error — including 503s the server itself called transient. - New policy: connection errors and 5xx/429 retry with bounded exponential backoff (0.5s, 1s, 2s, capped); a 429 honors a Retry-After capped at 5s (a hostile header cannot stall a watch); any other 4xx stays a definite answer. A fresh Request per attempt — urllib handlers may consume the payload, and a reused one resends garbage. - `notify_webhook(attempts=N)` is caller-tunable; fleet watch and spool watch both inherit the tougher delivery. The two v16 pins enshrining one-try-and-done are rewritten. 7 new tests.
 
 ## v2.26.1
 
-- no blind spots on a flat baseline. ms-rounded tool latencies make MAD == 0 common, and the modified z-score went quiet exactly where an outlier is most obvious. the scale falls back to the mean absolute deviation when MAD collapses; only a truly uniform sample stays an honest no-op. swept across all four meters (per-trace/fleet × latency/tokens). 6 tests.
+- no blind spots on a flat baseline. - The detector gap R5's fixture exposed, fixed for real: ms-rounded tool latencies make MAD == 0 common (the majority of samples identical), and the modified z-score went quiet exactly where an outlier is most obvious — a perfectly flat baseline. The scale now falls back to the mean absolute deviation when MAD == 0; only a truly uniform sample (every value equal) stays an honest no-op. - Swept across all four meters: per-trace latency, fleet latency, per-trace token burn, fleet token burn. The v12 pin that enshrined the old blindness ("MAD=0: no scale information") is rewritten to the new contract, and a uniform-sample no-op pin takes its place beside it. - Module docstring updated: MAD is still the scale of choice (Leys et al. 2013); the fallback only fires when it collapses. 6 tests.
 
 ## v2.26.0
 
-- the trends you can see. fixed: the fleet trend section's failure-rate curve never rendered (it read the wrong key from the day rows). the trend section gains inline-SVG curves for slowness, token-burn and spend; a trace's token-anomaly card opens with a bar strip of every tool call's tokens — a retry loop is a skyline spike, not a footnote. 7 tests.
+- the trends you can see. - Fixed: the fleet trend section's failure-rate curve never rendered — it read `r["total"]` from day rows whose key is `traces`, so the sparkline silently degenerated to a placeholder. Found by the new tests, not by review. - The trend section gains inline-SVG curves for the slowness, token-burn and spend day series (the failure-rate curve was there; the other three series only had badges). Same pure markup, no JS, no CDN. - A trace's token-anomaly card opens with a bar strip of every tool call's tokens — a retry loop is a skyline spike, not a footnote. `render_bars` joins `render_sparkline` in report.py. - Noted for a later round: the fleet detector skips families whose MAD == 0 (identical baseline samples) — an outlier against a perfectly flat baseline is invisible. Fixture works around it; a real fallback (mean-abs-deviation when MAD is 0) is future work. 7 tests.
 
 ## v2.25.1
 
-- CSV cells refuse to execute. `export --format csv` quotes cells beginning with `= + - @ <tab>` — the standard CSV-injection defense: a tool result starting `=` would run as a formula the moment the file opens in Excel or Sheets. `clean --max-traces 0` refused (0 would mean delete everything, which is rm -rf's job). fuzz round 16 chopped, garbage-stamped and fully-lying records all classified correctly; 8-thread write stampede loses nothing. 11 tests.
+- CSV cells refuse to execute; fuzz round 16. - Security: `export --format csv` quotes cells beginning with `= + - @ <tab>` — the standard CSV-injection defense. Tool results are untrusted text; a cell starting `=` would execute as a formula the moment the file opens in Excel or Sheets. Tool/agent columns get the same treatment (foreign ids ride in through OTLP import). Leading-minus text gets quoted too: untrusted beats pretty, and the docstring says so. - `clean --max-traces 0` (and negatives) refused exit 2 — 0 would mean "delete everything", which is rm -rf's job. - Fuzz round 16, all quiet: chopped step_hashes → tampered; garbage stamp shapes → tampered (the stamp claims a chain, and it does not verify); unknown algorithm → unsigned- classified; every record lying → all named, doctor stays up. - Concurrency stampede: 8 threads × 10 saves lose nothing (80/80); concurrent annotate+save interleaves cleanly (26/26, 6 notes). 11 tests.
 
 ## v2.25.0
 
-- the spreadsheet door; three new query operators. `export --format csv` writes one row per step — tokens/latency/errors pivot per tool per run without unpicking JSON, free text capped so a column cannot swallow the screen. the query DSL gains `endswith`, `matches` (a bounded regex compiled at parse time — the pattern arrives on a command line) and `in` with a list literal: `tools in ('search', 'deploy')` stops being five `or` clauses. 12 tests.
+- the spreadsheet door; three new query operators. - `export --format csv`: one row per STEP — the spreadsheet- native shape. tokens/latency/errors pivot per tool per run without unpicking JSON; free text caps at 240 cells so a column cannot swallow the screen (the JSONL exports stay lossless — this one is for pivots, not archives); embedded newlines/commas survive quoting. - query DSL: `endswith`, `matches` (regex compiled at parse time — the pattern arrives on a command line, so it is attacker-adjacent: bounded at 256 chars, subjects at 4k, bad regex fails loudly at parse), and `in` with a list literal `tools in ('search', 'deploy')` — "did this run ever touch any of these" stops being five `or` clauses; over set fields it means any-of. 12 tests.
 
 ## v2.24.0
 
-- retention by count; the doctor recomputes the chains. `clean --max-traces N` keeps a burst day from outliving its welcome — the age cap alone lets one busy afternoon accumulate a thousand records forever. `doctor --deep` recompute every record's integrity chain: a record can be parseable JSON and still lie, and only re-hashing the steps catches it. keyed records without the key at hand count as locked, not broken. the MCP doctor tool grows the same deep knob. 11 tests.
+- retention by count; the doctor recomputes the chains. - `clean --max-traces N`: the age cap alone lets one busy afternoon accumulate a thousand records forever — the count cap keeps only the newest N (both caps compose; dry-run honest; the JSON payload and human line report what remains). - `doctor --deep`: recompute every record's integrity chain (hash each step, compare against the stamp). A record can be parseable JSON and still lie; only the recompute knows. Keyed records without the key at hand count as *locked*, not broken — accusing TAMPERED there would be wrong (the integrity module's own verdict discipline). - The MCP `doctor` tool grows the same `deep` knob. The doctor's shallow pass stays the default: deep is opt-in because it hashes every step of every record. 11 tests.
 
 ## v2.23.0
 
-- `approximately ci`: quality gates for agent pipelines. one command composes the ceilings — failure rate, p95/avg step latency, tokens, estimated spend — into a single verdict with pipeline-native exit codes (0 pass, 1 breach, 2 configuration error or empty store). latency meters on step latency, the same ruler as the anomaly detector; spend refuses to pass unpriced models, because a budget you cannot compute does not hold. `Recorder.tool` gains first-class `latency_ms` so adapters that measured the call themselves can land real durations in the Step. 11 tests.
+- `approximately ci`: quality gates for agent pipelines. - The gap: teams run agents inside pipelines, and a regressed agent has to fail the build — not merely decorate a report. `stats --fail-over` gated spend only; nothing composed the other ceilings into one pipeline-native verdict. - `approximately ci --store S --max-failure-rate 0.2 --max-p95-latency-ms 8000 --max-tokens 100000 --max-spend 5 --prices prices.json` → one verdict, exit 0 pass / 1 breach / 2 configuration error or empty store (the v230 contract: a gate over zero runs proves nothing, and zero ceilings is a misconfiguration). - Latency meters on step latency — the same ruler the anomaly detector uses (runs carry no wall-clock end time; steps are the honest sample). Spend refuses to pass unpriced models: a budget you cannot compute does not hold. - `Recorder.tool` gains first-class `latency_ms` (None = auto-measure) — adapters that measured the call themselves (and the OTLP import path) can now land real durations in the Step instead of losing them into `**meta`. - `--json` emits `{store, traces, ok, gates:[{gate, value, ceiling, ok}]}` for CI annotations. 11 tests.
 
 ## v2.22.0
 
@@ -1450,6 +1450,10 @@ source of truth. Newest first.
 
 - `--watch --on-change`. long watches printed the same frame every interval; `--on-change` suppresses an unchanged payload (frames still count so `--frames` still bounds the loop) and the next real change prints again — a night of logs stays one screen instead of five hundred.
 
+## v1.61
+
+- fuzz round 9. the changelog parser meets hostile ledger text — nested bold inside titles (a deferred line could masquerade as delivered via non-greedy expansion; titles may no longer contain `**`), CRLF files, emoji headings, fullwidth colons, missing versions, future versions — deferred and versionless stay out, everything else parses sorted and reproducible. Plus dedupe threshold extremes (0.0 clusters everything into one group, >1 nothing, max_traces=0 scans nothing) and fleet degenerate latencies (zero, negative, absurd spikes — never NaN).
+
 ## v1.60
 
 - slowness pages too. the watch webhook fires on worsening trends and failure-rate thresholds; now `--alert-anomalies N` also fires when a store carries >= N fleet latency outliers. A store running slow-but-successful used to page nobody — the quiet kind of failure finally has a pager. Digest snapshots still land every cycle; the threshold gates the notification, never the recording.
@@ -1504,7 +1508,7 @@ source of truth. Newest first.
 
 ## v1.47
 
-- RECIPES: night watch and dedupe. recipe 15 ties the night story together (`status --watch` + fleet baselines + the multi-project sweep, with a note on reading modified z-scores); recipe 16 walks dedupe before a fine-tuning export, with the teacher cache tally. Docs-only. ## 4. Launch plan 1. **Artifacts**: public GitHub repo + PyPI + technical blog post (MAST-data visualization, demo GIF). 2. **Channels in order**: ① Hacker News "Show HN: Approximately – a dashcam and automatic postmortems for AI agents"; ② r/LocalLLaMA + r/LLMDevs (local-model judge angle); ③ X/Twitter agent community; ④ Chinese dev communities (Jike/Zhihu). 3. **Above-the-fold promise**: `pip install approximately && approximately demo` → a full attribution report in 30 seconds. 4. **Virality hook**: every HTML report footer carries the repo link. 5. **Metrics**: 500 stars / 2k PyPI downloads in month one = healthy; the core conversion is demo → own-agent instrumentation, so the Recorder API must stay ≤ 5 lines. ## 5. Risks & mitigations | Risk | Mitigation | |---|---| | Langfuse/LangSmith build attribution downstream | they are SaaS-tracing-first; we are local, zero-dependency, MAST-semantic; open-source speed is the moat | | Rule-detector false positives | every Detection carries readable evidence; rule vs judge sources are labeled separately; confidence thresholds configurable | | Benchmark dataset licensing/reproduction | cite the taxonomy with attribution; no redistribution of MAST-Data — provide loaders, not data | | Single-maintainer bandwidth | zero-dependency core with three small interfaces (Recorder/Attributor/Replayer) keeps the maintenance surface deliberately tiny | ## 6. References Cemri et al., *Why Do Multi-Agent LLM Systems Fail?* (MAST), arXiv:2503.13657, 2025. Bohnet et al., *Why Do LLM Agents Fail and How Can They Learn From Failures?*, arXiv:2509.25370, 2025. *Who&When: Automated Failure Attribution in Multi-Agent Systems*, arXiv:2505.00212, 2025. Xie et al., *OSWorld: Benchmarking Multimodal Agents*, arXiv:2404.07972, 2024. *Efficient Context Engineering for Long-Horizon Tool-Using Agents*, arXiv:2606.10209, 2026. Anthropic, *Effective Context Engineering for AI Agents*, 2025.
+- RECIPES: night watch and dedupe. recipe 15 ties the night story together (`status --watch` + fleet baselines + the multi-project sweep, with a note on reading modified z-scores); recipe 16 walks dedupe before a fine-tuning export, with the teacher cache tally. Docs-only.
 
 ## v1.46
 
