@@ -65,8 +65,8 @@ def test_composed_predicates_are_deterministic(tmp_path):
 def test_dedupe_and_export_on_hostile_store(tmp_path):
     store = _hostile_store(tmp_path)
     traces = store.list_traces()
-    kept, dropped = dedupe_traces(traces)
-    assert len(kept) + dropped == len(traces)
+    kept, dropped, capped = dedupe_traces(traces)
+    assert len(kept) + dropped + capped == len(traces)
     out = tmp_path / "out.jsonl"
     result = export_store(store, out)
     assert result["written"] == len(traces)

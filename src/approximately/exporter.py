@@ -390,10 +390,11 @@ def export_store(store: TraceStore, output: Path,
 
         traces = select(traces, query_text)
     dropped = 0
+    capped = 0
     if dedupe:
         from .align import dedupe_traces
 
-        traces, dropped = dedupe_traces(traces)
+        traces, dropped, capped = dedupe_traces(traces)
     # id order, not mtime order: filesystems time-stamp with different
     # granularity (Windows ties break by glob order), and the same
     # content must export to identical bytes everywhere
@@ -410,7 +411,7 @@ def export_store(store: TraceStore, output: Path,
             json.dump(export_otlp(traces, grouped), fh)
             fh.write("\n")
         return {"format": fmt, "traces": len(traces),
-                "written": len(traces), "dedupe_dropped": dropped,
+                "written": len(traces), "dedupe_dropped": dropped, "dedupe_capped": capped,
                 "output": str(output)}
     if fmt == CSV:
         # one row per STEP — the spreadsheet-native shape: pivot
@@ -434,7 +435,7 @@ def export_store(store: TraceStore, output: Path,
                         _csv_cell(step.result)])
                     written += 1
         return {"format": fmt, "traces": len(traces),
-                "written": written, "dedupe_dropped": dropped,
+                "written": written, "dedupe_dropped": dropped, "dedupe_capped": capped,
                 "output": str(output)}
     with output.open("w", encoding="utf-8") as fh:
         for trace in traces:
@@ -446,4 +447,4 @@ def export_store(store: TraceStore, output: Path,
             fh.write(json.dumps(row, default=str) + "\n")
             written += 1
     return {"format": fmt, "traces": len(traces), "written": written,
-            "dedupe_dropped": dropped, "output": str(output)}
+            "dedupe_dropped": dropped, "dedupe_capped": capped, "output": str(output)}

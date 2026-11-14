@@ -56,6 +56,20 @@ def coerce_count(value: Any, cap: int = 10_000_000) -> int:
     return min(int(v), cap)
 
 
+def _coerce_success(value: Any) -> "bool | None":
+    """The verdict as the record promised it: JSON true/false and
+    the numeric 1/0 become bools, the strings "true"/"false"
+    (hand-edited files, foreign exports) become bools, and
+    anything else is unknown — never a truthy lie that retires
+    failure evidence on the success clock."""
+    if isinstance(value, str):
+        return {"true": True, "false": False}.get(
+            value.strip().lower())
+    if value in (0, 1) and not isinstance(value, bool):
+        return bool(value)
+    return value if isinstance(value, bool) else None
+
+
 def _text_or_none(value: Any) -> "str | None":
     """A name as the record promised it: None stays None (the
     CSV contract pins the blank), a hostile scalar becomes its
@@ -75,7 +89,7 @@ def _coerce_step_fields(raw: Dict[str, Any]) -> None:
 
 
 def _coerce_step_counters(raw: Dict[str, Any]) -> None:
-    for key in ("tokens", "latency_ms"):
+    for key in ("tokens", "latency_ms", "index"):
         if key in raw:
             raw[key] = coerce_count(raw[key])
 
@@ -205,7 +219,7 @@ class Trace:
             created_at=coerce_epoch(data.get("created_at", 0.0)),
             model=cast("str", _text_or_none(
                 data.get("model", "unknown"))),
-            success=data.get("success"),
+            success=_coerce_success(data.get("success")),
             final_output=data.get("final_output"),
             meta=meta,
         )

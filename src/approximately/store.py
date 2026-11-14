@@ -313,7 +313,13 @@ class TraceStore:
         for path in self.directory.glob("*.json"):
             if path.name in STORE_ARTIFACTS:
                 continue
-            if path.stat().st_mtime >= cutoff:
+            try:
+                mtime = path.stat().st_mtime
+            except OSError:
+                # vanished mid-pass (a parallel writer, a raced
+                # rotate): nothing to age, nothing to crash on
+                continue
+            if mtime >= cutoff:
                 continue
             if keep_breached and self._is_breached(path):
                 continue

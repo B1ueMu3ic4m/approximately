@@ -994,7 +994,12 @@ def cmd_redact(args: argparse.Namespace) -> int:
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
-    trace = store.load(str(args.trace))
+    try:
+        trace = store.load(str(args.trace))
+    except (ValueError, OSError) as exc:
+        print(f"error: cannot load trace {args.trace!r}: {exc}",
+              file=sys.stderr)
+        return 2
     if trace is None:
         print(f"error: no such trace: {args.trace}", file=sys.stderr)
         return 2
@@ -1267,7 +1272,7 @@ def cmd_tail(args: argparse.Namespace) -> int:
         # APPROXIMATELY_SIGNING_KEY, same as every other poster)
         hook = partial(notify_webhook, signing_key=load_key())
     for line in tail(store, once=bool(args.once),
-                     interval=float(args.interval),
+                     interval=max(0.05, float(args.interval)),
                      max_passes=args.max_passes,
                      announce_failure_url=url, announce_hook=hook):
         print(line, flush=True)
@@ -2376,6 +2381,15 @@ def cmd_clean(args: argparse.Namespace) -> int:
         print("error: --max-traces must be >= 1 (0 would mean "
               "'delete everything', which is rm -rf's job)",
               file=sys.stderr)
+        return 2
+    if getattr(args, "keep_days", None) is not None \
+            and args.keep_days < 1:
+        # keep-days 0 (or negative) put the cutoff at (or after)
+        # now: the whole store - breach evidence included - was
+        # one call from the void, with no counter to say so
+        print(f"error: --keep-days must be >= 1, got "
+              f"{args.keep_days} (0 would delete the whole store, "
+              "breach evidence included)", file=sys.stderr)
         return 2
     keep_breached = bool(getattr(args, "keep_breached", False))
     removed = store.clean(keep_days=args.keep_days,
@@ -4323,7 +4337,13 @@ def cmd_retention(args: argparse.Namespace) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     if applied:
-        plan["removed"] = apply_plan(store, plan)
+        try:
+            plan["removed"] = apply_plan(store, plan)
+        except (OSError, ValueError, KeyError) as exc:
+            # a raced delete is counted, not a traceback after
+            # partial work
+            print(f"error: retention apply: {exc}", file=sys.stderr)
+            return 2
     if getattr(args, "json", False):
         print(json.dumps(plan, indent=2))
         return 0
@@ -4427,7 +4447,12 @@ def cmd_budget(args: argparse.Namespace) -> int:
     from .budget import simulate
 
     store = TraceStore(args.store)
-    trace = store.load(args.trace)
+    try:
+        trace = store.load(args.trace)
+    except (ValueError, OSError) as exc:
+        print(f"error: cannot load trace {args.trace!r}: {exc}",
+              file=sys.stderr)
+        return 2
     if trace is None:
         print(f"error: no trace {args.trace!r} in {args.store}",
               file=sys.stderr)
@@ -4448,6 +4473,13 @@ def cmd_budget(args: argparse.Namespace) -> int:
     if getattr(args, "json", False):
         print(json.dumps(result, indent=2))
         return 0
+    _print_budget_report(result, agent)
+    return 0
+
+
+def _print_budget_report(result: dict, agent: Any) -> None:
+    """The sizing door's prose answer: where the ceiling would
+    have stopped the run, and what it would have saved."""
     scope = f" for agent {agent!r}" if agent else ""
     if result["would_trip"]:
         line = (f"would trip at step {result['trip_step']}{scope} — "
@@ -4460,7 +4492,6 @@ def cmd_budget(args: argparse.Namespace) -> int:
               "this run")
     print(f"  recorded: {result['recorded_tokens']:,} tokens across "
           f"tool steps")
-    return 0
 
 
 def cmd_init(args: argparse.Namespace) -> int:
@@ -4850,8 +4881,10 @@ def cmd_distill(args: argparse.Namespace) -> int:
     if getattr(args, "dedupe", False):
         from .align import dedupe_traces
 
-        traces, dropped = dedupe_traces(traces)
-        print(f"dedupe: dropped {dropped} near-duplicate trace(s)")
+        traces, dropped, capped = dedupe_traces(traces)
+        print(f"dedupe: dropped {dropped} near-duplicate trace(s)"
+              + (f" (scan capped: {capped} trace(s) left out)"
+                 if capped else ""))
     if args.teacher:
         labeler = teacher_labeler(
             args.teacher,
@@ -5029,8 +5062,10 @@ def cmd_export_dataset(args: argparse.Namespace) -> int:
     if getattr(args, "dedupe", False):
         from .align import dedupe_traces
 
-        traces, dropped = dedupe_traces(traces)
-        print(f"dedupe: dropped {dropped} near-duplicate trace(s)")
+        traces, dropped, capped = dedupe_traces(traces)
+        print(f"dedupe: dropped {dropped} near-duplicate trace(s)"
+              + (f" (scan capped: {capped} trace(s) left out)"
+                 if capped else ""))
     if args.teacher:
         labeler = teacher_labeler(
             args.teacher,

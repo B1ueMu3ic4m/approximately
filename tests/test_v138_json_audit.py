@@ -92,10 +92,10 @@ def test_clean_json(tmp_path, capsys):
     old = time.time() - 86400
     os.utime(store.directory / f"{trace.id}.json", (old, old))
     args = argparse.Namespace(store=str(store.directory),
-                              keep_days=0, json=True)
+                              keep_days=1, json=True)
     assert cmd_clean(args) == 0
     payload = json.loads(capsys.readouterr().out)
-    assert payload["removed"] == 1 and payload["keep_days"] == 0
+    assert payload["removed"] == 1 and payload["keep_days"] == 1
 
 
 def test_repair_json(tmp_path, capsys):
