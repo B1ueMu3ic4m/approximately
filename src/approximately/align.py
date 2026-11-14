@@ -187,12 +187,10 @@ def duplicate_groups(traces: list, threshold: float = 0.95,
             "capped": capped}
 
 
-def dedupe_traces(traces: list, threshold: float = 0.95,
-                  max_traces: int = 2000) -> Tuple[List[Trace], int]:
-    """The dedupe pass as data: keep one representative per cluster.
-
-    Returns (kept traces in id order, number dropped)."""
-    ordered = sorted(traces, key=lambda t: t.id)[:max_traces]
+def _keep_representatives(ordered: List[Trace],
+                          threshold: float) -> Tuple[List[Trace], int]:
+    """One representative per near-duplicate cluster, id order:
+    the first trace of each cluster is the one that survives."""
     dropped = 0
     kept: List[Trace] = []
     representatives: List[Trace] = []
@@ -204,6 +202,20 @@ def dedupe_traces(traces: list, threshold: float = 0.95,
         kept.append(trace)
         representatives.append(trace)
     return kept, dropped
+
+
+def dedupe_traces(traces: list, threshold: float = 0.95,
+                  max_traces: int = 2000
+                  ) -> Tuple[List[Trace], int, int]:
+    """The dedupe pass as data: keep one representative per cluster.
+
+    Returns (kept traces in id order, number dropped as
+    near-duplicates, number truncated by the scan cap) — a
+    truncated trace is lost data, and lost data is counted data."""
+    capped = max(0, len(traces) - max_traces)
+    ordered = sorted(traces, key=lambda t: t.id)[:max_traces]
+    kept, dropped = _keep_representatives(ordered, threshold)
+    return kept, dropped, capped
 
 
 def similar_payload(target: "Trace", traces: list, top: int = 5,

@@ -1835,6 +1835,42 @@ framework adapters import lazily and degrade when the framework is absent.
          curve --budgets, bench-gate. 21 new pins
          (test_v421_dataset_hardening).
 
+544. **v4.3.0 - the meter tells the truth, the destructive
+       doors answer before they destroy** (planned):
+       - The money/ops recon audit (budget, prices, redact,
+         retention, align/dedupe, clean, tail, and the doors
+         fronting them) found the breaker decorative exactly
+         when it mattered: per-charge rounding dropped every
+         sub-$0.00005 charge forever (20k per-token charges
+         read $0.00 against a true $0.10 and the exit stamp
+         said exceeded:false), a provider-prefixed model name
+         silently disarmed the dollar meter into
+         unpriced_tokens, and a NaN ceiling compared false
+         against every spend. The meter now accumulates
+         unrounded (rounding only at the snapshot), matches
+         rates exactly-then-case-insensitively-then-basename,
+         and refuses non-finite ceilings at construction (the
+         breaker fails closed). The destructive doors got the
+         same teeth: clean --keep-days 0 (the whole store one
+         flag from the void, breach evidence included) is a
+         named refusal, retention --apply keeps files that
+         became unreadable between plan and apply (the plan's
+         own poison promise) and survives vanished files, the
+         dedupe scan cap is counted data in every result (a
+         truncated trace is lost data, and lost data is
+         counted), and the redact replacement is literal
+         (backslash templates pasted the secret back in while
+         the report said scrubbed) with the name=regex split
+         name-shape-checked (a bare regex containing = used to
+         become .* and redact whole documents). The boundary
+         family grew: success coerces (the truthy string
+         'false' rode the success clock and retired failure
+         evidence early), step index clamps (mixed-type
+         indexes TypeError'd the budget comparator). Doors
+         answer by name: retention apply, budget/redact trace
+         loads, tail interval. 20 new pins
+         (test_v430_money_ops).
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

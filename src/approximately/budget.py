@@ -109,6 +109,13 @@ class Budget:
                              "(prices={model: usd per 1k tokens})")
         self._validate_prices(prices)
         self._validate_per_agent(per_agent)
+        # a non-finite ceiling never trips (NaN compares false,
+        # inf belongs to no budget): the breaker must fail closed,
+        # so the config is refused, not disarmed
+        if any(limit is not None and not math.isfinite(limit)
+               for limit in (tokens, usd)):
+            raise ValueError(f"ceilings must be finite, got "
+                             f"tokens={tokens!r} usd={usd!r}")
         self.limit_tokens = tokens
         self.limit_usd = usd
         self.prices = dict(prices) if prices else {}
@@ -133,9 +140,13 @@ class Budget:
         """
         self.validate_tokens(tokens)
         self.tokens += tokens
-        if model is not None and model in self.prices:
-            self.usd = round(
-                self.usd + tokens / 1000 * self.prices[model], 4)
+        rate = self._rate_for(model)
+        if rate is not None:
+            # unrounded accumulation: rounding per charge against
+            # the already-rounded meter dropped every sub-$0.00005
+            # charge forever, and a streaming per-token run never
+            # tripped the dollar breaker at all
+            self.usd += tokens / 1000 * rate
         else:
             self.unpriced_tokens += tokens
         if agent is not None and agent in self.per_agent:
@@ -152,6 +163,25 @@ class Budget:
                           f"{self._describe(kind)} exceeded",
                           file=sys.stderr)
         return self.state
+
+    def _rate_for(self, model: Optional[str]) -> Optional[float]:
+        """The price for a model, matched honestly: exact first,
+        then case-insensitive, then basename (``openai/gpt-4o``
+        vs a ``gpt-4o`` catalog row is the same model priced the
+        same way — a key mismatch used to silently disarm the
+        dollar breaker). An unknown model stays unpriced (None),
+        never silently valued at zero."""
+        if model in self.prices:
+            return self.prices[model]
+        lowered = model.lower() if model else ""
+        tail = lowered.rsplit("/", 1)[-1]
+        for key, value in self.prices.items():
+            folded = key.lower()
+            if folded == lowered or (tail and
+                                     folded.rsplit("/", 1)[-1]
+                                     == tail):
+                return value
+        return None
 
     def exceeded_reasons(self) -> list:
         """Which ceilings are crossed: global ones first (``tokens``,
@@ -171,7 +201,9 @@ class Budget:
         """Snapshot for the trace stamp: meters, ceilings, breach verdict."""
         out: Dict[str, Any] = {
             "tokens": self.tokens,
-            "usd": self.usd,
+            # the meter rounds only for the snapshot; the breaker
+            # compares the true accumulated spend
+            "usd": round(self.usd, 4),
             "unpriced_tokens": self.unpriced_tokens,
             "exceeded": bool(self.exceeded_reasons()),
         }

@@ -55,7 +55,12 @@ def _merge_extra(table: Dict[str, Pattern[str]],
     in place. Raises ValueError on an uncompilable or empty regex."""
     for i, raw in enumerate(extra):
         name, sep, regex = raw.partition("=")
-        if not sep or not name.strip():
+        # only `name=regex` with a NAME-SHAPED head splits: a bare
+        # regex containing '=' (?i)password=.*, api_key\s*=...) used
+        # to lose everything before the first '=' and redact the
+        # whole document under a garbage name
+        if not sep or not re.fullmatch(
+                r"[A-Za-z0-9_.-]{1,64}", name.strip() or ""):
             name, regex = f"custom-{i + 1}", raw
         name = name.strip()
         if not regex:
@@ -96,7 +101,12 @@ def _scrub(text: str, table: Dict[str, Pattern[str]],
            hits: Dict[str, int], fmt: str = REDACTED_FMT) -> str:
     out = text
     for name, pattern in table.items():
-        out, n = pattern.subn(fmt.format(name=name), out)
+        # the replacement is literal: backslashes in the operator's
+        # --replacement must not become re.sub templates (\g<0> used
+        # to paste the WHOLE MATCH back - the secret survived, the
+        # report still said scrubbed)
+        repl = fmt.format(name=name).replace("\\", "\\\\")
+        out, n = pattern.subn(repl, out)
         if n:
             hits[name] = hits.get(name, 0) + n
     return out

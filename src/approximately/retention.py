@@ -115,15 +115,24 @@ def apply_plan(store: Any, plan: dict) -> int:
         path = store.directory / f"{row['id']}.json"
         if path.parent.resolve() != base:
             continue  # an escaped id: counted as absent, never unlinked
+        trace = None
         try:
             trace = store.load(row["id"])
-        except Exception:
-            trace = None
-        if trace is not None:
-            if stamped_breach(trace.meta):
-                continue
-            if store.annotations(trace.id):
-                continue
-        path.unlink()
+        except Exception:  # nosec B110 - keep means keep: any
+            pass           # unreadable shape stays on disk
+        if trace is None:
+            # unreadable at apply time = keep: a torn file is
+            # possibly breach evidence, and "poison is never
+            # touched" is the plan's own promise (load() answers
+            # None for unreadable, so both shapes land here)
+            continue
+        if stamped_breach(trace.meta):
+            continue
+        if store.annotations(trace.id):
+            continue
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            continue  # vanished between plan and apply: done
         removed += 1
     return removed
