@@ -1801,6 +1801,40 @@ framework adapters import lazily and degrade when the framework is absent.
          pins (test_v420_replay_window,
          test_v420_spool_upsert).
 
+543. **v4.2.1 - the analysis doors meet hostile datasets on
+       their feet** (planned):
+       - The conversion/dataset layer trusted its inputs, and
+         the recon audit (a full sweep of mastdata, distill,
+         exporter, importer, cluster, curve, benchgate, store
+         and the doors fronting them) found the crashes: a
+         MAST record with a list where the options dict
+         belonged killed convert-mast; one malformed line in a
+         benchmark corpus killed benchmark/bench-gate instead
+         of being named with its line number; a hand-edited or
+         foreign trace with tokens=10**400 or
+         created_at="2024-01-01" waited in the store as a
+         TypeError for the next door that summed, sorted or
+         filtered; NaN rode the OTLP export as bare NaN
+         (invalid JSON); a lone surrogate in a note crashed
+         the annotations write; and a foreign JSON's
+         id="../../pwn" could ride report/repair/curve/evidence
+         into writing outside the store fence. Fixed at the
+         boundary: Step.from_dict/Trace.from_dict coerce and
+         clamp (coerce_count, coerce_epoch refuses non-finite,
+         _text_or_none keeps the CSV blank contract), mastdata
+         shape-gates every subfield with the guards the read
+         already had, distill refuses a poisoned corpus line by
+         line number (multi-label lists still load), the
+         native import path gets the caps the foreign paths
+         already enforced and import_file streams instead of
+         materializing, the exporter skips non-finite floats
+         and escapes the surrogate writes, and the five
+         id-derived write sites go through safe_artifact
+         (door-voiced exit 2). Doors answer instead of
+         crashing: convert-mast, benchmark, calibrate, export,
+         curve --budgets, bench-gate. 21 new pins
+         (test_v421_dataset_hardening).
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

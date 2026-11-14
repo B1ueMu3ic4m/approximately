@@ -11,10 +11,11 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import math
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 # Step kinds, kept as a small closed vocabulary so detectors can rely on them.
 PLAN = "plan"
@@ -29,12 +30,64 @@ STEP_KINDS = (PLAN, TOOL_CALL, OBSERVATION, RESPONSE, ERROR, MESSAGE)
 
 def coerce_epoch(value: Any) -> float:
     """``created_at`` as a float the math can use — 0.0 when a
-    foreign record carries a string or None. Hand-edited and
-    imported traces must never crash a fleet surface; a zeroed
-    timestamp sorts oldest and says so."""
+    foreign record carries a string, None, or a non-finite lie.
+    Hand-edited and imported traces must never crash a fleet
+    surface; a zeroed timestamp sorts oldest and says so."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return 0.0
-    return float(value)
+    v = float(value)
+    return v if math.isfinite(v) else 0.0
+
+
+def coerce_count(value: Any, cap: int = 10_000_000) -> int:
+    """A step counter (tokens, latency) as a clamped int: 0 when
+    a foreign record carries a non-numeric or negative lie, and
+    capped so ``float(counter)`` can never overflow the math
+    downstream (a 10**400-token line is a lie, not a number)."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return 0
+    try:
+        v = float(value)
+    except OverflowError:
+        # a 10**400 int cannot even become a float: cap the lie
+        return cap
+    if not (math.isfinite(v) and v >= 0):
+        return 0
+    return min(int(v), cap)
+
+
+def _text_or_none(value: Any) -> "str | None":
+    """A name as the record promised it: None stays None (the
+    CSV contract pins the blank), a hostile scalar becomes its
+    string, a string stays itself."""
+    if value is None or isinstance(value, str):
+        return value
+    return str(value)
+
+
+def _coerce_step_fields(raw: Dict[str, Any]) -> None:
+    """Coerce one foreign step record's fields in place: counters
+    clamp, dicts stay dicts, names stay names. Identity for the
+    recorder's own well-typed records; a refusal-to-lie for
+    everything else."""
+    _coerce_step_counters(raw)
+    _coerce_step_shapes(raw)
+
+
+def _coerce_step_counters(raw: Dict[str, Any]) -> None:
+    for key in ("tokens", "latency_ms"):
+        if key in raw:
+            raw[key] = coerce_count(raw[key])
+
+
+def _coerce_step_shapes(raw: Dict[str, Any]) -> None:
+    for key in ("args", "meta"):
+        if key in raw and not isinstance(raw[key], dict):
+            raw[key] = {}
+    for key in ("kind", "tool", "result", "agent"):
+        value = raw.get(key)
+        if value is not None and not isinstance(value, str):
+            raw[key] = str(value)
 
 
 @dataclass
@@ -81,10 +134,16 @@ class Step:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Step":
+        """Foreign records are coerced, not trusted: counters
+        clamp, dicts stay dicts, names stay names — one hostile
+        JSONL line must arrive as a usable step, not a TypeError
+        waiting in every downstream command."""
         if not isinstance(data, dict):
             raise ValueError("step record must be a JSON object")
         known = {f.name for f in dataclasses.fields(cls)}
-        return cls(**{k: v for k, v in data.items() if k in known})
+        raw = {k: v for k, v in data.items() if k in known}
+        _coerce_step_fields(raw)
+        return cls(**raw)
 
 
 @dataclass
@@ -131,14 +190,24 @@ class Trace:
         steps_data = data.get("steps", [])
         if not isinstance(steps_data, list):
             raise ValueError("malformed trace: 'steps' must be a list")
+        meta = data.get("meta", {})
+        if not isinstance(meta, dict):
+            meta = {}
         trace = cls(
-            task=data.get("task", ""),
+            # _text_or_none: None stays None (the CSV contract
+            # pins the blank), a hostile scalar becomes a string
+            # cast: None rides at runtime (the CSV contract
+            # pins the blank); the annotation stays str
+            task=cast("str", _text_or_none(data.get("task", ""))),
             id=data.get("id", uuid.uuid4().hex[:12]),
-            created_at=data.get("created_at", 0.0),
-            model=data.get("model", "unknown"),
+            # coerce_epoch is the contract: hand-edited and
+            # imported traces must never crash a fleet surface
+            created_at=coerce_epoch(data.get("created_at", 0.0)),
+            model=cast("str", _text_or_none(
+                data.get("model", "unknown"))),
             success=data.get("success"),
             final_output=data.get("final_output"),
-            meta=data.get("meta", {}),
+            meta=meta,
         )
         trace.steps = [Step.from_dict(s) for s in steps_data]
         return trace

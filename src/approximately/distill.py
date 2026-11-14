@@ -197,18 +197,62 @@ def load_dataset(path: Path, fmt: str = "approx") -> List[tuple]:
     """
     labeled: List[tuple] = []
     with open(path, encoding="utf-8") as fh:
-        for raw in fh:
+        for n, raw in enumerate(fh, start=1):
             line = raw.strip()
             if not line:
                 continue
-            record = json.loads(line)
-            label = (record.get("labels") if record.get("labels")
-                     else record.get("label") or record.get("failure_mode")
-                     or record.get("mode"))
-            trace = _from_mast_record(record) if fmt == "mast" else Trace.from_dict(record)
+            # a benchmark corpus is scoring input: a poisoned line
+            # is refused BY NAME (with its line number), never
+            # skipped into a silently skewed score
+            record = _dataset_record(line, n)
+            label = _dataset_label(record, n)
+            try:
+                trace = (_from_mast_record(record) if fmt == "mast"
+                         else Trace.from_dict(record))
+            except ValueError as exc:
+                raise ValueError(f"dataset line {n}: {exc}") from exc
             if label:
                 labeled.append((trace, label))
     return labeled
+
+
+def _dataset_record(line: str, n: int) -> dict:
+    """One corpus line as a JSON object — refused by name (with
+    its line number) when it is not."""
+    try:
+        record = json.loads(line)
+    except (json.JSONDecodeError, RecursionError) as exc:
+        raise ValueError(f"dataset line {n}: not valid JSON "
+                         f"({exc.__class__.__name__})") from exc
+    if not isinstance(record, dict):
+        raise ValueError(f"dataset line {n}: record must be a "
+                         "JSON object")
+    return record
+
+
+def _labels_ok(labels: Any) -> bool:
+    """A string or a list of strings — multi-label corpora carry
+    the full set; anything else is a poisoned corpus."""
+    return isinstance(labels, str) or (
+        isinstance(labels, list)
+        and all(isinstance(m, str) for m in labels))
+
+
+def _dataset_label(record: dict, n: int) -> Any:
+    """The gold label of one record, type-checked: ``labels`` may
+    be a string or a list of strings (multi-label), the single
+    fields must be strings — a poisoned corpus is refused by
+    line number, never scored skewed."""
+    labels = record.get("labels")
+    if labels is not None and not _labels_ok(labels):
+        raise ValueError(f"dataset line {n}: 'labels' must be a "
+                         "string or a list of strings")
+    single = (record.get("label") or record.get("failure_mode")
+              or record.get("mode"))
+    if single is not None and not isinstance(single, str):
+        raise ValueError(f"dataset line {n}: gold label must be "
+                         "a string")
+    return labels if labels else single
 
 
 def _from_mast_record(record: dict) -> Trace:
@@ -217,6 +261,8 @@ def _from_mast_record(record: dict) -> Trace:
 
     trace = Trace(task=str(record.get("task", "mast record")), success=False)
     for i, msg in enumerate(source if isinstance(source, list) else []):
+        if not isinstance(msg, dict):
+            continue  # a hostile element is not a message
         role = str(msg.get("role", msg.get("type", ""))).lower()
         content = str(msg.get("content", ""))
         if role in ("user", "system"):

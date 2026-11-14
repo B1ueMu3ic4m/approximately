@@ -35,6 +35,19 @@ def stamped_breach(meta: object) -> bool:
 SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 
 
+def safe_artifact(directory: Path, trace_id: str,
+                  suffix: str) -> Path:
+    """A derived artifact path named by the trace's id — but only
+    an id the filename rules allow. ``--trace /path/to/foreign.json``
+    loads a file whose ``"id"`` may be ``"../../pwn"``; without
+    this gate the analysis doors become an arbitrary write."""
+    if not _safe_id(trace_id):
+        raise ValueError(
+            f"trace id {trace_id!r} is not a safe filename; "
+            "refusing to name a derived artifact with it")
+    return directory / f"{trace_id}{suffix}"
+
+
 def _safe_id(trace_id: str) -> bool:
     """A trace id is a NAME, not a path: one safe-token token, no
     separators, no climb, no dotfiles. Anything else is refused
@@ -197,7 +210,9 @@ class TraceStore:
                  "note": str(note or "")}
         path = self.directory / "annotations.jsonl"
         with path.open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+            # ensure_ascii (the default) is load-bearing: a lone
+            # surrogate in a hostile note crashes a UTF-8 write
+            fh.write(json.dumps(entry) + "\n")
         return entry
 
     def annotations(self, trace_id: Optional[str] = None) -> list:

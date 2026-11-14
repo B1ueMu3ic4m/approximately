@@ -208,10 +208,23 @@ def _foreign_trace(obj: Dict[str, Any], raw_line: str,
     )
 
 
+def _cap_native(trace: Trace) -> Trace:
+    """The native path gets the same ingest caps the foreign
+    paths already enforce: a crafted JSONL line must not turn
+    the store into the DoS (a 200k-step trace punishing every
+    downstream command, a half-million-key meta)."""
+    if len(trace.steps) > _MAX_IMPORTED_STEPS:
+        trace.steps = trace.steps[:_MAX_IMPORTED_STEPS]
+    if len(trace.meta) > _MAX_IMPORTED_META:
+        trace.meta = dict(list(trace.meta.items())
+                          [:_MAX_IMPORTED_META])
+    return trace
+
+
 def _parse_line(obj: Any, raw: str, line_no: int,
                 fmt: str) -> Trace:
     if fmt == NATIVE:
-        return Trace.from_dict(obj)
+        return _cap_native(Trace.from_dict(obj))
     if fmt == MESSAGES_LIST:
         return _foreign_trace({"messages": obj}, raw, line_no, fmt)
     return _foreign_trace(obj, raw, line_no, fmt)
@@ -760,4 +773,6 @@ def import_file(path: Path, store: TraceStore,
     """Import every line of ``path``; malformed lines are skipped, not
     fatal.  Returns per-format counts plus the ids actually stored."""
     with path.open("r", encoding="utf-8", errors="replace") as fh:
-        return import_lines(list(fh), store, fmt=fmt, dry_run=dry_run)
+        # stream, not list(): import_lines already speaks one-pass
+        # iterables, and a 10 GB "jsonl" is an OOM, not an import
+        return import_lines(fh, store, fmt=fmt, dry_run=dry_run)
