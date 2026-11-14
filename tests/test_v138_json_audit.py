@@ -87,9 +87,13 @@ def test_clean_json(tmp_path, capsys):
     import time
 
     trace, store = _slow_trace(tmp_path / "s")
-    # clean gates on file mtime; backdate it directly so keep_days=0
-    # never races the clock (created_at is not what clean reads)
-    old = time.time() - 86400
+    # clean gates on file mtime; backdate it directly so keep_days=1
+    # never races the clock (created_at is not what clean reads).
+    # TWO days, not one: a one-day backdate sits exactly on the
+    # cutoff, and Windows' coarse clock made mtime >= cutoff true
+    # half the time (the v3.82 lesson, relearned - fixtures must
+    # sit safely inside the window they pin)
+    old = time.time() - 2 * 86400
     os.utime(store.directory / f"{trace.id}.json", (old, old))
     args = argparse.Namespace(store=str(store.directory),
                               keep_days=1, json=True)

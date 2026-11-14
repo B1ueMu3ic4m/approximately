@@ -1871,6 +1871,32 @@ framework adapters import lazily and degrade when the framework is absent.
          loads, tail interval. 20 new pins
          (test_v430_money_ops).
 
+545. **v4.3.0 addendum - the red Windows legs that merged**
+       (recorded):
+       - The session's sixth slip, and the first that shipped
+         red: PR #651's CI watch ran WITHOUT --exit-status, so
+         its completion was treated as a pass and the squash
+         merge went through while all three Windows legs were
+         failing - v4.3.0 was tagged and released off a red
+         merge commit. The failure itself was the v3.82 lesson
+         again: test_clean_json backdated a fixture mtime by
+         exactly one day against keep_days=1, a razor-thin
+         comparison Windows' coarse clock flips half the time
+         (removed 0, expected 1). The fixture now backdates two
+         full days. The shipped wheel is unaffected (the
+         packaging job passed; the failure is fixture-only) -
+         but the discipline is not: every watch gates on
+         --exit-status, every merge reads the checks list
+         itself, and a red leg is a stop, not a footnote.
+
+546. **v4.3.1 - the fixture hotfix** (planned):
+       - test_clean_json backdated a fixture mtime by exactly
+         one day against keep_days=1: a razor-thin comparison
+         Windows' coarse clock flips half the time (removed 0,
+         expected 1 — the v3.82 lesson relearned). The fixture
+         now backdates two full days, safely inside the window
+         it pins.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
