@@ -290,7 +290,8 @@ def _is_verify_step(step: Step) -> bool:
         return True
     if step.kind != TOOL_CALL or not step.tool:
         return False
-    return any(m in step.tool.lower() for m in VERIFY_MARKERS)
+    tool = step.tool if isinstance(step.tool, str) else str(step.tool)
+    return any(m in tool.lower() for m in VERIFY_MARKERS)
 
 
 def _verify_positions(trace: Trace) -> list:
@@ -421,7 +422,9 @@ class ReasoningActionMismatchDetector:
         if step.kind != TOOL_CALL or not step.thought or not step.tool:
             return None
         announced = _intent_tool(step.thought)
-        if not announced or announced == step.tool.lower():
+        tool_text = step.tool if isinstance(step.tool, str) \
+            else str(step.tool)
+        if not announced or announced == tool_text.lower():
             return None
         if "_" not in announced and announced not in known:
             return None  # not a plausible tool name

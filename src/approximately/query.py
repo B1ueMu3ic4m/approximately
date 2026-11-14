@@ -22,6 +22,7 @@ only comparisons against trace fields are ever executed.
 
 from __future__ import annotations
 
+import math
 import re
 from typing import Any, Callable, List, Optional, Sequence
 
@@ -97,12 +98,17 @@ def _field_getter(name: str,
             return getattr(t, "created_at", None) or 0
     elif name == "tokens":
         def getter(t: Trace) -> Any:
-            return sum(s.tokens for s in t.steps)
+            # non-finite counters are absent, not lies the
+            # comparator would read the wrong way (nan > 100 is
+            # False: a poisoned trace used to slip every ceiling)
+            return sum(s.tokens for s in t.steps
+                       if isinstance(s.tokens, (int, float))
+                       and math.isfinite(s.tokens))
     elif name == "failed_agents":
         def getter(t: Trace) -> Any:
             return sorted({s.agent for s in t.steps
                            if s.kind == "tool_call" and s.agent
-                           and s.error})
+                           and s.error}, key=str)
     elif name == "failed_tools":
         def getter(t: Trace) -> Any:
             return [s.tool or "?"
@@ -340,6 +346,13 @@ def _comparator(getter: Callable, op: str,
                 return False
         if op == "contains":
             if isinstance(left, set):
+                # a list/tuple literal is a valid needle against a
+                # set haystack: "tools contains (deploy, web)" asks
+                # whether BOTH ride the trace — membership by
+                # equality, never by hashability (v1 crashed the
+                # whole door with a TypeError)
+                if isinstance(value, (list, tuple)):
+                    return all(item in left for item in value)
                 return value in left
             return str(value) in str(left or "")
         if op == "startswith":

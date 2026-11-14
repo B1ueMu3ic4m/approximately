@@ -66,12 +66,16 @@ def population_stability(baseline_counts: Dict[str, int],
     actions = (set(baseline_counts) | set(current_counts)) - {"__total__"}
     psi = 0.0
     moved: List[Tuple[str, float, float]] = []
-    for action in actions:
+    # sorted iteration: set order is hash-seed dependent, and the
+    # stable sort after it kept those ties - the same store
+    # produced three different top_shifted orderings across
+    # processes, and the JSON is a consumed artifact
+    for action in sorted(actions):
         a = (baseline_counts.get(action, 0) + EPS) / (base_total + EPS)
         b = (current_counts.get(action, 0) + EPS) / (cur_total + EPS)
         psi += (a - b) * math.log(a / b)
         moved.append((action, a, b))
-    moved.sort(key=lambda t: -abs(t[1] - t[2]))
+    moved.sort(key=lambda t: (-abs(t[1] - t[2]), t[0]))
     return psi, moved
 
 

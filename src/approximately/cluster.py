@@ -11,6 +11,7 @@ to the same MAST mode and their failing steps touch the same tools.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -172,12 +173,17 @@ def agent_scorecard(traces: Iterable[Trace],
             row["trace_ids"].add(trace.id)
             row["steps"] += 1
             row["tool_calls"] += int(step.kind == TOOL_CALL)
-            row["tokens"] += step.tokens or 0
+            # non-finite counters are absent, not poison: a bare
+            # Infinity in the scorecard JSON is invalid JSON, and
+            # round(inf) is an OverflowError
+            tok = _finite_or_none(step.tokens)
+            row["tokens"] += tok or 0
             row["errors"] += int(bool(step.error))
-            if step.latency_ms:
-                row["latencies"].append(float(step.latency_ms))
-            if step.tokens:
-                row["token_samples"].append(float(step.tokens))
+            lat = _finite_or_none(step.latency_ms)
+            if lat:
+                row["latencies"].append(lat)
+            if tok:
+                row["token_samples"].append(tok)
             if stamped_breach(trace.meta):
                 row["breached_ids"].add(trace.id)
             if failed:
@@ -199,13 +205,18 @@ def agent_scorecard(traces: Iterable[Trace],
             "breached_traces": len(row["breached_ids"]),
             "failure_rate": round(failed_n / touched, 3) if touched
                             else 0.0,
-            "p95_ms": round(p95_ms, 1) if p95_ms is not None else None,
-            "p95_tokens": (round(p95_tok) if p95_tok is not None
-                           else None),
+            "p95_ms": (round(ms, 1)
+                       if (ms := _finite_or_none(p95_ms)) is not None
+                       else None),
+            "p95_tokens": (round(tok)
+                           if (tok := _finite_or_none(p95_tok))
+                           is not None else None),
         })
     if min_failed is not None:
         rows = [r for r in rows if r["failed_traces"] >= min_failed]
-    return sorted(rows, key=lambda r: (-r["steps"], r["agent"]))
+    # str() in the key: an API-built int agent beside a str agent
+    # used to TypeError the sort on a steps tie
+    return sorted(rows, key=lambda r: (-r["steps"], str(r["agent"])))
 
 
 def _p95(values: List[float]) -> Optional[float]:
@@ -243,13 +254,15 @@ def tool_scorecard(traces: Iterable[Trace]) -> List[dict]:
             row["trace_ids"].add(trace.id)
             row["steps"] += 1
             row["errors"] += int(bool(step.error))
-            row["tokens"] += step.tokens or 0
+            tok = _finite_or_none(step.tokens)
+            row["tokens"] += tok or 0
             if isinstance(step.result, str):
                 row["result_chars"] += len(step.result)
-            if step.latency_ms:
-                row["latencies"].append(float(step.latency_ms))
-            if step.tokens:
-                row["token_samples"].append(float(step.tokens))
+            lat = _finite_or_none(step.latency_ms)
+            if lat:
+                row["latencies"].append(lat)
+            if tok:
+                row["token_samples"].append(tok)
             if failed:
                 row["failed_ids"].add(trace.id)
             if stamped_breach(trace.meta):
@@ -271,14 +284,28 @@ def tool_scorecard(traces: Iterable[Trace]) -> List[dict]:
             "breached_traces": len(row["breached_ids"]),
             "failure_rate": round(failed_n / touched, 3) if touched
                             else 0.0,
-            "p95_ms": round(p95_ms, 1) if p95_ms is not None else None,
-            "p95_tokens": (round(p95_tok) if p95_tok is not None
-                           else None),
+            "p95_ms": (round(ms, 1)
+                       if (ms := _finite_or_none(p95_ms)) is not None
+                       else None),
+            "p95_tokens": (round(tok)
+                           if (tok := _finite_or_none(p95_tok))
+                           is not None else None),
         })
-    return sorted(rows, key=lambda r: (-r["steps"], r["tool"]))
+    return sorted(rows, key=lambda r: (-r["steps"], str(r["tool"])))
 
 
 SPARK_BLOCKS = "▁▂▃▄▅▆▇█"
+
+
+def _finite_or_none(v: Any) -> "float | None":
+    """A counter the JSON can carry: None for non-finite — a None
+    p95 says "not measurable", a bare Infinity says "invalid
+    JSON" (and 1-arg round(inf) is an OverflowError)."""
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return f if math.isfinite(f) else None
 
 
 def _clean_value(v: Any) -> float:
@@ -325,10 +352,18 @@ def trend(traces: Iterable[Trace], bucket_days: int = 7) -> List[dict]:
     import datetime
 
     times = [t.created_at or 0 for t in rows]
+    times = [t for t in times if math.isfinite(t)]
+    if not times:
+        return []
     start = min(times)
     buckets: Dict[int, Dict[str, int]] = {}
     for trace in rows:
-        age = ((trace.created_at or 0) - start) / 86400
+        stamp = _finite_or_none(trace.created_at)
+        if stamp is None:
+            # a non-finite epoch has no bucket: inf - inf is NaN,
+            # and int(nan) is a ValueError mid-report
+            continue
+        age = (stamp - start) / 86400
         bucket = int(age // bucket_days)
         b = buckets.setdefault(bucket, {"total": 0, "failed": 0})
         b["total"] += 1
