@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -90,7 +91,7 @@ def _simple_message(step: Any) -> Dict[str, Any]:
         return {"role": "assistant",
                 "content": _content(step.thought or "")}
     if step.kind == MESSAGE:
-        return {"role": str(step.meta.get("role", "user")),
+        return {"role": str((step.meta or {}).get("role", "user")),
                 "content": _content(step.result)}
     return {"role": "assistant",          # ERROR
             "content": _content(step.error or ""),
@@ -175,6 +176,10 @@ def _attr(key: str, value: Any) -> Optional[Dict[str, Any]]:
     if isinstance(value, int):
         return {"key": key, "value": {"intValue": str(value)}}
     if isinstance(value, float):
+        if not math.isfinite(value):
+            # NaN/Infinity are not JSON: a strict OTLP parser
+            # rejects the whole document over one poisoned attr
+            return None
         return {"key": key, "value": {"doubleValue": value}}
     return {"key": key, "value": {"stringValue": _cap(value)}}
 
@@ -194,6 +199,10 @@ def _trace_id(trace_id: str) -> str:
 
 
 def _nanos(t: float) -> str:
+    if not math.isfinite(t):
+        # a non-finite stamp is zeroed: an inf cannot buy a ns
+        # stamp, and round(inf) is an OverflowError, not a time
+        return "0"
     # microsecond quantization: time.time() precision is µs, and the
     # integer µs value is exact below 2^53 — so export→import→export
     # closes byte-for-byte instead of drifting in the last ns digit
@@ -357,7 +366,9 @@ def export_annotations(store: TraceStore, output: Path) -> int:
     rows = store.annotations()
     with output.open("w", encoding="utf-8") as fh:
         for row in rows:
-            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+            # ensure_ascii (the default) is load-bearing: a lone
+            # surrogate in a hostile note crashes a UTF-8 write
+            fh.write(json.dumps(row) + "\n")
     return len(rows)
 
 
@@ -394,8 +405,9 @@ def export_store(store: TraceStore, output: Path,
             grouped.setdefault(str(note.get("trace_id")), []).append(
                 note)
         with output.open("w", encoding="utf-8") as fh:
-            json.dump(export_otlp(traces, grouped), fh,
-                      ensure_ascii=False)
+            # ensure_ascii (the default) is load-bearing: a
+            # surrogate in a hostile task or meta kills the doc
+            json.dump(export_otlp(traces, grouped), fh)
             fh.write("\n")
         return {"format": fmt, "traces": len(traces),
                 "written": len(traces), "dedupe_dropped": dropped,

@@ -92,7 +92,11 @@ def _iter_files(source: Path) -> Iterator[Path]:
 
 def _gold_modes(record: dict) -> List[str]:
     note = record.get("note")
-    options = (note.get("options") if isinstance(note, dict) else None) or {}
+    options = (note.get("options")
+               if isinstance(note, dict) else None)
+    # options is a {option: verdict} dict; a hostile list or a
+    # bare string is no annotation, not a crash
+    options = options if isinstance(options, dict) else {}
     modes = []
     for option, verdict in options.items():
         if str(verdict).strip().lower() == "yes" and option in OPTION_TO_MODE:
@@ -154,18 +158,32 @@ def _step_for(role: str, name: str, text: str) -> Step:
 
 def _task_of(record: dict) -> str:
     parts = record.get("problem_statement") or ["(no statement)"]
+    if not isinstance(parts, list):
+        # a hostile scalar is a string statement or a missing
+        # one - never a TypeError
+        parts = [parts] if isinstance(parts, str) else \
+            ["(no statement)"]
     return " ".join(str(p) for p in parts)[:400]
 
 
 def _success_of(record: dict) -> "bool | None":
-    other = record.get("other_data") or {}
-    return bool(other.get("correct")) if "correct" in other else None
+    other = record.get("other_data")
+    if isinstance(other, dict) and "correct" in other:
+        return bool(other["correct"])
+    return None
+
+
+def _trajectory_of(record: dict) -> list:
+    """The record's trajectory as a list — a hostile scalar is an
+    empty run, not a TypeError."""
+    trajectory = record.get("trajectory")
+    return trajectory if isinstance(trajectory, list) else []
 
 
 def _to_trace(record: dict) -> Trace:
     trace = Trace(task=_task_of(record), success=_success_of(record))
     trace.meta["prose"] = True  # activates the prose detector family
-    trajectory = record.get("trajectory") or []
+    trajectory = _trajectory_of(record)
     if trajectory and isinstance(trajectory[0], str):
         # HyperAgent log-line schema
         for role, text in _hyperagent_turns(trajectory):
@@ -207,7 +225,9 @@ def convert_mast(source: Path, out_path: Path,
                     record = json.load(fh_in)
                 if not isinstance(record, dict):
                     raise ValueError("not an object")
-            except (OSError, json.JSONDecodeError, ValueError):
+            except (OSError, json.JSONDecodeError, ValueError,
+                    RecursionError):
+                # a recursion bomb is a read failure like any other
                 stats.excluded_unreadable += 1
                 continue
 

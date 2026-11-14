@@ -143,7 +143,10 @@ def build_store_packs(store: Any, out_dir: Path,
     out_dir.mkdir(parents=True, exist_ok=True)
     index = []
     for trace in traces:
-        pack_path = out_dir / f"{trace.id}.evidence.zip"
+        from .store import safe_artifact
+
+        pack_path = safe_artifact(out_dir, trace.id,
+                                  ".evidence.zip")
         manifest = build_evidence_pack(store, trace.id, pack_path,
                                        key=key)
         index.append({

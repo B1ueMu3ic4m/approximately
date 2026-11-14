@@ -13,8 +13,20 @@ from pathlib import Path
 from typing import Any, List, Optional
 
 from . import __version__
-from .store import TraceStore, trace_files
+from .store import TraceStore, safe_artifact, trace_files
 from .trace import Trace
+
+
+def _artifact_of(directory: Path, trace_id: str,
+                 suffix: str) -> Path:
+    """A derived artifact path, door-voiced: an unsafe foreign id
+    (a hostile JSON loaded with --trace) is a named refusal
+    (exit 2), not a traceback and not an arbitrary write."""
+    try:
+        return safe_artifact(directory, trace_id, suffix)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        raise SystemExit(2) from exc
 
 
 def _load_trace(spec: str, store: TraceStore) -> Trace:
@@ -227,7 +239,8 @@ def cmd_report(args: argparse.Namespace) -> int:
             pairs.append((trace, report))
             traces.append(trace)
             # write every individual report so the index links resolve
-            page = store.directory / f"{trace.id}.report.html"
+            page = _artifact_of(store.directory, trace.id,
+                                ".report.html")
             if not page.exists():
                 page.write_text(render_html(trace, report, store), encoding="utf-8")
                 written += 1
@@ -254,11 +267,12 @@ def cmd_report(args: argparse.Namespace) -> int:
         from .markdown_report import render_markdown
 
         md = Path(args.output) if args.output else \
-            store.directory / f"{trace.id}.report.md"
+            _artifact_of(store.directory, trace.id, ".report.md")
         md.write_text(render_markdown(trace, report, store), encoding="utf-8")
         print(f"wrote markdown postmortem: {md}")
         return 0
-    out = Path(args.output) if args.output else store.directory / f"{trace.id}.report.html"
+    out = Path(args.output) if args.output else \
+        _artifact_of(store.directory, trace.id, ".report.html")
     out.write_text(render_html(trace, report, store), encoding="utf-8")
     print(f"wrote {out}")
     if getattr(args, "mermaid", None):
@@ -484,7 +498,11 @@ def cmd_calibrate(args: argparse.Namespace) -> int:
     )
     from .distill import load_dataset
 
-    labeled = load_dataset(Path(args.dataset), fmt=args.format)
+    try:
+        labeled = load_dataset(Path(args.dataset), fmt=args.format)
+    except (OSError, ValueError, RecursionError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     if len(labeled) < 10:
         print(f"need >= 10 labeled traces, got {len(labeled)}")
         return 1
@@ -788,7 +806,8 @@ def cmd_repair(args: argparse.Namespace) -> int:
     result = plan_repair(trace)
     written = None
     if result.repaired_trace is not None and args.apply:
-        out = store.directory / f"{trace.id}.repaired.json"
+        out = _artifact_of(store.directory, trace.id,
+                           ".repaired.json")
         out.write_text(result.repaired_trace.to_json(), encoding="utf-8")
         written = str(out)
         print(f"repaired trace written: {out}")
@@ -2328,8 +2347,14 @@ def _verify_fails(counts: dict, strict: bool) -> bool:
 def cmd_convert_mast(args: argparse.Namespace) -> int:
     from .mastdata import convert_mast
 
-    stats = convert_mast(Path(args.source), Path(args.output),
-                         multi_label=getattr(args, "multi_label", False))
+    try:
+        stats = convert_mast(Path(args.source), Path(args.output),
+                             multi_label=getattr(args,
+                                                 "multi_label", False))
+    except (OSError, ValueError, RecursionError) as exc:
+        # a bad source/output path is an answer, not a traceback
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     if getattr(args, "json", False):
         from dataclasses import asdict
 
@@ -4793,7 +4818,13 @@ def cmd_curve(args: argparse.Namespace) -> int:
     trace = _load_trace(args.trace, store)
     budgets = None
     if args.budgets:
-        budgets = [int(b) for b in args.budgets.split(",") if b.strip()]
+        try:
+            budgets = [int(b) for b in args.budgets.split(",")
+                       if b.strip()]
+        except ValueError:
+            print(f"error: --budgets must be comma-separated "
+                  f"integers, got {args.budgets!r}", file=sys.stderr)
+            return 2
     curve = budget_curve(trace, budgets=budgets)
     if getattr(args, "json", False):
         from .curve import curve_payload
@@ -4801,7 +4832,8 @@ def cmd_curve(args: argparse.Namespace) -> int:
         print(json.dumps(curve_payload(curve), indent=2))
         return 0
     scatter = success_vs_tokens(store.list_traces()) if args.scatter else None
-    out = Path(args.output) if args.output else store.directory / f"{trace.id}.curve.html"
+    out = Path(args.output) if args.output else \
+        _artifact_of(store.directory, trace.id, ".curve.html")
     out.write_text(render_curve_html(curve, scatter), encoding="utf-8")
     print(f"wrote {out}")
     for p_ in curve.points:
@@ -4860,7 +4892,8 @@ def cmd_export(args: argparse.Namespace) -> int:
             sidecar = output.with_name(output.stem + ".annotations.jsonl")
             result["annotations"] = export_annotations(store, sidecar)
             result["annotations_file"] = str(sidecar)
-    except ValueError as exc:
+    except (ValueError, OSError, UnicodeDecodeError,
+            RecursionError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     if args.json:
@@ -5063,7 +5096,11 @@ def _benchmark_multi(labeled: list, args: argparse.Namespace) -> int:
 def cmd_benchmark(args: argparse.Namespace) -> int:
     from .distill import evaluate, load_dataset, rules_labeler, teacher_labeler
 
-    labeled = load_dataset(Path(args.dataset), fmt=args.format)
+    try:
+        labeled = load_dataset(Path(args.dataset), fmt=args.format)
+    except (OSError, ValueError, RecursionError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     if not labeled:
         print("no labeled records found")
         return 1

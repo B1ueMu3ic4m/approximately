@@ -75,7 +75,7 @@ def success_vs_tokens(traces: Iterable[Trace]) -> List[Tuple[int, Optional[bool]
     for trace in traces:
         tokens = full_context_tokens(trace)
         for step in trace.steps:  # count llm-side cost too, if recorded
-            tokens += step.tokens
+            tokens += step.tokens or 0 or 0
         out.append((tokens, trace.success))
     return out
 

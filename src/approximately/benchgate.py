@@ -129,7 +129,8 @@ def run_gate(dataset: Path, floors_path: Path, label: str = "gate",
              junit_path: Optional[Path] = None) -> int:
     try:
         result = gate_result(dataset, floors_path)
-    except ValueError as exc:
+    except (ValueError, OSError) as exc:
+        # a missing dataset is a gate failure, not a traceback
         print(f"bench-gate[{label}]: {exc}", file=sys.stderr)
         return 1
     floors = json.loads(floors_path.read_text(encoding="utf-8"))
