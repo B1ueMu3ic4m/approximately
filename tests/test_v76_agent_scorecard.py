@@ -41,12 +41,20 @@ def test_agent_field_is_chain_covered():
                     steps=[Step.from_dict(s.to_dict()) for s in steps])
     trace_b = Trace(task="t", id="cb", created_at=1.0,
                     steps=[Step.from_dict(s.to_dict()) for s in steps])
-    trace_b.steps[1].agent = "planner"
     chain_a = compute_chain(trace_a)
+    # v5.0.0: the chain covers the coerced view - recomputing the
+    # same trace is stable
+    assert compute_chain(trace_a) == chain_a
+    trace_b.steps[1].agent = "planner"
     chain_b = compute_chain(trace_b)
-    assert chain_a[0] == chain_b[0]      # step 0 untouched
-    assert chain_a[1] != chain_b[1]      # agent identity is hashed
-    assert chain_a[2] != chain_b[2]      # and the chain propagates
+    assert chain_b[1] != chain_a[1]      # agent identity is hashed
+    assert chain_b[2] != chain_a[2]      # and the chain propagates
+    # v5.0.0: id is inside the fence now - different ids chain
+    # differently even with identical steps (v1's cross-trace hash
+    # equality was the fence being too narrow)
+    trace_c = Trace(task="t", id="cb", created_at=1.0,
+                    steps=[Step.from_dict(s.to_dict()) for s in steps])
+    assert compute_chain(trace_c)[0] != chain_a[0]
 
 
 def test_recorder_stamps_agent():

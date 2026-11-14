@@ -1897,6 +1897,44 @@ framework adapters import lazily and degrade when the framework is absent.
          now backdates two full days, safely inside the window
          it pins.
 
+547. **v5.0.0 - the fence covers everything the postmortem
+       trusts** (planned):
+       - The tamper-evidence audit found the core promise
+         narrower than its slogan, and the fix changes the
+         chain contract — the disruptive change this repo's
+         version discipline reserves a major for. v1's chain
+         hashed three header fields plus the steps: a text
+         editor could flip success, rewrite final_output, forge
+         or erase the budget-breach stamp, re-point the
+         redaction provenance, and change the trace id (defeating
+         rollback detection) — all while verify said intact. And
+         the v4.2.1 coercion boundary met the v1 stamp
+         asymmetrically: a recorder-written 3-hour step
+         (10.8M ms) or a 10**400-token step false-FAILED its own
+         verdict forever. v2 signs the coerced view of every
+         step (sign and verify hash the same truth) and the
+         canonical header of every field consumers trust.
+         v1 records verify under v1 rules and are named
+         intact-legacy — history is never rewritten, and the
+         verdict says which fence the evidence stood behind.
+         Around the chain: the evidence manifest is signed
+         (both directions audited — a re-stamp attack with an
+         attacker's key is refused, de-covered members are
+         named, a signed pack without the key is locked, not
+         trusted); the ledger's read-then-append holds a
+         cross-trace lock (12 concurrent finishers used to
+         stamp duplicate seqs and break the chain permanently);
+         a destroyed store reads INCOMPLETE AUDIT exit 6 with
+         every unparseable file named (the destroyed-evidence
+         evasion used to read exit 0 with an empty verdict
+         list); an unreadable trace answers verdict unreadable
+         (exit 6) instead of a traceback wearing the TAMPERED
+         exit code; an explicitly missing key file is a named
+         refusal (a missing evidence key used to hand over a
+         forgeable chain, a missing receiver key used to open
+         the tap); ledger absence is visible in the audit JSON.
+         24 new pins (test_v500_chain_v2).
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

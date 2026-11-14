@@ -35,6 +35,39 @@ from typing import List, Optional
 from .trace import Trace
 
 LEDGER_FILE = "ledger.jsonl"
+_LEDGER_LOCK_STALE = 300.0  # a crashed appender's leftover
+
+
+def _acquire_ledger_lock(ledger_path: "Path") -> "Optional[Path]":
+    """O_EXCL lockfile around the ledger's read-then-append:
+    duplicate seqs from concurrent finishers broke the chain
+    permanently. Waits up to 30s, then proceeds unlocked (the
+    historical race window, degraded but never data loss)."""
+    import time as _time
+
+    lock = ledger_path.with_name(ledger_path.name + ".lock")
+    deadline = _time.monotonic() + 30.0
+    while True:
+        try:
+            fd = os.open(str(lock),
+                         os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+            os.write(fd, str(os.getpid()).encode("ascii"))
+            os.close(fd)
+            return lock
+        except FileExistsError:  # noqa: PERF203 - the retry IS the lock
+            try:
+                if _time.monotonic() > deadline:
+                    return None
+                if (_time.time() - lock.stat().st_mtime
+                        > _LEDGER_LOCK_STALE):
+                    lock.unlink()
+                    continue
+            except OSError:
+                pass
+            _time.sleep(0.01)
+
+
+
 GENESIS = "0" * 64
 
 
@@ -105,25 +138,38 @@ class EvidenceLedger:
 
     # -- appending ------------------------------------------------------------
     def append(self, trace_id: str, root: str) -> LedgerEntry:
-        prev = self.entries()
-        prev_chain = prev[-1].chain if prev else GENESIS
-        entry = LedgerEntry(
-            seq=(prev[-1].seq + 1) if prev else 1,
-            trace_id=trace_id,
-            root=root,
-            timestamp=datetime.datetime.now(datetime.timezone.utc)
-            .isoformat(timespec="seconds"),
-            chain="",
-        )
-        entry.chain = _chain_entry(entry, prev_chain)
-        line = json.dumps(entry.to_dict(), sort_keys=True)
-        # single small line in O_APPEND mode: atomic on POSIX, and the
-        # store's own per-id locks already serialize same-trace writers
-        with open(self.path, "a", encoding="utf-8") as fh:
-            fh.write(line + "\n")
-            fh.flush()
-            os.fsync(fh.fileno())
-        return entry
+        # the read-then-append holds a cross-trace lock: the store's
+        # per-id locks serialize same-trace writers only, and two
+        # concurrent finishers used to read the same tail and stamp
+        # duplicate seqs — a broken ledger chain nothing could
+        # repair (the doctor never touches the ledger). O_EXCL +
+        # stale takeover, the spool's own discipline.
+        lock = _acquire_ledger_lock(self.path)
+        try:
+            prev = self.entries()
+            prev_chain = prev[-1].chain if prev else GENESIS
+            entry = LedgerEntry(
+                seq=(prev[-1].seq + 1) if prev else 1,
+                trace_id=trace_id,
+                root=root,
+                timestamp=datetime.datetime.now(
+                    datetime.timezone.utc).isoformat(timespec="seconds"),
+                chain="",
+            )
+            entry.chain = _chain_entry(entry, prev_chain)
+            line = json.dumps(entry.to_dict(), sort_keys=True)
+            # single small line in O_APPEND mode: atomic on POSIX
+            with open(self.path, "a", encoding="utf-8") as fh:
+                fh.write(line + "\n")
+                fh.flush()
+                os.fsync(fh.fileno())
+            return entry
+        finally:
+            if lock is not None:
+                try:
+                    lock.unlink()
+                except OSError:
+                    pass
 
 
 def _chain_entry(entry: LedgerEntry, prev_chain: str) -> str:
