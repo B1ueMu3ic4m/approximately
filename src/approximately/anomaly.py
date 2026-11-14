@@ -30,8 +30,9 @@ leaves behind even when every call came back quickly.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
-from typing import List
+from typing import Any, List
 
 from .trace import TOOL_CALL, Step, Trace
 
@@ -50,6 +51,17 @@ class LatencyAnomaly:
     @property
     def direction(self) -> str:
         return "slow" if self.robust_z > 0 else "fast"
+
+
+def _finite(value: Any) -> "float | None":
+    """A latency the math can use: None for non-finite or missing
+    (None excludes the sample; float('inf') used to become z=nan
+    and slip every threshold test the wrong way)."""
+    try:
+        f = float(value)
+    except (TypeError, ValueError):
+        return None
+    return f if math.isfinite(f) else None
 
 
 def _median(values: List[float]) -> float:
@@ -111,31 +123,44 @@ def detect_fleet_anomalies(traces: list, threshold: float
     by_tool: dict = {}
     for trace in traces:
         for step in trace.steps:
-            if step.kind == TOOL_CALL and step.latency_ms                     and step.latency_ms > 0:
+            if step.kind != TOOL_CALL:
+                continue
+            latency = _finite(step.latency_ms)
+            if latency and latency > 0:
                 by_tool.setdefault(step.tool or "?", []).append(
                     (trace, step))
     anomalies: List[TraceLatencyAnomaly] = []
-    for tool, pairs in sorted(by_tool.items()):
+    for tool, pairs in sorted(by_tool.items(), key=str):
         if len(pairs) < min_samples:
             continue
-        values = [float(s.latency_ms) for _, s in pairs]
-        med = _median(values)
-        mad = _scale(values, med)
-        if mad == 0:
-            continue  # identical latencies: no scale, no anomalies
-        for trace, step in pairs:
-            z = _CONSISTENCY * (float(step.latency_ms) - med) / mad
-            if abs(z) > threshold:
-                anomalies.append(TraceLatencyAnomaly(
-                    trace_id=trace.id,
-                    step_index=step.index,
-                    tool=tool,
-                    latency_ms=step.latency_ms,
-                    median_ms=med,
-                    robust_z=round(z, 2),
-                ))
-    anomalies.sort(key=lambda a: -abs(a.robust_z))
+        anomalies.extend(_scan_tool_family(tool, pairs, threshold))
     return anomalies
+
+
+def _scan_tool_family(tool: str, pairs: list,
+                      threshold: float) -> List[TraceLatencyAnomaly]:
+    """One tool family's robust-z scan: identical latencies have
+    no scale and get an honest no-op."""
+    values = [v for _, s in pairs
+              if (v := _finite(s.latency_ms)) is not None]
+    med = _median(values)
+    mad = _scale(values, med)
+    if mad == 0:
+        return []
+    found: List[TraceLatencyAnomaly] = []
+    for trace, step in pairs:
+        z = _CONSISTENCY * (float(step.latency_ms) - med) / mad
+        if abs(z) > threshold:
+            found.append(TraceLatencyAnomaly(
+                trace_id=trace.id,
+                step_index=step.index,
+                tool=tool,
+                latency_ms=step.latency_ms,
+                median_ms=med,
+                robust_z=round(z, 2),
+            ))
+    found.sort(key=lambda a: -abs(a.robust_z))
+    return found
 
 
 def detect_latency_anomalies(trace: Trace, threshold: float
@@ -159,36 +184,65 @@ def detect_latency_anomalies(trace: Trace, threshold: float
     if len(timed) < min_samples:
         return []
     if not per_tool:
-        values = [float(s.latency_ms) for s in timed]
-        med = _median(values)
-        mad = _scale(values, med)
-        if mad == 0:
-            return []  # identical latencies: no scale, no anomalies
-        return _flagged(timed, values, med, mad, threshold)
+        return _pooled_flags(timed, threshold)
+    return _per_tool_flags(timed, min_samples, threshold)
+
+
+def _pooled_flags(timed: list, threshold: float) -> List[LatencyAnomaly]:
+    """One pooled scale: identical latencies have none and get an
+    honest no-op."""
+    values = [v for s in timed
+              if (v := _finite(s.latency_ms)) is not None]
+    med = _median(values)
+    mad = _scale(values, med)
+    if mad == 0:
+        return []
+    return _flagged(timed, values, med, mad, threshold)
+
+
+def _per_tool_flags(timed: list, min_samples: int,
+                    threshold: float) -> List[LatencyAnomaly]:
+    """Per-tool-family scales: a trace that mixes 2-second searches
+    with 30-second deploys pools them into one scale where neither
+    looks anomalous. Families under min_samples fall back to the
+    pooled scale rather than going blind on rare tools."""
     by_tool: dict = {}
     for step in timed:
         by_tool.setdefault(step.tool or "?", []).append(step)
+    pooled = _pooled_scale(timed)
     anomalies: List[LatencyAnomaly] = []
-    for _tool, steps in sorted(by_tool.items()):
+    for _tool, steps in sorted(by_tool.items(), key=str):
         if len(steps) >= min_samples:
-            values = [float(s.latency_ms) for s in steps]
-            med = _median(values)
-            mad = _scale(values, med)
-            if mad == 0:
+            scale = _pooled_scale(steps)
+            if scale is None:
                 continue  # identical latencies: no scale
+            med, mad = scale
+            values = [v for v, _s in _finite_values(steps)]
             anomalies.extend(_flagged(steps, values, med, mad,
                                       threshold))
             continue
         # rare tool: judge its own latencies against the pooled scale
-        values = [float(s.latency_ms) for s in timed]
-        med = _median(values)
-        mad = _scale(values, med)
-        if mad == 0:
-            continue  # every sample identical: no scale, no anomalies
+        if pooled is None:
+            continue
+        med, mad = pooled
         family = [float(s.latency_ms) for s in steps]
         anomalies.extend(_flagged(steps, family, med, mad, threshold))
     anomalies.sort(key=lambda a: -abs(a.robust_z))
     return anomalies
+
+
+def _pooled_scale(steps: list) -> "tuple | None":
+    values = [v for v, _s in _finite_values(steps)]
+    med = _median(values)
+    mad = _scale(values, med)
+    if mad == 0:
+        return None
+    return med, mad
+
+
+def _finite_values(steps: list) -> list:
+    return [(v, s) for s in steps
+            if (v := _finite(s.latency_ms)) is not None]
 
 
 
@@ -341,7 +395,7 @@ def detect_result_anomalies(trace: Trace,
     for step in metered:
         by_tool.setdefault(step.tool or "?", []).append(step)
     anomalies: List[ResultAnomaly] = []
-    for _tool, steps in sorted(by_tool.items()):
+    for _tool, steps in sorted(by_tool.items(), key=str):
         values = [float(len(s.result)) for s in steps]
         med = _median(values)
         anomalies.extend(flags(steps, values, med, _scale(values, med)))
@@ -411,7 +465,7 @@ def detect_token_anomalies(trace: Trace, threshold: float
     for step in metered:
         by_tool.setdefault(step.tool or "?", []).append(step)
     anomalies: List[TokenAnomaly] = []
-    for _tool, steps in sorted(by_tool.items()):
+    for _tool, steps in sorted(by_tool.items(), key=str):
         if len(steps) >= min_samples:
             values = [float(s.tokens) for s in steps]
             med = _median(values)

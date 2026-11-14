@@ -1826,8 +1826,15 @@ def cmd_merge(args: argparse.Namespace) -> int:
     from .merge import merge_store, report_payload
 
     store = TraceStore(args.store)
-    report = merge_store(Path(args.source), store,
-                         on_conflict=args.on_conflict)
+    try:
+        report = merge_store(Path(args.source), store,
+                             on_conflict=args.on_conflict)
+    except (ValueError, KeyError, OSError) as exc:
+        # a typo'd source used to be silently created and merged 0
+        # traces (exit 0); a hand-edited annotation row without a
+        # trace_id used to KeyError; a hostile id used to traceback
+        print(f"error: merge: {exc}", file=sys.stderr)
+        return 2
     if getattr(args, "json", False):
         print(json.dumps(report_payload(report), indent=2))
         return 0
@@ -4869,6 +4876,11 @@ def cmd_cluster(args: argparse.Namespace) -> int:
         from .query import select
 
         traces = select(traces, args.query)
+    if getattr(args, "last", None) is not None and args.last < 1:
+        print(f"error: --last must be >= 1, got {args.last} "
+              "(0 used to silently mean the whole store)",
+              file=sys.stderr)
+        return 2
     if args.last:
         traces = traces[-args.last:]
     if getattr(args, "by_agent", False):

@@ -85,7 +85,13 @@ def merge_store(source: Path, target: TraceStore,
     if on_conflict not in CONFLICT_POLICIES:
         raise ValueError(f"on_conflict must be one of {CONFLICT_POLICIES}, "
                          f"got {on_conflict!r}")
-    source_store = TraceStore(Path(source))
+    source_path = Path(source)
+    if not source_path.is_dir():
+        # a typo'd source used to be silently created and merged 0
+        # traces with exit 0 - the union of nothing, reported as a
+        # success
+        raise ValueError(f"source store not found: {source_path}")
+    source_store = TraceStore(source_path)
     if source_store.directory.resolve() == target.directory.resolve():
         raise ValueError("source and target store are the same directory")
 
@@ -126,6 +132,10 @@ def merge_store(source: Path, target: TraceStore,
         seen = {_key(e) for e in target.annotations()}
         for note in source_notes:
             entry = dict(note)
+            # a hand-edited sidecar row without a trace_id has no
+            # trace to ride: skipped, not a KeyError mid-merge
+            if not entry.get("trace_id"):
+                continue
             entry["trace_id"] = report.renamed.get(entry["trace_id"],
                                                    entry["trace_id"])
             if _key(entry) in seen:

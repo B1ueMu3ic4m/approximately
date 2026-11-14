@@ -1935,6 +1935,37 @@ framework adapters import lazily and degrade when the framework is absent.
          the tap); ledger absence is visible in the audit JSON.
          24 new pins (test_v500_chain_v2).
 
+548. **v5.1.0 - the analysis engines meet junk on its feet**
+       (planned):
+       - The analysis-engines recon (query, cluster, drift,
+         detectors, anomaly, diff, merge, and their doors) found
+         the classes every other round fixed, still alive here: a
+         plain valid expression (tools contains (deploy, web))
+         crashed the whole query door with a TypeError; a foreign
+         record with non-sequential step indexes (5, 6 for two
+         steps — STORE-reachable hand-edited JSON) sent the
+         repeat detector indexing past the end of the list in
+         every attribution consumer; drift's output flipped order
+         across processes because set iteration fed the stable
+         sort's ties; a NaN token counter compared False against
+         every ceiling and slipped silently; inf counters became
+         bare Infinity in the scorecard JSON and round(inf)
+         Overflow'd the door; API-built junk (int agents, int
+         tools, int results) TypeError'd or AttributeError'd
+         mid-door; a typo'd merge source was silently created and
+         merged 0 traces with exit 0; --last 0 was truthy-zero
+         and sliced to the whole store. Fixed at the boundary:
+         index renumbers positionally at from_dict (positional
+         truth), contains grew list-needle semantics (all-of),
+         non-finite counters are absent (not lies the comparator
+         reads wrong), drift iterates sorted and breaks ties by
+         name, the scorecards fence non-finite into None, mixed
+         -type names sort by str, the merge door answers by name
+         (typo'd source refused, hand-edited sidecar rows
+         skipped), --last refuses sub-1, and the anomaly families
+         split into helpers. 12 new pins
+         (test_v510_analysis_engines).
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

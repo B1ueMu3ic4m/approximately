@@ -18,7 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 from .align import (
     GAP_PENALTY,
@@ -204,5 +204,7 @@ def _preview(text: str, limit: int = 40) -> str:
     return text[:limit] + ("..." if len(text) > limit else "")
 
 
-def _norm(text: str) -> str:
-    return " ".join((text or "").split())
+def _norm(text: Any) -> str:
+    # str() first: a mutated pair with result=42 on one side used
+    # to AttributeError mid-bisect
+    return " ".join(str(text or "").split())

@@ -224,6 +224,12 @@ class Trace:
             meta=meta,
         )
         trace.steps = [Step.from_dict(s) for s in steps_data]
+        # index is POSITIONAL truth: a foreign record with
+        # non-sequential indexes (5, 6 for two steps) sent the
+        # repeat detector indexing past the end of the list in
+        # every attribution consumer
+        for i, step in enumerate(trace.steps):
+            step.index = i
         return trace
 
     def to_json(self, indent: int = 2) -> str:
