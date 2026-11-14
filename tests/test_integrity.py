@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 from approximately.integrity import compute_chain, sign, verify
 from approximately.recorder import Recorder
 
@@ -19,7 +21,7 @@ def test_recorder_signs_traces_on_save(store):
     trace = _recorded(store)
     assert "integrity" in trace.meta
     block = trace.meta["integrity"]
-    assert block["algorithm"] == "sha256-chain-v1"
+    assert block["algorithm"] == "sha256-chain-v2"
     assert len(block["step_hashes"]) == len(trace.steps)
     loaded = store.load(trace.id)
     assert verify(loaded).verdict == "intact"
@@ -69,7 +71,7 @@ def test_hmac_sign_and_verify_roundtrip(store):
     loaded = store.load(trace.id)
     result = verify(loaded, key=key)
     assert result.verdict == "intact"
-    assert trace.meta["integrity"]["algorithm"] == "hmac-sha256-chain-v1"
+    assert trace.meta["integrity"]["algorithm"] == "hmac-sha256-chain-v2"
 
 
 def _resave(store, trace):
@@ -113,6 +115,9 @@ def test_load_key_from_env(monkeypatch):
     assert load_key() == b"\xaa\xbb\xcc"
     monkeypatch.setenv("APPROXIMATELY_SIGNING_KEY", "plain text key")
     assert load_key() == b"plain text key"
-    assert load_key("/nonexistent/path") is None or True  # file path wins below
+    # v5.0.0: an explicitly named key that does not exist is a
+    # named refusal, never a silent downgrade to an unkeyed chain
+    with pytest.raises(ValueError, match="not found"):
+        load_key("/nonexistent/path")
     monkeypatch.delenv("APPROXIMATELY_SIGNING_KEY")
     assert load_key() is None

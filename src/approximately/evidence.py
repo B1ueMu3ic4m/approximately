@@ -118,12 +118,26 @@ def build_evidence_pack(store: Any, trace_id: str, output: Path,
             payload = data.encode("utf-8")
             zf.writestr(name, payload)
             hashed[name] = hashlib.sha256(payload).hexdigest()
-        # the manifest hashes every member but itself — a reviewer
-        # recomputes the list from the members and compares
+        # the manifest hashes every member but itself; with a key
+        # it is also SIGNED (v5.0.0: the unsigned manifest made the
+        # pack's tamper-evidence advisory — a re-stamped member
+        # with a recomputed digest verified TRUSTED, and dropping
+        # members from the manifest de-covered them silently)
         manifest["members"] = hashed
+        if key is not None:
+            import hmac as _hmac
+
+            manifest["signature"] = _hmac.new(
+                key, _canonical_manifest(manifest),
+                hashlib.sha256).hexdigest()
         zf.writestr("manifest.json", json.dumps(
             manifest, indent=2, sort_keys=True) + "\n")
     return manifest
+
+
+def _canonical_manifest(manifest: dict) -> bytes:
+    body = {k: v for k, v in manifest.items() if k != "signature"}
+    return json.dumps(body, sort_keys=True, default=str).encode("utf-8")
 
 
 def build_store_packs(store: Any, out_dir: Path,
@@ -170,6 +184,42 @@ def build_store_packs(store: Any, out_dir: Path,
             "traces": index}
 
 
+def _check_manifest(zf: "zipfile.ZipFile", names: set,
+                    manifest: dict,
+                    key: Optional[bytes]) -> dict:
+    """The manifest audit, both directions and the signature:
+    manifest->members (each digest matches its member), members->manifest
+    (nothing rides outside the fence), and the HMAC — a signed pack
+    with no key is locked (saying TRUSTED would be the de-coverage
+    attack winning by omission), an unsigned pack under a
+    key-holding reviewer is advisory and named."""
+    import hmac as _hmac
+
+    recorded = manifest.get("members") or {}
+    signature = manifest.get("signature")
+    manifest.pop("signature", None)
+    mismatched = [name for name, digest in recorded.items()
+                  if name not in names
+                  or hashlib.sha256(zf.read(name)).hexdigest()
+                  != digest]
+    missing = sorted(set(recorded) - names)
+    uncovered = sorted(names - set(recorded) - {"manifest.json"})
+    signature_ok = None
+    if signature is not None:
+        signature_ok = _hmac.compare_digest(
+            signature, _hmac.new(
+                key or b"", _canonical_manifest(manifest),
+                hashlib.sha256).hexdigest())
+        if key is None:
+            signature_ok = False
+    elif key is not None:
+        signature_ok = False
+    return {"recorded": recorded, "mismatched": mismatched,
+            "missing": missing, "uncovered": uncovered,
+            "signed": signature is not None,
+            "signature_ok": signature_ok}
+
+
 def verify_evidence_pack(pack: Path,
                          key: Optional[bytes] = None) -> Dict[str, Any]:
     """The reviewer's side: recompute every manifest hash, then
@@ -183,12 +233,12 @@ def verify_evidence_pack(pack: Path,
         if "manifest.json" not in names:
             raise ValueError("not an evidence pack: no manifest")
         manifest = json.loads(zf.read("manifest.json"))
-        recorded = manifest.get("members") or {}
-        mismatched = [name for name, digest in recorded.items()
-                      if name not in names
-                      or hashlib.sha256(zf.read(name)).hexdigest()
-                      != digest]
-        missing = sorted(set(recorded) - names)
+        checked = _check_manifest(zf, names, manifest, key)
+        recorded = checked["recorded"]
+        mismatched = checked["mismatched"]
+        missing = checked["missing"]
+        uncovered = checked["uncovered"]
+        signature_ok = checked["signature_ok"]
         record = None
         if "trace.json" in names:
             from .trace import Trace
@@ -213,6 +263,11 @@ def verify_evidence_pack(pack: Path,
         "members_checked": len(recorded),
         "mismatched": mismatched,
         "missing": missing,
-        "manifest_ok": not mismatched and not missing,
+        "uncovered": uncovered,
+        "manifest_signed": checked["signed"],
+        "signature_ok": signature_ok,
+        "manifest_ok": (not mismatched and not missing
+                        and not uncovered
+                        and signature_ok is not False),
         "chain": chain,
     }

@@ -5,11 +5,24 @@ an agent run matters — incidents, compliance, "why did it charge the
 customer twice" — the recorded trajectory must be able to prove it has not
 been altered after the fact.
 
-Mistral-style hash chain (same construction as certificate transparency):
+Mistral-style hash chain (same construction as certificate transparency).
+v2 (the 5.0.0 contract change — the audit showed v1 left the postmortem
+consumers' fields outside the fence):
 
-    seed  = sha256(task | model | created_at)
-    h[i]  = sha256(h[i-1] || canonical_json(step[i]))
-    final = h[last]
+    header = canonical_json({id, task, model, created_at, success,
+                             final_output, meta (minus integrity)})
+    seed   = H(header)
+    h[i]   = H(h[i-1] || canonical_json(step_view[i]))
+    final  = h[last]
+
+v2 hashes the COERCED view of every step (``Trace.from_dict`` is the
+v4.2.1 boundary: counters clamp, epochs refuse non-finite) — sign and
+verify hash the same truth, so a clamp-eligible value stamped by the
+recorder never false-fails its own verdict. v1 covered the steps and
+three header fields only: success/final_output/meta/id edits verified
+intact, and a text editor could forge or erase the budget-breach stamp.
+v1 records still verify under v1 rules and are named as such
+(``intact-legacy``) — history is never rewritten.
 
 The recorder stamps ``trace.meta["integrity"]`` on save. ``verify`` then
 recomputes the chain over the stored steps and localizes the first step
@@ -29,8 +42,10 @@ from typing import Any, List, Optional
 
 from .trace import Trace
 
-ALGORITHM = "sha256-chain-v1"
-ALGORITHM_KEYED = "hmac-sha256-chain-v1"
+ALGORITHM = "sha256-chain-v2"
+ALGORITHM_KEYED = "hmac-sha256-chain-v2"
+ALGORITHM_V1 = "sha256-chain-v1"
+ALGORITHM_KEYED_V1 = "hmac-sha256-chain-v1"
 
 
 def _canonical(step_dict: dict) -> bytes:
@@ -60,7 +75,10 @@ def load_key(key_file: Optional[str] = None) -> Optional[bytes]:
     if key_file:
         path = Path(key_file)
         if not path.is_file():
-            return None
+            # an explicitly named key that does not exist is a
+            # named refusal, not a silent downgrade to an
+            # unkeyed (forgeable) chain
+            raise ValueError(f"key file {key_file!r} not found")
         with path.open("rb") as fh:
             data = fh.read(MAX_KEY_FILE_BYTES + 1)
         if len(data) > MAX_KEY_FILE_BYTES:
@@ -78,31 +96,74 @@ def load_key(key_file: Optional[str] = None) -> Optional[bytes]:
         return env.encode("utf-8")
 
 
-def _seed(trace: Trace) -> str:
+def _hash_view(trace: Trace) -> Trace:
+    """The trace as the chain sees it: the coerced round-trip.
+    v4.2.1 made ``from_dict`` the data boundary (counters clamp,
+    epochs refuse non-finite, names stay names) — sign and verify
+    hash that same view, so the recorder's own out-of-band values
+    never false-fail their own verdict, and a hostile import
+    arrives as exactly what the verifier will recompute."""
+    return Trace.from_dict(trace.to_dict())
+
+
+def _header(trace: Trace) -> dict:
+    """The postmortem consumers' fields, inside the fence: id,
+    verdict, output, and every meta key — including the budget
+    breach stamp, which a text editor could previously forge or
+    erase. The integrity block itself is excluded (it carries the
+    hash that covers it)."""
+    meta = trace.meta if isinstance(trace.meta, dict) else {}
+    return {
+        "id": trace.id,
+        "task": trace.task,
+        "model": trace.model,
+        "created_at": trace.created_at,
+        "success": trace.success,
+        "final_output": trace.final_output,
+        "meta": {k: v for k, v in meta.items()
+                 if k != "integrity"},
+    }
+
+
+def _seed_v2(trace: Trace) -> str:
+    return _sha(_canonical(_header(_hash_view(trace))))
+
+
+def _seed_v1(trace: Trace) -> str:
+    """The v1 seed: three header fields, f-string joined. Kept
+    for legacy verdicts — history is never rewritten."""
     seed_input = f"{trace.task}|{trace.model}|{trace.created_at}"
     return _sha(seed_input.encode("utf-8"))
 
 
+def _chain(trace: Trace, key: Optional[bytes], seed: str,
+           steps: list) -> List[str]:
+    def digest(msg: bytes) -> str:
+        return _mac(key, msg) if key is not None else _sha(msg)
+    hashes = []
+    previous = seed
+    for step in steps:
+        previous = digest(previous.encode("utf-8")
+                          + _canonical(step.to_dict()))
+        hashes.append(previous)
+    return hashes
+
+
 def compute_chain(trace: Trace, key: Optional[bytes] = None) -> List[str]:
-    """Walk the chain over the trace's steps as they are right now.
+    """Walk the v2 chain over the coerced view of the trace.
 
     Without a key this is a plain sha256 chain (detects accidental or lazy
     tampering). With a key it is an HMAC-SHA256 chain: an attacker with
     write access to the file can no longer recompute the chain, so forgery
     is detectable by anyone holding the key.
     """
-    if key is not None:
-        def digest(msg: bytes) -> str:
-            return _mac(key, msg)
-    else:
-        def digest(msg: bytes) -> str:
-            return _sha(msg)
-    hashes = []
-    previous = _seed(trace)
-    for step in trace.steps:
-        previous = digest(previous.encode("utf-8") + _canonical(step.to_dict()))
-        hashes.append(previous)
-    return hashes
+    view = _hash_view(trace)
+    return _chain(view, key, _seed_v2(view), view.steps)
+
+
+def _chain_v1(trace: Trace, key: Optional[bytes] = None) -> List[str]:
+    """The v1 walker, unchanged, for legacy verdicts."""
+    return _chain(trace, key, _seed_v1(trace), trace.steps)
 
 
 def key_id(key: bytes) -> str:
@@ -116,14 +177,18 @@ def key_id(key: bytes) -> str:
 
 
 def sign(trace: Trace, key: Optional[bytes] = None) -> dict:
-    """Stamp an integrity block into ``trace.meta`` (recorder calls this)."""
-    chain = compute_chain(trace, key=key)
+    """Stamp a v2 integrity block into ``trace.meta`` (the recorder
+    calls this). The block covers the coerced view of every step
+    and every postmortem field — id, verdict, output, meta (the
+    breach stamp included)."""
+    view = _hash_view(trace)
+    chain = compute_chain(view, key=key)
     block = {
         "algorithm": ALGORITHM_KEYED if key else ALGORITHM,
         "keyed": key is not None,
-        "seed": _seed(trace),
+        "seed": _seed_v2(view),
         "step_hashes": chain,
-        "final": chain[-1] if chain else _seed(trace),
+        "final": chain[-1] if chain else _seed_v2(view),
     }
     if key is not None:
         block["key_id"] = key_id(key)
@@ -184,7 +249,8 @@ def _effective_key(block: dict, key: Optional[bytes]) -> Any:
     ``_LOCKED`` sentinel when a keyed trace cannot be verified for lack of
     the key.
     """
-    keyed = bool(block.get("keyed")) and block.get("algorithm") == ALGORITHM_KEYED
+    keyed = bool(block.get("keyed")) and block.get("algorithm") in (
+        ALGORITHM_KEYED, ALGORITHM_KEYED_V1)
     if not keyed:
         return None
     if not key:
@@ -201,7 +267,8 @@ def verify(trace: Trace, key: Optional[bytes] = None) -> VerificationResult:
     meta = trace.meta if isinstance(trace.meta, dict) else {}
     block = meta.get("integrity")
     if not isinstance(block, dict) or block.get("algorithm") not in (
-            ALGORITHM, ALGORITHM_KEYED):
+            ALGORITHM, ALGORITHM_KEYED, ALGORITHM_V1,
+            ALGORITHM_KEYED_V1):
         return VerificationResult(signed=False,
                                   detail="trace carries no integrity block")
 
@@ -225,11 +292,26 @@ def verify(trace: Trace, key: Optional[bytes] = None) -> VerificationResult:
             verdict_override="wrong-key",
         )
 
-    actual = compute_chain(trace, key=key)
+    legacy = block.get("algorithm") in (ALGORITHM_V1,
+                                        ALGORITHM_KEYED_V1)
+    # v1 records verify under v1 rules: history is never rewritten,
+    # and the verdict names the format so an auditor knows which
+    # fence the evidence stood behind
+    actual = (_chain_v1(trace, key=key) if legacy
+              else compute_chain(trace, key=key))
     expected_hashes: List[str] = block.get("step_hashes", [])
     if actual == expected_hashes:
-        return _intact_result(block, actual)
-    return _tamper_result(block, actual, expected_hashes)
+        result = _intact_result(block, actual)
+        if legacy:
+            result.verdict_override = "intact-legacy"
+            result.detail += (" · legacy v1 format (steps only; "
+                              "re-sign to bring every field "
+                              "inside the fence)")
+        return result
+    result = _tamper_result(block, actual, expected_hashes)
+    if legacy:
+        result.detail += " (legacy v1 format)"
+    return result
 
 
 def _intact_result(block: dict, actual: List[str]) -> VerificationResult:

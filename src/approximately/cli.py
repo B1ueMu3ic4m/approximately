@@ -28,6 +28,20 @@ def _artifact_of(directory: Path, trace_id: str,
         print(f"error: {exc}", file=sys.stderr)
         raise SystemExit(2) from exc
 
+def _key_of(key_file: Optional[str]) -> "Optional[bytes]":
+    """load_key, door-voiced: an explicitly named key file that
+    does not exist is a named refusal (exit 2), never a silent
+    downgrade — a missing evidence key used to hand the operator
+    a forgeable chain while the pack reported signed; a missing
+    receiver key used to open the tap."""
+    from .integrity import load_key
+
+    try:
+        return load_key(key_file)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        raise SystemExit(2) from exc
+
 
 def _load_trace(spec: str, store: TraceStore) -> Trace:
     if spec == "latest":
@@ -544,15 +558,15 @@ def cmd_calibrate(args: argparse.Namespace) -> int:
 
 
 def cmd_rotate(args: argparse.Namespace) -> int:
-    from .integrity import load_key, rotate
+    from .integrity import rotate
 
     store = TraceStore(args.store)
     if getattr(args, "all", False):
-        new_key = load_key(args.new_key_file)
+        new_key = _key_of(args.new_key_file)
         if new_key is None:
             raise SystemExit("error: --new-key-file is required "
                              "(or set APPROXIMATELY_SIGNING_KEY)")
-        old_key = load_key(args.old_key_file)
+        old_key = _key_of(args.old_key_file)
         rotated, refused = [], []
         for trace in store.list_traces():
             try:
@@ -573,8 +587,8 @@ def cmd_rotate(args: argparse.Namespace) -> int:
                 print(f"  refused {row['trace_id']}: {row['error']}")
         return 0 if not refused else 1
     trace = _load_trace(args.trace, store)
-    old_key = load_key(args.old_key_file)
-    new_key = load_key(args.new_key_file)
+    old_key = _key_of(args.old_key_file)
+    new_key = _key_of(args.new_key_file)
     if new_key is None:
         raise SystemExit("error: --new-key-file is required "
                          "(or set APPROXIMATELY_SIGNING_KEY)")
@@ -1007,10 +1021,14 @@ def cmd_redact(args: argparse.Namespace) -> int:
                                  replacement=args.replacement)
     if args.out:
         out_path = Path(args.out)
+        import os
+
         from .integrity import load_key, sign
 
         sign(share, key=load_key())
-        out_path.write_text(share.to_json(), encoding="utf-8")
+        tmp = out_path.with_name(out_path.name + ".tmp")
+        tmp.write_text(share.to_json(), encoding="utf-8")
+        os.replace(tmp, out_path)
         destination = str(out_path)
     else:
         destination = str(store.save(share))
@@ -1728,11 +1746,10 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 
 def cmd_verify(args: argparse.Namespace) -> int:
-    from .integrity import load_key
 
     store = TraceStore(args.store)
     if getattr(args, "all", None):
-        return _verify_all(store, key=load_key(args.key_file),
+        return _verify_all(store, key=_key_of(args.key_file),
                            as_json=getattr(args, "json", False),
                            since_days=getattr(args, "since", None),
                            strict=getattr(args, "strict", False),
@@ -1740,12 +1757,14 @@ def cmd_verify(args: argparse.Namespace) -> int:
     if not args.trace:
         print("provide a trace id, or use --all")
         return 2
-    return _verify_one(args, store, load_key(args.key_file))
+    return _verify_one(args, store, _key_of(args.key_file))
 
 
-_VERIFY_EXIT = {"intact": 0, "tampered": 1, "unsigned": 2,
+_VERIFY_EXIT = {"intact": 0, "intact-legacy": 0,
+                "tampered": 1, "unsigned": 2,
                 "keyed": 3, "wrong-key": 3, "rolled-back": 4,
-                "ledger-broken": 5}
+                "ledger-broken": 5, "unreadable": 6,
+                "incomplete": 6}
 
 
 def _verify_prose(verdict: str, payload: dict, key: Any) -> None:
@@ -1786,7 +1805,14 @@ def _verify_one(args: argparse.Namespace, store: Any, key: Any) -> int:
     """
     from .integrity import verdict_payload
 
-    trace = _load_trace(args.trace, store)
+    try:
+        trace = _load_trace(args.trace, store)
+    except (ValueError, OSError, RecursionError) as exc:
+        # exit 1 is TAMPERED - a crash must not borrow it: an
+        # unreadable file is named and answers unreadable (exit 6)
+        print(json.dumps({"trace": args.trace, "verdict": "unreadable",
+                          "detail": str(exc)}))
+        return 6
     payload = verdict_payload(trace, store.directory, key=key)
     verdict = payload["verdict"]
     if not getattr(args, "json", False):
@@ -2292,11 +2318,35 @@ def _audit_row(store: Any, trace: Any, key: Any, counts: dict) -> dict:
 
     result = verify(trace, key=key)
     verdict = result.verdict
-    if verdict == "intact" and audit_rollback(trace, store.directory):
-        verdict = "rolled-back"
-    counts[verdict if verdict in counts else "problem"] += 1
+    # legacy intact is intact for the tally (the format is named
+    # in the row's detail, not silently rebadged)
+    tallied = "intact" if verdict == "intact-legacy" else verdict
+    if tallied == "intact" and audit_rollback(trace, store.directory):
+        tallied = verdict = "rolled-back"
+    counts[tallied if tallied in counts else "problem"] += 1
     return {"trace_id": trace.id, "verdict": verdict,
             "detail": result.detail}
+
+
+def _audit_skips(store: Any) -> list:
+    """Files the store cannot parse: a destroyed-evidence store
+    used to read as exit 0 with an empty verdict list — every
+    unparseable file is counted and named, and the audit answers
+    incomplete (exit 6). Derived artifacts (sw-1.repaired.json
+    and friends) parse fine as traces and stay out of the way."""
+    from .store import trace_files
+    from .trace import Trace
+
+    parsed_ids = {t.id for t in store.list_traces()}
+    skipped = []
+    for path in trace_files(store.directory):
+        if path.stem in parsed_ids:
+            continue
+        try:
+            Trace.from_json(path.read_text(encoding="utf-8"))
+        except Exception:
+            skipped.append(path.name)
+    return skipped
 
 
 def _verify_all(store: Any, key: Any, as_json: bool = False,
@@ -2313,19 +2363,28 @@ def _verify_all(store: Any, key: Any, as_json: bool = False,
     from .ledger import verify_ledger
 
     counts = {"intact": 0, "unsigned": 0, "keyed": 0, "problem": 0}
+    skipped = []
     rows = [_audit_row(store, trace, key, counts)
             for trace in store.list_traces(since_days=since_days)]
+    skipped = _audit_skips(store)
+    ledger_present = (store.directory / "ledger.jsonl").is_file()
+    if skipped:
+        counts["skipped"] = len(skipped)
     ledger_check = verify_ledger(store.directory)
     ledger_broken = bool(ledger_check.entries) and not ledger_check.intact
     if ledger_broken:
         counts["problem"] += 1
     if as_json:
         print(_json.dumps({
-            "summary": counts, "ledger_broken": ledger_broken,
+            "summary": counts, "skipped": skipped,
+            "ledger_present": ledger_present,
+            "ledger_broken": ledger_broken,
             "ledger_detail": ledger_check.detail,
             "strict": strict,
             "traces": rows,
         }, indent=2))
+        if skipped:
+            return 6
         return 1 if _verify_fails(counts, strict) else 0
     if not quiet:
         for row in rows:
@@ -2335,9 +2394,16 @@ def _verify_all(store: Any, key: Any, as_json: bool = False,
             print(f"{row['trace_id']}: {row['verdict']}{flag}")
     if ledger_broken:
         print(f"LEDGER BROKEN: {ledger_check.detail}")
+    if skipped:
+        print(f"INCOMPLETE AUDIT: {len(skipped)} file(s) unreadable, "
+              "skipped: " + ", ".join(skipped[:5])
+              + ("…" if len(skipped) > 5 else ""))
     print(f"{counts['intact']} intact · {counts['unsigned']} unsigned · "
           f"{counts['keyed']} keyed (locked) · {counts['problem']} failed"
+          + (f" · {len(skipped)} skipped" if skipped else "")
           + ("  [strict]" if strict else ""))
+    if skipped:
+        return 6
     return 1 if _verify_fails(counts, strict) else 0
 
 
@@ -3236,13 +3302,12 @@ def cmd_webhook_ping(args: argparse.Namespace) -> int:
     from urllib.parse import urlparse
 
     from .fleet import notify_webhook
-    from .integrity import load_key
 
     url = str(args.url)
     if urlparse(url).scheme not in ("http", "https"):
         print("error: webhook URL must be http(s)", file=sys.stderr)
         return 2
-    key = load_key(getattr(args, "key_file", None))
+    key = _key_of(getattr(args, "key_file", None))
     if not key:
         print("error: no signing key (APPROXIMATELY_SIGNING_KEY or "
               "--key-file): a ping without a signature tests "
@@ -3830,9 +3895,8 @@ def cmd_webhook_ship(args: argparse.Namespace) -> int:
     never stops the ones after it."""
     import socket
 
-    from .integrity import load_key
 
-    key = load_key(getattr(args, "key_file", None))
+    key = _key_of(getattr(args, "key_file", None))
     if not key:
         print("error: no signing key (APPROXIMATELY_SIGNING_KEY or "
               "--key-file): a shipment without a signature tests "
@@ -4147,14 +4211,13 @@ def cmd_webhook_serve(args: argparse.Namespace) -> int:
     """The receiving end of the signed channel: verify
     X-Approximately-Signature and archive what survives. Refuses
     (exit 2) on a bad port."""
-    from .integrity import load_key
     from .receiver import serve
 
     port = int(getattr(args, "port", 8080))
     if not (0 <= port <= 65535):
         print("error: port must be 0-65535", file=sys.stderr)
         return 2
-    key = load_key(getattr(args, "key_file", None))
+    key = _key_of(getattr(args, "key_file", None))
     archive = Path(getattr(args, "log",
                            "") or Path(args.store) / "webhook-log.jsonl")
     try:
@@ -4547,9 +4610,8 @@ def cmd_evidence(args: argparse.Namespace) -> int:
 
     key = None
     if getattr(args, "key_file", None):
-        from .integrity import load_key
 
-        key = load_key(args.key_file)
+        key = _key_of(args.key_file)
     if getattr(args, "verify", None):
         return _evidence_verify(Path(args.verify), key,
                                 bool(getattr(args, "json", False)))

@@ -44,7 +44,7 @@ approximately records every step an agent takes. When a run fails, it tells you 
 | "How big should the context window be? Will compression lose critical facts?" | **Context budgeting**: see exactly where a shrinking budget starts making the agent forget — and guard it in CI |
 | "Of our last 100 failures, what should we fix first?" | **Recidivist clustering**: groups failures across runs and surfaces the systematic patterns |
 | "Agent logs are too long for humans to review" | Every verdict carries an evidence chain pointing at exact steps — review only what matters |
-| "Prove the evidence wasn't edited after the incident" | **Tamper-evident hash chains**: `approximately verify` detects and localizes any post-hoc edit; HMAC keys defend against deliberate forgery |
+| "Prove the evidence wasn't edited after the incident" | **Tamper-evident hash chains** (v2 since 5.0.0: the fence covers every postmortem field — verdict, output, id, the breach stamp — plus the coerced view of every step): `approximately verify` detects and localizes any post-hoc edit; HMAC keys defend against deliberate forgery; legacy v1 records still verify, named intact-legacy |
 
 ## Why trust the numbers?
 
@@ -178,7 +178,7 @@ Every row is HMAC-signed (an open receiver marks rows `verified: false` instead)
 | 🩺 `status` | One-glance ops overview: store health, top failure modes, triage tallies, last failing trace — `--json` for dashboards | `approximately status` |
 | 📼 Flight recorder | Zero-dependency recording of every agent step — including inter-agent messages — any framework | `Recorder` / adapters |
 | 🔍 Failure attribution | **All 14 MAST modes** covered by rule detectors; Bayesian fusion ranks verdicts by MAST base rates × evidence likelihood | `approximately attribute` |
-| 🛡️ Tamper-evident evidence | Per-step hash chain + optional HMAC; `verify` detects edits, the ledger catches **rolled-back** traces, and `verify --all` gates a whole store in CI | `approximately verify [--all]` |
+| 🛡️ Tamper-evident evidence | Per-step hash chain (v2 since 5.0.0: every postmortem field inside the fence) + optional HMAC; `verify` detects edits, the ledger catches **rolled-back** traces, `verify --all` gates a whole store in CI — and a store with unreadable files answers INCOMPLETE AUDIT, not clean | `approximately verify [--all]` |
 | 🧩 Fleet merge | Union another team's store, refusing broken evidence; id conflicts via skip/replace/rename | `approximately merge <source>` |
 | 🗺️ Fleet dashboard | All your stores on one page: failure rates, trend sparklines, top modes, broken ledgers | `approximately fleet <dir>... --fleet-html` |
 | 🔔 Fleet alerts | HMAC-signed JSON webhooks when a store's trend turns worse — receivers authenticate alerts like evidence | `approximately fleet --webhook URL` |
