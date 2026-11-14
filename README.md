@@ -167,7 +167,7 @@ approximately inbox-import            # plan: verified rows, chain verdicts, con
 approximately inbox-import --apply    # import (foreign chains stay foreign)
 ```
 
-Every row is HMAC-signed (an open receiver marks rows `verified: false` instead), every import keeps the sender's integrity chain (`stamp=False`), a tampered chain is named and refused by default, and `--rate` answers floods with `429 + Retry-After` in exactly the dialect the sender's retry already speaks. The digest, the status frame and `doctor` all count what is waiting at either door.
+Every row is HMAC-signed (an open receiver marks rows `verified: false` instead), every import keeps the sender's integrity chain (`stamp=False`), a tampered chain is named and refused by default, and `--rate` answers floods with `429 + Retry-After` in exactly the dialect the sender's retry already speaks. Since v4.2 the sender stamps every post and the MAC covers stamp + body: a captured request dies at the receiver's replay window's edge, an echo of a delivered post answers `200 duplicate` without a second row (the honest retry lands, the replay injects nothing), and `--require-timestamp` retires legacy body-only senders once the fleet has upgraded. The digest, the status frame and `doctor` all count what is waiting at either door.
 
 ---
 
@@ -182,7 +182,7 @@ Every row is HMAC-signed (an open receiver marks rows `verified: false` instead)
 | 🧩 Fleet merge | Union another team's store, refusing broken evidence; id conflicts via skip/replace/rename | `approximately merge <source>` |
 | 🗺️ Fleet dashboard | All your stores on one page: failure rates, trend sparklines, top modes, broken ledgers | `approximately fleet <dir>... --fleet-html` |
 | 🔔 Fleet alerts | HMAC-signed JSON webhooks when a store's trend turns worse — receivers authenticate alerts like evidence | `approximately fleet --webhook URL` |
-| 📥 Receiver inbox | The signed channel's other end: `webhook-serve` verifies and archives what survives (bounded, rotatable, SIGTERM-clean), and the log reads back six ways — /stats (kind/contains/since filters), `received`, the MCP `inbox` tool, the status frame, the digest brief, the fleet dashboard | `approximately webhook-serve --port 8443` / `approximately received --kind trace_failure` |
+| 📥 Receiver inbox | The signed channel's other end: `webhook-serve` verifies and archives what survives (replay-windowed since v4.2, bounded, rotatable, SIGTERM-clean), and the log reads back six ways — /stats (kind/contains/since filters), `received`, the MCP `inbox` tool, the status frame, the digest brief, the fleet dashboard | `approximately webhook-serve --port 8443` / `approximately received --kind trace_failure` |
 | ⏱️ Latency anomalies | Median/MAD modified z-score — flags slow *and* fast outlier steps without being fooled by tails | `approximately anomalies <trace>` |
 | 🧱 Result bloat | The third meter: result character length — a tool dumping a 40k-char wall into the context can be cheap in tokens and still eat the window; composition + a truncation what-if price the fix | `approximately anomalies <trace> --results` / `context <trace> --composition --truncate-results 2000` |
 | 🔁 Step-level replay | Verify fixes without re-running the task; A/B compare original vs patched executors | `approximately replay --patched` |

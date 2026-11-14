@@ -81,8 +81,11 @@ def test_tail_announces_signed_when_key_is_set(monkeypatch):
         assert cmd_tail(args) == 0
         body = _Capture.body
         assert body is not None, "the announcement never landed"
+        # v4.2: the timestamp rides inside the MAC
         expected = "sha256=" + hmac.new(
-            b"sekrit", body, hashlib.sha256).hexdigest()
+            b"sekrit", _Capture.headers.get(
+                "X-Approximately-Timestamp").encode() + b"\n"
+            + body, hashlib.sha256).hexdigest()
         assert _Capture.headers.get(
             "X-Approximately-Signature") == expected
     finally:
@@ -150,8 +153,11 @@ def test_digest_post_delivers_signed_markdown(monkeypatch,
         body = json.loads(_Capture.body)
         assert body["kind"] == "ops_digest"
         assert "# ops digest" in body["markdown"]
+        # v4.2: the timestamp rides inside the MAC
         expected = "sha256=" + hmac.new(
-            b"sekrit", _Capture.body, hashlib.sha256).hexdigest()
+            b"sekrit", _Capture.headers.get(
+                "X-Approximately-Timestamp").encode() + b"\n"
+            + _Capture.body, hashlib.sha256).hexdigest()
         assert _Capture.headers.get(
             "X-Approximately-Signature") == expected
     finally:

@@ -32,7 +32,9 @@ class _Capture(BaseHTTPRequestHandler):
         type(self).received.append(
             {"body": self.rfile.read(length),
              "signature": self.headers.get(
-                 "X-Approximately-Signature")})
+                 "X-Approximately-Signature"),
+             "timestamp": self.headers.get(
+                 "X-Approximately-Timestamp")})
         self.send_response(200)
         self.end_headers()
 
@@ -60,9 +62,13 @@ def test_real_spool_webhook_is_signed_and_shaped(tmp_path, monkeypatch):
     body = json.loads(hit["body"])
     assert body["kind"] == "spool"
     assert body["failures"][0]["trace_id"] == path.stem
-    expected = hmac.new(b"sekrit", hit["body"],
+    # v4.2: the timestamp rides inside the MAC
+    expected = hmac.new(b"sekrit",
+                        hit["timestamp"].encode() + b"\n"
+                        + hit["body"],
                         hashlib.sha256).hexdigest()
     assert hit["signature"] == f"sha256={expected}"
+    assert hit["timestamp"].isdigit()
 
 
 def test_real_spool_webhook_without_key_is_unsigned(tmp_path,

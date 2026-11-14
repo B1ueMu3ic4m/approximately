@@ -3427,16 +3427,41 @@ def _spool_path(store_dir: str) -> Path:
     return Path(store_dir) / "ship-spool.jsonl"
 
 
+def _spool_rewrite(path: Path, rows: list) -> None:
+    """Rewrite the spool atomically (tmp + os.replace), the same
+    discipline the flush uses — a crash mid-rewrite leaves the
+    old queue, never a half-written one."""
+    import os
+
+    tmp = path.with_name(path.name + ".tmp")
+    with tmp.open("w", encoding="utf-8") as fh:
+        for row in rows:
+            fh.write(json.dumps(row, sort_keys=True) + "\n")
+    os.replace(tmp, path)
+
+
 def _spool_append(path: Path, trace_id: str, url: str,
                   sender: str) -> None:
     """Queue a refused shipment: the reference (id, url, label),
     not the body — the trace stays the store's to keep honest,
-    and a flush re-reads it fresh."""
+    and a flush re-reads it fresh. An entry already queued for
+    the same (trace_id, url) is refreshed, not duplicated: a
+    cron that re-spools nightly must not grow the queue by one
+    duplicate a day. The refreshed row keeps the accumulated
+    attempts (honest retry history) and moves to the back."""
     import time as _time
 
     row = {"queued_at": _time.time(), "trace_id": trace_id,
            "url": url, "sender": sender, "attempts": 0}
     path.parent.mkdir(parents=True, exist_ok=True)
+    rows = _spool_rows(path) if path.is_file() else []
+    for existing in rows:
+        if existing["trace_id"] == trace_id \
+                and existing["url"] == url:
+            existing["queued_at"] = row["queued_at"]
+            existing["sender"] = sender
+            _spool_rewrite(path, rows)
+            return
     with path.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(row, sort_keys=True) + "\n")
 
@@ -4069,6 +4094,11 @@ def _serve_banner(args: argparse.Namespace, host: str,
         caps.append(f"max-rows {args.max_rows}")
     if int(getattr(args, "max_bytes", 1_048_576)) != 1_048_576:
         caps.append(f"max-bytes {args.max_bytes}")
+    rw = float(getattr(args, "replay_window", 300.0))
+    if rw != 300.0:
+        caps.append(f"replay-window {rw:g}s")
+    if getattr(args, "require_timestamp", False):
+        caps.append("legacy refused")
     caps_note = ("; caps: " + ", ".join(caps)) if caps else ""
     return (f"webhook-serve listening on {host}:{port} ({mode}); "
             f"archive {archive}; GET /health /stats{caps_note}")
@@ -4097,7 +4127,12 @@ def cmd_webhook_serve(args: argparse.Namespace) -> int:
                                max_rate=int(getattr(args, "rate",
                                                     0)),
                                rate_window=float(getattr(
-                                   args, "rate_window", 60.0)))
+                                   args, "rate_window", 60.0)),
+                               replay_window=float(getattr(
+                                   args, "replay_window", 300.0)),
+                               allow_legacy=not getattr(
+                                   args, "require_timestamp",
+                                   False))
     except OSError as exc:
         # a busy port is a refusal, not a crash: the operator
         # gets the bind error and a next step, no traceback
@@ -6021,6 +6056,16 @@ def build_parser() -> argparse.ArgumentParser:
                    metavar="SECONDS",
                    help="the rolling window --rate counts over "
                         "(default 60)")
+    p.add_argument("--replay-window", type=float, default=300.0,
+                   metavar="SECONDS",
+                   help="how long a stamped request stays fresh; "
+                        "the MAC covers the timestamp, so a "
+                        "captured request dies at this window's "
+                        "edge (default 300)")
+    p.add_argument("--require-timestamp", action="store_true",
+                   help="refuse legacy body-only signatures "
+                        "(senders older than v4.2) instead of "
+                        "accepting them")
     p.set_defaults(func=cmd_webhook_serve)
 
     p = sub.add_parser("webhook-ping", parents=[common],

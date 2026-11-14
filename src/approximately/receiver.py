@@ -34,6 +34,7 @@ import json
 import re
 import threading
 import time
+from collections import OrderedDict
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Iterator, List, Optional, Tuple
@@ -46,6 +47,23 @@ DEFAULT_MAX_ROWS = 100_000  # a long night of alerts is a few
 
 
 # thousand rows; a hundred thousand is a hoard
+REPLAY_WINDOW = 300.0  # seconds a stamped request stays fresh
+REPLAY_CACHE_MAX = 8192  # signatures the window remembers
+
+# the refusal verdicts and what they answer: every one is a
+# definite answer a sender's monitor can read without guessing
+# ("replay" is deliberately absent — a seen signature is
+# idempotent delivery, not an error: the honest sender's retry
+# after a lost response must land, and it injects nothing)
+VERDICT_STATUS = {"refused": 401, "legacy-refused": 401,
+                  "stale-timestamp": 401, "bad-timestamp": 400}
+VERDICT_ERROR = {"refused": "bad signature",
+                 "legacy-refused": "timestamp required",
+                 "stale-timestamp": "timestamp outside the "
+                                    "replay window",
+                 "bad-timestamp": "malformed timestamp"}
+
+
 class ReceiverState:
     """What the server needs between requests: the verifying key
     (None = accept-and-mark-unverified), the archive path, the
@@ -59,19 +77,25 @@ class ReceiverState:
                  max_bytes: int = DEFAULT_MAX_BYTES,
                  max_rows: int = DEFAULT_MAX_ROWS,
                  max_rate: int = 0,
-                 rate_window: float = 60.0):
+                 rate_window: float = 60.0,
+                 replay_window: float = REPLAY_WINDOW,
+                 allow_legacy: bool = True):
         self.archive = archive
         self.key = key
         self.max_bytes = max(1, int(max_bytes))
         self.max_rows = max(0, int(max_rows))
         self.max_rate = max(0, int(max_rate))
         self.rate_window = max(1.0, float(rate_window))
+        self.replay_window = max(1.0, float(replay_window))
+        self.allow_legacy = bool(allow_legacy)
         self.post_stamps: List[float] = []
         self.lock = threading.Lock()
         self.received = 0
         self.refused = 0
         self.throttled = 0
+        self.duplicates = 0
         self.appended = 0
+        self._seen: "OrderedDict[str, float]" = OrderedDict()
         self.rows_on_disk = archive_stats(archive)["rows"]
 
     def rate_admit(self, now: float) -> Tuple[bool, int]:
@@ -94,23 +118,60 @@ class ReceiverState:
             return True, 0
 
     def verify(self, body: bytes,
-               signature: Optional[str]) -> Tuple[bool, str]:
+               signature: Optional[str],
+               timestamp: Optional[str] = None) -> Tuple[bool, str]:
         """(verified, verdict) for one request. With no key the
-        verdict is ``unsigned-open``; with a key, anything but the
-        exact ``sha256=<hex>`` of the body is ``refused``."""
-        if self.key is None:
+        verdict is ``unsigned-open``. A stamped post carries
+        ``X-Approximately-Timestamp``: the MAC covers
+        ``timestamp + newline + body``; a signature already
+        claimed inside the replay window is answered at
+        acceptance with ``200 duplicate`` — idempotent delivery,
+        so the sender's honest retry lands while the replay
+        injects nothing new — and a captured request dies at
+        the window's edge (``stale-timestamp``). A post without
+        the header verifies under the legacy body-only scheme
+        (``verified-legacy``), refused outright when
+        ``allow_legacy`` is off."""
+        key = self.key
+        if key is None:
             return False, "unsigned-open"
         if not signature or not signature.startswith("sha256="):
             return False, "refused"
-        expected = hmac.new(self.key, body,
-                            hashlib.sha256).hexdigest()
         got = signature[len("sha256="):]
         if not re.fullmatch(r"[0-9a-f]{64}", got):
             # non-hex (a non-ASCII header crashes compare_digest)
             # is refused by shape, not by comparison
             return False, "refused"
+        if timestamp is not None:
+            return self._verify_timestamped(key, body, timestamp,
+                                            got)
+        return self._verify_legacy(key, body, got)
+
+    def _verify_timestamped(self, key: bytes, body: bytes,
+                            timestamp: str,
+                            got: str) -> Tuple[bool, str]:
+        if not re.fullmatch(r"[0-9]{1,16}", timestamp):
+            return False, "bad-timestamp"
+        if abs(time.time() - int(timestamp)) > self.replay_window:
+            return False, "stale-timestamp"
+        expected = hmac.new(key, timestamp.encode("ascii")
+                            + b"\n" + body,
+                            hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected, got):
+            return False, "refused"
+        # the seen-cache is claimed at acceptance, not here: a
+        # post refused downstream (429, malformed body) must
+        # claim nothing, so its honest retry still lands fresh
+        return True, "verified"
+
+    def _verify_legacy(self, key: bytes, body: bytes,
+                       got: str) -> Tuple[bool, str]:
+        if not self.allow_legacy:
+            return False, "legacy-refused"
+        expected = hmac.new(key, body,
+                            hashlib.sha256).hexdigest()
         if hmac.compare_digest(expected, got):
-            return True, "verified"
+            return True, "verified-legacy"
         return False, "refused"
 
 
@@ -504,6 +565,53 @@ def parse_stats_query(query: str) -> dict:
     return filters
 
 
+def _accept_post(state: ReceiverState, row: dict,
+                 sig_hex: str, stamped: bool) -> bool:
+    """The acceptance section, one lock: claim the stamped
+    signature (first arrival wins), rotate if the archive is
+    full, append the row, count the arrival. Returns False for
+    an echo — a signature already claimed inside the replay
+    window: nothing is appended, nothing is counted but
+    ``duplicates``. Idempotent delivery: the honest sender's
+    retry after a lost response lands, the replay injects
+    nothing new."""
+    import os
+
+    with state.lock:
+        if stamped and sig_hex:
+            # the window's memory: one claim per signature, the
+            # oldest evicted first — bounded, never a memory
+            # mirror of the flood
+            if sig_hex in state._seen:
+                state.duplicates += 1
+                return False
+            state._seen[sig_hex] = row["received_at"]
+            while len(state._seen) > REPLAY_CACHE_MAX:
+                state._seen.popitem(last=False)
+        if state.max_rows and (state.rows_on_disk
+                               + state.appended) \
+                >= state.max_rows:
+            # rotate: the previous log moves aside, the
+            # archive starts empty — an unbounded JSONL is
+            # a slow disk-fill, not a record
+            rotated = state.archive.with_name(
+                state.archive.name + ".1")
+            os.replace(state.archive, rotated)
+            state.rows_on_disk = 0
+            state.appended = 0
+        state.archive.parent.mkdir(parents=True, exist_ok=True)
+        with state.archive.open("a", encoding="utf-8") as fh:
+            # ensure_ascii (the default) is load-bearing:
+            # lone surrogates crash a UTF-8 write after the
+            # rotation side effects, and raw U+2028/U+0085
+            # in a payload split the archived line on
+            # readback — escapes are integrity, not noise
+            fh.write(json.dumps(row, sort_keys=True) + "\n")
+        state.received += 1
+        state.appended += 1
+    return True
+
+
 def make_handler(state: ReceiverState) -> type:
     """Build a handler class bound to one ReceiverState (per-test
     servers get fresh state; nothing is class-level)."""
@@ -520,6 +628,7 @@ def make_handler(state: ReceiverState) -> type:
                                       "received": state.received,
                                       "refused": state.refused,
                                       "throttled": state.throttled,
+                                      "duplicates": state.duplicates,
                                       "verify_mode": bool(state.key)})
                 return
             if self.path == "/stats" or self.path.startswith(
@@ -537,6 +646,7 @@ def make_handler(state: ReceiverState) -> type:
                                 "received": state.received,
                                 "refused": state.refused,
                                 "throttled": state.throttled,
+                                "duplicates": state.duplicates,
                                 "verify_mode": bool(state.key)}
                 self._reply(200, dict(
                     counters,
@@ -568,11 +678,25 @@ def make_handler(state: ReceiverState) -> type:
                 return
             body = self.rfile.read(length) if length else b""
             verified, verdict = state.verify(
-                body, self.headers.get("X-Approximately-Signature"))
-            if verdict == "refused":
+                body,
+                self.headers.get("X-Approximately-Signature"),
+                self.headers.get("X-Approximately-Timestamp"))
+            if verdict == "verified-duplicate":
+                # idempotent delivery: the first arrival is the
+                # row, this one is only its echo — no second
+                # row, no second rate-budget spent
+                with state.lock:
+                    state.duplicates += 1
+                self._reply(200, {"received": True,
+                                  "verified": True,
+                                  "duplicate": True})
+                return
+            if verdict in VERDICT_STATUS:
                 with state.lock:
                     state.refused += 1
-                self._reply(401, {"error": "bad signature"})
+                self._reply(VERDICT_STATUS[verdict],
+                            {"error": VERDICT_ERROR.get(verdict,
+                                                        "refused")})
                 return
             try:
                 payload = json.loads(body.decode("utf-8"))
@@ -584,8 +708,14 @@ def make_handler(state: ReceiverState) -> type:
                 self._reply(400, {"error": "body must be a JSON "
                                            "object"})
                 return
+            ts_header = self.headers.get(
+                "X-Approximately-Timestamp")
+            sig_header = self.headers.get(
+                "X-Approximately-Signature")
             row = {"received_at": time.time(),
                    "verified": verified,
+                   "scheme": "timestamped" if ts_header is not None
+                   else "legacy",
                    "kind": payload.get("kind", "?"),
                    "payload": payload}
             # the rate gate consumes budget only for posts that
@@ -602,32 +732,16 @@ def make_handler(state: ReceiverState) -> type:
                     "retry_after": retry_after},
                     extra_headers={"Retry-After": str(retry_after)})
                 return
-            with state.lock:
-                if state.max_rows and (state.rows_on_disk
-                                       + state.appended) \
-                        >= state.max_rows:
-                    # rotate: the previous log moves aside, the
-                    # archive starts empty — an unbounded JSONL is
-                    # a slow disk-fill, not a record
-                    import os
-
-                    rotated = state.archive.with_name(
-                        state.archive.name + ".1")
-                    os.replace(state.archive, rotated)
-                    state.rows_on_disk = 0
-                    state.appended = 0
-                state.archive.parent.mkdir(parents=True, exist_ok=True)
-                with state.archive.open("a", encoding="utf-8") as fh:
-                    # ensure_ascii (the default) is load-bearing:
-                    # lone surrogates crash a UTF-8 write after the
-                    # rotation side effects, and raw U+2028/U+0085
-                    # in a payload split the archived line on
-                    # readback — escapes are integrity, not noise
-                    fh.write(json.dumps(row,
-                                        sort_keys=True) + "\n")
-                state.received += 1
-                state.appended += 1
-            self._reply(200, {"received": True, "verified": verified})
+            sig_hex = sig_header[len("sha256="):] \
+                if sig_header else ""
+            archived = _accept_post(state, row, sig_hex,
+                                    ts_header is not None)
+            reply = {"received": True, "verified": verified}
+            if not archived:
+                # an echo: the first arrival is the row, this is
+                # only its second delivery — same 200, no new row
+                reply["duplicate"] = True
+            self._reply(200, reply)
 
         def _reply(self, status: int, body: dict,
                    extra_headers: Optional[dict] = None) -> None:
@@ -662,7 +776,9 @@ def serve(archive: Path, port: int = 0,
           max_bytes: int = DEFAULT_MAX_BYTES,
           max_rows: int = DEFAULT_MAX_ROWS,
           max_rate: int = 0,
-          rate_window: float = 60.0
+          rate_window: float = 60.0,
+          replay_window: float = REPLAY_WINDOW,
+          allow_legacy: bool = True
           ) -> Tuple[ThreadingHTTPServer, ReceiverState]:
     """Bind the receiver; returns the server (call shutdown() from
     the controlling thread) and its state. ``max_rows`` rotates
@@ -673,7 +789,9 @@ def serve(archive: Path, port: int = 0,
     honors that signal."""
     state = ReceiverState(archive, key=key, max_bytes=max_bytes,
                           max_rows=max_rows, max_rate=max_rate,
-                          rate_window=rate_window)
+                          rate_window=rate_window,
+                          replay_window=replay_window,
+                          allow_legacy=allow_legacy)
     server = ReceiverHTTPServer(("127.0.0.1", port),
                                 make_handler(state))
     thread = __import__("threading").Thread(
