@@ -2053,6 +2053,24 @@ framework adapters import lazily and degrade when the framework is absent.
          only a current recorder may hand back. 13 new pins
          (test_v530_monitoring).
 
+553. **v5.4.0 - recall answers the follow-up questions**
+       (planned):
+       - The memory doors' second round: "which of those
+         conversations FAILED?", "the gpt-4o ones", "give me the
+         memory as a file" — recall gains --model (case-
+         insensitive substring over the recorded model), --failed
+         -only/--ok-only outcome filters threading timeline,
+         search and summary, and --export (one markdown diary —
+         summary then timeline — written atomically). Plus the
+         recon runner-ups: a fleet dashboard over a typo'd store
+         used to be silently created and report a healthy 0%
+         (refused by name now; the trend mode keeps its
+         placeholder slots — it reads the digest directory), and
+         a nan --floor compared False against everything so every
+         mutation silently qualified as non-material (refused at
+         the bisect boundary). 10 new pins
+         (test_v540_recall_filters).
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

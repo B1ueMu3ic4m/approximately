@@ -16,6 +16,7 @@ import math
 import re
 from collections import Counter
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from .trace import Trace
@@ -59,18 +60,32 @@ def _finite_stamp(value: Any) -> Optional[float]:
     return f if math.isfinite(f) and f > 0 else None
 
 
+def _in_window(trace: Trace, since: Optional[float],
+               until: Optional[float], model: Optional[str],
+               outcomes: str) -> bool:
+    """The time window plus the outcome/model filters: `outcomes`
+    is "all", "ok" or "failed" — a human looks for the runs that
+    went wrong, or for the ones that worked."""
+    stamp = _finite_stamp(trace.created_at)
+    if since is not None or until is not None:
+        if stamp is None or stamp < (since or 0) or (
+                until is not None and stamp > until):
+            return False
+    if model and model.lower() not in \
+            str(trace.model or "").lower():
+        return False
+    if outcomes == "ok" and trace.success is not True:
+        return False
+    if outcomes == "failed" and trace.success is not False:
+        return False
+    return True
+
+
 def _steps_window(traces: Iterable[Trace], since: Optional[float],
-                  until: Optional[float]) -> List[Trace]:
-    filtered = since is not None or until is not None
-    out = []
-    for trace in traces:
-        stamp = _finite_stamp(trace.created_at)
-        if filtered and (stamp is None or stamp < (since or 0)
-                         or (until is not None
-                             and stamp > until)):
-            continue
-        out.append(trace)
-    return out
+                  until: Optional[float], model: Optional[str] = None,
+                  outcomes: str = "all") -> List[Trace]:
+    return [t for t in traces
+            if _in_window(t, since, until, model, outcomes)]
 
 
 def _step_totals(steps: list) -> Tuple[int, int]:
@@ -110,11 +125,14 @@ def _entry(trace: Trace) -> dict:
 
 def timeline(store: Any, since: Optional[float] = None,
              until: Optional[float] = None,
-             limit: Optional[int] = None) -> dict:
+             limit: Optional[int] = None,
+             model: Optional[str] = None,
+             outcomes: str = "all") -> dict:
     """The conversations in the order they happened, grouped by
     the day they happened on — the machine's answer to "what did
     I even talk about last week?\"."""
-    traces = _steps_window(store.list_traces(), since, until)
+    traces = _steps_window(store.list_traces(), since, until,
+                           model=model, outcomes=outcomes)
     entries = sorted((_entry(t) for t in traces),
                      key=lambda e: (e["created_at"] or 0, e["id"]))
     if limit is not None:
@@ -176,15 +194,17 @@ def _walk_step_fields(steps: list, lowered: str, needle: str,
 
 
 def search(store: Any, needle: str, since: Optional[float] = None,
-           until: Optional[float] = None,
-           limit: int = 20) -> dict:
+           until: Optional[float] = None, limit: int = 20,
+           model: Optional[str] = None,
+           outcomes: str = "all") -> dict:
     """Find the conversations where something was said — every
     field a conversation speaks through, with a readable excerpt
     of the moment. Case-insensitive; newest last."""
     needle = " ".join(needle.split())
     if not needle:
         raise ValueError("search needs something to look for")
-    traces = _steps_window(store.list_traces(), since, until)
+    traces = _steps_window(store.list_traces(), since, until,
+                           model=model, outcomes=outcomes)
     traces.sort(key=lambda t: (t.created_at or 0, t.id))
     hits = []
     for trace in traces:
@@ -263,11 +283,14 @@ def _summarize_day(day: str, day_traces: List[Trace]) -> dict:
 
 
 def summarize(store: Any, since: Optional[float] = None,
-              until: Optional[float] = None) -> dict:
+              until: Optional[float] = None,
+              model: Optional[str] = None,
+              outcomes: str = "all") -> dict:
     """The day-by-day answer: how many conversations, what they
     were about (top topics), which tools carried them, how many
     ended badly — the human-memory view of the store."""
-    traces = _steps_window(store.list_traces(), since, until)
+    traces = _steps_window(store.list_traces(), since, until,
+                           model=model, outcomes=outcomes)
     days: Dict[str, List[Trace]] = {}
     for trace in traces:
         stamp = _finite_stamp(trace.created_at)
@@ -296,6 +319,26 @@ def summarize(store: Any, since: Optional[float] = None,
 def _mark(success: Any) -> str:
     return "✓" if success is True else "✗" if success is False \
         else "·"
+
+
+def export_diary(store: Any, output: Path,
+                 since: Optional[float] = None,
+                 until: Optional[float] = None) -> dict:
+    """The memory as a file: timeline then summary, one markdown
+    diary a person can open months later. Returns the counts."""
+    summary = summarize(store, since=since, until=until)
+    payload = timeline(store, since=since, until=until)
+    text = (f"# Conversation diary\n\n"
+            f"{render_summary(summary)}\n\n"
+            f"## Timeline\n\n{render_timeline(payload)}\n")
+    import os
+
+    tmp = output.with_name(output.name + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(tmp, output)
+    return {"conversations": summary["conversations"],
+            "days": len(summary["days"]),
+            "path": str(output)}
 
 
 def render_timeline(payload: dict) -> str:
