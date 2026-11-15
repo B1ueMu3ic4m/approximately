@@ -67,17 +67,17 @@ def _in_window(trace: Trace, since: Optional[float],
     is "all", "ok" or "failed" — a human looks for the runs that
     went wrong, or for the ones that worked."""
     stamp = _finite_stamp(trace.created_at)
-    if since is not None or until is not None:
-        if stamp is None or stamp < (since or 0) or (
-                until is not None and stamp > until):
-            return False
+    if ((since is not None or until is not None)
+            and (stamp is None or stamp < (since or 0)
+                 or (until is not None and stamp > until))):
+        return False
     if model and model.lower() not in \
             str(trace.model or "").lower():
         return False
-    if outcomes == "ok" and trace.success is not True:
-        return False
-    if outcomes == "failed" and trace.success is not False:
-        return False
+    if outcomes == "ok":
+        return trace.success is True
+    if outcomes == "failed":
+        return trace.success is False
     return True
 
 
