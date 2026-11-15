@@ -18,6 +18,14 @@ from __future__ import annotations
 from typing import Any
 
 
+def _label_suffix(labels: str) -> str:
+    """`{env="prod"}` -> `, env="prod"` — the composed label block
+    keeps ONE closing brace (v5.2.x rendered `...}}` and a
+    Prometheus scraper dropped the whole endpoint)."""
+    inner = labels[1:-1] if labels.startswith("{") else labels
+    return f",{inner}" if inner else ""
+
+
 def escape_label(value: str) -> str:
     """Escape a label value per Prometheus text-exposition rules."""
     return (value.replace("\\", "\\\\")
@@ -59,7 +67,7 @@ def render_prometheus(stats: "Any", extra_labels: dict | None = None,
         ])
     for mode_id, count in sorted(stats.mode_counts.items()):
         safe = escape_label(mode_id)
-        extra = "," + labels if labels else ""
+        extra = _label_suffix(labels)
         lines.extend([
             "# HELP approximately_mode_count Failures per MAST mode",
             "# TYPE approximately_mode_count counter",
@@ -90,7 +98,7 @@ def _render_entity_prometheus(rows: list, entity: str,
             f'{k}="{escape_label(str(v))}"' for k, v in extra_labels.items()
         )
         labels = "{" + pairs + "}"
-    suffix = "," + labels[1:] if labels else ""
+    suffix = _label_suffix(labels)
     lines = []
     gauges = [
         ("steps", f"approximately_{entity}_steps_total",
@@ -122,6 +130,8 @@ def _render_entity_prometheus(rows: list, entity: str,
             # tool rows have no tool_calls key (every row IS tool calls)
             value = row.get(key, 0) if key != "failure_rate" \
                 else row.get(key, 0.0)
+            if value is None:
+                continue  # no samples: absence, not a literal None
             value = f"{value:.6f}" if key == "failure_rate" else value
             lines.append(
                 f'{metric}{{{entity}="{safe}"{suffix}}} {value}')

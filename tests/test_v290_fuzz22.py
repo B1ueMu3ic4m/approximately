@@ -8,6 +8,8 @@ Digest rows are untrusted input; the meters skip data lies.
 """
 
 
+import pytest
+
 from approximately.anomaly import (
     detect_fleet_result_anomalies,
     detect_result_anomalies,
@@ -60,9 +62,11 @@ def test_negative_failures_cannot_grow_the_budget():
 def test_zero_allowance_is_exhausted_by_anything():
     days = [{"day": "2026-10-01", "failures": 1},
             {"day": "2026-10-02", "failures": 0}]
-    fb = failure_budget(days, allowance=0)
-    assert fb["burn_fraction"] is None  # division refused
-    assert fb["exhausted"] is True
+    # v5.3.0: a zero allowance is exhausted BY DEFINITION - it
+    # used to answer "exhausted: true" with zero failures; the
+    # config is refused by name now
+    with pytest.raises(ValueError, match="must be >= 1"):
+        failure_budget(days, allowance=0)
 
 
 def test_huge_counts_do_not_overflow():

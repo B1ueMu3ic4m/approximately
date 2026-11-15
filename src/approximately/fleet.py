@@ -791,7 +791,6 @@ def trend_days(digest_dir: Path) -> List[dict]:
     """One row per digest day: snapshot count plus the day's last
     snapshot as the day's fleet state."""
     seen: dict = {}
-    order: List[str] = []
     for path in sorted(digest_dir.glob("digest-*.jsonl")):
         file_day = _file_day(path)
         for raw in path.read_text(encoding="utf-8").splitlines():
@@ -809,9 +808,10 @@ def trend_days(digest_dir: Path) -> List[dict]:
                 seen[day]["snapshots"] += 1
                 seen[day]["last"] = snap
             else:
-                order.append(day)
                 seen[day] = {"day": day, "snapshots": 1, "last": snap}
-    return [seen[day] for day in order]
+    # chronological, not insertion order: a foreign/clock-skewed
+    # digest ts used to reorder the series and invert the forecast
+    return [seen[day] for day in sorted(seen)]
 
 
 def _trend_row(entry: dict) -> dict:

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import datetime
 import math
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from .report import trend_verdict
 
@@ -63,6 +63,24 @@ def forecast_spend(days: List[dict],
     }
 
 
+def _budget_prelude(days: List[dict], allowance: int) -> Dict[str, Any]:
+    """The accounting prelude: burned counts only what failed (a
+    negative digest count would make the budget grow as the fleet
+    burns), the fraction rounds, exhaustion is today's verdict."""
+    burned = sum(max(0, int(r.get("failures") or 0)) for r in days)
+    return {
+        "usable": bool(days),
+        "allowance": allowance,
+        "burned": burned,
+        "remaining": max(0, allowance - burned),
+        "burn_fraction": round(burned / allowance, 4)
+        if allowance > 0 else None,
+        "exhausted": burned >= allowance,
+        "days_to_exhaustion": None,
+        "projection": [],
+    }
+
+
 def failure_budget(days: List[dict], allowance: int,
                    horizon_days: int = 14) -> Dict[str, Any]:
     """How much of the reliability allowance is spent, and when it runs out.
@@ -74,21 +92,12 @@ def failure_budget(days: List[dict], allowance: int,
     Theil-Sen slope projected forward — same honesty label as the
     spend forecast.  Refuses to guess on an empty window.
     """
-    # digest rows are untrusted input: a negative failure count
-    # would make the budget grow as the fleet burns
-    burned = sum(max(0, int(r.get("failures") or 0)) for r in days)
-    remaining = max(0, allowance - burned)
-    out: Dict[str, Any] = {
-        "usable": bool(days),
-        "allowance": allowance,
-        "burned": burned,
-        "remaining": remaining,
-        "burn_fraction": round(burned / allowance, 4)
-        if allowance > 0 else None,
-        "exhausted": burned >= allowance,
-        "days_to_exhaustion": None,
-        "projection": [],
-    }
+    if allowance <= 0:
+        # a zero/negative allowance is exhausted by definition:
+        # it used to answer "exhausted: true" with zero failures
+        raise ValueError(f"failure budget allowance must be >= 1, "
+                         f"got {allowance}")
+    out = _budget_prelude(days, allowance)
     if len(days) < 2:
         out["usable"] = False
         out["reason"] = "need at least two days of history"
@@ -98,18 +107,34 @@ def failure_budget(days: List[dict], allowance: int,
     out["verdict"] = verdict
     out["daily_slope"] = round(daily_slope, 4)
     last_day = datetime.date.fromisoformat(str(days[-1]["day"]))
+    out["projection"], out["days_to_exhaustion"] = _projection(
+        last_day, out["burned"], allowance, daily_slope,
+        horizon_days)
+    return out
+
+
+def _projection(last_day: "datetime.date", burned: int,
+                allowance: int, daily_slope: float,
+                horizon_days: int
+                ) -> Tuple[List[dict], Optional[int]]:
+    """The burn-forward table: the Theil-Sen slope walked over the
+    allowance, one row a day, floored at zero. days_to_exhaustion
+    is the first projected day at or over the allowance (0 when
+    already over today)."""
     cumulative = float(burned)
+    rows: List[dict] = []
+    days_to_exhaustion: Optional[int] = None
     for offset in range(1, horizon_days + 1):
         cumulative = max(0.0, cumulative + daily_slope)
-        out["projection"].append({
+        rows.append({
             "day": (last_day + datetime.timedelta(days=offset))
             .isoformat(),
             "burned": round(cumulative),
             "remaining": max(0, allowance - round(cumulative)),
         })
-        if (out["days_to_exhaustion"] is None
+        if (days_to_exhaustion is None
                 and round(cumulative) >= allowance):
-            out["days_to_exhaustion"] = offset
+            days_to_exhaustion = offset
     if burned >= allowance:
-        out["days_to_exhaustion"] = 0
-    return out
+        days_to_exhaustion = 0
+    return rows, days_to_exhaustion

@@ -44,6 +44,29 @@ class BudgetExceededError(RuntimeError):
             f"{unit} ({kind} ceiling)")
 
 
+def match_rate(prices: Dict[str, float],
+               model: Optional[str]) -> Optional[float]:
+    """The price for a model, matched honestly — ONE matcher for
+    every consumer (the breaker and the spend doors used to
+    answer differently for the same run: the breaker charged
+    `openai/GPT-4O` at the `gpt-4o` rate while the spend doors
+    called it unpriced and understated the same dollars). Exact
+    first, then case-insensitive, then basename; an unknown
+    model stays unpriced (None), never silently valued at zero."""
+    if not model:
+        return None
+    if model in prices:
+        return prices[model]
+    lowered = model.lower()
+    tail = lowered.rsplit("/", 1)[-1]
+    for key, value in prices.items():
+        folded = key.lower()
+        if folded == lowered or (tail and
+                                 folded.rsplit("/", 1)[-1] == tail):
+            return value
+    return None
+
+
 class Budget:
     """Token and dollar ceilings enforced while a run is recorded.
 
@@ -165,23 +188,7 @@ class Budget:
         return self.state
 
     def _rate_for(self, model: Optional[str]) -> Optional[float]:
-        """The price for a model, matched honestly: exact first,
-        then case-insensitive, then basename (``openai/gpt-4o``
-        vs a ``gpt-4o`` catalog row is the same model priced the
-        same way — a key mismatch used to silently disarm the
-        dollar breaker). An unknown model stays unpriced (None),
-        never silently valued at zero."""
-        if model in self.prices:
-            return self.prices[model]
-        lowered = model.lower() if model else ""
-        tail = lowered.rsplit("/", 1)[-1]
-        for key, value in self.prices.items():
-            folded = key.lower()
-            if folded == lowered or (tail and
-                                     folded.rsplit("/", 1)[-1]
-                                     == tail):
-                return value
-        return None
+        return match_rate(self.prices, model)
 
     def exceeded_reasons(self) -> list:
         """Which ceilings are crossed: global ones first (``tokens``,

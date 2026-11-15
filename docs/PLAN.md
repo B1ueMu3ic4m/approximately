@@ -2021,6 +2021,38 @@ framework adapters import lazily and degrade when the framework is absent.
          land on the timeline with an honestly empty tools
          column. 7 new pins (test_v521_recall_usage).
 
+552. **v5.3.0 - the monitoring endpoint parses, the backup is
+       honest, the spend answers agree** (planned):
+       - The recorder/prices/forecast recon (recorder write path,
+         prices catalog, metrics/forecast, snapshot/restore, and
+         the doors) found the monitoring door dead exactly when
+         someone configured it: a --label composed nested braces
+         and double closing braces — a Prometheus scraper drops
+         the whole endpoint — and None p95s rendered as literal
+         None; the snapshot of a nonexistent store was a valid
+         zip with zero traces and an exit 0 (the classic
+         silent-data-loss precondition); a non-zip or
+         CRC-corrupted restore tracebacked (BadZipFile extends
+         Exception, not OSError — the door caught only
+         ValueError); the spend doors and the breaker answered
+         different dollars for the same run (the breaker
+         fuzzy-matched the rate, the doors exact-matched, so
+         `stats --prices` understated spend by the exact amount
+         the breaker charged); a zero failure allowance answered
+         "exhausted: true" with zero failures; an empty trend
+         read "stable" — a verdict with no data; skewed digest
+         days inverted the forecast; an out-of-order recorder
+         exit nilled the thread slot so every @agentstep inside
+         the still-open recorder recorded nothing. Fixed: one
+         label composer with one closing brace, absent samples
+         omitted, snapshot refuses a missing store, restore
+         answers BadZipFile by name, the rate matcher is ONE
+         module function every consumer shares, the allowance is
+         refused at the boundary, empty trends answer "no data",
+         digest days sort chronologically, the recorder slot
+         only a current recorder may hand back. 13 new pins
+         (test_v530_monitoring).
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

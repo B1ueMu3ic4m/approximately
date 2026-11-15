@@ -66,7 +66,11 @@ class Recorder:
         return self
 
     def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
-        _local.recorder = self._previous
+        # only a recorder that is CURRENT may hand the slot back:
+        # an out-of-order exit (A exits while B is open) used to
+        # nil the slot and later resurrect a finished recorder
+        if getattr(_local, "recorder", None) is self:
+            _local.recorder = self._previous
         if exc_type is not None:
             self.trace.add(
                 Step(
