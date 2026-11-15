@@ -22,8 +22,8 @@ def _run(capsys, *argv):
         code = exc.code if isinstance(exc.code, int) else 2
         if exc.code and not isinstance(exc.code, int):
             refused = str(exc.code)
-    return code, capsys.readouterr().out, \
-        capsys.readouterr().err + refused
+    captured = capsys.readouterr()
+    return code, captured.out, captured.err + refused
 
 
 def _empty(tmp_path):

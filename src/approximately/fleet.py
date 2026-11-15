@@ -827,6 +827,11 @@ def _trend_row(entry: dict) -> dict:
     modes: dict = {}
     for s in stores:
         for m in s.get("top_modes") or []:
+            # digest files are untrusted input: a non-dict entry
+            # (a bare number) used to AttributeError the whole
+            # trend door
+            if not isinstance(m, dict):
+                continue
             modes[m.get("mode", "?")] = (
                 modes.get(m.get("mode", "?"), 0) + m.get("count", 0))
     traces = counts["traces"]
@@ -1040,7 +1045,10 @@ def render_trend(summary: dict) -> str:
                  "top modes")
     for row in days:
         modes = ", ".join(f"{m} x{c}" for m, c in row["top_modes"]) or "-"
-        worsen = ",".join(row["worsening"]) or "-"
+        worsening = row["worsening"]
+        if not isinstance(worsening, (list, tuple)):
+            worsening = []
+        worsen = ",".join(str(w) for w in worsening) or "-"
         lines.append(
             f"  {row['day']}   {row['snapshots']:>5} {row['stores']:>6} "
             f"{row['traces']:>6} {row['failure_rate'] * 100:>5.1f}  "

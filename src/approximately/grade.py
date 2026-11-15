@@ -175,8 +175,12 @@ def _week_letters(window: List[Any], key: str, kind: str
 
     cards = (tool_scorecard(window) if kind == "tool"
              else agent_scorecard(window))
-    return {c[key]: g["grade"] for c, g in
-            zip(cards, grade_cards(cards), strict=False)}
+    # grade_cards re-sorts by grade points: pairing it positionally
+    # with the busiest-first cards assigned letters to the WRONG
+    # subjects. The graded rows carry the subject - key on it.
+    graded = {g["subject"]: g["grade"] for g in grade_cards(cards)}
+    # a grade is always a str once graded (n/a for the thin)
+    return {c[key]: str(graded.get(c[key])) for c in cards}
 
 
 def _drift(cur: Optional[str], prev: Optional[str]) -> str:

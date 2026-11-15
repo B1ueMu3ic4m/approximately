@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import datetime
 import html
 import math
 from typing import Any, List, Optional, Sequence
@@ -200,7 +199,8 @@ def _step_row(step: Step, hot: set) -> str:
     toks = (f"<td class=\"k\">{step.tokens:,}</td>"
             if step.tokens else "<td>—</td>")
     return (
-        f"<tr{cls}><td>#{step.index}</td><td class=\"k\">{step.kind}</td>"
+        f"<tr{cls}><td>#{step.index}</td>"
+        f"<td class=\"k\">{_esc(step.kind)}</td>"
         f"<td class=\"k\">{who}{head}</td><td>{detail}</td>{toks}"
         f"<td class=\"k\">{step.latency_ms}ms</td></tr>"
     )
@@ -490,9 +490,7 @@ def render_index_html(items: list,
     for trace, rep in items:
         badge = "green" if not rep.failed else "red"
         status = "passed" if not rep.failed else rep.primary_mode.id
-        created = datetime.datetime.fromtimestamp(
-            trace.created_at or 0, datetime.timezone.utc
-        ).strftime("%m-%d %H:%M")
+        created = _utc_stamp(trace.created_at or 0, "%m-%d %H:%M")
         link = _esc(rep.trace_id) + ".report.html"
         rows.append(
             "<tr><td><a href=\"" + link + "\">" + _esc(rep.trace_id) + "</a></td>"
@@ -642,7 +640,7 @@ def _annotations_card(store: Any, trace_id: str) -> str:
     items = "".join(
         f"<li><b>{_html.escape(str(r.get('verdict') or 'note'))}</b>"
         f" — {_html.escape(str(r.get('note', '')))}"
-        + (f" <span class=\"k\">— {r['author']}</span>"
+        + (f" <span class=\"k\">— {_esc(str(r['author']))}</span>"
            if r.get("author") else "")
         + "</li>"
         for r in rows)
@@ -692,6 +690,20 @@ def _fixes_card(report: FailureReport) -> str:
             + "</ol></div>")
 
 
+def _utc_stamp(ts: float, fmt: str) -> str:
+    """The trace's creation time as UTC text — hostile epochs
+    (year 33658, negative years) fall back to the epoch itself
+    instead of a ValueError that killed report and report --all."""
+    import datetime as _dt
+
+    try:
+        return _dt.datetime.fromtimestamp(
+            ts, _dt.timezone.utc).strftime(fmt)
+    except (ValueError, OverflowError, OSError):
+        return _dt.datetime.fromtimestamp(
+            0, _dt.timezone.utc).strftime(fmt)
+
+
 def render_html(trace: Trace, report: FailureReport,
                 store: Any = None) -> str:
     hot = {d.step_index for d in report.detections}
@@ -701,9 +713,8 @@ def render_html(trace: Trace, report: FailureReport,
         if report.failed
         else '<span class="badge green">passed</span>'
     )
-    created = datetime.datetime.fromtimestamp(
-        trace.created_at or 0, datetime.timezone.utc
-    ).strftime("%Y-%m-%d %H:%M UTC")
+    created = _utc_stamp(trace.created_at or 0,
+                         "%Y-%m-%d %H:%M UTC")
 
     evidence_blocks = _evidence_cards(report)
     disagreement = _disagreement_banner(report)

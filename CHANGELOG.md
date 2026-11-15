@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.5.0
+
+- the ops-output layer meets hostile traces. (planned): - The ops-output recon (grade, triage, handoff, report, fleet survey/watch and the doors) found three P0s in the postmortem HTML: Step.kind interpolated unescaped (an imported trace with kind="<script>..." executes in the postmortem), annotation author interpolated unescaped (the writer is a different party than the reader on a shared store), and a hostile created_at (year 33658 survives coerce_epoch - it is finite) sent fromtimestamp's ValueError through report AND report --all with no per-trace guard. Plus the P1: grade --trend assigned letters to the WRONG subjects (the zip paired busiest-first cards with grade-sorted rows); the P0-adjacent: fleet --trend crashed on a hostile digest snapshot (worsening non-list, non-dict top_modes entries - digest files are untrusted input by the module's own contract). And the P2s: markdown injection in four render_markdown bypass sites and the handoff brief's zero escaping; the door contracts (report/fleet/triage/grade named errors, --floor nan, the _load_trace exit-2-and-stderr convention, triage --limit clamp). The silent-store-creation class on triage/grade/handoff/report stays documented as a P2 known limitation - its contract surface (aggregate doors report zeros) is pinned by the v230 tour and the churn was disproportionate this round. 10 new pins (test_v550_ops_output.py) plus the three-contract updates.
+
 ## v5.4.1
 
 - the ledger line cannot be dropped by a transient lock. (planned): - One Windows CI leg lost a ledger line under the 12-concurrent-writer pin: the lock release's unlink can transiently fail on Windows (indexer/antivirus holds the file), the raised OSError landed inside _ledger_append's best-effort swallow, and the line vanished. The release stays best-effort (documented), but the write itself retries once on OSError after a 50ms settle — a transient lock no longer drops evidence, and a stale lock is harmless (the next waiter takes it over).
