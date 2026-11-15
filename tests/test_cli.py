@@ -55,6 +55,7 @@ def test_cli_attribute_missing_trace_exits(tmp_path, monkeypatch):
     try:
         main(["attribute", "nope"])
     except SystemExit as exc:
-        assert "no trace found" in str(exc)
+        assert exc.code == 2, \
+            "the named refusal exits 2 (stderr carries the message)"
     else:
         raise AssertionError("expected SystemExit")

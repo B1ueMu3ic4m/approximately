@@ -152,6 +152,8 @@ class TestLatestResolution:
         from approximately.store import TraceStore
 
         TraceStore(tmp_path / "empty")
-        with pytest.raises(SystemExit, match="is empty"):
+        with pytest.raises(SystemExit) as exc:
             main(["--store", str(tmp_path / "empty"), "attribute",
                   "latest"])
+        assert exc.value.code == 2, \
+            "the empty-store refusal exits 2 (stderr carries it)"

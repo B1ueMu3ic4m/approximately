@@ -104,7 +104,7 @@ def _anomaly_lines(trace: "Trace") -> list:
         latency = []
     if latency:
         emit("Latency anomalies",
-             [f"- `#{a.step_index}` {a.tool} {a.latency_ms}ms — "
+             [f"- `#{a.step_index}` {_esc(a.tool)} {a.latency_ms}ms — "
               f"median {a.median_ms:.0f}ms, z={a.robust_z} "
               f"({a.direction})" for a in latency[:5]])
     try:
@@ -113,7 +113,7 @@ def _anomaly_lines(trace: "Trace") -> list:
         burn = []
     if burn:
         emit("Token burn",
-             [f"- `#{a.step_index}` {a.tool} {a.tokens}tok — "
+             [f"- `#{a.step_index}` {_esc(a.tool)} {a.tokens}tok — "
               f"median {a.median_tokens:.0f}, z={a.robust_z} "
               f"({a.direction})" for a in burn[:5]])
     return lines
@@ -137,7 +137,7 @@ def _fleet_lines(trace: "Trace", store: Any) -> list:
               "the same tool — this trace can look normal alone:*"),
              ""]
     lines.extend(
-        f"- `#{a.step_index}` {a.tool} {a.latency_ms}ms — "
+        f"- `#{a.step_index}` {_esc(a.tool)} {a.latency_ms}ms — "
         f"family median {a.median_ms:.0f}ms, z={a.robust_z} "
         f"({a.direction})"
         for a in fleet[:5])
@@ -186,7 +186,7 @@ def render_markdown(trace: "Trace", report: "FailureReport",
         if ranked:
             lines += ["", "### Nearest neighbours", ""]
             lines += [f"- `{c.id}` similarity {r:.2f} — "
-                      f"{(c.task or '')[:60]}" for c, r in ranked]
+                      f"{_esc((c.task or '')[:60])}" for c, r in ranked]
     lines.extend(_timeline_lines(trace))
     if store is not None:
         try:
@@ -195,9 +195,10 @@ def render_markdown(trace: "Trace", report: "FailureReport",
             rows = []
         if rows:
             lines += ["", "### Analyst annotations", ""]
-            lines += [f"- **{r.get('verdict') or 'note'}**: "
-                      f"{r.get('note', '')}"
-                      + (f" — {r['author']}" if r.get("author") else "")
+            lines += [f"- **{_esc(r.get('verdict') or 'note')}**: "
+                      f"{_esc(r.get('note', ''))}"
+                      + (f" — {_esc(r['author'])}"
+                         if r.get("author") else "")
                       for r in rows]
     if report.judge_used:
         lines += ["", "*Includes the optional LLM judge's verdict.*"]

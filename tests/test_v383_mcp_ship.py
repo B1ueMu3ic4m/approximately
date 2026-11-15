@@ -106,7 +106,7 @@ def test_hostile_args_are_refused_at_the_boundary(monkeypatch):
             _ship(store, 123, monkeypatch=monkeypatch)
         with pytest.raises(ValueError, match="url is required"):
             _ship(store, None, monkeypatch=monkeypatch)
-        with pytest.raises(ValueError, match="no trace found"):
+        with pytest.raises(ValueError, match="trace"):
             _ship(store, url, trace="nope", monkeypatch=monkeypatch)
     finally:
         server.shutdown()

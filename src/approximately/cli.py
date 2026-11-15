@@ -44,17 +44,25 @@ def _key_of(key_file: Optional[str]) -> "Optional[bytes]":
 
 
 def _load_trace(spec: str, store: TraceStore) -> Trace:
+    if spec is None or not str(spec).strip():
+        # a missing spec used to Path(None) into a TypeError
+        print("error: no trace id given (or use --all where the "
+              "door supports it)", file=sys.stderr)
+        raise SystemExit(2)
     if spec == "latest":
         from .store import trace_files
 
         files = trace_files(store.directory)
         if not files:
-            raise SystemExit(f"error: the store {store.directory} is empty")
+            print(f"error: the store {store.directory} is empty",
+                  file=sys.stderr)
+            raise SystemExit(2)
         spec = files[-1].stem
     trace = store.load(spec)
     if trace is None:
-        raise SystemExit(f"error: no trace found for {spec!r} "
-                         f"(looked in {store.directory})")
+        print(f"error: no trace found for {spec!r} "
+              f"(looked in {store.directory})", file=sys.stderr)
+        raise SystemExit(2)
     return trace
 
 
@@ -237,6 +245,24 @@ def _report_judge_cache(args: argparse.Namespace, payload: dict) -> None:
           f"{stats['misses']} miss(es)")
 
 
+def _report_all_result(args: argparse.Namespace, out: Path,
+                       pairs: list, written: int) -> int:
+    """The --all answer: the JSON shape or the prose line."""
+    if getattr(args, "json", False):
+        print(json.dumps({
+            "index": str(out),
+            "traces": [{"id": t.id, "task": (t.task or "")[:80],
+                        "failed": r.failed,
+                        "primary_mode": r.primary_mode.id}
+                       for t, r in pairs],
+            "generated_reports": written,
+            "output": str(out)}, indent=2))
+        return 0
+    print(f"wrote index over {len(pairs)} traces: {out} "
+          f"({written} individual reports generated)")
+    return 0
+
+
 def cmd_report(args: argparse.Namespace) -> int:
     from .attributor import attribute
     from .cluster import trend
@@ -261,19 +287,7 @@ def cmd_report(args: argparse.Namespace) -> int:
         out = Path(args.output) if args.output else store.directory / "index.html"
         out.write_text(render_index_html(pairs, trend_rows=trend(traces)),
                        encoding="utf-8")
-        if getattr(args, "json", False):
-            print(json.dumps({
-                "index": str(out),
-                "traces": [{"id": t.id, "task": (t.task or "")[:80],
-                            "failed": r.failed,
-                            "primary_mode": r.primary_mode.id}
-                           for t, r in pairs],
-                "generated_reports": written,
-                "output": str(out)}, indent=2))
-            return 0
-        print(f"wrote index over {len(pairs)} traces: {out} "
-              f"({written} individual reports generated)")
-        return 0
+        return _report_all_result(args, out, pairs, written)
     trace = _load_trace(args.trace, store)
     report = attribute(trace, use_judge=args.judge,
                           **_judge_kwargs(args))
@@ -1065,10 +1079,10 @@ def cmd_triage(args: argparse.Namespace) -> int:
         print(json.dumps({
             "window_days": since,
             "total": len(rows),
-            "queue": [r.to_dict() for r in rows[:int(args.limit)]],
+            "queue": [r.to_dict() for r in rows[:max(0, int(args.limit))]],
         }, indent=2))
         return 0
-    print(render_queue(rows, limit=int(args.limit)))
+    print(render_queue(rows, limit=max(0, int(args.limit))))
     return 0
 
 
@@ -1128,8 +1142,9 @@ def cmd_grade(args: argparse.Namespace) -> int:
     from .grade import grade_store, grade_trend, render_grade_trend, render_grades
 
     kind = "tool" if getattr(args, "tool", None) else "agent"
+    store = TraceStore(args.store)
     if getattr(args, "trend", False):
-        trend = grade_trend(TraceStore(args.store), kind=kind)
+        trend = grade_trend(store, kind=kind)
         if getattr(args, "json", False):
             print(json.dumps(trend, indent=2))
         else:
@@ -1138,7 +1153,7 @@ def cmd_grade(args: argparse.Namespace) -> int:
     subject = getattr(args, "tool", None) or getattr(args, "agent",
                                                      None)
     try:
-        rows, kind = grade_store(TraceStore(args.store), kind=kind,
+        rows, kind = grade_store(store, kind=kind,
                                  subject=subject)
     except KeyError as exc:
         print(f"error: {exc.args[0]}", file=sys.stderr)
@@ -2244,6 +2259,32 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     return 0 if report.healthy else 1
 
 
+def _fleet_route(args: argparse.Namespace,
+                 stores: List[Path]) -> "Optional[int]":
+    """The non-survey fleet modes, routed with their named
+    refusals: watch needs its digest directory, the trend reads
+    the digest directory (its store slots are placeholders), and
+    the survey refuses stores that do not exist — a dashboard
+    that reads "all healthy" over stores that do not exist used
+    to be silently created."""
+    if getattr(args, "watch", None):
+        if not getattr(args, "digest_dir", None):
+            print("error: fleet --watch needs --digest-dir",
+                  file=sys.stderr)
+            return 2
+        _fleet_watch(args, stores)
+        return 0
+    if getattr(args, "trend", False):
+        # the trend's exit code is a contract: 1 = fail-on-worsening
+        return _fleet_trend(args)
+    missing = [d for d in stores if not d.is_dir()]
+    if missing:
+        for d in missing:
+            print(f"error: store not found: {d}", file=sys.stderr)
+        return 2
+    return None
+
+
 def cmd_fleet(args: argparse.Namespace) -> int:
     if getattr(args, "compact_digests", False):
         return _fleet_compact(args)
@@ -2252,20 +2293,9 @@ def cmd_fleet(args: argparse.Namespace) -> int:
         print("error: fleet needs at least one store directory",
               file=sys.stderr)
         return 2
-    if getattr(args, "watch", None):
-        return _fleet_watch(args, stores)
-    if getattr(args, "trend", False):
-        # the trend reads the digest directory; the store slots
-        # are placeholders there
-        return _fleet_trend(args)
-    missing = [d for d in stores if not d.is_dir()]
-    if missing:
-        # a typo'd path used to be silently created and reported
-        # "0 traces, failure rate 0%" - a fleet dashboard that
-        # reads "all healthy" over stores that do not exist
-        for d in missing:
-            print(f"error: store not found: {d}", file=sys.stderr)
-        return 2
+    exit_code = _fleet_route(args, stores)
+    if exit_code is not None:
+        return exit_code
     return _fleet_survey(args)
 
 
@@ -3282,12 +3312,14 @@ def _recall_mark(success: Any) -> str:
         else "·"
 
 
-def _recall_store(store_arg: str) -> TraceStore:
+def _recall_store(store_arg: "str | None") -> TraceStore:
     """The memory door's store: a typo'd path must answer "store
     not found" — silently creating an empty store and reporting
     "no conversations" reads as lost memory to a human looking
-    for last Tuesday."""
-    path = Path(store_arg)
+    for last Tuesday. None keeps the env/default resolution."""
+    from .store import default_store_dir
+
+    path = Path(store_arg) if store_arg else default_store_dir()
     if not path.is_dir():
         print(f"error: store not found: {path} "
               "(create one with `approximately new` or check the "
@@ -3621,11 +3653,20 @@ def _ship_core(store_dir: str, trace_spec: str, url: str,
 
     if urlparse(url).scheme not in ("http", "https"):
         raise ValueError("webhook URL must be http(s)")
-    try:
-        store = TraceStore(Path(store_dir))
-        trace = _load_trace(trace_spec, store)
-    except SystemExit as exc:
-        raise ValueError(str(exc)) from None
+    store = TraceStore(Path(store_dir))
+    if trace_spec == "latest":
+        from .store import trace_files
+
+        files = trace_files(store.directory)
+        if not files:
+            raise ValueError(f"the store {store.directory} is empty")
+        trace_spec = files[-1].stem
+    trace = store.load(trace_spec)
+    if trace is None:
+        # the MCP surface answers ValueError with a JSON error
+        # payload - it must never inherit the CLI door's exit
+        raise ValueError(f"no trace found for {trace_spec!r} "
+                         f"(looked in {store.directory})")
     return _ship_one(store, trace, url, key,
                      sender or socket.gethostname())
 
