@@ -1229,7 +1229,12 @@ def cmd_handoff(args: argparse.Namespace) -> int:
         table = compile_patterns()
     page = brief(trace, store, table=table)
     if getattr(args, "out", None):
-        _atomic_write(Path(args.out), page + "\n")
+        try:
+            _atomic_write(Path(args.out), page + "\n")
+        except OSError as exc:
+            # an unwritable --out is an answer, not a traceback
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
         print(f"handoff brief written to {args.out}")
         return 0
     if getattr(args, "json", False):
@@ -2222,8 +2227,14 @@ def _fleet_survey(args: argparse.Namespace) -> int:
         print(_print_week(week))
     if args.fleet_html:
         out = Path(args.fleet_html)
-        _atomic_write(out, render_fleet_html(
-            summaries, trend_summary=trend_summary))
+        try:
+            _atomic_write(out, render_fleet_html(
+                summaries, trend_summary=trend_summary))
+        except OSError as exc:
+            # an unwritable dashboard path is an answer, not a
+            # traceback
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
         print(f"wrote fleet dashboard: {out}")
     if getattr(args, "webhook", None):
         _fleet_notify(summaries, args.webhook)
