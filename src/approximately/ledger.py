@@ -28,6 +28,7 @@ import datetime
 import hashlib
 import json
 import os
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
@@ -48,22 +49,22 @@ def _acquire_ledger_lock(ledger_path: "Path") -> "Optional[Path]":
     lock = ledger_path.with_name(ledger_path.name + ".lock")
     deadline = _time.monotonic() + 30.0
     while True:
+        if _time.monotonic() > deadline:
+            return None
         try:
             fd = os.open(str(lock),
                          os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
             os.write(fd, str(os.getpid()).encode("ascii"))
             os.close(fd)
             return lock
-        except FileExistsError:  # noqa: PERF203 - the retry IS the lock
+        except FileExistsError:
             try:
-                if _time.monotonic() > deadline:
-                    return None
-                if (_time.time() - lock.stat().st_mtime
-                        > _LEDGER_LOCK_STALE):
-                    lock.unlink()
-                    continue
+                stale = (_time.time() - lock.stat().st_mtime
+                         > _LEDGER_LOCK_STALE)
             except OSError:
-                pass
+                stale = False
+            if stale:
+                lock.unlink()
             _time.sleep(0.01)
 
 
@@ -136,6 +137,13 @@ class EvidenceLedger:
         hist = self.history(trace_id)
         return hist[-1].root if hist else None
 
+    def _write_append(self, line: str) -> None:
+        """One O_APPEND line, flushed and fsynced."""
+        with open(self.path, "a", encoding="utf-8") as fh:
+            fh.write(line + "\n")
+            fh.flush()
+            os.fsync(fh.fileno())
+
     # -- appending ------------------------------------------------------------
     def append(self, trace_id: str, root: str) -> LedgerEntry:
         # the read-then-append holds a cross-trace lock: the store's
@@ -158,14 +166,27 @@ class EvidenceLedger:
             )
             entry.chain = _chain_entry(entry, prev_chain)
             line = json.dumps(entry.to_dict(), sort_keys=True)
-            # single small line in O_APPEND mode: atomic on POSIX
-            with open(self.path, "a", encoding="utf-8") as fh:
-                fh.write(line + "\n")
-                fh.flush()
-                os.fsync(fh.fileno())
-            return entry
+            # single small line in O_APPEND mode: atomic on POSIX.
+            # one retry on OSError: on Windows a transient file
+            # lock (indexer, antivirus) used to swallow the line
+            # under _ledger_append's best-effort contract - the
+            # retry keeps the line without changing the contract
+            try:
+                self._write_append(line)
+                return entry
+            except OSError:
+                time.sleep(0.05)
+                self._write_append(line)
+                return entry
         finally:
             if lock is not None:
+                # the release must be best-effort: on Windows an
+                # unlink can transiently fail while a watcher or
+                # the indexer holds the file - a raised OSError
+                # would land in _ledger_append's best-effort
+                # swallow and silently DROP the ledger line (one
+                # Windows CI leg lost exactly that). A stale lock
+                # is harmless: the next waiter takes it over.
                 try:
                     lock.unlink()
                 except OSError:

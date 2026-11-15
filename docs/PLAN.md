@@ -2071,6 +2071,19 @@ framework adapters import lazily and degrade when the framework is absent.
          the bisect boundary). 10 new pins
          (test_v540_recall_filters).
 
+554. **v5.4.1 - the ledger line cannot be dropped by a
+       transient lock** (planned):
+       - One Windows CI leg lost a ledger line under the
+         12-concurrent-writer pin: the lock release's unlink can
+         transiently fail on Windows (indexer/antivirus holds
+         the file), the raised OSError landed inside
+         _ledger_append's best-effort swallow, and the line
+         vanished. The release stays best-effort (documented),
+         but the write itself retries once on OSError after a
+         50ms settle — a transient lock no longer drops
+         evidence, and a stale lock is harmless (the next
+         waiter takes it over).
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

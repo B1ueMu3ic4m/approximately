@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.4.1
+
+- the ledger line cannot be dropped by a transient lock. (planned): - One Windows CI leg lost a ledger line under the 12-concurrent-writer pin: the lock release's unlink can transiently fail on Windows (indexer/antivirus holds the file), the raised OSError landed inside _ledger_append's best-effort swallow, and the line vanished. The release stays best-effort (documented), but the write itself retries once on OSError after a 50ms settle — a transient lock no longer drops evidence, and a stale lock is harmless (the next waiter takes it over).
+
 ## v5.4.0
 
 - recall answers the follow-up questions. (planned): - The memory doors' second round: "which of those conversations FAILED?", "the gpt-4o ones", "give me the memory as a file" — recall gains --model (case- insensitive substring over the recorded model), --failed -only/--ok-only outcome filters threading timeline, search and summary, and --export (one markdown diary — summary then timeline — written atomically). Plus the recon runner-ups: a fleet dashboard over a typo'd store used to be silently created and report a healthy 0% (refused by name now; the trend mode keeps its placeholder slots — it reads the digest directory), and a nan --floor compared False against everything so every mutation silently qualified as non-material (refused at the bisect boundary). 10 new pins (test_v540_recall_filters).
