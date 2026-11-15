@@ -8,7 +8,11 @@ so the changelog cannot drift from the plan it summarizes.
 
 Item headings may wrap across lines (long titles do), so the parser
 scans the full text: an item runs from its `N. **vX.Y - title**`
-opener to the next opener or end of file. Titles may not contain
+opener to the next opener, the next `## ` section heading, or end
+of file — the plan's trailing sections (launch plan, risks,
+references) are planning material and must never ride the last
+entry's body into the changelog and the release notes. Titles may
+not contain
 nested `**` (the round-9 rule) — which also keeps deferred lines
 like `**deferred with reasons**` from masquerading as closings;
 deferred/queued items are additionally excluded by content.
@@ -24,7 +28,7 @@ _ITEM = re.compile(
     r"^\d+\. \*\*(v\d+(?:\.\d+)*) [-\u2013\u2014] "
     r"((?:[^*]|\*(?!\*))+?)\*\*"
     r"(?P<rest>.*?)"
-    r"(?=^\d+\. \*\*v\d|\Z)",
+    r"(?=^\d+\. \*\*v\d|^## |\Z)",
     re.M | re.S)
 
 _DELIVERED = re.compile(r"^\u2705[^:]*:\s*")

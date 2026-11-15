@@ -1966,6 +1966,21 @@ framework adapters import lazily and degrade when the framework is absent.
          split into helpers. 12 new pins
          (test_v510_analysis_engines).
 
+549. **v5.1.1 - the release notes are release notes** (planned):
+       - The changelog pipeline swallowed the plan's trailing
+         sections (launch plan, risks & mitigations, references)
+         into the LAST ledger entry's body — the parser's
+         lookahead ran to end of file — so every release
+         generated while its entry was last carried the launch
+         plan, the risk table and the arXiv references inside
+         its release notes. Planning material is not release
+         notes: the entry body now ends at the next `## ` section
+         heading (history is not rewritten — the regenerated
+         changelog drops the sections everywhere), every polluted
+         release body on the Releases page is rewritten from its
+         own clean changelog section, and the pin guards the
+         fence.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
