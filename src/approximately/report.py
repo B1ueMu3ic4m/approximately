@@ -62,6 +62,7 @@ TREND_LABELS = {
     "improving": ("green", "↓ failure rate falling"),
     "stable": ("", "→ flat"),
     "worsening": ("red", "↑ failure rate rising"),
+    "no data": ("neutral", "no data"),
 }
 
 
@@ -172,6 +173,10 @@ def trend_verdict(values: Sequence[float],
     on 5% reads as a real trend. Returns ``(verdict, slope)``.
     """
     vals = _finite(values)
+    if not vals:
+        # no data is not "stable": an ops glance used to read
+        # "no drift" where there was nothing to measure
+        return "no data", 0.0
     slope = theil_sen_slope(vals)
     mean = sum(vals) / len(vals) if vals else 0.0
     scale = mean if mean > 0.5 else 1.0  # absolute comparison near zero

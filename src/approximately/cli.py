@@ -1073,25 +1073,30 @@ def cmd_prices(args: argparse.Namespace) -> int:
     if op == "set":
         try:
             rate = float(args.rate)
-        except ValueError:
+        except (ValueError, TypeError):
+            # float(None) is a TypeError: a forgotten rate used to
+            # traceback instead of naming the mistake
             print(f"error: rate must be a number, got {args.rate!r}",
                   file=sys.stderr)
             return 2
         try:
             table = set_rate(store, args.model, rate)
-        except ValueError as exc:
+        except (ValueError, OSError) as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
     elif op == "unset":
         try:
             table = unset_rate(store, args.model)
-        except KeyError as exc:
-            print(f"error: {exc.args[0]}", file=sys.stderr)
+        except (KeyError, ValueError, OSError) as exc:
+            # a corrupt catalog raised ValueError past the
+            # KeyError-only guard
+            detail = exc.args[0] if exc.args else exc
+            print(f"error: {detail}", file=sys.stderr)
             return 2
     else:
         try:
             table = load_catalog(store) or {}
-        except ValueError as exc:
+        except (ValueError, OSError) as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
     if getattr(args, "json", False):
@@ -1205,7 +1210,18 @@ def cmd_snapshot(args: argparse.Namespace) -> int:
     """Zip the whole store with a sha256 manifest (lossless)."""
     from .snapshot import snapshot
 
-    report = snapshot(Path(args.store), Path(args.snapshot))
+    store_path = Path(args.store)
+    if not store_path.is_dir():
+        # rglob on a missing dir yields [] : the "backup" used to
+        # be a valid zip with zero traces and an exit 0
+        print(f"error: store not found: {store_path}",
+              file=sys.stderr)
+        return 2
+    try:
+        report = snapshot(store_path, Path(args.snapshot))
+    except OSError as exc:
+        print(f"error: snapshot: {exc}", file=sys.stderr)
+        return 2
     if getattr(args, "json", False):
         print(json.dumps(report, indent=2))
         return 0
@@ -1216,12 +1232,17 @@ def cmd_snapshot(args: argparse.Namespace) -> int:
 
 def cmd_restore(args: argparse.Namespace) -> int:
     """Verify every member hash, then extract into --into."""
+    import zipfile
+
     from .snapshot import restore
 
     try:
         report = restore(Path(args.snapshot), Path(args.into),
                          force=bool(args.force))
-    except ValueError as exc:
+    except (ValueError, OSError, zipfile.BadZipFile) as exc:
+        # BadZipFile extends Exception directly (NOT OSError): a
+        # non-zip or a CRC-corrupted archive used to traceback
+        # instead of answering by name
         print(f"error: {exc}", file=sys.stderr)
         return 2
     if getattr(args, "json", False):
@@ -1355,7 +1376,9 @@ def _payload_forecasts(payload: dict, trend: Optional[dict],
     """Attach the spend/reliability projections when asked.
 
     Both read the summarized day-rows — the raw trend_days entries
-    carry no est_spend/failures (the lesson, kept as a comment)."""
+    carry no est_spend/failures (the lesson, kept as a comment).
+    A nonsensical allowance answers by name (SystemExit 2): the
+    builder cannot return an exit code, so the refusal exits."""
     if trend is None:
         return
     from .forecast import failure_budget, forecast_spend
@@ -1364,8 +1387,12 @@ def _payload_forecasts(payload: dict, trend: Optional[dict],
         payload["spend_forecast"] = forecast_spend(
             trend["days"], ceiling=float(spend_ceiling))
     if failure_allowance is not None:
-        payload["failure_budget"] = failure_budget(
-            trend["days"], allowance=int(failure_allowance))
+        try:
+            payload["failure_budget"] = failure_budget(
+                trend["days"], allowance=int(failure_allowance))
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            raise SystemExit(2) from exc
 
 
 def _digest_trend(digest_dir: Any) -> Optional[dict]:
@@ -1966,7 +1993,11 @@ def _agent_failure_budget(args: argparse.Namespace,
 
     budget_rows = [dict(d, failures=d["failed_traces"])
                    for d in agent_days]
-    result = failure_budget(budget_rows, allowance=int(allowance))
+    try:
+        result = failure_budget(budget_rows, allowance=int(allowance))
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        raise SystemExit(2) from exc
     if result is None:  # pragma: no cover - refusal returns a dict
         return {}
     return result
@@ -2034,8 +2065,12 @@ def _fleet_trend(args: argparse.Namespace) -> int:
     if allowance is not None:
         from .forecast import failure_budget
 
-        budget = failure_budget(summary["days"],
-                                allowance=int(allowance))
+        try:
+            budget = failure_budget(summary["days"],
+                                    allowance=int(allowance))
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
         summary["failure_budget"] = budget
     if getattr(args, "json", False):
         print(json.dumps(summary, indent=2))
@@ -2520,7 +2555,9 @@ def _spend_by_model(args: argparse.Namespace, traces: list,
     unpriced_tokens = 0
     for model in sorted(by_model):
         row = by_model[model]
-        rate = prices.get(model)
+        from .budget import match_rate
+
+        rate = match_rate(prices, model)
         if rate is None:
             row["rate"] = None
             row["est_cost"] = None
@@ -2539,11 +2576,11 @@ def _spend_by_model(args: argparse.Namespace, traces: list,
     print(f"  {'model':<24} {'traces':>6} {'tokens':>9} "
           f"{'$/1k':>7} {'est $':>10}")
     for r in rows:
-        rate = f"{r['rate']:g}" if r["rate"] is not None else "-"
-        cost = f"{r['est_cost']:.2f}" if r["est_cost"] is not None \
-            else "unpriced"
+        rate_text = f"{r['rate']:g}" if r["rate"] is not None else "-"
+        cost_text = f"{r['est_cost']:.2f}" \
+            if r["est_cost"] is not None else "unpriced"
         print(f"  {r['model']:<24} {r['traces']:>6} {r['tokens']:>9,} "
-              f"{rate:>7} {cost:>10}")
+              f"{rate_text:>7} {cost_text:>10}")
     total_line = f"  total est spend: ${total:,.2f}"
     if unpriced_tokens:
         total_line += (f"  ({unpriced_tokens:,} tokens had no rate "
