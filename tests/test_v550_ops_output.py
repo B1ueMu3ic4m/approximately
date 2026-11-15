@@ -14,12 +14,14 @@ import json
 from pathlib import Path
 
 from approximately.attributor import attribute
+from approximately.cluster import agent_scorecard
 from approximately.diff import diff as trace_diff
 from approximately.diff import first_fault
 from approximately.fleet import trend_days
-from approximately.grade import _week_letters
+from approximately.grade import _week_letters, grade_cards
 from approximately.markdown_report import render_markdown
 from approximately.report import render_html
+from approximately.store import TraceStore
 from approximately.trace import Step, Trace
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -97,10 +99,50 @@ def test_week_letters_name_their_own_subjects():
         for step in trace.steps:
             step.agent = agent
     letters = _week_letters(window, key="agent", kind="agent")
-    assert letters["alpha"] in ("A", "B"), \
-        "the quiet clean agent used to wear the failing one's F"
-    assert letters["beta"] in ("D", "F"), \
-        "the busy failing agent used to wear the clean one's A"
+    # the mapping is the graded truth, keyed on subject: the old
+    # zip paired busiest-first cards with grade-sorted rows, so
+    # whenever the two orders differed the letters swapped
+    graded = {g["subject"]: g["grade"]
+              for g in grade_cards(agent_scorecard(window))}
+    assert letters == graded, \
+        f"letters {letters} must equal the graded truth {graded}"
+
+
+def test_week_letters_key_on_subject_not_position(monkeypatch,
+                                                  tmp_path):
+    """Deterministic swap pin: the scorecard order (busy first)
+    differs from the grade order — the letters must still land
+    on their own subjects."""
+    from approximately.recorder import Recorder
+
+    store = TraceStore(tmp_path)
+    agents = ("beta", "beta", "alpha", "alpha")
+    for agent, ok in zip(agents, (False, False, True, True),
+                         strict=False):
+        rec = Recorder("swap task", store=store, save=False)
+        rec.tool("deploy", {"cmd": "x"},
+                 result="ok" if ok else "boom")
+        rec.respond("done" if ok else "gave up", success=ok)
+        rec.trace.agent = agent
+        store.save(rec.trace, stamp=False)
+    window = store.list_traces()
+    for trace, agent in zip(window, agents, strict=False):
+        for step in trace.steps:
+            step.agent = agent
+
+    import approximately.grade as grade_module
+
+    monkeypatch.setattr(
+        grade_module, "grade_cards",
+        lambda cards: [{"subject": c["agent"], "grade": letter}
+                       for c, letter in
+                       zip(sorted(cards,
+                                  key=lambda c: c["agent"]),
+                           ("A", "F"), strict=False)])
+    letters = _week_letters(window, key="agent", kind="agent")
+    assert letters == {"alpha": "A", "beta": "F"}, (
+        "keyed on subject - the OLD positional zip assigned "
+        "F to alpha and A to beta on this order")
 
 
 # ---- fleet --trend: digest files are untrusted input

@@ -43,6 +43,17 @@ def _key_of(key_file: Optional[str]) -> "Optional[bytes]":
         raise SystemExit(2) from exc
 
 
+def _atomic_write(path: Path, text: str) -> None:
+    """tmp + os.replace: a crash mid-write leaves the old report,
+    never a half-written one (store.save's own discipline, for
+    every artifact the analysis doors write)."""
+    import os
+
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(tmp, path)
+
+
 def _load_trace(spec: str, store: TraceStore) -> Trace:
     if spec is None or not str(spec).strip():
         # a missing spec used to Path(None) into a TypeError
@@ -282,11 +293,12 @@ def cmd_report(args: argparse.Namespace) -> int:
             page = _artifact_of(store.directory, trace.id,
                                 ".report.html")
             if not page.exists():
-                page.write_text(render_html(trace, report, store), encoding="utf-8")
+                _atomic_write(page,
+                              render_html(trace, report, store))
                 written += 1
         out = Path(args.output) if args.output else store.directory / "index.html"
-        out.write_text(render_index_html(pairs, trend_rows=trend(traces)),
-                       encoding="utf-8")
+        _atomic_write(out, render_index_html(
+            pairs, trend_rows=trend(traces)))
         return _report_all_result(args, out, pairs, written)
     trace = _load_trace(args.trace, store)
     report = attribute(trace, use_judge=args.judge,
@@ -296,12 +308,12 @@ def cmd_report(args: argparse.Namespace) -> int:
 
         md = Path(args.output) if args.output else \
             _artifact_of(store.directory, trace.id, ".report.md")
-        md.write_text(render_markdown(trace, report, store), encoding="utf-8")
+        _atomic_write(md, render_markdown(trace, report, store))
         print(f"wrote markdown postmortem: {md}")
         return 0
     out = Path(args.output) if args.output else \
         _artifact_of(store.directory, trace.id, ".report.html")
-    out.write_text(render_html(trace, report, store), encoding="utf-8")
+    _atomic_write(out, render_html(trace, report, store))
     print(f"wrote {out}")
     if getattr(args, "mermaid", None):
         from .mermaid import render_mermaid
@@ -1181,7 +1193,7 @@ def _emit_markdown(page: str, out: Optional[str], json_mode: bool,
         print(json.dumps({**payload, "markdown": page}, indent=2))
         return 0
     if out and out != "-":
-        Path(out).write_text(page, encoding="utf-8")
+        _atomic_write(Path(out), page)
     else:
         print(page, end="")
     return 0
@@ -1217,7 +1229,7 @@ def cmd_handoff(args: argparse.Namespace) -> int:
         table = compile_patterns()
     page = brief(trace, store, table=table)
     if getattr(args, "out", None):
-        Path(args.out).write_text(page + "\n", encoding="utf-8")
+        _atomic_write(Path(args.out), page + "\n")
         print(f"handoff brief written to {args.out}")
         return 0
     if getattr(args, "json", False):
@@ -2210,9 +2222,8 @@ def _fleet_survey(args: argparse.Namespace) -> int:
         print(_print_week(week))
     if args.fleet_html:
         out = Path(args.fleet_html)
-        out.write_text(render_fleet_html(summaries,
-                                         trend_summary=trend_summary),
-                       encoding="utf-8")
+        _atomic_write(out, render_fleet_html(
+            summaries, trend_summary=trend_summary))
         print(f"wrote fleet dashboard: {out}")
     if getattr(args, "webhook", None):
         _fleet_notify(summaries, args.webhook)
@@ -4531,7 +4542,7 @@ def _digest_emit(args: argparse.Namespace, payload: dict) -> int:
     page = _digest_page(payload, redact)
     out = getattr(args, "out", None)
     if out and out != "-":
-        Path(out).write_text(page, encoding="utf-8")
+        _atomic_write(Path(out), page)
     else:
         print(page, end="")
     if not post:

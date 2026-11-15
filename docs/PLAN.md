@@ -2079,10 +2079,11 @@ framework adapters import lazily and degrade when the framework is absent.
          the file), the raised OSError landed inside
          _ledger_append's best-effort swallow, and the line
          vanished. The release stays best-effort (documented),
-         but the write itself retries once on OSError after a
-         50ms settle — a transient lock no longer drops
-         evidence, and a stale lock is harmless (the next
-         waiter takes it over).
+         but the write itself persists through five backoff
+         retries (0.1s steps) before the contract applies — one
+         retry still lost a line under 12-thread contention on
+         Windows, and a stale lock is harmless (the next waiter
+         takes it over).
 
 555. **v5.5.0 - the ops-output layer meets hostile traces**
        (planned):
@@ -2113,6 +2114,15 @@ framework adapters import lazily and degrade when the framework is absent.
          churn was disproportionate this round. 10 new pins
          (test_v550_ops_output.py) plus the three-contract
          updates.
+
+556. **v5.5.1 - every artifact write is atomic** (planned):
+       - The report/index/markdown/fleet-dashboard/handoff
+         artifact writers followed store.save's tmp+replace
+         discipline everywhere EXCEPT the doors themselves — a
+         crash mid-write left a half-written report or dashboard
+         on disk. All seven write sites go through _atomic_write
+         now (store.save's own discipline, for every artifact
+         the analysis doors write).
 
 ## 4. Launch plan
 

@@ -167,17 +167,21 @@ class EvidenceLedger:
             entry.chain = _chain_entry(entry, prev_chain)
             line = json.dumps(entry.to_dict(), sort_keys=True)
             # single small line in O_APPEND mode: atomic on POSIX.
-            # one retry on OSError: on Windows a transient file
-            # lock (indexer, antivirus) used to swallow the line
-            # under _ledger_append's best-effort contract - the
-            # retry keeps the line without changing the contract
-            try:
-                self._write_append(line)
-                return entry
-            except OSError:
-                time.sleep(0.05)
-                self._write_append(line)
-                return entry
+            # bounded backoff retries on OSError: on Windows a
+            # transient file lock (indexer, antivirus) used to
+            # swallow the line under _ledger_append's best-effort
+            # contract - one retry lost a line again under
+            # 12-thread contention, so the write persists through
+            # 5 attempts before the best-effort contract applies
+            last_error: Optional[OSError] = None
+            for attempt in range(5):
+                try:
+                    self._write_append(line)
+                    return entry
+                except OSError as exc:  # noqa: PERF203 - the retry IS the point
+                    last_error = exc
+                    time.sleep(0.1 * attempt)
+            raise last_error from None  # type: ignore[misc]
         finally:
             if lock is not None:
                 # the release must be best-effort: on Windows an
