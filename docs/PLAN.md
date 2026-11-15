@@ -2122,7 +2122,19 @@ framework adapters import lazily and degrade when the framework is absent.
          crash mid-write left a half-written report or dashboard
          on disk. All seven write sites go through _atomic_write
          now (store.save's own discipline, for every artifact
-         the analysis doors write).
+         the analysis doors write). The unwritable-path OSError
+         answers by name at the fleet-dashboard, handoff --out
+         and report doors (the convention's last gap in this
+         family).
+
+557. **v5.5.2 - the unwritable path answers by name**
+       (planned):
+       - The write-error guards land: the fleet dashboard, the
+         handoff --out and the fleet-html writes answer an
+         unwritable path with the named error and exit 2 (the
+         convention's last gap in the artifact-writing family —
+         the report door got its guard with the atomic-write
+         round's OSError handler).
 
 ## 4. Launch plan
 

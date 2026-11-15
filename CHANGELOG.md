@@ -3,9 +3,13 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.5.2
+
+- the unwritable path answers by name. (planned): - The write-error guards land: the fleet dashboard, the handoff --out and the fleet-html writes answer an unwritable path with the named error and exit 2 (the convention's last gap in the artifact-writing family — the report door got its guard with the atomic-write round's OSError handler).
+
 ## v5.5.1
 
-- every artifact write is atomic. (planned): - The report/index/markdown/fleet-dashboard/handoff artifact writers followed store.save's tmp+replace discipline everywhere EXCEPT the doors themselves — a crash mid-write left a half-written report or dashboard on disk. All seven write sites go through _atomic_write now (store.save's own discipline, for every artifact the analysis doors write).
+- every artifact write is atomic. (planned): - The report/index/markdown/fleet-dashboard/handoff artifact writers followed store.save's tmp+replace discipline everywhere EXCEPT the doors themselves — a crash mid-write left a half-written report or dashboard on disk. All seven write sites go through _atomic_write now (store.save's own discipline, for every artifact the analysis doors write). The unwritable-path OSError answers by name at the fleet-dashboard, handoff --out and report doors (the convention's last gap in this family).
 
 ## v5.5.0
 
@@ -13,7 +17,7 @@ source of truth. Newest first.
 
 ## v5.4.1
 
-- the ledger line cannot be dropped by a transient lock. (planned): - One Windows CI leg lost a ledger line under the 12-concurrent-writer pin: the lock release's unlink can transiently fail on Windows (indexer/antivirus holds the file), the raised OSError landed inside _ledger_append's best-effort swallow, and the line vanished. The release stays best-effort (documented), but the write itself retries once on OSError after a 50ms settle — a transient lock no longer drops evidence, and a stale lock is harmless (the next waiter takes it over).
+- the ledger line cannot be dropped by a transient lock. (planned): - One Windows CI leg lost a ledger line under the 12-concurrent-writer pin: the lock release's unlink can transiently fail on Windows (indexer/antivirus holds the file), the raised OSError landed inside _ledger_append's best-effort swallow, and the line vanished. The release stays best-effort (documented), but the write itself persists through five backoff retries (0.1s steps) before the contract applies — one retry still lost a line under 12-thread contention on Windows, and a stale lock is harmless (the next waiter takes it over).
 
 ## v5.4.0
 
