@@ -1,5 +1,5 @@
 {
-  "count": 52,
+  "count": 53,
   "tools": [
     {
       "name": "list_traces",
@@ -1394,6 +1394,31 @@
         "required": [
           "url"
         ]
+      }
+    },
+    {
+      "name": "recall",
+      "description": "What did I talk about with the AI: the conversation timeline grouped by day, a search over every field a conversation speaks through (task, results, thoughts, errors, final output) with readable excerpts, or the day-by-day summary of topics, tools and outcomes. grep=searches; summarize=true aggregates; neither returns the timeline. since_days filters the window.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "grep": {
+            "type": "string",
+            "description": "search text (case-insensitive)"
+          },
+          "summarize": {
+            "type": "boolean",
+            "description": "return the day-by-day summary instead of the timeline"
+          },
+          "since_days": {
+            "type": "integer",
+            "description": "only conversations from the last N days"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "cap the hits/timeline entries"
+          }
+        }
       }
     }
   ]
