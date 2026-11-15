@@ -776,6 +776,14 @@ def cmd_bisect(args: argparse.Namespace) -> int:
                    if getattr(args, "other_store", None) else store)
     trace_b = _load_trace(args.other, other_store)
     td = trace_diff(trace_a, trace_b)
+    import math as _math
+
+    if not _math.isfinite(args.floor):
+        # nan compares False against everything: every mutation
+        # would silently qualify as non-material
+        print(f"error: --floor must be a finite number, got "
+              f"{args.floor}", file=sys.stderr)
+        return 2
     fault = first_fault(td, floor=args.floor)
     ranked = td.divergences(limit=5)
     if getattr(args, "json", None):
@@ -2247,7 +2255,17 @@ def cmd_fleet(args: argparse.Namespace) -> int:
     if getattr(args, "watch", None):
         return _fleet_watch(args, stores)
     if getattr(args, "trend", False):
+        # the trend reads the digest directory; the store slots
+        # are placeholders there
         return _fleet_trend(args)
+    missing = [d for d in stores if not d.is_dir()]
+    if missing:
+        # a typo'd path used to be silently created and reported
+        # "0 traces, failure rate 0%" - a fleet dashboard that
+        # reads "all healthy" over stores that do not exist
+        for d in missing:
+            print(f"error: store not found: {d}", file=sys.stderr)
+        return 2
     return _fleet_survey(args)
 
 
@@ -3287,12 +3305,32 @@ def cmd_recall(args: argparse.Namespace) -> int:
 
     store = _recall_store(args.store)
     until = getattr(args, "until", None)
+    model = getattr(args, "model", None)
+    outcomes = ("failed" if getattr(args, "failed_only", False)
+                else "ok" if getattr(args, "ok_only", False)
+                else "all")
+    if getattr(args, "export", None):
+        from .recall import export_diary
+
+        out = Path(args.export)
+        if not out.parent.is_dir():
+            print(f"error: --export directory not found: "
+                  f"{out.parent}", file=sys.stderr)
+            return 2
+        report = export_diary(store, out,
+                              since=getattr(args, "since", None),
+                              until=until)
+        print(f"diary written: {report['path']} "
+              f"({report['conversations']} conversation(s), "
+              f"{report['days']} day(s))")
+        return 0
     if getattr(args, "grep", None):
         try:
             payload = search(store, args.grep,
                              since=getattr(args, "since", None),
                              until=until,
-                             limit=int(getattr(args, "limit", 20)))
+                             limit=int(getattr(args, "limit", 20)),
+                             model=model, outcomes=outcomes)
         except ValueError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
@@ -3308,7 +3346,8 @@ def cmd_recall(args: argparse.Namespace) -> int:
         return 0
     payload = timeline(store, since=getattr(args, "since", None),
                        until=until,
-                       limit=int(getattr(args, "limit", 0)) or None)
+                       limit=int(getattr(args, "limit", 0)) or None,
+                       model=model, outcomes=outcomes)
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2))
         return 0
@@ -3338,7 +3377,14 @@ def cmd_recall_summary(args: argparse.Namespace) -> int:
 
     store = _recall_store(args.store)
     payload = summarize(store, since=getattr(args, "since", None),
-                        until=getattr(args, "until", None))
+                        until=getattr(args, "until", None),
+                        model=getattr(args, "model", None),
+                        outcomes=("failed"
+                                  if getattr(args, "failed_only",
+                                             False)
+                                  else "ok"
+                                  if getattr(args, "ok_only", False)
+                                  else "all"))
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2))
         return 0
@@ -6439,6 +6485,16 @@ def build_parser() -> argparse.ArgumentParser:
                    help="the newest N conversations in the "
                         "timeline (default all); the search cap "
                         "is 20")
+    p.add_argument("--model", metavar="NAME",
+                   help="only conversations whose model matches "
+                        "(case-insensitive substring)")
+    p.add_argument("--failed-only", action="store_true",
+                   help="only conversations that ended in failure")
+    p.add_argument("--ok-only", action="store_true",
+                   help="only conversations that succeeded")
+    p.add_argument("--export", metavar="FILE",
+                   help="write the memory as one markdown diary "
+                        "(summary + timeline) instead of printing")
     p.add_argument("--json", action="store_true",
                    help="emit the timeline/search shape as JSON")
     p.set_defaults(func=cmd_recall)
@@ -6455,6 +6511,12 @@ def build_parser() -> argparse.ArgumentParser:
                    metavar="EPOCH|DUR",
                    help="only conversations created at or before "
                         "this unix time, or a duration ago")
+    p.add_argument("--model", metavar="NAME",
+                   help="only conversations whose model matches")
+    p.add_argument("--failed-only", action="store_true",
+                   help="only conversations that ended in failure")
+    p.add_argument("--ok-only", action="store_true",
+                   help="only conversations that succeeded")
     p.add_argument("--json", action="store_true",
                    help="emit the summary shape as JSON")
     p.set_defaults(func=cmd_recall_summary)
