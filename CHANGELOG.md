@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.2.1
+
+- recall meets its first real users. (planned): - The day-one walkthrough of the new memory doors: an imported chat export (messages-list lines, CJK content) flows into recall and its subject rises to the top of the topics; a typo'd store path used to be silently created and answered "no conversations" — to a human looking for last Tuesday that reads as lost memory, so the memory doors now refuse a nonexistent store by name (and create nothing); CJK topic grams drowned in question-word noise (怎么把/么把) until the stop-grams are removed before the bigram cut (重试 ×3 rises); --limit -3 was silently accepted (refused at the flag boundary now, the --last discipline); an API-built int tool beside str tools TypeError'd the timeline sort (key=str); pure no-tool conversations land on the timeline with an honestly empty tools column. 7 new pins (test_v521_recall_usage).
+
 ## v5.2.0
 
 - recall: what did I talk about with the AI. (planned): - The feature people keep asking for: long AI conversations evaporate — weeks later nobody remembers what was asked, what was decided, or where that one solution lived. The store already records every run faithfully; recall turns it back into memory. The timeline door (`recall`) puts every conversation on a day-by-day line with the outcome mark, the tools that carried it and its duration; `--grep` searches every field a conversation speaks through (task, results, thoughts, errors, final output) and answers with the readable excerpt of the moment — case-insensitive, newest last, cap-aware; the summary door (`recall-summary`) aggregates day by day: how many conversations, what they were about (top topics — latin words plus CJK bigrams, stopwords floored, zero dependencies), which tools carried them, how many ended badly. One MCP surface (`recall`) speaks all three shapes (timeline / grep / summarize) with since_days and limit. 16 new pins (test_v520_recall).

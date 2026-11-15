@@ -2003,6 +2003,24 @@ framework adapters import lazily and degrade when the framework is absent.
          shapes (timeline / grep / summarize) with since_days
          and limit. 16 new pins (test_v520_recall).
 
+551. **v5.2.1 - recall meets its first real users** (planned):
+       - The day-one walkthrough of the new memory doors: an
+         imported chat export (messages-list lines, CJK
+         content) flows into recall and its subject rises to
+         the top of the topics; a typo'd store path used to be
+         silently created and answered "no conversations" — to
+         a human looking for last Tuesday that reads as lost
+         memory, so the memory doors now refuse a nonexistent
+         store by name (and create nothing); CJK topic grams
+         drowned in question-word noise (怎么把/么把) until the
+         stop-grams are removed before the bigram cut (重试 ×3
+         rises); --limit -3 was silently accepted (refused at
+         the flag boundary now, the --last discipline); an
+         API-built int tool beside str tools TypeError'd the
+         timeline sort (key=str); pure no-tool conversations
+         land on the timeline with an honestly empty tools
+         column. 7 new pins (test_v521_recall_usage).
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

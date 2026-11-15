@@ -32,6 +32,9 @@ _STOPWORDS = frozenset(["a", "an", "and", "are", "as", "at", "be", "but", "by", 
 
 _CJK = re.compile(r"[\u3400-\u9fff\uf900-\ufaff]")
 
+# the grams that carry no topic: question words, pronouns, fillers
+_CJK_STOP_GRAMS = frozenset(["什么", "怎么", "怎样", "这个", "那个", "如何", "可以", "我们", "你们", "他们", "自己", "一个", "一些", "就是", "但是", "然后", "所以", "如果", "因为", "应该", "可能", "或者", "以及", "这样", "那样", "没有还是"])
+
 
 def _local_day(ts: float) -> str:
     """The conversation's local calendar day — memory is kept in
@@ -100,7 +103,8 @@ def _entry(trace: Trace) -> dict:
         "tool_calls": tool_calls,
         "duration_ms": duration,
         "tools": sorted({s.tool for s in trace.steps
-                         if s.kind == "tool_call" and s.tool}),
+                         if s.kind == "tool_call" and s.tool},
+                        key=str),
     }
 
 
@@ -206,8 +210,13 @@ def _keywords(texts: List[str], top: int = 6) -> List[Tuple[str, int]]:
             if word not in _STOPWORDS:
                 counts[word] += 1
         for run in re.findall(r"[\u3400-\u9fff\uf900-\ufaff]+", text):
-            for i in range(len(run) - 1):
-                counts[run[i:i + 2]] += 1
+            # stop-grams are REMOVED before cutting: 怎么把 bigrammed
+            # raw yields 么把/把重 — noise between the fence posts
+            cleaned = run
+            for stop in _CJK_STOP_GRAMS:
+                cleaned = cleaned.replace(stop, "")
+            for i in range(len(cleaned) - 1):
+                counts[cleaned[i:i + 2]] += 1
     return counts.most_common(top)
 
 

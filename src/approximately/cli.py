@@ -3227,6 +3227,20 @@ def _recall_mark(success: Any) -> str:
         else "·"
 
 
+def _recall_store(store_arg: str) -> TraceStore:
+    """The memory door's store: a typo'd path must answer "store
+    not found" — silently creating an empty store and reporting
+    "no conversations" reads as lost memory to a human looking
+    for last Tuesday."""
+    path = Path(store_arg)
+    if not path.is_dir():
+        print(f"error: store not found: {path} "
+              "(create one with `approximately new` or check the "
+              "path)", file=sys.stderr)
+        raise SystemExit(2)
+    return TraceStore(path)
+
+
 def cmd_recall(args: argparse.Namespace) -> int:
     """What did I talk about with the AI? The timeline view —
     conversations in the order they happened, grouped by day;
@@ -3234,7 +3248,7 @@ def cmd_recall(args: argparse.Namespace) -> int:
     something was said, with the excerpt."""
     from .recall import render_timeline, search, timeline
 
-    store = TraceStore(args.store)
+    store = _recall_store(args.store)
     until = getattr(args, "until", None)
     if getattr(args, "grep", None):
         try:
@@ -3285,7 +3299,7 @@ def cmd_recall_summary(args: argparse.Namespace) -> int:
     the human-memory view of the store."""
     from .recall import render_summary, summarize
 
-    store = TraceStore(args.store)
+    store = _recall_store(args.store)
     payload = summarize(store, since=getattr(args, "since", None),
                         until=getattr(args, "until", None))
     if getattr(args, "json", False):
@@ -6383,7 +6397,8 @@ def build_parser() -> argparse.ArgumentParser:
                         "speaks through (task, results, thoughts, "
                         "errors, final output) and show the "
                         "excerpts")
-    p.add_argument("--limit", type=int, default=20, metavar="N",
+    p.add_argument("--limit", type=_non_negative, default=20,
+                   metavar="N",
                    help="the newest N conversations in the "
                         "timeline (default all); the search cap "
                         "is 20")
