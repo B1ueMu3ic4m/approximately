@@ -13,6 +13,13 @@ from typing import Dict, List
 
 # topic -> (blurb, [(door, one-liner), ...])
 TOUR: Dict[str, tuple] = {
+    "memory": (("what did I talk about with the AI — searchable, "
+                "summed, on a timeline"), [
+        ("recall", ("the conversation timeline; --grep finds the "
+                    "moment something was said")),
+        ("recall-summary", ("the day-by-day summary: topics, "
+                            "tools, outcomes")),
+    ]),
     "record": ("capture agent runs and keep them trustworthy", [
         ("demo", "run the built-in failing agent (30s tour)"),
         ("new", "scaffold an instrumented agent project"),

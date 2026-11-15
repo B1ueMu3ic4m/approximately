@@ -18,6 +18,7 @@ import argparse
 import json
 import os
 import sys
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -1328,7 +1329,39 @@ _TOOLS: List[Dict[str, Any]] = [
             },
             "required": ["url"],
         },
+    },    {
+        "name": "recall",
+        "description": "What did I talk about with the AI: the "
+                       "conversation timeline grouped by day, a "
+                       "search over every field a conversation "
+                       "speaks through (task, results, thoughts, "
+                       "errors, final output) with readable "
+                       "excerpts, or the day-by-day summary of "
+                       "topics, tools and outcomes. grep="
+                       "searches; summarize=true aggregates; "
+                       "neither returns the timeline. "
+                       "since_days filters the window.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "grep": {"type": "string",
+                         "description": "search text (case-"
+                                        "insensitive)"},
+                "summarize": {"type": "boolean",
+                              "description": "return the day-by-"
+                                             "day summary instead "
+                                             "of the timeline"},
+                "since_days": {"type": "integer",
+                               "description": "only conversations "
+                                              "from the last N "
+                                              "days"},
+                "limit": {"type": "integer",
+                          "description": "cap the hits/timeline "
+                                         "entries"},
+            },
+        },
     },
+
 ]
 
 
@@ -2792,6 +2825,27 @@ def _opt_str(args: Dict[str, Any], key: str) -> Optional[str]:
     return value
 
 
+def _tool_recall(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    """What did I talk about with the AI: the timeline, a search
+    with excerpts, or the day-by-day summary — one surface."""
+    from .recall import search, summarize, timeline
+
+    store = _store(ctx, args)
+    since_days = _opt_int(args, "since_days")
+    since = (time.time() - since_days * 86400
+             if since_days else None)
+    until = None
+    limit = _opt_int(args, "limit")
+    grep = args.get("grep")
+    if grep:
+        return search(store, str(grep), since=since, until=until,
+                      limit=20 if limit is None else int(limit))
+    if args.get("summarize"):
+        return summarize(store, since=since, until=until)
+    return timeline(store, since=since, until=until,
+                    limit=limit)
+
+
 _HANDLERS = {
     "list_traces": _tool_list_traces,
     "attribute": _tool_attribute,
@@ -2845,6 +2899,7 @@ _HANDLERS = {
     "inbox": _tool_inbox,
     "webhook_ship": _tool_webhook_ship,
     "inbox_import": _tool_inbox_import,
+    "recall": _tool_recall,
 }
 
 

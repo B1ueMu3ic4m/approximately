@@ -29,8 +29,8 @@ def test_tour_covers_every_door_exactly_once():
     assert not ghost, f"tour names doors that do not exist: {sorted(ghost)}"
 
 
-def test_seven_topics_with_real_doors():
-    assert len(TOUR) == 7
+def test_eight_topics_with_real_doors():
+    assert len(TOUR) == 8, "memory joined the tour"
     for name, (blurb, doors) in TOUR.items():
         assert blurb, name
         assert doors, name

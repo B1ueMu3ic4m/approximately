@@ -1981,6 +1981,28 @@ framework adapters import lazily and degrade when the framework is absent.
          own clean changelog section, and the pin guards the
          fence.
 
+550. **v5.2.0 - recall: what did I talk about with the AI**
+       (planned):
+       - The feature people keep asking for: long AI
+         conversations evaporate — weeks later nobody remembers
+         what was asked, what was decided, or where that one
+         solution lived. The store already records every run
+         faithfully; recall turns it back into memory. The
+         timeline door (`recall`) puts every conversation on a
+         day-by-day line with the outcome mark, the tools that
+         carried it and its duration; `--grep` searches every
+         field a conversation speaks through (task, results,
+         thoughts, errors, final output) and answers with the
+         readable excerpt of the moment — case-insensitive,
+         newest last, cap-aware; the summary door
+         (`recall-summary`) aggregates day by day: how many
+         conversations, what they were about (top topics —
+         latin words plus CJK bigrams, stopwords floored, zero
+         dependencies), which tools carried them, how many ended
+         badly. One MCP surface (`recall`) speaks all three
+         shapes (timeline / grep / summarize) with since_days
+         and limit. 16 new pins (test_v520_recall).
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

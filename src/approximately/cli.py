@@ -3222,6 +3222,79 @@ def _parse_since(text: str) -> float:
         * _SINCE_UNITS[match.group(2)]
 
 
+def _recall_mark(success: Any) -> str:
+    return "✓" if success is True else "✗" if success is False \
+        else "·"
+
+
+def cmd_recall(args: argparse.Namespace) -> int:
+    """What did I talk about with the AI? The timeline view —
+    conversations in the order they happened, grouped by day;
+    ``--grep`` turns it into a search that finds the moment
+    something was said, with the excerpt."""
+    from .recall import render_timeline, search, timeline
+
+    store = TraceStore(args.store)
+    until = getattr(args, "until", None)
+    if getattr(args, "grep", None):
+        try:
+            payload = search(store, args.grep,
+                             since=getattr(args, "since", None),
+                             until=until,
+                             limit=int(getattr(args, "limit", 20)))
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        if getattr(args, "json", False):
+            print(json.dumps(payload, indent=2))
+            return 0
+        if not payload["hits"]:
+            print(f'nothing found for "{args.grep}" '
+                  f"({payload['traces_scanned']} conversations "
+                  "scanned)")
+            return 1
+        _print_search(payload)
+        return 0
+    payload = timeline(store, since=getattr(args, "since", None),
+                       until=until,
+                       limit=int(getattr(args, "limit", 0)) or None)
+    if getattr(args, "json", False):
+        print(json.dumps(payload, indent=2))
+        return 0
+    print(render_timeline(payload))
+    return 0
+
+
+def _print_search(payload: dict) -> None:
+    """The search answer in prose: one hit a line, the excerpt
+    under it — the moment something was said."""
+    for hit in payload["results"]:
+        mark = _recall_mark(hit["success"])
+        print(f"{hit['day']} {hit['time']}  {mark}  "
+              f"{hit['task'][:64]}  ({hit['match_count']} "
+              f"match(es))")
+        for m in hit["matches"]:
+            where = (f"@step {m['step_index']}"
+                     if m["step_index"] is not None else "")
+            print(f"    [{m['field']}{where}] {m['excerpt']}")
+
+
+def cmd_recall_summary(args: argparse.Namespace) -> int:
+    """The day-by-day summary: how many conversations, what they
+    were about, which tools carried them, how many ended badly —
+    the human-memory view of the store."""
+    from .recall import render_summary, summarize
+
+    store = TraceStore(args.store)
+    payload = summarize(store, since=getattr(args, "since", None),
+                        until=getattr(args, "until", None))
+    if getattr(args, "json", False):
+        print(json.dumps(payload, indent=2))
+        return 0
+    print(render_summary(payload))
+    return 0
+
+
 def cmd_received(args: argparse.Namespace) -> int:
     """Read the receiver's archive back: the /stats shape plus the
     most recent matching rows, newest last — the cron-friendly
@@ -6292,6 +6365,47 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true",
                    help="emit the plan as JSON")
     p.set_defaults(func=cmd_inbox_import)
+
+    p = sub.add_parser("recall", parents=[common],
+                       help="what did I talk about with the AI: "
+                            "the conversation timeline, searchable")
+    p.add_argument("--since", type=_parse_since,
+                   metavar="EPOCH|DUR",
+                   help="only conversations created at or after "
+                        "this unix time, or a duration like 30m, "
+                        "2h, 1d, 1w")
+    p.add_argument("--until", type=_parse_since,
+                   metavar="EPOCH|DUR",
+                   help="only conversations created at or before "
+                        "this unix time, or a duration ago")
+    p.add_argument("--grep", metavar="TEXT",
+                   help="search every field a conversation "
+                        "speaks through (task, results, thoughts, "
+                        "errors, final output) and show the "
+                        "excerpts")
+    p.add_argument("--limit", type=int, default=20, metavar="N",
+                   help="the newest N conversations in the "
+                        "timeline (default all); the search cap "
+                        "is 20")
+    p.add_argument("--json", action="store_true",
+                   help="emit the timeline/search shape as JSON")
+    p.set_defaults(func=cmd_recall)
+
+    p = sub.add_parser("recall-summary", parents=[common],
+                       help="the day-by-day summary: topics, "
+                            "tools, outcomes — what was talked "
+                            "about, when")
+    p.add_argument("--since", type=_parse_since,
+                   metavar="EPOCH|DUR",
+                   help="only conversations created at or after "
+                        "this unix time, or a duration")
+    p.add_argument("--until", type=_parse_since,
+                   metavar="EPOCH|DUR",
+                   help="only conversations created at or before "
+                        "this unix time, or a duration ago")
+    p.add_argument("--json", action="store_true",
+                   help="emit the summary shape as JSON")
+    p.set_defaults(func=cmd_recall_summary)
 
     p = sub.add_parser("received", parents=[common],
                        help="read the receiver's archive back: "
