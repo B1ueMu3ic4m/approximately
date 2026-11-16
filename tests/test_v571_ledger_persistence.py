@@ -96,6 +96,100 @@ def test_a_transient_read_failure_is_retried_too(tmp_path,
     assert led.entries()[0].trace_id == "abcd1234ef01"
 
 
+def test_a_lock_sharing_violation_is_contention(tmp_path,
+                                                monkeypatch):
+    """Windows maps a sharing violation on an existing lock file to
+    EACCES (PermissionError), not EEXIST - it means someone holds
+    the lock, and treating it as an error dropped lines fast (the
+    store's own per-id lock learned this years ago)."""
+    led = _ledger(tmp_path)
+    import os
+
+    real_open = os.open
+    state = {"n": 0}
+
+    def flaky(path, flags, *a, **kw):
+        if state["n"] == 0 and "lock" in str(path):
+            state["n"] += 1
+            raise PermissionError(32, "sharing violation")
+        return real_open(path, flags, *a, **kw)
+
+    monkeypatch.setattr("approximately.ledger.os.open", flaky)
+    entry = led.append("abcd1234ef01", "root1")
+    assert entry.seq == 1, (
+        "one sharing violation on the lock file used to raise out "
+        "of the acquisition and drop the line via the best-effort "
+        "swallow")
+    assert led.entries()[0].trace_id == "abcd1234ef01"
+
+
+def test_a_replaced_ledger_file_is_picked_up(tmp_path,
+                                             monkeypatch):
+    led = _ledger(tmp_path)
+    led.append("abcd1234ef01", "root1")
+    # the doctor's clean (or a bad sync) replaces the file: the
+    # persistent handle must notice the new inode, not keep
+    # appending to the removed one. (Tests may remove the file -
+    # the product never does - and Windows cannot unlink an open
+    # file, so the cached handle closes first.)
+    from approximately.ledger import close_handle
+
+    close_handle(tmp_path / "ledger.jsonl")
+    (tmp_path / "ledger.jsonl").unlink()
+    entry = led.append("other1234567", "root2")
+    assert entry.seq == 1, (
+        "appending to the removed inode would vanish invisibly")
+    assert [e.trace_id for e in led.entries()] == ["other1234567"]
+
+
+def test_many_concurrent_writers_keep_every_line(tmp_path,
+                                                 monkeypatch):
+    import threading
+
+    # monkeypatch (not bare os.environ): the env must be restored
+    # for the tests after this one - the v73 ladder reads it
+    monkeypatch.setenv("APPROXIMATELY_LEDGER", "1")
+    store_dir = tmp_path / "stress"
+    from approximately.integrity import sign
+    from approximately.recorder import Recorder
+    from approximately.store import TraceStore
+
+    store = TraceStore(store_dir)
+    rec = Recorder("fixture", store=store, save=False)
+    rec.respond("done", success=True)
+    sign(rec.trace)
+    store.save(rec.trace)
+    expected = 1
+
+    def mk(i):
+        nonlocal expected
+        rec = Recorder(f"race {i}", store=store, save=False)
+        rec.tool("sh", {"cmd": "x"}, result="ok")
+        rec.respond("done", success=True)
+        sign(rec.trace)
+        store.save(rec.trace)
+
+    for wave in range(4):
+        threads = [threading.Thread(target=mk, args=(wave * 12 + i,))
+                   for i in range(12)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        expected += 12
+        from approximately.ledger import verify_ledger
+
+        led = store_dir / "ledger.jsonl"
+        lines = [ln for ln in led.read_text().splitlines()
+                 if ln.strip()]
+        check = verify_ledger(store_dir)
+        assert check.intact, f"wave {wave}: {check.detail}"
+        assert len(lines) == expected, (
+            f"wave {wave}: {len(lines)} of {expected} lines - "
+            "the persistent handle must not lose a line to "
+            "per-line open() sharing windows")
+
+
 def test_the_first_attempt_never_reads_the_clock(tmp_path):
     led = _ledger(tmp_path)
     entry = led.append("abcd1234ef01", "root1")

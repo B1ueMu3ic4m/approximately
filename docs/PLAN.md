@@ -2339,6 +2339,76 @@ framework adapters import lazily and degrade when the framework is absent.
          as files - and verify still vouches for the store
          after all of it.
 
+570. **v5.9.4 - the memory doors meet hostile records on their
+       feet** (planned):
+       - The hostile-record sweep found one real leak: a 200KB
+         task blobbed into one "word" rode the topic counter
+         into the summary prose as a 200KB line (the keyword
+         tokenizer never capped token length). Keywords now
+         refuse tokens over 32 chars - they name what the run
+         was ABOUT, and nothing about it is 33+ chars. The
+         rest of the family already answered by data: the
+         timeline/summary/digest doors survived the sweep
+         (200KB task, script-tag tool name with CRLF, 300KB
+         result, 100KB error, bool model, string epoch,
+         surrogate final output), the prose stays line-bounded,
+         the wire stays data-faithful, the fleet divergence
+         compare survives weird bytes, and the exports stay
+         atomic. 6 new pins.
+
+571. **v5.9.4 addendum - one handle per process, not one open
+       per line** (recorded):
+       - The FIFTH Windows CI loss outlived even the 30s
+         budget on the write: the structural problem is that
+         every per-line append is a fresh open()-and-close, and
+         every open is a fresh window for a Windows sharing
+         violation (indexer, antivirus). The ledger write now
+         goes through ONE persistent process handle - opened
+         once, identity-checked by inode so a replaced ledger
+         (the doctor's clean) is picked up instead of appending
+         into the removed file - with fsync per line unchanged.
+         288 concurrent writes in 12 local trials: zero losses,
+         chain intact every time. The lesson generalizes: when
+         a transient failure mode keeps beating a retry budget,
+         stop widening the budget and remove the window the
+         failure lives in.
+
+572. **v5.9.4 addendum 2 - the trace-file write shares the
+       per-id lock's budget** (recorded):
+       - The Windows rerun on the hostile round finally named
+         the real mechanism behind all five ledger losses: the
+         ledger append was never the dropping step - the TRACE
+         file's own ``tmp.write_text`` raised a transient
+         sharing violation (an indexer loves a just-created
+         .tmp), save() raised, the concurrent finisher's thread
+         died silently, and the ledger line never had a chance
+         to be attempted. The trace-file write now shares the
+         per-id lock's own 10s budget (the same pattern as the
+         ledger's), and the CI rerun passes all three Windows
+         legs. Also: the cached ledger handle closes by name
+         (close_handle) for the tests that remove the file -
+         the product never deletes a ledger, so the append path
+         never needs it, and Windows cannot unlink an open
+         file.
+
+573. **v5.9.4 addendum 3 - the lockfile's sharing violation is
+       contention** (recorded):
+       - The rerun log named two more holes. (1) close_handle
+         compared the stored path STRING with a Path object -
+         never equal, never closed, so the unlink tests still
+         hit WinError 32. (2) The ledger's own lockfile treated
+         a PermissionError as an error, but Windows maps a
+         sharing violation on an existing lock to EACCES
+         instead of EEXIST - it means someone holds the lock;
+         the store's per-id lock learned that years ago and the
+         ledger's lockfile contended just as hard, its
+         unhandled PermissionError dropping lines FAST (no
+         budget stall). The comparison compares like with like,
+         and a sharing violation on the lockfile is now
+         contention: spin until it clears or the deadline runs.
+         A pin injects the violation; the ladder stays green
+         locally.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

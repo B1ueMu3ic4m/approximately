@@ -69,6 +69,25 @@ def trace_files(directory: "Path") -> List["Path"]:
             if p.name not in STORE_ARTIFACTS]
 
 
+def _write_bounded(tmp: Path, payload: str, path: Path,
+                   budget_s: float = 10.0) -> None:
+    """The trace file write shares the per-id lock's own budget: a
+    Windows sharing violation on the tmp file (an indexer loves a
+    just-created .tmp) used to raise out of save() - under
+    concurrent finishers the caller's thread died silently and
+    the record's ledger line never landed (the fifth CI loss)."""
+    deadline = time.time() + budget_s
+    while True:
+        try:
+            tmp.write_text(payload, encoding="utf-8")
+            _replace_bounded(tmp, path)
+            return
+        except OSError:
+            if time.time() > deadline:
+                raise
+            time.sleep(0.05)
+
+
 def _replace_bounded(tmp: Path, path: Path,
                      attempts: int = 100, pause_s: float = 0.01) -> None:
     """``os.replace`` with a bounded retry for Windows sharing clashes.
@@ -157,8 +176,7 @@ class TraceStore:
                         raise
                     time.sleep(0.005)
             tmp = self.directory / f".{trace.id}.{os.getpid()}.tmp"
-            tmp.write_text(payload, encoding="utf-8")
-            _replace_bounded(tmp, path)
+            _write_bounded(tmp, payload, path)
         finally:
             if fd is not None:
                 os.close(fd)

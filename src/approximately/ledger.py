@@ -28,6 +28,7 @@ import datetime
 import hashlib
 import json
 import os
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -57,7 +58,13 @@ def _acquire_ledger_lock(ledger_path: "Path") -> "Optional[Path]":
             os.write(fd, str(os.getpid()).encode("ascii"))
             os.close(fd)
             return lock
-        except FileExistsError:
+        except (FileExistsError, PermissionError):
+            # Windows maps a sharing violation on an existing lock
+            # to EACCES (PermissionError) instead of EEXIST - it
+            # means the same thing: someone holds the lock (the
+            # store's own per-id lock learned this years ago; the
+            # ledger's lock file contended just as hard and its
+            # unhandled PermissionError dropped lines fast)
             try:
                 stale = (_time.time() - lock.stat().st_mtime
                          > _LEDGER_LOCK_STALE)
@@ -70,6 +77,63 @@ def _acquire_ledger_lock(ledger_path: "Path") -> "Optional[Path]":
 
 
 GENESIS = "0" * 64
+
+_HANDLE_LOCK = threading.Lock()
+_HANDLE: dict = {"path": None, "fd": None}
+
+
+def close_handle(path: Optional[Path] = None) -> None:
+    """Close the process's cached ledger handle (tests that
+    remove or replace the file call this first: Windows cannot
+    unlink an open file; the product never deletes a ledger, so
+    the append path never needs this)."""
+    with _HANDLE_LOCK:
+        fd = _HANDLE["fd"]
+        if fd is None:
+            return
+        if path is not None and _HANDLE["path"] != str(path):
+            return
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+        _HANDLE["fd"] = None
+        _HANDLE["ino"] = None
+
+
+def _ledger_handle(path: Path) -> int:
+    """The process's append handle for one ledger file: opened
+    once, re-opened when the file is replaced or removed (the
+    doctor's clean, a deleted store) - identity by inode/entry id,
+    not by mtime, because an antivirus touching the file must not
+    force a reopen (the reopen IS the window)."""
+    with _HANDLE_LOCK:
+        fd = _HANDLE["fd"]
+        if fd is not None and _HANDLE["path"] != str(path):
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+            _HANDLE["fd"] = None
+            fd = None
+        if fd is not None:
+            try:
+                same = (os.fstat(fd).st_ino
+                        == os.stat(path).st_ino)
+            except OSError:
+                same = False
+            if same:
+                return fd
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+            _HANDLE["fd"] = None
+        fd = os.open(str(path), os.O_CREAT | os.O_WRONLY
+                     | os.O_APPEND, 0o644)
+        _HANDLE["fd"] = fd
+        _HANDLE["path"] = str(path)
+        return fd
 
 
 def _sha(text: str) -> str:
@@ -138,11 +202,20 @@ class EvidenceLedger:
         return hist[-1].root if hist else None
 
     def _write_append(self, line: str) -> None:
-        """One O_APPEND line, flushed and fsynced."""
-        with open(self.path, "a", encoding="utf-8") as fh:
-            fh.write(line + "\n")
-            fh.flush()
-            os.fsync(fh.fileno())
+        """One O_APPEND line through a PERSISTENT process handle.
+
+        The fifth Windows CI loss outlived a 30s retry budget on
+        the write: every per-line open() is a fresh window for a
+        sharing violation (indexer, antivirus). One process-level
+        handle - opened once, kept open, re-checked against the
+        file's identity so a replaced ledger is picked up - and
+        writes are atomic appends to the end, guarded in-process
+        by a lock so same-process finishers never fight the
+        cross-process lockfile at all."""
+        handle = _ledger_handle(self.path)
+        with _HANDLE_LOCK:
+            os.write(handle, (line + "\n").encode("utf-8"))
+            os.fsync(handle)
 
     # -- appending ------------------------------------------------------------
     def append(self, trace_id: str, root: str) -> LedgerEntry:

@@ -231,6 +231,15 @@ def duplicate_note(dup: dict) -> str:
     return note
 
 
+def _with_dup(store: Any, payload: dict) -> dict:
+    """Attach the fleet view's conflict counts when the store
+    reports any diverged id."""
+    dup = _dup_payload(store)
+    if dup:
+        payload["duplicates"] = dup
+    return payload
+
+
 def _dup_payload(store: Any) -> Optional[dict]:
     """The fleet view's conflict counts, when the store reports
     them and any id DIVERGED. An identical copy is one memory —
@@ -259,13 +268,10 @@ def timeline(store: Any, since: Optional[float] = None,
     days: Dict[str, List[dict]] = {}
     for entry in entries:
         days.setdefault(entry["day"], []).append(entry)
-    payload = {"conversations": len(entries),
-               "days": [{"day": day, "entries": days[day]}
-                        for day in sorted(days)]}
-    dup = _dup_payload(store)
-    if dup:
-        payload["duplicates"] = dup
-    return payload
+    return _with_dup(store, {
+        "conversations": len(entries),
+        "days": [{"day": day, "entries": days[day]}
+                 for day in sorted(days)]})
 
 
 def _excerpt(text: str, needle: str) -> str:
@@ -339,12 +345,9 @@ def search(store: Any, needle: str, since: Optional[float] = None,
                          "match_count": len(matches)})
         if len(hits) >= limit:
             break
-    payload = {"query": needle, "traces_scanned": len(traces),
-               "hits": len(hits), "results": hits}
-    dup = _dup_payload(store)
-    if dup:
-        payload["duplicates"] = dup
-    return payload
+    return _with_dup(store, {
+        "query": needle, "traces_scanned": len(traces),
+        "hits": len(hits), "results": hits})
 
 
 def _keywords(texts: List[str], top: int = 6) -> List[Tuple[str, int]]:
@@ -355,8 +358,12 @@ def _keywords(texts: List[str], top: int = 6) -> List[Tuple[str, int]]:
     for raw in texts:
         text = str(raw or "").lower()
         for word in re.findall(r"[a-z][a-z0-9._-]{2,}", text):
-            if word not in _STOPWORDS:
-                counts[word] += 1
+            if word in _STOPWORDS or len(word) > 32:
+                # a 200KB "word" is data blobbed into the task
+                # line, not a topic: keywords name what the run
+                # was ABOUT, and nothing about it is 33+ chars
+                continue
+            counts[word] += 1
         for run in re.findall(r"[\u3400-\u9fff\uf900-\ufaff]+", text):
             # stop-grams are REMOVED before cutting: 怎么把 bigrammed
             # raw yields 么把/把重 — noise between the fence posts
@@ -446,18 +453,14 @@ def summarize(store: Any, since: Optional[float] = None,
         total_tool_calls += row["tool_calls"]
         failed_total += row["failed"]
     all_tasks = [t.task or "(untitled)" for t in traces]
-    payload = {
+    return _with_dup(store, {
         "conversations": len(traces),
         "failed": failed_total,
         "tokens": total_tokens,
         "tool_calls": total_tool_calls,
         "topics": _keywords(all_tasks, top=10),
         "days": day_rows,
-    }
-    dup = _dup_payload(store)
-    if dup:
-        payload["duplicates"] = dup
-    return payload
+    })
 
 
 def _failure_row(trace: Trace) -> dict:
@@ -499,10 +502,7 @@ def digest(store: Any, since: Optional[float] = None,
     recurring = _recurring_modes(rows)
     if recurring:
         payload["recurring"] = recurring
-    dup = _dup_payload(store)
-    if dup:
-        payload["duplicates"] = dup
-    return payload
+    return _with_dup(store, payload)
 
 
 def _digest_failure_lines(row: dict) -> List[str]:
