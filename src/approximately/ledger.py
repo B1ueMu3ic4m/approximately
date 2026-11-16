@@ -58,7 +58,13 @@ def _acquire_ledger_lock(ledger_path: "Path") -> "Optional[Path]":
             os.write(fd, str(os.getpid()).encode("ascii"))
             os.close(fd)
             return lock
-        except FileExistsError:
+        except (FileExistsError, PermissionError):
+            # Windows maps a sharing violation on an existing lock
+            # to EACCES (PermissionError) instead of EEXIST - it
+            # means the same thing: someone holds the lock (the
+            # store's own per-id lock learned this years ago; the
+            # ledger's lock file contended just as hard and its
+            # unhandled PermissionError dropped lines fast)
             try:
                 stale = (_time.time() - lock.stat().st_mtime
                          > _LEDGER_LOCK_STALE)
@@ -85,7 +91,7 @@ def close_handle(path: Optional[Path] = None) -> None:
         fd = _HANDLE["fd"]
         if fd is None:
             return
-        if path is not None and _HANDLE["path"] != path:
+        if path is not None and _HANDLE["path"] != str(path):
             return
         try:
             os.close(fd)

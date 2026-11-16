@@ -2391,6 +2391,24 @@ framework adapters import lazily and degrade when the framework is absent.
          never needs it, and Windows cannot unlink an open
          file.
 
+573. **v5.9.4 addendum 3 - the lockfile's sharing violation is
+       contention** (recorded):
+       - The rerun log named two more holes. (1) close_handle
+         compared the stored path STRING with a Path object -
+         never equal, never closed, so the unlink tests still
+         hit WinError 32. (2) The ledger's own lockfile treated
+         a PermissionError as an error, but Windows maps a
+         sharing violation on an existing lock to EACCES
+         instead of EEXIST - it means someone holds the lock;
+         the store's per-id lock learned that years ago and the
+         ledger's lockfile contended just as hard, its
+         unhandled PermissionError dropping lines FAST (no
+         budget stall). The comparison compares like with like,
+         and a sharing violation on the lockfile is now
+         contention: spin until it clears or the deadline runs.
+         A pin injects the violation; the ladder stays green
+         locally.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

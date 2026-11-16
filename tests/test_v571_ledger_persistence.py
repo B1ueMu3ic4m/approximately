@@ -96,6 +96,33 @@ def test_a_transient_read_failure_is_retried_too(tmp_path,
     assert led.entries()[0].trace_id == "abcd1234ef01"
 
 
+def test_a_lock_sharing_violation_is_contention(tmp_path,
+                                                monkeypatch):
+    """Windows maps a sharing violation on an existing lock file to
+    EACCES (PermissionError), not EEXIST - it means someone holds
+    the lock, and treating it as an error dropped lines fast (the
+    store's own per-id lock learned this years ago)."""
+    led = _ledger(tmp_path)
+    import os
+
+    real_open = os.open
+    state = {"n": 0}
+
+    def flaky(path, flags, *a, **kw):
+        if state["n"] == 0 and "lock" in str(path):
+            state["n"] += 1
+            raise PermissionError(32, "sharing violation")
+        return real_open(path, flags, *a, **kw)
+
+    monkeypatch.setattr("approximately.ledger.os.open", flaky)
+    entry = led.append("abcd1234ef01", "root1")
+    assert entry.seq == 1, (
+        "one sharing violation on the lock file used to raise out "
+        "of the acquisition and drop the line via the best-effort "
+        "swallow")
+    assert led.entries()[0].trace_id == "abcd1234ef01"
+
+
 def test_a_replaced_ledger_file_is_picked_up(tmp_path,
                                              monkeypatch):
     led = _ledger(tmp_path)
