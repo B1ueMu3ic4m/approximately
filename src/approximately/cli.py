@@ -3453,6 +3453,7 @@ def cmd_recall(args: argparse.Namespace) -> int:
                   "scanned)")
             return 1
         _print_search(payload)
+        _print_duplicates(payload)
         return 0
     payload = timeline(store, since=getattr(args, "since", None),
                        until=until,
@@ -3462,7 +3463,18 @@ def cmd_recall(args: argparse.Namespace) -> int:
         print(json.dumps(payload, indent=2))
         return 0
     print(render_timeline(payload))
+    _print_duplicates(payload)
     return 0
+
+
+def _print_duplicates(payload: dict) -> None:
+    """The fleet view's conflict note, once, after the answer."""
+    dup = payload.get("duplicates")
+    if not dup:
+        return
+    from .recall import duplicate_note
+
+    print(duplicate_note(dup))
 
 
 def _print_search(payload: dict) -> None:
@@ -3501,6 +3513,7 @@ def cmd_recall_summary(args: argparse.Namespace) -> int:
         print(json.dumps(payload, indent=2))
         return 0
     print(render_summary(payload))
+    _print_duplicates(payload)
     return 0
 
 

@@ -12,6 +12,7 @@ Zero dependencies; nothing leaves the machine.
 
 from __future__ import annotations
 
+import json
 import math
 import re
 from collections import Counter
@@ -118,10 +119,16 @@ class MultiStore:
     """Several stores read as one memory: the recall doors over a
     fleet of stores. Deduped by trace id (the first store wins) —
     the same conversation imported into two boxes is one memory,
-    not two."""
+    not two. A duplicate is counted, and if the two copies carry
+    DIFFERENT content the id is named as diverged: two boxes
+    holding two histories of one conversation is exactly the
+    sync-conflict the ledger exists to catch, and silently
+    keeping one side would read the conflict away."""
     def __init__(self) -> None:
         self._stores: List[Any] = []
         self._names: List[str] = []
+        self.seen_again = 0
+        self.diverged: List[str] = []
 
     def add(self, store: Any, name: Optional[str] = None) -> None:
         self._stores.append(store)
@@ -132,17 +139,34 @@ class MultiStore:
     def names(self) -> List[str]:
         return list(self._names)
 
+    @property
+    def duplicates(self) -> dict:
+        return {"seen_again": self.seen_again,
+                "diverged": list(self.diverged)}
+
     def list_traces(self, **kw: Any) -> List[Any]:
-        seen: set = set()
+        # the counters describe THIS scan: each enumeration
+        # rebuilds them, so a payload's counts always match the
+        # scan that produced it
+        self.seen_again = 0
+        self.diverged = []
+        seen: Dict[str, Any] = {}
         traces: List[Any] = []
         for store, name in zip(self._stores, self._names,
                                strict=True):
             label = Path(name).name or name
             for trace in store.list_traces(**kw):
-                if trace.id in seen:
+                first = seen.get(trace.id)
+                if first is None:
+                    seen[trace.id] = trace
+                    traces.append(_Tagged(trace, label))
                     continue
-                seen.add(trace.id)
-                traces.append(_Tagged(trace, label))
+                self.seen_again += 1
+                if (json.dumps(first.to_dict(), sort_keys=True)
+                        != json.dumps(trace.to_dict(),
+                                      sort_keys=True)
+                        and trace.id not in self.diverged):
+                    self.diverged.append(trace.id)
         return traces
 
 
@@ -172,6 +196,32 @@ def _entry(trace: Trace) -> dict:
     return entry
 
 
+def duplicate_note(dup: dict) -> str:
+    """One line for the fleet view's conflicts: the same trace id
+    read again, and which ids DIVERGED (two boxes hold two
+    histories of one conversation)."""
+    note = (f"note: {dup['seen_again']} conversation(s) were "
+            "read again from later stores")
+    diverged = dup.get("diverged") or []
+    if diverged:
+        shown = ", ".join(diverged[:3])
+        more = (f" (+{len(diverged) - 3} more)"
+                if len(diverged) > 3 else "")
+        note += (f"; {len(diverged)} DIVERGED (two boxes hold "
+                 f"different histories): {shown}{more}")
+    return note
+
+
+def _dup_payload(store: Any) -> Optional[dict]:
+    """The fleet view's conflict counts, when the store reports
+    them and any id DIVERGED. An identical copy is one memory —
+    the dedupe working, not a conflict worth machinery."""
+    dup = getattr(store, "duplicates", None)
+    if dup and dup.get("diverged"):
+        return dup
+    return None
+
+
 def timeline(store: Any, since: Optional[float] = None,
              until: Optional[float] = None,
              limit: Optional[int] = None,
@@ -189,9 +239,13 @@ def timeline(store: Any, since: Optional[float] = None,
     days: Dict[str, List[dict]] = {}
     for entry in entries:
         days.setdefault(entry["day"], []).append(entry)
-    return {"conversations": len(entries),
-            "days": [{"day": day, "entries": days[day]}
-                     for day in sorted(days)]}
+    payload = {"conversations": len(entries),
+               "days": [{"day": day, "entries": days[day]}
+                        for day in sorted(days)]}
+    dup = _dup_payload(store)
+    if dup:
+        payload["duplicates"] = dup
+    return payload
 
 
 def _excerpt(text: str, needle: str) -> str:
@@ -264,8 +318,12 @@ def search(store: Any, needle: str, since: Optional[float] = None,
                          "match_count": len(matches)})
         if len(hits) >= limit:
             break
-    return {"query": needle, "traces_scanned": len(traces),
-            "hits": len(hits), "results": hits}
+    payload = {"query": needle, "traces_scanned": len(traces),
+               "hits": len(hits), "results": hits}
+    dup = _dup_payload(store)
+    if dup:
+        payload["duplicates"] = dup
+    return payload
 
 
 def _keywords(texts: List[str], top: int = 6) -> List[Tuple[str, int]]:
@@ -366,7 +424,7 @@ def summarize(store: Any, since: Optional[float] = None,
         total_tool_calls += row["tool_calls"]
         failed_total += row["failed"]
     all_tasks = [t.task or "(untitled)" for t in traces]
-    return {
+    payload = {
         "conversations": len(traces),
         "failed": failed_total,
         "tokens": total_tokens,
@@ -374,6 +432,10 @@ def summarize(store: Any, since: Optional[float] = None,
         "topics": _keywords(all_tasks, top=10),
         "days": day_rows,
     }
+    dup = _dup_payload(store)
+    if dup:
+        payload["duplicates"] = dup
+    return payload
 
 
 def _mark(success: Any) -> str:
@@ -395,6 +457,9 @@ def export_diary(store: Any, output: Path,
     text = (f"# {head}\n\n"
             f"{render_summary(summary)}\n\n"
             f"## Timeline\n\n{render_timeline(payload)}\n")
+    dup = _dup_payload(store)
+    if dup:
+        text += f"\n{duplicate_note(dup)}\n"
     import os
 
     tmp = output.with_name(output.name + ".tmp")

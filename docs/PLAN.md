@@ -2211,6 +2211,27 @@ framework adapters import lazily and degrade when the framework is absent.
          fixed-shaped: a transient failure mode needs a
          time-shaped budget, not an attempt-shaped one.
 
+562. **v5.7.2 - the fleet memory names its conflicts**
+       (planned):
+       - The v5.7.0 dedupe kept the first store's copy and
+         dropped the rest SILENTLY - but two boxes holding
+         DIFFERENT content under one trace id is exactly the
+         sync-conflict the ledger exists to catch: a sync tool
+         (or an attacker) rolling one store back reads as one
+         clean memory when the other box still holds the newer
+         history. The fleet view now counts every duplicate it
+         reads again and names the ids that DIVERGED
+         (byte-different records under the same id); the
+         timeline, search and summary payloads carry it, every
+         CLI door prints the note once after its answer, and
+         the --export diary gains a conflicts line. Identical
+         copies stay one memory with no note (the dedupe
+         working, not a conflict worth machinery); single-store
+         doors never grow the key. The counters describe the
+         scan that produced them - each enumeration rebuilds
+         them, so a payload's counts always match its own
+         bytes.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
