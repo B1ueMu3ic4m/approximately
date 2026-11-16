@@ -48,6 +48,12 @@ def forecast_spend(days: List[dict],
         })
     days_to_ceiling = None
     if ceiling is not None:
+        if not math.isfinite(ceiling):
+            # nan/inf trip math.ceil into ValueError/OverflowError:
+            # the twin failure-budget path refuses its nonsense by
+            # name, and so does this one
+            raise ValueError(f"spend ceiling must be finite, got "
+                             f"{ceiling}")
         if latest > ceiling:
             days_to_ceiling = 0
         elif slope > 0:

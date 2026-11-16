@@ -325,8 +325,25 @@ def cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def _print_composition(payload: dict) -> None:
+    print(f"context composition of {payload['trace_id']} — "
+          f"{payload['total_tokens']:,} tokens in full")
+    if payload.get("suggest_save_tokens"):
+        print(f"  hint: step #{payload['parts'][0]['worst_step']} "
+              f"holds the window — truncating it to 2,000 chars "
+              f"saves ~{payload['suggest_save_tokens']:,} tokens "
+              f"(see --truncate-results)")
+    for part in payload["parts"]:
+        worst = ""
+        if part["worst_step"] is not None:
+            worst = (f", worst step #{part['worst_step']} "
+                     f"({part['worst_tokens']:,})")
+        print(f"  {part['kind']:<14} {part['tokens']:>8,} "
+              f"({part['share']:>5.1%}){worst}")
+
+
 def cmd_context(args: argparse.Namespace) -> int:
-    from .context import default_facts, forecast
+    from .context import forecast
 
     store = TraceStore(args.store)
     trace = _load_trace(args.trace, store)
@@ -350,27 +367,27 @@ def cmd_context(args: argparse.Namespace) -> int:
         if getattr(args, "json", False):
             print(json.dumps(payload, indent=2))
             return 0
-        print(f"context composition of {payload['trace_id']} — "
-              f"{payload['total_tokens']:,} tokens in full")
-        if payload.get("suggest_save_tokens"):
-            print(f"  hint: step #{payload['parts'][0]['worst_step']} "
-                  f"holds the window — truncating it to 2,000 chars "
-                  f"saves ~{payload['suggest_save_tokens']:,} tokens "
-                  f"(see --truncate-results)")
-        for part in payload["parts"]:
-            worst = ""
-            if part["worst_step"] is not None:
-                worst = (f", worst step #{part['worst_step']} "
-                         f"({part['worst_tokens']:,})")
-            print(f"  {part['kind']:<14} {part['tokens']:>8,} "
-                  f"({part['share']:>5.1%}){worst}")
+        _print_composition(payload)
         return 0
-    facts = default_facts(trace) if not args.facts else json.loads(
-        Path(args.facts).read_text(encoding="utf-8")
-    )
-    from .context import forecast_payload
+    try:
+        from .context import default_facts
 
-    fc = forecast(trace, budget=args.budget, facts=facts)
+        facts = (default_facts(trace) if not args.facts
+                 else json.loads(
+                     Path(args.facts).read_text(encoding="utf-8")))
+        if not isinstance(facts, dict):
+            # a JSON list (or a prices.json-shaped table) is not a
+            # facts object: the needles must be strings
+            raise ValueError(f"facts file must hold a JSON object, "
+                             f"got {type(facts).__name__}")
+        from .context import forecast_payload
+
+        fc = forecast(trace, budget=args.budget, facts=facts)
+    except (OSError, ValueError) as exc:
+        # a missing/unreadable facts file and a non-positive
+        # budget answer by name
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     if getattr(args, "json", False):
         print(json.dumps(forecast_payload(fc), indent=2))
         return 0
@@ -1424,8 +1441,12 @@ def _payload_forecasts(payload: dict, trend: Optional[dict],
     from .forecast import failure_budget, forecast_spend
 
     if spend_ceiling is not None:
-        payload["spend_forecast"] = forecast_spend(
-            trend["days"], ceiling=float(spend_ceiling))
+        try:
+            payload["spend_forecast"] = forecast_spend(
+                trend["days"], ceiling=float(spend_ceiling))
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            raise SystemExit(2) from exc
     if failure_allowance is not None:
         try:
             payload["failure_budget"] = failure_budget(
@@ -2097,8 +2118,12 @@ def _fleet_trend(args: argparse.Namespace) -> int:
     if ceiling is not None:
         from .forecast import forecast_spend
 
-        forecast = forecast_spend(summary["days"],
-                                  ceiling=float(ceiling))
+        try:
+            forecast = forecast_spend(summary["days"],
+                                      ceiling=float(ceiling))
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
         summary["spend_forecast"] = forecast
     allowance = getattr(args, "failure_budget", None)
     budget = None
@@ -3161,13 +3186,33 @@ def cmd_audit(args: argparse.Namespace) -> int:
     return 0 if report["ok"] else 1
 
 
+def _spend_ceiling_section(trend: dict, ceiling: Any,
+                           report: dict) -> None:
+    """The --spend-ceiling section: forecast, or a named refusal."""
+    from .forecast import forecast_spend
+
+    # the forecast reads the summarized day-rows — the raw
+    # trend_days entries carry no est_spend (third time this
+    # lesson has been learned; now it is a comment)
+    try:
+        fc = forecast_spend(trend["days"], ceiling=float(ceiling))
+    except ValueError as exc:
+        # a nan/inf ceiling names itself in the report; the
+        # audit fails instead of dying mid-section
+        report["forecast"] = {"error": str(exc)}
+        report["ok"] = False
+        return
+    report["forecast"] = fc
+    if fc.get("days_to_ceiling") == 0:
+        report["ok"] = False
+
+
 def _audit_digest(args: argparse.Namespace, report: dict) -> None:
     """Trend + spend-forecast section of the audit (optional)."""
     digest_dir = getattr(args, "digest_dir", None)
     if not digest_dir or not Path(digest_dir).is_dir():
         return
     from .fleet import summarize_trend, trend_days
-    from .forecast import forecast_spend
 
     trend = summarize_trend(trend_days(Path(digest_dir)))
     report["trend"] = {"verdict": trend["verdict"],
@@ -3179,13 +3224,7 @@ def _audit_digest(args: argparse.Namespace, report: dict) -> None:
         report["ok"] = False
     ceiling = getattr(args, "spend_ceiling", None)
     if ceiling is not None:
-        # the forecast reads the summarized day-rows — the raw
-        # trend_days entries carry no est_spend (third time this
-        # lesson has been learned; now it is a comment)
-        fc = forecast_spend(trend["days"], ceiling=float(ceiling))
-        report["forecast"] = fc
-        if fc.get("days_to_ceiling") == 0:
-            report["ok"] = False
+        _spend_ceiling_section(trend, ceiling, report)
     allowance = getattr(args, "failure_budget", None)
     if allowance is not None:
         from .forecast import failure_budget
@@ -3244,8 +3283,10 @@ def _budget_checks(report: dict) -> list:
     fc = report.get("forecast") or {}
     if fc:
         exceeded = fc.get("days_to_ceiling") == 0
-        checks.append(("spend-ceiling", not exceeded,
-                      f"days_to_ceiling={fc.get('days_to_ceiling')}"))
+        bad_ceiling = bool(fc.get("error"))
+        checks.append(("spend-ceiling", not (exceeded or bad_ceiling),
+                      (fc.get("error")
+                       or f"days_to_ceiling={fc.get('days_to_ceiling')}")))
     fb = report.get("failure_budget") or {}
     if fb:
         checks.append(("failure-budget", not fb.get("exhausted"),
@@ -4656,6 +4697,10 @@ def cmd_retention(args: argparse.Namespace) -> int:
 
 def _print_forecast(fc: dict) -> str:
     """The spend-forecast line: days left, no-trend, or exceeded."""
+    if fc.get("error"):
+        # a refused ceiling (nan/inf) is named, never rendered as a
+        # quiet "no data" line the ops read never sees
+        return f"  forecast:  error: {fc['error']}"
     if not fc.get("usable"):
         return "  forecast:  (unusable trend)"
     left = fc.get("days_to_ceiling")
@@ -5172,7 +5217,11 @@ def cmd_curve(args: argparse.Namespace) -> int:
     scatter = success_vs_tokens(store.list_traces()) if args.scatter else None
     out = Path(args.output) if args.output else \
         _artifact_of(store.directory, trace.id, ".curve.html")
-    out.write_text(render_curve_html(curve, scatter), encoding="utf-8")
+    try:
+        _atomic_write(out, render_curve_html(curve, scatter))
+    except OSError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     print(f"wrote {out}")
     for p_ in curve.points:
         print(f"  budget {p_.budget:>6} -> tokens {p_.tokens_used:>6}, "
@@ -5201,7 +5250,11 @@ def cmd_distill(args: argparse.Namespace) -> int:
     else:
         labeler = rules_labeler()
         source = "rule detectors"
-    stats = export_sft(traces, Path(args.output), labeler)
+    try:
+        stats = export_sft(traces, Path(args.output), labeler)
+    except OSError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     if getattr(args, "json", False):
         print(json.dumps({**stats, "source": source}, indent=2))
         return 0
@@ -5428,9 +5481,14 @@ def _benchmark_multi(labeled: list, args: argparse.Namespace) -> int:
               f"(tp {m['tp']} fp {m['fp']} fn {m['fn']})")
     if args.html:
         out = Path(args.html)
-        out.write_text(
-            render_leaderboard_html(multi, source, args.dataset, n),
-            encoding="utf-8")
+        try:
+            out.write_text(
+                render_leaderboard_html(multi, source, args.dataset,
+                                        n),
+                encoding="utf-8")
+        except OSError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
         print(f"wrote leaderboard: {out}")
     return 0
 
@@ -5471,11 +5529,15 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
         from .distill import render_leaderboard_html
 
         out = Path(args.html)
-        out.write_text(
-            render_leaderboard_html(result, source, args.dataset,
-                                    len(labeled)),
-            encoding="utf-8",
-        )
+        try:
+            out.write_text(
+                render_leaderboard_html(result, source, args.dataset,
+                                        len(labeled)),
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
         print(f"wrote leaderboard: {out}")
     return 0
 
