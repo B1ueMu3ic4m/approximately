@@ -3411,7 +3411,7 @@ def cmd_recall(args: argparse.Namespace) -> int:
     conversations in the order they happened, grouped by day;
     ``--grep`` turns it into a search that finds the moment
     something was said, with the excerpt."""
-    from .recall import render_timeline, search, timeline
+    from .recall import render_timeline, search, timeline, valid_day
 
     store = _recall_view(args)
     until = getattr(args, "until", None)
@@ -3419,6 +3419,11 @@ def cmd_recall(args: argparse.Namespace) -> int:
     outcomes = ("failed" if getattr(args, "failed_only", False)
                 else "ok" if getattr(args, "ok_only", False)
                 else "all")
+    day = getattr(args, "day", None)
+    if day is not None and not valid_day(day):
+        print(f"error: --day wants YYYY-MM-DD, got {day!r}",
+              file=sys.stderr)
+        return 2
     if getattr(args, "export", None):
         from .recall import export_diary
 
@@ -3440,7 +3445,8 @@ def cmd_recall(args: argparse.Namespace) -> int:
                              since=getattr(args, "since", None),
                              until=until,
                              limit=int(getattr(args, "limit", 20)),
-                             model=model, outcomes=outcomes)
+                             model=model, outcomes=outcomes,
+                             day=day)
         except ValueError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
@@ -3458,7 +3464,7 @@ def cmd_recall(args: argparse.Namespace) -> int:
     payload = timeline(store, since=getattr(args, "since", None),
                        until=until,
                        limit=int(getattr(args, "limit", 0)) or None,
-                       model=model, outcomes=outcomes)
+                       model=model, outcomes=outcomes, day=day)
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2))
         return 0
@@ -3497,8 +3503,13 @@ def cmd_recall_summary(args: argparse.Namespace) -> int:
     """The day-by-day summary: how many conversations, what they
     were about, which tools carried them, how many ended badly —
     the human-memory view of the store."""
-    from .recall import render_summary, summarize
+    from .recall import render_summary, summarize, valid_day
 
+    day = getattr(args, "day", None)
+    if day is not None and not valid_day(day):
+        print(f"error: --day wants YYYY-MM-DD, got {day!r}",
+              file=sys.stderr)
+        return 2
     store = _recall_view(args)
     payload = summarize(store, since=getattr(args, "since", None),
                         until=getattr(args, "until", None),
@@ -3508,7 +3519,7 @@ def cmd_recall_summary(args: argparse.Namespace) -> int:
                                              False)
                                   else "ok"
                                   if getattr(args, "ok_only", False)
-                                  else "all"))
+                                  else "all"), day=day)
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2))
         return 0
@@ -6635,6 +6646,10 @@ def build_parser() -> argparse.ArgumentParser:
                    metavar="EPOCH|DUR",
                    help="only conversations created at or before "
                         "this unix time, or a duration ago")
+    p.add_argument("--day", metavar="YYYY-MM-DD",
+                   help="only this one calendar day (the "
+                        "drill-down step from recall-summary's "
+                        "day rows)")
     p.add_argument("--grep", metavar="TEXT",
                    help="search every field a conversation "
                         "speaks through (task, results, thoughts, "
@@ -6676,6 +6691,9 @@ def build_parser() -> argparse.ArgumentParser:
                    metavar="EPOCH|DUR",
                    help="only conversations created at or before "
                         "this unix time, or a duration ago")
+    p.add_argument("--day", metavar="YYYY-MM-DD",
+                   help="only this one calendar day (the "
+                        "drill-down step its own day rows name)")
     p.add_argument("--model", metavar="NAME",
                    help="only conversations whose model matches")
     p.add_argument("--failed-only", action="store_true",

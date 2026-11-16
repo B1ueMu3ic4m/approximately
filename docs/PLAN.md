@@ -2232,6 +2232,24 @@ framework adapters import lazily and degrade when the framework is absent.
          them, so a payload's counts always match its own
          bytes.
 
+563. **v5.8.0 - the drill-down step, and the memory's user
+       guide** (planned):
+       - The memory loop had a missing link: recall-summary
+         names a day, and getting to THAT day's conversations
+         meant --since/--until arithmetic on a unix clock.
+         ``--day YYYY-MM-DD`` names one local calendar day
+         across the timeline, the search and the summary (the
+         filter lives at the window predicate, so every filter
+         - model, outcome, fleet view, since/until - threads
+         it), a shape-valid impossible date (month 13) is
+         refused the same as garbage, and an absent day reads
+         as an honest empty answer, never an error. The MCP
+         recall tool gains the same key so the surfaces stay
+         aligned (the v5.7.1 lesson applied the same round).
+         docs/RECALL.md documents the loop for the human who
+         cannot find their own conversations - the original
+         complaint this feature family answers.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
