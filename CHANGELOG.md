@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.7.2
+
+- the fleet memory names its conflicts. (planned): - The v5.7.0 dedupe kept the first store's copy and dropped the rest SILENTLY - but two boxes holding DIFFERENT content under one trace id is exactly the sync-conflict the ledger exists to catch: a sync tool (or an attacker) rolling one store back reads as one clean memory when the other box still holds the newer history. The fleet view now counts every duplicate it reads again and names the ids that DIVERGED (byte-different records under the same id); the timeline, search and summary payloads carry it, every CLI door prints the note once after its answer, and the --export diary gains a conflicts line. Identical copies stay one memory with no note (the dedupe working, not a conflict worth machinery); single-store doors never grow the key. The counters describe the scan that produced them - each enumeration rebuilds them, so a payload's counts always match its own bytes.
+
 ## v5.7.1
 
 - the MCP recall surface meets the fleet. (planned): - The scope gap v5.7.0 documented closes: the MCP recall tool gains ``stores`` — a list of store directories read as ONE memory (the same dedupe by trace id, first store wins, the same per-entry store tag), threading timeline, search and summary alike. The wire stays honest: a non-list or non-string item is refused by name (``stores must be a list of paths``), a typo'd store answers ``store not found`` — never a silently-created empty store reading as lost memory — and the tool schema describes the new key so clients can discover it. Without ``stores`` the wire shape is unchanged (no store key on entries).
