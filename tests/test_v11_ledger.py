@@ -162,6 +162,12 @@ class TestStoreIntegration:
         trace.steps[0].result = "v2"
         sign(trace)
         # make the ledger path unwritable: replace file with a directory
+        # (the cached append handle closes first: Windows cannot
+        # unlink an open file, and the product never deletes a
+        # ledger - only this test does)
+        from approximately.ledger import close_handle
+
+        close_handle(store.directory / "ledger.jsonl")
         (store.directory / "ledger.jsonl").unlink()
         (store.directory / "ledger.jsonl").mkdir()
         store.save(trace)  # must not raise

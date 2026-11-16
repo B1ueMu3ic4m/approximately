@@ -2373,6 +2373,24 @@ framework adapters import lazily and degrade when the framework is absent.
          stop widening the budget and remove the window the
          failure lives in.
 
+572. **v5.9.4 addendum 2 - the trace-file write shares the
+       per-id lock's budget** (recorded):
+       - The Windows rerun on the hostile round finally named
+         the real mechanism behind all five ledger losses: the
+         ledger append was never the dropping step - the TRACE
+         file's own ``tmp.write_text`` raised a transient
+         sharing violation (an indexer loves a just-created
+         .tmp), save() raised, the concurrent finisher's thread
+         died silently, and the ledger line never had a chance
+         to be attempted. The trace-file write now shares the
+         per-id lock's own 10s budget (the same pattern as the
+         ledger's), and the CI rerun passes all three Windows
+         legs. Also: the cached ledger handle closes by name
+         (close_handle) for the tests that remove the file -
+         the product never deletes a ledger, so the append path
+         never needs it, and Windows cannot unlink an open
+         file.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

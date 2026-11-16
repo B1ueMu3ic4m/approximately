@@ -73,7 +73,26 @@ def _acquire_ledger_lock(ledger_path: "Path") -> "Optional[Path]":
 GENESIS = "0" * 64
 
 _HANDLE_LOCK = threading.Lock()
-_HANDLE: dict = {"path": None, "fd": None, "ino": None}
+_HANDLE: dict = {"path": None, "fd": None}
+
+
+def close_handle(path: Optional[Path] = None) -> None:
+    """Close the process's cached ledger handle (tests that
+    remove or replace the file call this first: Windows cannot
+    unlink an open file; the product never deletes a ledger, so
+    the append path never needs this)."""
+    with _HANDLE_LOCK:
+        fd = _HANDLE["fd"]
+        if fd is None:
+            return
+        if path is not None and _HANDLE["path"] != path:
+            return
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+        _HANDLE["fd"] = None
+        _HANDLE["ino"] = None
 
 
 def _ledger_handle(path: Path) -> int:
@@ -84,6 +103,13 @@ def _ledger_handle(path: Path) -> int:
     force a reopen (the reopen IS the window)."""
     with _HANDLE_LOCK:
         fd = _HANDLE["fd"]
+        if fd is not None and _HANDLE["path"] != str(path):
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+            _HANDLE["fd"] = None
+            fd = None
         if fd is not None:
             try:
                 same = (os.fstat(fd).st_ino
@@ -100,7 +126,7 @@ def _ledger_handle(path: Path) -> int:
         fd = os.open(str(path), os.O_CREAT | os.O_WRONLY
                      | os.O_APPEND, 0o644)
         _HANDLE["fd"] = fd
-        _HANDLE["ino"] = os.fstat(fd).st_ino
+        _HANDLE["path"] = str(path)
         return fd
 
 

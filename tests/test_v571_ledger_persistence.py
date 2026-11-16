@@ -102,7 +102,12 @@ def test_a_replaced_ledger_file_is_picked_up(tmp_path,
     led.append("abcd1234ef01", "root1")
     # the doctor's clean (or a bad sync) replaces the file: the
     # persistent handle must notice the new inode, not keep
-    # appending to the removed one
+    # appending to the removed one. (Tests may remove the file -
+    # the product never does - and Windows cannot unlink an open
+    # file, so the cached handle closes first.)
+    from approximately.ledger import close_handle
+
+    close_handle(tmp_path / "ledger.jsonl")
     (tmp_path / "ledger.jsonl").unlink()
     entry = led.append("other1234567", "root2")
     assert entry.seq == 1, (
