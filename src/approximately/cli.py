@@ -3391,6 +3391,21 @@ def _recall_store(store_arg: "str | None") -> TraceStore:
     return TraceStore(path)
 
 
+def _recall_view(args: argparse.Namespace) -> Any:
+    """One store, or the fleet view: positional store paths read
+    as one memory (deduped by trace id, each entry carrying its
+    store's name). A typo'd path still answers by name."""
+    from .recall import MultiStore
+
+    names = list(getattr(args, "stores", None) or [])
+    if not names:
+        return _recall_store(args.store)
+    view = MultiStore()
+    for name in names:
+        view.add(_recall_store(name), name)
+    return view
+
+
 def cmd_recall(args: argparse.Namespace) -> int:
     """What did I talk about with the AI? The timeline view —
     conversations in the order they happened, grouped by day;
@@ -3398,7 +3413,7 @@ def cmd_recall(args: argparse.Namespace) -> int:
     something was said, with the excerpt."""
     from .recall import render_timeline, search, timeline
 
-    store = _recall_store(args.store)
+    store = _recall_view(args)
     until = getattr(args, "until", None)
     model = getattr(args, "model", None)
     outcomes = ("failed" if getattr(args, "failed_only", False)
@@ -3455,8 +3470,10 @@ def _print_search(payload: dict) -> None:
     under it — the moment something was said."""
     for hit in payload["results"]:
         mark = _recall_mark(hit["success"])
+        store = (" {" + str(hit["store"]) + "}"
+                 if hit.get("store") else "")
         print(f"{hit['day']} {hit['time']}  {mark}  "
-              f"{hit['task'][:64]}  ({hit['match_count']} "
+              f"{hit['task'][:64]}{store}  ({hit['match_count']} "
               f"match(es))")
         for m in hit["matches"]:
             where = (f"@step {m['step_index']}"
@@ -3470,7 +3487,7 @@ def cmd_recall_summary(args: argparse.Namespace) -> int:
     the human-memory view of the store."""
     from .recall import render_summary, summarize
 
-    store = _recall_store(args.store)
+    store = _recall_view(args)
     payload = summarize(store, since=getattr(args, "since", None),
                         until=getattr(args, "until", None),
                         model=getattr(args, "model", None),
@@ -6591,6 +6608,11 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("recall", parents=[common],
                        help="what did I talk about with the AI: "
                             "the conversation timeline, searchable")
+    p.add_argument("stores", nargs="*",
+                   help="optional store directories to read as ONE "
+                        "memory (fleet view: deduped by trace id, "
+                        "each entry names its store; default is "
+                        "the --store / default store)")
     p.add_argument("--since", type=_parse_since,
                    metavar="EPOCH|DUR",
                    help="only conversations created at or after "
@@ -6628,6 +6650,11 @@ def build_parser() -> argparse.ArgumentParser:
                        help="the day-by-day summary: topics, "
                             "tools, outcomes — what was talked "
                             "about, when")
+    p.add_argument("stores", nargs="*",
+                   help="optional store directories to read as ONE "
+                        "memory (fleet view: deduped by trace id, "
+                        "day rows name their stores; default is "
+                        "the --store / default store)")
     p.add_argument("--since", type=_parse_since,
                    metavar="EPOCH|DUR",
                    help="only conversations created at or after "
