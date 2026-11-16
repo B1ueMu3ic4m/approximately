@@ -28,6 +28,7 @@ import datetime
 import hashlib
 import json
 import os
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -70,6 +71,37 @@ def _acquire_ledger_lock(ledger_path: "Path") -> "Optional[Path]":
 
 
 GENESIS = "0" * 64
+
+_HANDLE_LOCK = threading.Lock()
+_HANDLE: dict = {"path": None, "fd": None, "ino": None}
+
+
+def _ledger_handle(path: Path) -> int:
+    """The process's append handle for one ledger file: opened
+    once, re-opened when the file is replaced or removed (the
+    doctor's clean, a deleted store) - identity by inode/entry id,
+    not by mtime, because an antivirus touching the file must not
+    force a reopen (the reopen IS the window)."""
+    with _HANDLE_LOCK:
+        fd = _HANDLE["fd"]
+        if fd is not None:
+            try:
+                same = (os.fstat(fd).st_ino
+                        == os.stat(path).st_ino)
+            except OSError:
+                same = False
+            if same:
+                return fd
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+            _HANDLE["fd"] = None
+        fd = os.open(str(path), os.O_CREAT | os.O_WRONLY
+                     | os.O_APPEND, 0o644)
+        _HANDLE["fd"] = fd
+        _HANDLE["ino"] = os.fstat(fd).st_ino
+        return fd
 
 
 def _sha(text: str) -> str:
@@ -138,11 +170,20 @@ class EvidenceLedger:
         return hist[-1].root if hist else None
 
     def _write_append(self, line: str) -> None:
-        """One O_APPEND line, flushed and fsynced."""
-        with open(self.path, "a", encoding="utf-8") as fh:
-            fh.write(line + "\n")
-            fh.flush()
-            os.fsync(fh.fileno())
+        """One O_APPEND line through a PERSISTENT process handle.
+
+        The fifth Windows CI loss outlived a 30s retry budget on
+        the write: every per-line open() is a fresh window for a
+        sharing violation (indexer, antivirus). One process-level
+        handle - opened once, kept open, re-checked against the
+        file's identity so a replaced ledger is picked up - and
+        writes are atomic appends to the end, guarded in-process
+        by a lock so same-process finishers never fight the
+        cross-process lockfile at all."""
+        handle = _ledger_handle(self.path)
+        with _HANDLE_LOCK:
+            os.write(handle, (line + "\n").encode("utf-8"))
+            os.fsync(handle)
 
     # -- appending ------------------------------------------------------------
     def append(self, trace_id: str, root: str) -> LedgerEntry:

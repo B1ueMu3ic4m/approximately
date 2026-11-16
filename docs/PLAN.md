@@ -2356,6 +2356,23 @@ framework adapters import lazily and degrade when the framework is absent.
          compare survives weird bytes, and the exports stay
          atomic. 6 new pins.
 
+571. **v5.9.4 addendum - one handle per process, not one open
+       per line** (recorded):
+       - The FIFTH Windows CI loss outlived even the 30s
+         budget on the write: the structural problem is that
+         every per-line append is a fresh open()-and-close, and
+         every open is a fresh window for a Windows sharing
+         violation (indexer, antivirus). The ledger write now
+         goes through ONE persistent process handle - opened
+         once, identity-checked by inode so a replaced ledger
+         (the doctor's clean) is picked up instead of appending
+         into the removed file - with fsync per line unchanged.
+         288 concurrent writes in 12 local trials: zero losses,
+         chain intact every time. The lesson generalizes: when
+         a transient failure mode keeps beating a retry budget,
+         stop widening the budget and remove the window the
+         failure lives in.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
