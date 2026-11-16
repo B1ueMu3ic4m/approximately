@@ -1358,6 +1358,13 @@ _TOOLS: List[Dict[str, Any]] = [
                 "limit": {"type": "integer",
                           "description": "cap the hits/timeline "
                                          "entries"},
+                "stores": {"type": "array",
+                           "items": {"type": "string"},
+                           "description": "store directories read "
+                                          "as ONE memory (fleet "
+                                          "view: deduped by trace "
+                                          "id, every entry names "
+                                          "its store)"},
             },
         },
     },
@@ -2825,12 +2832,35 @@ def _opt_str(args: Dict[str, Any], key: str) -> Optional[str]:
     return value
 
 
+def _recall_view(ctx: ServerContext,
+                 args: Dict[str, Any]) -> Any:
+    """One store, or the fleet view: a stores list reads several
+    stores as one memory (deduped by trace id, each entry naming
+    its store). A typo'd path answers by name, like the CLI."""
+    from .recall import MultiStore
+    from .store import TraceStore
+
+    paths = args.get("stores")
+    if paths is None:
+        return _store(ctx, args)
+    if not isinstance(paths, list) or \
+            any(not isinstance(p, str) for p in paths):
+        raise ValueError("stores must be a list of paths")
+    view = MultiStore()
+    for p in paths:
+        path = Path(p)
+        if not path.is_dir():
+            raise ValueError(f"store not found: {path}")
+        view.add(TraceStore(path), str(path))
+    return view
+
+
 def _tool_recall(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     """What did I talk about with the AI: the timeline, a search
     with excerpts, or the day-by-day summary — one surface."""
     from .recall import search, summarize, timeline
 
-    store = _store(ctx, args)
+    store = _recall_view(ctx, args)
     since_days = _opt_int(args, "since_days")
     since = (time.time() - since_days * 86400
              if since_days else None)

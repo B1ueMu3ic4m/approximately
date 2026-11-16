@@ -2182,6 +2182,35 @@ framework adapters import lazily and degrade when the framework is absent.
          recall tool keeps its single-store surface this round
          (documented scope, not an oversight).
 
+560. **v5.7.1 - the MCP recall surface meets the fleet**
+       (planned):
+       - The scope gap v5.7.0 documented closes: the MCP
+         recall tool gains ``stores`` — a list of store
+         directories read as ONE memory (the same dedupe by
+         trace id, first store wins, the same per-entry store
+         tag), threading timeline, search and summary alike.
+         The wire stays honest: a non-list or non-string item
+         is refused by name (``stores must be a list of
+         paths``), a typo'd store answers ``store not found``
+         — never a silently-created empty store reading as
+         lost memory — and the tool schema describes the new
+         key so clients can discover it. Without ``stores``
+         the wire shape is unchanged (no store key on
+         entries).
+
+561. **v5.7.1 addendum - the ledger line persists through the
+       whole lock budget** (recorded):
+       - The 12-concurrent-writer pin lost a line on a THIRD
+         Windows CI leg (py3.11 this time): five retry attempts
+         span only ~0.6s, and a Windows sharing violation can
+         outlive any fixed attempt count. The persistence
+         budget is now the lock's own 30s deadline - the write
+         retries every 100ms until it lands or the budget runs
+         out, and only then does the best-effort contract
+         apply. The lesson repeats because the budget was
+         fixed-shaped: a transient failure mode needs a
+         time-shaped budget, not an attempt-shaped one.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

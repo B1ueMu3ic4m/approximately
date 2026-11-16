@@ -1417,6 +1417,13 @@
           "limit": {
             "type": "integer",
             "description": "cap the hits/timeline entries"
+          },
+          "stores": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "store directories read as ONE memory (fleet view: deduped by trace id, every entry names its store)"
           }
         }
       }

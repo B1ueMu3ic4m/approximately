@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.7.1
+
+- the MCP recall surface meets the fleet. (planned): - The scope gap v5.7.0 documented closes: the MCP recall tool gains ``stores`` — a list of store directories read as ONE memory (the same dedupe by trace id, first store wins, the same per-entry store tag), threading timeline, search and summary alike. The wire stays honest: a non-list or non-string item is refused by name (``stores must be a list of paths``), a typo'd store answers ``store not found`` — never a silently-created empty store reading as lost memory — and the tool schema describes the new key so clients can discover it. Without ``stores`` the wire shape is unchanged (no store key on entries).
+
 ## v5.7.0
 
 - memory spans the fleet. (planned): - The recall doors read exactly one store, but the conversations live wherever each agent ran. ``recall STORE...`` and ``recall-summary STORE...`` read several stores as ONE memory: the timeline interleaves across stores newest-last (still chronological), every entry and search hit names its store, the same trace id landing in two boxes counts once (first store wins — one memory, not two), the summary's day rows name the stores that carried them, the outcome/model filters thread the fleet view, and the --export diary carries the fleet in its header. A typo'd store path still answers "store not found" — a silently-created empty store reading as lost memory is the v5.2.0 lesson, kept. The single-store doors are byte-identical: no positional stores, no store key in the JSON, no tag in the render — existing consumers read the old shape unchanged. The MCP recall tool keeps its single-store surface this round (documented scope, not an oversight).
