@@ -101,12 +101,57 @@ def _step_totals(steps: list) -> Tuple[int, int]:
     return tool_calls, int(duration)
 
 
+class _Tagged:
+    """A trace with its store's name riding along — the fleet
+    view's provenance, without mutating the loaded record."""
+    __slots__ = ("_trace", "store")
+
+    def __init__(self, trace: Trace, store: str) -> None:
+        self._trace = trace
+        self.store = store
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._trace, name)
+
+
+class MultiStore:
+    """Several stores read as one memory: the recall doors over a
+    fleet of stores. Deduped by trace id (the first store wins) —
+    the same conversation imported into two boxes is one memory,
+    not two."""
+    def __init__(self) -> None:
+        self._stores: List[Any] = []
+        self._names: List[str] = []
+
+    def add(self, store: Any, name: Optional[str] = None) -> None:
+        self._stores.append(store)
+        self._names.append(name
+                           or str(getattr(store, "directory", "")))
+
+    @property
+    def names(self) -> List[str]:
+        return list(self._names)
+
+    def list_traces(self, **kw: Any) -> List[Any]:
+        seen: set = set()
+        traces: List[Any] = []
+        for store, name in zip(self._stores, self._names,
+                               strict=True):
+            label = Path(name).name or name
+            for trace in store.list_traces(**kw):
+                if trace.id in seen:
+                    continue
+                seen.add(trace.id)
+                traces.append(_Tagged(trace, label))
+        return traces
+
+
 def _entry(trace: Trace) -> dict:
     """One conversation as the timeline wants it: when, what, how
     it went — no attribution runs, no heavy machinery."""
     stamp = _finite_stamp(trace.created_at)
     tool_calls, duration = _step_totals(trace.steps)
-    return {
+    entry = {
         "id": trace.id,
         "created_at": trace.created_at,
         "day": _local_day(stamp or 0),
@@ -121,6 +166,10 @@ def _entry(trace: Trace) -> dict:
                          if s.kind == "tool_call" and s.tool},
                         key=str),
     }
+    store = getattr(trace, "store", None)
+    if store:
+        entry["store"] = store
+    return entry
 
 
 def timeline(store: Any, since: Optional[float] = None,
@@ -259,6 +308,13 @@ def _day_tool_rows(traces: List[Trace]) -> Tuple[int, List]:
     return tool_calls, counts.most_common(5)
 
 
+def _store_names(traces: List[Trace]) -> List[str]:
+    """The stores that carried these traces (fleet view only)."""
+    return sorted({tag for tag in (getattr(t, "store", None)
+                                   for t in traces) if tag},
+                  key=str)
+
+
 def _summarize_day(day: str, day_traces: List[Trace]) -> dict:
     """One day's memory row: conversations, topics, tools, outcomes."""
     traces = sorted(day_traces,
@@ -266,7 +322,7 @@ def _summarize_day(day: str, day_traces: List[Trace]) -> dict:
     tasks = [t.task or "(untitled)" for t in traces]
     failed = [t for t in traces if t.success is False]
     tool_calls, top_tools = _day_tool_rows(traces)
-    return {
+    row = {
         "day": day,
         "conversations": len(traces),
         "failed": len(failed),
@@ -280,6 +336,10 @@ def _summarize_day(day: str, day_traces: List[Trace]) -> dict:
                     "success": t.success}
                    for t in traces],
     }
+    stores = _store_names(traces)
+    if stores:
+        row["stores"] = stores
+    return row
 
 
 def summarize(store: Any, since: Optional[float] = None,
@@ -328,7 +388,11 @@ def export_diary(store: Any, output: Path,
     diary a person can open months later. Returns the counts."""
     summary = summarize(store, since=since, until=until)
     payload = timeline(store, since=since, until=until)
-    text = (f"# Conversation diary\n\n"
+    names = getattr(store, "names", None)
+    head = "Conversation diary"
+    if names:
+        head += " — " + ", ".join(Path(n).name for n in names)
+    text = (f"# {head}\n\n"
             f"{render_summary(summary)}\n\n"
             f"## Timeline\n\n{render_timeline(payload)}\n")
     import os
@@ -357,8 +421,10 @@ def render_timeline(payload: dict) -> str:
             minutes = e["duration_ms"] / 60000.0
             dur = (f" {minutes:.0f}m" if minutes >= 1
                    else f" {e['duration_ms'] / 1000.0:.0f}s")
+            store = (" {" + str(e["store"]) + "}"
+                     if e.get("store") else "")
             lines.append(f"  {e['time']}  {mark}  {e['task'][:72]}"
-                         f"{tools}{dur}")
+                         f"{store}{tools}{dur}")
     return "\n".join(lines)
 
 
@@ -386,6 +452,8 @@ def _summary_day(day: dict) -> List[str]:
     lines = [(f"\n{day['day']} — {day['conversations']} "
               f"conversation(s){failed_note}, "
               f"{day['tokens']:,} tokens")]
+    if day.get("stores"):
+        lines.append("  stores: " + ", ".join(day["stores"]))
     for label, pairs in (("about", day["topics"][:5]),
                          ("tools", day["top_tools"])):
         if pairs:

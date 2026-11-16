@@ -2161,6 +2161,27 @@ framework adapters import lazily and degrade when the framework is absent.
          (composition render extracted); the complexity floor
          holds at 87 without a raise.
 
+559. **v5.7.0 - memory spans the fleet** (planned):
+       - The recall doors read exactly one store, but the
+         conversations live wherever each agent ran.
+         ``recall STORE...`` and ``recall-summary STORE...``
+         read several stores as ONE memory: the timeline
+         interleaves across stores newest-last (still
+         chronological), every entry and search hit names its
+         store, the same trace id landing in two boxes counts
+         once (first store wins — one memory, not two), the
+         summary's day rows name the stores that carried them,
+         the outcome/model filters thread the fleet view, and
+         the --export diary carries the fleet in its header. A
+         typo'd store path still answers "store not found" —
+         a silently-created empty store reading as lost memory
+         is the v5.2.0 lesson, kept. The single-store doors
+         are byte-identical: no positional stores, no store
+         key in the JSON, no tag in the render — existing
+         consumers read the old shape unchanged. The MCP
+         recall tool keeps its single-store surface this round
+         (documented scope, not an oversight).
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
