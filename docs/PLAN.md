@@ -2295,6 +2295,22 @@ framework adapters import lazily and degrade when the framework is absent.
          feature; the MCP surface stays payload-only
          (documented scope).
 
+567. **v5.9.2 - every numeric argument names its field on the
+       wire** (planned):
+       - The MCP tool handlers coerced numbers inline -
+         ``int(args[...])``/``float(args[...])`` - so a hostile
+         or buggy client got the raw conversion error
+         ("invalid literal for int() with base 10", no field
+         name) when it got anything at all, and the worst case
+         was silent: ``limit: true`` passed ``int(True)`` and
+         became limit=1. The coercions route through
+         _opt_int/_opt_float now: a wrong type names its field
+         ("limit must be an integer"), a bool is not a number,
+         a nan/inf float names itself, a fractional integer
+         (limit 2.5) is a refusal rather than a silent round -
+         the answer shape is the same isError result every
+         other refusal uses.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
