@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.3
+
+- the memory journey, end to end. (planned): - The e2e operator journey (v124) records, attributes and reports - but never asks the question the whole feature family exists for: "two weeks later, what did I talk about with the AI?" The journey pin walks the human's actual path over one store: record three conversations (one failing), find them on the timeline, search for the moment something was said, read the day summary, drill into that day, take the digest with its failure modes, carry the memory out as files - and verify still vouches for the store after all of it.
+
 ## v5.9.2
 
 - every numeric argument names its field on the wire. (planned): - The MCP tool handlers coerced numbers inline - ``int(args[...])``/``float(args[...])`` - so a hostile or buggy client got the raw conversion error ("invalid literal for int() with base 10", no field name) when it got anything at all, and the worst case was silent: ``limit: true`` passed ``int(True)`` and became limit=1. The coercions route through _opt_int/_opt_float now: a wrong type names its field ("limit must be an integer"), a bool is not a number, a nan/inf float names itself, a fractional integer (limit 2.5) is a refusal rather than a silent round - the answer shape is the same isError result every other refusal uses.
