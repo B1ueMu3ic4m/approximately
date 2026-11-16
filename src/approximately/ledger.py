@@ -153,34 +153,34 @@ class EvidenceLedger:
         # repair (the doctor never touches the ledger). O_EXCL +
         # stale takeover, the spool's own discipline.
         lock = _acquire_ledger_lock(self.path)
+        # the WHOLE lock-held section retries inside one budget:
+        # v5.9.1's budget covered only the write, but the READ
+        # (entries() -> read_text) raises the same transient
+        # Windows sharing violation - a raise there bypassed the
+        # retry loop entirely and _ledger_append's best-effort
+        # swallow dropped the line (the fourth Windows CI loss).
+        deadline = time.monotonic() + 30.0
         try:
-            prev = self.entries()
-            prev_chain = prev[-1].chain if prev else GENESIS
-            entry = LedgerEntry(
-                seq=(prev[-1].seq + 1) if prev else 1,
-                trace_id=trace_id,
-                root=root,
-                timestamp=datetime.datetime.now(
-                    datetime.timezone.utc).isoformat(timespec="seconds"),
-                chain="",
-            )
-            entry.chain = _chain_entry(entry, prev_chain)
-            line = json.dumps(entry.to_dict(), sort_keys=True)
-            # single small line in O_APPEND mode: atomic on POSIX.
-            # bounded retries on OSError: on Windows a transient
-            # file lock (indexer, antivirus) used to swallow the
-            # line under _ledger_append's best-effort contract -
-            # five attempts (~0.6s) lost a line AGAIN under
-            # 12-thread contention on a third CI leg, because a
-            # Windows sharing violation can outlive any fixed
-            # attempt count. The persistence budget is now the
-            # lock's own 30s deadline: the write retries every
-            # 100ms until it lands or the budget runs out, and
-            # only then does the best-effort contract apply.
-            deadline = time.monotonic() + 30.0
             while True:
                 try:
-                    self._write_append(line)
+                    prev = self.entries()
+                    prev_chain = prev[-1].chain if prev else GENESIS
+                    entry = LedgerEntry(
+                        seq=(prev[-1].seq + 1) if prev else 1,
+                        trace_id=trace_id,
+                        root=root,
+                        timestamp=datetime.datetime.now(
+                            datetime.timezone.utc).isoformat(
+                                timespec="seconds"),
+                        chain="",
+                    )
+                    entry.chain = _chain_entry(entry, prev_chain)
+                    # one small line in O_APPEND mode: atomic on
+                    # POSIX; the write is inside the budget too
+                    # (a transient sharing violation outlives any
+                    # fixed attempt count)
+                    self._write_append(json.dumps(
+                        entry.to_dict(), sort_keys=True))
                     return entry
                 except OSError:  # noqa: PERF203 - the retry IS the point
                     if time.monotonic() > deadline:

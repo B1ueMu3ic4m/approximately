@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sys
 import time
@@ -1410,8 +1411,9 @@ def _store(ctx: ServerContext, args: Dict[str, Any]) -> Any:
 
 
 def _tool_list_traces(ctx: ServerContext, args: Dict[str, Any]) -> dict:
-    limit = int(args.get("limit", 100))
-    traces = _store(ctx, args).list_traces()[:limit]
+    limit = _opt_int(args, "limit")
+    traces = _store(ctx, args).list_traces()[
+        :100 if limit is None else limit]
     return {"traces": [{"id": t.id, "task": t.task,
                         "success": t.success,
                         "steps": len(t.steps)} for t in traces]}
@@ -1586,7 +1588,9 @@ def _tool_bisect(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     if trace_b is None:
         raise KeyError(f"no trace {args['other']!r} in store")
     td = trace_diff(trace_a, trace_b)
-    fault = first_fault(td, floor=float(args.get("floor", 0.8)))
+    floor = _opt_float(args, "floor")
+    fault = first_fault(td, floor=0.8 if floor is None
+                        else floor)
     return {
         "a_id": td.a_id, "b_id": td.b_id,
         "similarity": round(td.similarity, 3),
@@ -1647,8 +1651,7 @@ def _tool_compare(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     ns = _argparse.Namespace(
         baseline=str(baseline), candidate=str(candidate),
         prices=prices_path,
-        since=(int(args["since"]) if args.get("since") is not None
-               else None),
+        since=_opt_int(args, "since"),
         fail_on_new_modes=bool(args.get("fail_on_new_modes")),
         json=True)
     buf = _io.StringIO()
@@ -1978,7 +1981,8 @@ def _tool_cluster(ctx: ServerContext, args: Dict[str, Any]) -> dict:
         from .query import select
 
         traces = select(traces, str(args["expression"]))
-    min_size = int(args["min_size"]) if args.get("min_size") else 2
+    min_size = _opt_int(args, "min_size")
+    min_size = 2 if min_size is None else min_size
     if args.get("by_agent"):
         from .cluster import agent_scorecard
 
@@ -2008,9 +2012,10 @@ def _tool_similar(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     trace = _mcp_trace(store, args.get("trace"))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
-    top = int(args["top"]) if args.get("top") else 5
-    min_score = (float(args["min_score"])
-                 if args.get("min_score") is not None else 0.0)
+    top = _opt_int(args, "top")
+    top = 5 if top is None else top
+    min_score = _opt_float(args, "min_score")
+    min_score = 0.0 if min_score is None else min_score
     candidates = store.list_traces()
     agent = args.get("agent")
     if args.get("other_store"):
@@ -2027,7 +2032,8 @@ def _tool_drift(ctx: ServerContext, args: Dict[str, Any]) -> dict:
 
     traces = sorted(_store(ctx, args).list_traces(),
                     key=lambda t: t.created_at)
-    ratio = float(args.get("baseline_ratio", 0.5) or 0.5)
+    ratio = _opt_float(args, "baseline_ratio")
+    ratio = 0.5 if ratio is None else ratio
     split_at = int(len(traces) * ratio)
     baseline, current = traces[:split_at], traces[split_at:]
     if not baseline or not current:
@@ -2080,7 +2086,8 @@ def _tool_context(ctx: ServerContext, args: Dict[str, Any]) -> dict:
         return composition(trace,
                            truncate_results=args.get(
                                "truncate_results"))
-    budget = int(args["budget"]) if args.get("budget") else 4000
+    budget = _opt_int(args, "budget")
+    budget = 4000 if budget is None else budget
     fc = forecast(trace, budget=max(1, budget),
                   facts=default_facts(trace))
     return forecast_payload(fc)
@@ -2129,9 +2136,9 @@ def _tool_regression_test(ctx: ServerContext,
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
     report = attribute(trace)
-    budget = int(args["budget"]) if args.get("budget") else None
-    min_recall = (float(args["min_recall"])
-                  if args.get("min_recall") else 0.8)
+    budget = _opt_int(args, "budget")
+    min_recall = _opt_float(args, "min_recall")
+    min_recall = 0.8 if min_recall is None else min_recall
     content = render_regression(trace, report, budget=budget,
                                 min_recall=min_recall)
     return {"trace": trace.id,
@@ -2144,9 +2151,9 @@ def _tool_anomalies(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .anomaly import MODIFIED_Z_THRESHOLD, detect_latency_anomalies, summarize_anomalies
 
     store = _store(ctx, args)
-    threshold = (float(args["threshold"])
-                 if args.get("threshold")
-                 else MODIFIED_Z_THRESHOLD)
+    threshold = _opt_float(args, "threshold")
+    threshold = (MODIFIED_Z_THRESHOLD if threshold is None
+                 else threshold)
     if args.get("tokens"):
         return _token_anomalies(store, args, threshold)
     if args.get("results"):
@@ -2349,10 +2356,10 @@ def _tool_find_duplicates(ctx: ServerContext,
     from .align import duplicate_groups
 
     store = _store(ctx, args)
-    threshold = (float(args["threshold"])
-                 if args.get("threshold") is not None else 0.95)
-    max_traces = (int(args["max_traces"])
-                  if args.get("max_traces") else 2000)
+    threshold = _opt_float(args, "threshold")
+    threshold = 0.95 if threshold is None else threshold
+    max_traces = _opt_int(args, "max_traces")
+    max_traces = 2000 if max_traces is None else max_traces
     result = duplicate_groups(store.list_traces(),
                               threshold=threshold,
                               max_traces=max_traces)
@@ -2519,7 +2526,8 @@ def _tool_annotate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
         from .anomaly import detect_fleet_anomalies
 
         fleet = detect_fleet_anomalies(store.list_traces())
-        cap = int(args.get("anomaly_count") or 5)
+        cap = _opt_int(args, "anomaly_count")
+        cap = 5 if cap is None else cap
         drafted = 0
         for a in fleet[:cap]:
             if store.annotations(a.trace_id):
@@ -2832,8 +2840,29 @@ def _tool_inbox_import(ctx: ServerContext,
 
 
 def _opt_int(args: Dict[str, Any], key: str) -> Optional[int]:
+    """An optional integer argument, refused at the boundary: a
+    wrong type names the field, and a bool is not a number (a
+    hostile ``limit: true`` used to become limit=1 silently)."""
     value = args.get(key)
-    return int(value) if value is not None else None
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"{key} must be an integer")
+    return int(value)
+
+
+def _opt_float(args: Dict[str, Any], key: str) -> Optional[float]:
+    """An optional float argument, refused at the boundary: a
+    wrong type or a non-finite value names the field."""
+    value = args.get(key)
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{key} must be a number")
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError(f"{key} must be finite, got {number}")
+    return number
 
 
 def _opt_str(args: Dict[str, Any], key: str) -> Optional[str]:

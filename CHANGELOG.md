@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.2
+
+- every numeric argument names its field on the wire. (planned): - The MCP tool handlers coerced numbers inline - ``int(args[...])``/``float(args[...])`` - so a hostile or buggy client got the raw conversion error ("invalid literal for int() with base 10", no field name) when it got anything at all, and the worst case was silent: ``limit: true`` passed ``int(True)`` and became limit=1. The coercions route through _opt_int/_opt_float now: a wrong type names its field ("limit must be an integer"), a bool is not a number, a nan/inf float names itself, a fractional integer (limit 2.5) is a refusal rather than a silent round - the answer shape is the same isError result every other refusal uses.
+
 ## v5.9.1
 
 - the digest names the pattern, and files itself. (planned): - A one-off failure is an accident; a mode firing on failures across two or more distinct days is a PATTERN - the postmortem's headline is the pattern, not the accident. The digest payload names the recurring modes (mode ids firing across >= 2 distinct days; two failures on the SAME day are one bad day, not a pattern), the render gives them their own section, and ``--export`` files the whole digest as one markdown document written atomically - the store.save discipline for every artifact the door writes, an unwritable parent answers by name (the v5.5.2 convention). ``--export`` is an operator file feature; the MCP surface stays payload-only (documented scope).
