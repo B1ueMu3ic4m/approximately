@@ -2326,6 +2326,19 @@ framework adapters import lazily and degrade when the framework is absent.
          every fallible step of the operation it protects, not
          just the step that failed last time.
 
+569. **v5.9.3 - the memory journey, end to end** (planned):
+       - The e2e operator journey (v124) records, attributes
+         and reports - but never asks the question the whole
+         feature family exists for: "two weeks later, what did
+         I talk about with the AI?" The journey pin walks the
+         human's actual path over one store: record three
+         conversations (one failing), find them on the
+         timeline, search for the moment something was said,
+         read the day summary, drill into that day, take the
+         digest with its failure modes, carry the memory out
+         as files - and verify still vouches for the store
+         after all of it.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
