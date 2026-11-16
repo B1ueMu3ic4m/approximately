@@ -80,8 +80,11 @@ def test_invalid_facts_file_is_clean_error(demo_store, tmp_path):
     directory, trace_id = demo_store
     bad = tmp_path / "bad.json"
     bad.write_text("{nope", encoding="utf-8")
-    with pytest.raises(json.JSONDecodeError):
-        main(["context", trace_id, "--store", directory, "--facts", str(bad)])
+    # v5.6.0: the malformed facts file answers by name (exit 2)
+    # instead of leaking the raw JSONDecodeError
+    code = main(["context", trace_id, "--store", directory,
+                 "--facts", str(bad)])
+    assert code == 2, "the malformed facts file answers by name"
 
 
 def test_report_command_writes_html(demo_store, tmp_path, capsys):

@@ -2136,6 +2136,31 @@ framework adapters import lazily and degrade when the framework is absent.
          the report door got its guard with the atomic-write
          round's OSError handler).
 
+558. **v5.6.0 - the last corners answer by name** (planned):
+       - The final-corners sweep closes the doors still
+         trusting their inputs. ``context --facts`` leaked a raw
+         JSONDecodeError and a missing file tracebacked; a JSON
+         list rode in as facts; ``--budget 0`` crashed inside
+         the runtime constructor — all answer by name now (exit
+         2). ``forecast_spend`` refused a nan ceiling at Budget
+         construction but not its own: nan/inf tripped
+         math.ceil mid-door — the refusal lives at the source,
+         and the three doors sharing the call answer (the
+         status pulse exits 2, the fleet trend exits 2, the
+         nightly audit fails the spend-ceiling check and RENDERS
+         the named error instead of a quiet "(unusable trend)"
+         line the ops read never sees). ``curve``/``distill``/
+         ``benchmark --html`` wrote with bare write_text — an
+         unwritable parent now answers by name after the
+         numbers are computed. ``convert-mast`` validated
+         nothing before ``open(out, "w")``: a typo'd checkout
+         truncated the previous dataset and printed "wrote
+         <path>" with zero conversions — the source is
+         validated first, and a file source keeps its old
+         converted-0 semantics. cmd_context retires its C block
+         (composition render extracted); the complexity floor
+         holds at 87 without a raise.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

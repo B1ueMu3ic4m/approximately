@@ -218,6 +218,11 @@ def convert_mast(source: Path, out_path: Path,
     set-based evaluation; the no-signal and hygiene rules still apply.
     """
     stats = ConvertStats()
+    # the source is validated BEFORE the output truncates: a
+    # typo'd checkout used to destroy the previous dataset and
+    # print "wrote <path>" with zero conversions
+    if not Path(source).exists():
+        raise ValueError(f"source checkout not found: {source}")
     with open(out_path, "w", encoding="utf-8") as fh:
         for path in _iter_files(source):
             try:
