@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.0
+
+- the weekly postmortem of the conversations. (planned): - The memory family answered "what did I talk about" and "where was it said" - but the question behind both is "what went wrong, when, and how": ``recall-digest`` joins the day rows with the failures: each failed run carries its error excerpt (the moment it broke) and the modes the rule detectors name - recall and attribution finally in one answer. The fleet view threads it (store tags, divergences), the day/outcome/model filters compose, and the MCP tool gains ``digest=true`` so the surfaces stay aligned (the v5.7.1 lesson applied the same round).
+
 ## v5.8.1
 
 - the memory doors get a performance budget. (planned): - recall scans every conversation's every field on a grep, the timeline sorts and groups the whole store, the summary keyword-counts the tasks - each must stay linear-ish in traces and finish inside budget, or the memory door a human leans on at 2am is the one that hangs the store. recall_gate joins perf_gate (2k traces, 5s budget, worst-of-three doors ~300ms measured), and the pins keep the fleet view honest: the dedupe-by-id merge must not turn two stores into an O(n^2) pairwise compare.

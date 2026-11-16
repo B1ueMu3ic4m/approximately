@@ -2263,6 +2263,21 @@ framework adapters import lazily and degrade when the framework is absent.
          the dedupe-by-id merge must not turn two stores into
          an O(n^2) pairwise compare.
 
+565. **v5.9.0 - the weekly postmortem of the conversations**
+       (planned):
+       - The memory family answered "what did I talk about"
+         and "where was it said" - but the question behind
+         both is "what went wrong, when, and how":
+         ``recall-digest`` joins the day rows with the
+         failures: each failed run carries its error excerpt
+         (the moment it broke) and the modes the rule
+         detectors name - recall and attribution finally in
+         one answer. The fleet view threads it (store tags,
+         divergences), the day/outcome/model filters compose,
+         and the MCP tool gains ``digest=true`` so the
+         surfaces stay aligned (the v5.7.1 lesson applied the
+         same round).
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

@@ -3528,6 +3528,34 @@ def cmd_recall_summary(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_recall_digest(args: argparse.Namespace) -> int:
+    """The weekly postmortem of the conversations: the day rows,
+    then the failed runs with their error excerpts and the modes
+    the rule detectors name."""
+    from .recall import digest, render_digest, valid_day
+
+    day = getattr(args, "day", None)
+    if day is not None and not valid_day(day):
+        print(f"error: --day wants YYYY-MM-DD, got {day!r}",
+              file=sys.stderr)
+        return 2
+    store = _recall_view(args)
+    payload = digest(store, since=getattr(args, "since", None),
+                     until=getattr(args, "until", None),
+                     model=getattr(args, "model", None),
+                     outcomes=("failed"
+                               if getattr(args, "failed_only",
+                                          False)
+                               else "ok"
+                               if getattr(args, "ok_only", False)
+                               else "all"), day=day)
+    if getattr(args, "json", False):
+        print(json.dumps(payload, indent=2))
+        return 0
+    print(render_digest(payload))
+    return 0
+
+
 def cmd_received(args: argparse.Namespace) -> int:
     """Read the receiver's archive back: the /stats shape plus the
     most recent matching rows, newest last — the cron-friendly
@@ -6703,6 +6731,36 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true",
                    help="emit the summary shape as JSON")
     p.set_defaults(func=cmd_recall_summary)
+
+    p = sub.add_parser("recall-digest", parents=[common],
+                       help="the weekly postmortem of the "
+                            "conversations: day rows plus the "
+                            "failed runs with their error "
+                            "excerpts and the failure modes "
+                            "the detectors name")
+    p.add_argument("stores", nargs="*",
+                   help="optional store directories to read as "
+                        "ONE memory (fleet view)")
+    p.add_argument("--since", type=_parse_since,
+                   metavar="EPOCH|DUR",
+                   help="only conversations created at or after "
+                        "this unix time, or a duration")
+    p.add_argument("--until", type=_parse_since,
+                   metavar="EPOCH|DUR",
+                   help="only conversations created at or before "
+                        "this unix time, or a duration ago")
+    p.add_argument("--day", metavar="YYYY-MM-DD",
+                   help="only this one calendar day")
+    p.add_argument("--model", metavar="NAME",
+                   help="only conversations whose model matches "
+                        "(case-insensitive substring)")
+    p.add_argument("--failed-only", action="store_true",
+                   help="only failures in the window")
+    p.add_argument("--ok-only", action="store_true",
+                   help="only successes in the window")
+    p.add_argument("--json", action="store_true",
+                   help="emit the digest shape as JSON")
+    p.set_defaults(func=cmd_recall_digest)
 
     p = sub.add_parser("received", parents=[common],
                        help="read the receiver's archive back: "

@@ -19,6 +19,9 @@ TOUR: Dict[str, tuple] = {
                     "moment something was said")),
         ("recall-summary", ("the day-by-day summary: topics, "
                             "tools, outcomes")),
+        ("recall-digest", ("the weekly postmortem: day rows plus "
+                           "the failed runs with error excerpts "
+                           "and the failure modes")),
     ]),
     "record": ("capture agent runs and keep them trustworthy", [
         ("demo", "run the built-in failing agent (30s tour)"),

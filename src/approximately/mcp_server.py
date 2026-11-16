@@ -1351,6 +1351,14 @@ _TOOLS: List[Dict[str, Any]] = [
                               "description": "return the day-by-"
                                              "day summary instead "
                                              "of the timeline"},
+                "digest": {"type": "boolean",
+                           "description": "return the weekly "
+                                          "postmortem of the "
+                                          "conversations (day "
+                                          "rows plus failed runs "
+                                          "with error excerpts "
+                                          "and the failure modes "
+                                          "the detectors name)"},
                 "since_days": {"type": "integer",
                                "description": "only conversations "
                                               "from the last N "
@@ -2863,7 +2871,7 @@ def _recall_view(ctx: ServerContext,
 def _tool_recall(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     """What did I talk about with the AI: the timeline, a search
     with excerpts, or the day-by-day summary — one surface."""
-    from .recall import search, summarize, timeline, valid_day
+    from .recall import digest, search, summarize, timeline, valid_day
 
     store = _recall_view(ctx, args)
     since_days = _opt_int(args, "since_days")
@@ -2881,6 +2889,8 @@ def _tool_recall(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                       day=day)
     if args.get("summarize"):
         return summarize(store, since=since, until=until, day=day)
+    if args.get("digest"):
+        return digest(store, since=since, until=until, day=day)
     return timeline(store, since=since, until=until,
                     limit=limit, day=day)
 
