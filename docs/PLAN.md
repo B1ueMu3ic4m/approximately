@@ -2198,6 +2198,19 @@ framework adapters import lazily and degrade when the framework is absent.
          the wire shape is unchanged (no store key on
          entries).
 
+561. **v5.7.1 addendum - the ledger line persists through the
+       whole lock budget** (recorded):
+       - The 12-concurrent-writer pin lost a line on a THIRD
+         Windows CI leg (py3.11 this time): five retry attempts
+         span only ~0.6s, and a Windows sharing violation can
+         outlive any fixed attempt count. The persistence
+         budget is now the lock's own 30s deadline - the write
+         retries every 100ms until it lands or the budget runs
+         out, and only then does the best-effort contract
+         apply. The lesson repeats because the budget was
+         fixed-shaped: a transient failure mode needs a
+         time-shaped budget, not an attempt-shaped one.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
