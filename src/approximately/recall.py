@@ -586,11 +586,9 @@ def export_diary(store: Any, output: Path,
     dup = _dup_payload(store)
     if dup:
         text += f"\n{duplicate_note(dup)}\n"
-    import os
+    from .store import atomic_write
 
-    tmp = output.with_name(output.name + ".tmp")
-    tmp.write_text(text, encoding="utf-8")
-    os.replace(tmp, output)
+    atomic_write(output, text)
     return {"conversations": summary["conversations"],
             "days": len(summary["days"]),
             "path": str(output)}

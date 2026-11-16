@@ -2409,6 +2409,22 @@ framework adapters import lazily and degrade when the framework is absent.
          A pin injects the violation; the ladder stays green
          locally.
 
+574. **v5.9.5 - one artifact-write primitive for everything**
+       (planned):
+       - The bounded-write lesson generalizes into the one
+         primitive: ``store.atomic_write`` - a unique tmp file
+         written inside the bounded budget, then os.replace -
+         and every artifact door routes through it (the
+         report/index/plan exports via cli's _atomic_write, the
+         diary and digest exports via recall). A transient
+         sharing violation on the tmp retries; the door never
+         dies after the numbers were computed. The direct
+         single-shot write_text sites (changelog, bench floors,
+         print-tools) keep their overwrite semantics and stay
+         documented scope - they are operator-initiated writes
+         to paths nobody else touches concurrently. One pin
+         injects the violation into the primitive.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

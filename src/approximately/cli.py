@@ -47,11 +47,9 @@ def _atomic_write(path: Path, text: str) -> None:
     """tmp + os.replace: a crash mid-write leaves the old report,
     never a half-written one (store.save's own discipline, for
     every artifact the analysis doors write)."""
-    import os
+    from .store import atomic_write
 
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(text, encoding="utf-8")
-    os.replace(tmp, path)
+    atomic_write(path, text)
 
 
 def _load_trace(spec: str, store: TraceStore) -> Trace:
