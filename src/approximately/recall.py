@@ -496,10 +496,49 @@ def digest(store: Any, since: Optional[float] = None,
     failed.sort(key=lambda t: (t.created_at or 0, t.id))
     rows = [_failure_row(t) for t in failed]
     payload = {**summary, "failures": rows}
+    recurring = _recurring_modes(rows)
+    if recurring:
+        payload["recurring"] = recurring
     dup = _dup_payload(store)
     if dup:
         payload["duplicates"] = dup
     return payload
+
+
+def _digest_failure_lines(row: dict) -> List[str]:
+    """One failed conversation's digest block: when, what, the
+    modes, the moment it broke."""
+    mark = _mark(row["success"])
+    store = (" {" + str(row["store"]) + "}"
+             if row.get("store") else "")
+    head = (f"  {row['day']} {row['time']}  {mark}  "
+            f"{row['task'][:72]}{store}")
+    lines = [head]
+    if row.get("modes"):
+        named = ", ".join(
+            f"{m['mode_id']} @step {m['step_index']}"
+            for m in row["modes"][:4])
+        lines.append(f"    modes: {named}")
+    if row.get("error_excerpt"):
+        lines.append(f"    [error] {row['error_excerpt']}")
+    return lines
+
+
+def _recurring_modes(rows: List[dict]) -> List[dict]:
+    """The modes that keep coming back: a mode firing on failures
+    across >= 2 distinct days is a pattern, not a one-off - the
+    postmortem's headline is the pattern, not the accident."""
+    by_mode: Dict[str, set] = {}
+    for row in rows:
+        for mode in row.get("modes") or []:
+            by_mode.setdefault(mode["mode_id"], set()).add(
+                row["day"])
+    pairs = sorted(((mode_id, len(days))
+                    for mode_id, days in by_mode.items()
+                    if len(days) >= 2),
+                   key=lambda p: (-p[1], p[0]))
+    return [{"mode_id": mode_id, "days": days}
+            for mode_id, days in pairs]
 
 
 def render_digest(payload: dict) -> str:
@@ -511,18 +550,14 @@ def render_digest(payload: dict) -> str:
         return head
     lines = [head, "", f"Failures ({len(failures)}):"]
     for row in failures:
-        mark = _mark(row["success"])
-        store = (" {" + str(row["store"]) + "}"
-                 if row.get("store") else "")
-        lines.append(f"  {row['day']} {row['time']}  {mark}  "
-                     f"{row['task'][:72]}{store}")
-        if row.get("modes"):
-            named = ", ".join(
-                f"{m['mode_id']} @step {m['step_index']}"
-                for m in row["modes"][:4])
-            lines.append(f"    modes: {named}")
-        if row.get("error_excerpt"):
-            lines.append(f"    [error] {row['error_excerpt']}")
+        lines.extend(_digest_failure_lines(row))
+    recurring = payload.get("recurring") or []
+    if recurring:
+        lines.append("")
+        lines.append("Recurring:")
+        lines.extend(
+            f"  {row['mode_id']}: on {row['days']} day(s)"
+            for row in recurring[:6])
     dup = payload.get("duplicates")
     if dup:
         lines.append(duplicate_note(dup))

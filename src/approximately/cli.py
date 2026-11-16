@@ -3549,6 +3549,23 @@ def cmd_recall_digest(args: argparse.Namespace) -> int:
                                else "ok"
                                if getattr(args, "ok_only", False)
                                else "all"), day=day)
+    out_arg = getattr(args, "export", None)
+    if out_arg:
+        out = Path(out_arg)
+        if not out.parent.is_dir():
+            print(f"error: --export directory not found: "
+                  f"{out.parent}", file=sys.stderr)
+            return 2
+        from .recall import render_summary
+
+        text = (f"# Conversation digest\n\n"
+                f"{render_summary(payload)}\n\n"
+                f"{render_digest(payload)}\n")
+        _atomic_write(out, text)
+        print(f"digest written: {out} "
+              f"({payload['conversations']} conversation(s), "
+              f"{len(payload['failures'])} failure(s))")
+        return 0
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2))
         return 0
@@ -6758,6 +6775,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="only failures in the window")
     p.add_argument("--ok-only", action="store_true",
                    help="only successes in the window")
+    p.add_argument("--export", metavar="FILE",
+                   help="write the digest as one markdown file "
+                        "instead of printing (atomic)")
     p.add_argument("--json", action="store_true",
                    help="emit the digest shape as JSON")
     p.set_defaults(func=cmd_recall_digest)

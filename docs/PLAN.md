@@ -2278,6 +2278,23 @@ framework adapters import lazily and degrade when the framework is absent.
          surfaces stay aligned (the v5.7.1 lesson applied the
          same round).
 
+566. **v5.9.1 - the digest names the pattern, and files
+       itself** (planned):
+       - A one-off failure is an accident; a mode firing on
+         failures across two or more distinct days is a
+         PATTERN - the postmortem's headline is the pattern,
+         not the accident. The digest payload names the
+         recurring modes (mode ids firing across >= 2 distinct
+         days; two failures on the SAME day are one bad day,
+         not a pattern), the render gives them their own
+         section, and ``--export`` files the whole digest as
+         one markdown document written atomically - the
+         store.save discipline for every artifact the door
+         writes, an unwritable parent answers by name (the
+         v5.5.2 convention). ``--export`` is an operator file
+         feature; the MCP surface stays payload-only
+         (documented scope).
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
