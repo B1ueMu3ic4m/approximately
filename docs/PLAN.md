@@ -2250,6 +2250,19 @@ framework adapters import lazily and degrade when the framework is absent.
          cannot find their own conversations - the original
          complaint this feature family answers.
 
+564. **v5.8.1 - the memory doors get a performance budget**
+       (planned):
+       - recall scans every conversation's every field on a
+         grep, the timeline sorts and groups the whole store,
+         the summary keyword-counts the tasks - each must stay
+         linear-ish in traces and finish inside budget, or the
+         memory door a human leans on at 2am is the one that
+         hangs the store. recall_gate joins perf_gate (2k
+         traces, 5s budget, worst-of-three doors ~300ms
+         measured), and the pins keep the fleet view honest:
+         the dedupe-by-id merge must not turn two stores into
+         an O(n^2) pairwise compare.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

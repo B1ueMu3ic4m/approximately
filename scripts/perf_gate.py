@@ -43,7 +43,58 @@ def main() -> int:
             + composition_gate() + failure_budget_gate()
             + tail_gate() + startup_gate() + complexity_gate()
             + retention_gate() + archive_stats_gate()
-            + status_frame_gate())
+            + status_frame_gate() + recall_gate())
+
+def recall_gate(budget_s: float = 5.0) -> int:
+    """The memory doors over a 2k-trace store.
+
+    recall scans every conversation's every field on a grep; the
+    timeline sorts and groups the whole store; the summary
+    keyword-counts the tasks. Each must stay linear-ish in
+    traces and finish inside budget - the memory door a human
+    leans on at 2am cannot be the one that hangs the store.
+    """
+    import tempfile
+
+    from approximately.recorder import Recorder
+    from approximately.recall import search, summarize, timeline
+    from approximately.store import TraceStore
+
+    with tempfile.TemporaryDirectory() as tmp:
+        store = TraceStore(Path(tmp) / "s")
+        for i in range(2_000):
+            rec = Recorder(f"perf run {i} - deploy service "
+                           f"{i % 7}", save=False)
+            for j in range(6):
+                rec.tool("tool", {"j": j},
+                         result=f"step {j} " + "x" * 150)
+            rec.respond("done", success=(i % 5 != 0))
+            store.save(rec.trace)
+        worst = 0.0
+        for name, door in (("search", lambda: search(
+                                store, "deploy service 3",
+                                limit=20)),
+                           ("timeline", lambda: timeline(store)),
+                           ("summarize", lambda: summarize(store))):
+            start = time.perf_counter()
+            payload = door()
+            elapsed = time.perf_counter() - start
+            worst = max(worst, elapsed)
+            print(f"perf-gate[recall:{name}]: "
+                  f"{elapsed * 1000:.0f}ms over 2k traces "
+                  f"(budget {budget_s:g}s)")
+            if not payload:
+                print(f"FAIL: recall {name} found nothing",
+                      file=sys.stderr)
+                return 1
+    verdict = "PASS" if worst <= budget_s else "FAIL"
+    print(f"perf-gate[recall]: worst {worst * 1000:.0f}ms "
+          f"(budget {budget_s:g}s) - {verdict}")
+    if worst > budget_s:
+        print("FAIL: recall slowed past budget", file=sys.stderr)
+        return 1
+    return 0
+
 
 def archive_stats_gate(budget_s: float = 5.0) -> int:
     """The /stats read path over a 10k-row archive.
