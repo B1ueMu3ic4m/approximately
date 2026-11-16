@@ -21,9 +21,12 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def _run(*args):
+    # encoding="utf-8": the prose marks are unicode and the
+    # Windows console decodes with the locale codec otherwise
     return subprocess.run(
         [sys.executable, "-m", "approximately", *args],
-        capture_output=True, text=True, cwd=str(ROOT))
+        capture_output=True, text=True, cwd=str(ROOT),
+        encoding="utf-8")
 
 
 def test_the_memory_journey(tmp_path):
