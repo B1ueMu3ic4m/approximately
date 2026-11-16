@@ -2311,6 +2311,21 @@ framework adapters import lazily and degrade when the framework is absent.
          the answer shape is the same isError result every
          other refusal uses.
 
+568. **v5.9.2 addendum - the ledger's WHOLE lock-held section
+       shares the budget** (recorded):
+       - The fourth Windows CI loss: v5.9.1's persistence
+         budget covered only the WRITE, but the READ
+         (entries() -> read_text) raises the same transient
+         sharing violation under contention - a raise there
+         bypassed the retry loop entirely and the best-effort
+         swallow dropped the line, fast (no 30s stall). The
+         read-then-append is now ONE section inside the one
+         budget: an OSError anywhere in it retries every 100ms
+         until the line lands or the deadline runs out. The
+         lesson generalizes: a persistence budget must cover
+         every fallible step of the operation it protects, not
+         just the step that failed last time.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
