@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.1
+
+- the digest names the pattern, and files itself. (planned): - A one-off failure is an accident; a mode firing on failures across two or more distinct days is a PATTERN - the postmortem's headline is the pattern, not the accident. The digest payload names the recurring modes (mode ids firing across >= 2 distinct days; two failures on the SAME day are one bad day, not a pattern), the render gives them their own section, and ``--export`` files the whole digest as one markdown document written atomically - the store.save discipline for every artifact the door writes, an unwritable parent answers by name (the v5.5.2 convention). ``--export`` is an operator file feature; the MCP surface stays payload-only (documented scope).
+
 ## v5.9.0
 
 - the weekly postmortem of the conversations. (planned): - The memory family answered "what did I talk about" and "where was it said" - but the question behind both is "what went wrong, when, and how": ``recall-digest`` joins the day rows with the failures: each failed run carries its error excerpt (the moment it broke) and the modes the rule detectors name - recall and attribution finally in one answer. The fleet view threads it (store tags, divergences), the day/outcome/model filters compose, and the MCP tool gains ``digest=true`` so the surfaces stay aligned (the v5.7.1 lesson applied the same round).
