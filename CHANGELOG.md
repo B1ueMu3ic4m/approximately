@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.8.1
+
+- the memory doors get a performance budget. (planned): - recall scans every conversation's every field on a grep, the timeline sorts and groups the whole store, the summary keyword-counts the tasks - each must stay linear-ish in traces and finish inside budget, or the memory door a human leans on at 2am is the one that hangs the store. recall_gate joins perf_gate (2k traces, 5s budget, worst-of-three doors ~300ms measured), and the pins keep the fleet view honest: the dedupe-by-id merge must not turn two stores into an O(n^2) pairwise compare.
+
 ## v5.8.0
 
 - the drill-down step, and the memory's user guide. (planned): - The memory loop had a missing link: recall-summary names a day, and getting to THAT day's conversations meant --since/--until arithmetic on a unix clock. ``--day YYYY-MM-DD`` names one local calendar day across the timeline, the search and the summary (the filter lives at the window predicate, so every filter - model, outcome, fleet view, since/until - threads it), a shape-valid impossible date (month 13) is refused the same as garbage, and an absent day reads as an honest empty answer, never an error. The MCP recall tool gains the same key so the surfaces stay aligned (the v5.7.1 lesson applied the same round). docs/RECALL.md documents the loop for the human who cannot find their own conversations - the original complaint this feature family answers.
