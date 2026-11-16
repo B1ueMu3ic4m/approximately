@@ -460,6 +460,75 @@ def summarize(store: Any, since: Optional[float] = None,
     return payload
 
 
+def _failure_row(trace: Trace) -> dict:
+    """One failed conversation as the digest wants it: when, what,
+    where it broke (the first error excerpt), and which failure
+    modes the rule detectors name."""
+    from .detectors import run_rules
+
+    entry = _entry(trace)
+    error_excerpt = None
+    for step in trace.steps:
+        if getattr(step, "error", None):
+            error_excerpt = _excerpt(str(step.error), "")
+            break
+    modes = [{"mode_id": det.mode_id,
+              "step_index": det.step_index,
+              "evidence": det.evidence[0] if det.evidence else ""}
+             for det in run_rules(trace)]
+    return {**entry, "error_excerpt": error_excerpt,
+            "modes": modes}
+
+
+def digest(store: Any, since: Optional[float] = None,
+           until: Optional[float] = None,
+           model: Optional[str] = None,
+           outcomes: str = "all",
+           day: Optional[str] = None) -> dict:
+    """The weekly postmortem of the conversations: the day rows,
+    then the failed runs with their error excerpts and the modes
+    the rule detectors name - what went wrong, when, and (the
+    attribution layer's answer) how."""
+    summary = summarize(store, since=since, until=until,
+                        model=model, outcomes=outcomes, day=day)
+    failed = _steps_window(store.list_traces(), since, until,
+                           model=model, outcomes="failed", day=day)
+    failed.sort(key=lambda t: (t.created_at or 0, t.id))
+    rows = [_failure_row(t) for t in failed]
+    payload = {**summary, "failures": rows}
+    dup = _dup_payload(store)
+    if dup:
+        payload["duplicates"] = dup
+    return payload
+
+
+def render_digest(payload: dict) -> str:
+    """The prose digest: the summary, then one failure a block -
+    the run, its modes, and the moment it broke."""
+    head = render_summary(payload)
+    failures = payload.get("failures") or []
+    if not failures:
+        return head
+    lines = [head, "", f"Failures ({len(failures)}):"]
+    for row in failures:
+        mark = _mark(row["success"])
+        store = (" {" + str(row["store"]) + "}"
+                 if row.get("store") else "")
+        lines.append(f"  {row['day']} {row['time']}  {mark}  "
+                     f"{row['task'][:72]}{store}")
+        if row.get("modes"):
+            named = ", ".join(
+                f"{m['mode_id']} @step {m['step_index']}"
+                for m in row["modes"][:4])
+            lines.append(f"    modes: {named}")
+        if row.get("error_excerpt"):
+            lines.append(f"    [error] {row['error_excerpt']}")
+    dup = payload.get("duplicates")
+    if dup:
+        lines.append(duplicate_note(dup))
+    return "\n".join(lines)
+
+
 def _mark(success: Any) -> str:
     return "✓" if success is True else "✗" if success is False \
         else "·"
