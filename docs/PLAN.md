@@ -2339,6 +2339,23 @@ framework adapters import lazily and degrade when the framework is absent.
          as files - and verify still vouches for the store
          after all of it.
 
+570. **v5.9.4 - the memory doors meet hostile records on their
+       feet** (planned):
+       - The hostile-record sweep found one real leak: a 200KB
+         task blobbed into one "word" rode the topic counter
+         into the summary prose as a 200KB line (the keyword
+         tokenizer never capped token length). Keywords now
+         refuse tokens over 32 chars - they name what the run
+         was ABOUT, and nothing about it is 33+ chars. The
+         rest of the family already answered by data: the
+         timeline/summary/digest doors survived the sweep
+         (200KB task, script-tag tool name with CRLF, 300KB
+         result, 100KB error, bool model, string epoch,
+         surrogate final output), the prose stays line-bounded,
+         the wire stays data-faithful, the fleet divergence
+         compare survives weird bytes, and the exports stay
+         atomic. 6 new pins.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

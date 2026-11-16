@@ -355,8 +355,12 @@ def _keywords(texts: List[str], top: int = 6) -> List[Tuple[str, int]]:
     for raw in texts:
         text = str(raw or "").lower()
         for word in re.findall(r"[a-z][a-z0-9._-]{2,}", text):
-            if word not in _STOPWORDS:
-                counts[word] += 1
+            if word in _STOPWORDS or len(word) > 32:
+                # a 200KB "word" is data blobbed into the task
+                # line, not a topic: keywords name what the run
+                # was ABOUT, and nothing about it is 33+ chars
+                continue
+            counts[word] += 1
         for run in re.findall(r"[\u3400-\u9fff\uf900-\ufaff]+", text):
             # stop-grams are REMOVED before cutting: 怎么把 bigrammed
             # raw yields 么把/把重 — noise between the fence posts
