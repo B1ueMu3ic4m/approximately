@@ -1418,6 +1418,10 @@
             "type": "integer",
             "description": "cap the hits/timeline entries"
           },
+          "day": {
+            "type": "string",
+            "description": "one calendar day (YYYY-MM-DD): the drill-down step from the summary's day rows"
+          },
           "stores": {
             "type": "array",
             "items": {

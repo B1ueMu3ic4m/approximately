@@ -1358,6 +1358,11 @@ _TOOLS: List[Dict[str, Any]] = [
                 "limit": {"type": "integer",
                           "description": "cap the hits/timeline "
                                          "entries"},
+                "day": {"type": "string",
+                        "description": "one calendar day "
+                                       "(YYYY-MM-DD): the "
+                                       "drill-down step from the "
+                                       "summary's day rows"},
                 "stores": {"type": "array",
                            "items": {"type": "string"},
                            "description": "store directories read "
@@ -2858,7 +2863,7 @@ def _recall_view(ctx: ServerContext,
 def _tool_recall(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     """What did I talk about with the AI: the timeline, a search
     with excerpts, or the day-by-day summary — one surface."""
-    from .recall import search, summarize, timeline
+    from .recall import search, summarize, timeline, valid_day
 
     store = _recall_view(ctx, args)
     since_days = _opt_int(args, "since_days")
@@ -2867,13 +2872,17 @@ def _tool_recall(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     until = None
     limit = _opt_int(args, "limit")
     grep = args.get("grep")
+    day = args.get("day")
+    if day is not None and not valid_day(day):
+        raise ValueError(f"--day wants YYYY-MM-DD, got {day!r}")
     if grep:
         return search(store, str(grep), since=since, until=until,
-                      limit=20 if limit is None else int(limit))
+                      limit=20 if limit is None else int(limit),
+                      day=day)
     if args.get("summarize"):
-        return summarize(store, since=since, until=until)
+        return summarize(store, since=since, until=until, day=day)
     return timeline(store, since=since, until=until,
-                    limit=limit)
+                    limit=limit, day=day)
 
 
 _HANDLERS = {
