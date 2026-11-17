@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, List, Optional
 
 from . import __version__
-from .store import TraceStore, safe_artifact, trace_files
+from .store import TraceStore, atomic_write, safe_artifact, trace_files
 from .trace import Trace
 
 
@@ -47,8 +47,6 @@ def _atomic_write(path: Path, text: str) -> None:
     """tmp + os.replace: a crash mid-write leaves the old report,
     never a half-written one (store.save's own discipline, for
     every artifact the analysis doors write)."""
-    from .store import atomic_write
-
     atomic_write(path, text)
 
 
@@ -196,7 +194,7 @@ def cmd_replay(args: argparse.Namespace) -> int:
         from .replayer import render_replay_html
 
         out = Path(args.html)
-        out.write_text(render_replay_html(diff, diff_b), encoding="utf-8")
+        atomic_write(out, render_replay_html(diff, diff_b))
         print(f"wrote replay page: {out}")
     if diff.verdict == "diverged" and not args.patched:
         return 1
@@ -212,8 +210,8 @@ def cmd_test(args: argparse.Namespace) -> int:
     report = attribute(trace)
     budget = args.budget if args.budget else None
     out = Path(args.output) if args.output else Path(f"test_approximately_{trace.id}.py")
-    out.write_text(render_regression(trace, report, budget=budget,
-                                     min_recall=args.min_recall), encoding="utf-8")
+    atomic_write(out, render_regression(trace, report, budget=budget,
+                                     min_recall=args.min_recall))
     if getattr(args, "json", False):
         print(json.dumps({"output": str(out), "trace": trace.id,
                           "primary_mode": report.primary_mode.id,
@@ -317,8 +315,7 @@ def cmd_report(args: argparse.Namespace) -> int:
         from .mermaid import render_mermaid
 
         mmd = Path(args.mermaid)
-        mmd.write_text(render_mermaid(trace, report.detections),
-                       encoding="utf-8")
+        atomic_write(mmd, render_mermaid(trace, report.detections))
         print(f"wrote mermaid sequence diagram: {mmd}")
     return 0
 
@@ -871,7 +868,7 @@ def cmd_repair(args: argparse.Namespace) -> int:
     if result.repaired_trace is not None and args.apply:
         out = _artifact_of(store.directory, trace.id,
                            ".repaired.json")
-        out.write_text(result.repaired_trace.to_json(), encoding="utf-8")
+        atomic_write(out, result.repaired_trace.to_json())
         written = str(out)
         print(f"repaired trace written: {out}")
     if getattr(args, "json", False):
@@ -1076,7 +1073,7 @@ def cmd_redact(args: argparse.Namespace) -> int:
 
         sign(share, key=load_key())
         tmp = out_path.with_name(out_path.name + ".tmp")
-        tmp.write_text(share.to_json(), encoding="utf-8")
+        atomic_write(tmp, share.to_json())
         os.replace(tmp, out_path)
         destination = str(out_path)
     else:
@@ -1960,8 +1957,7 @@ def cmd_mcp(args: argparse.Namespace) -> int:
         if args.print_tools == "-":
             print(payload)
         else:
-            Path(args.print_tools).write_text(payload + "\n",
-                                              encoding="utf-8")
+            atomic_write(Path(args.print_tools), payload + "\n")
             print(f"wrote {len(_TOOLS)} tool schemas to "
                   f"{args.print_tools}")
         return 0
@@ -5195,8 +5191,8 @@ def cmd_attribute(args: argparse.Namespace) -> int:
                       **_judge_kwargs(args)))
                  for t in store.list_traces()]
         out = Path(args.sarif)
-        out.write_text(json.dumps(to_sarif([r for _, r in pairs]),
-                                  indent=2), encoding="utf-8")
+        atomic_write(out, json.dumps(
+            to_sarif([r for _, r in pairs]), indent=2))
         print(f"wrote SARIF over {len(pairs)} traces: {out}")
         return 0
     if args.all:
@@ -5566,10 +5562,9 @@ def _benchmark_multi(labeled: list, args: argparse.Namespace) -> int:
     if args.html:
         out = Path(args.html)
         try:
-            out.write_text(
+            atomic_write(out,
                 render_leaderboard_html(multi, source, args.dataset,
-                                        n),
-                encoding="utf-8")
+                                        n))
         except OSError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
@@ -5614,11 +5609,8 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
 
         out = Path(args.html)
         try:
-            out.write_text(
-                render_leaderboard_html(result, source, args.dataset,
-                                        len(labeled)),
-                encoding="utf-8",
-            )
+            atomic_write(out, render_leaderboard_html(
+                result, source, args.dataset, len(labeled)))
         except OSError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2

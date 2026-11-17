@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from . import __version__
+from .store import atomic_write
 
 MAX_LINE = 1_000_000
 PROTOCOL_VERSION = "2024-11-05"
@@ -1675,8 +1676,15 @@ def _write_temp_prices(table: Any) -> Any:
             for v in table.values()):
         raise KeyError("prices must be a JSON object mapping model "
                        "to non-negative numbers")
-    path = Path(tempfile.mkstemp(suffix=".json")[1])
-    path.write_text(json.dumps(table), encoding="utf-8")
+    # mkstemp returns an OPEN fd: on Windows a rename of a file
+    # whose handle lacks delete-share fails with Access denied -
+    # the old write_text happened to work through the open handle,
+    # atomic_write's replace exposed the latent leak. Close the fd
+    # the moment the name exists.
+    fd, path_str = tempfile.mkstemp(suffix=".json")
+    os.close(fd)
+    path = Path(path_str)
+    atomic_write(path, json.dumps(table))
     _TEMP_PRICES[str(path)] = True
     return path
 
@@ -2404,8 +2412,7 @@ def _tool_redact(ctx: ServerContext, args: Dict[str, Any]) -> dict:
         from .integrity import load_key, sign
 
         sign(share, key=load_key())
-        Path(str(args["out"])).write_text(share.to_json(),
-                                          encoding="utf-8")
+        atomic_write(Path(str(args["out"])), share.to_json())
         report["destination"] = str(args["out"])
     else:
         report["destination"] = str(store.save(share))

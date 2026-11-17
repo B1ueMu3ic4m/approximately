@@ -24,6 +24,8 @@ import re
 from pathlib import Path
 from typing import List, Tuple
 
+from .store import atomic_write
+
 _ITEM = re.compile(
     r"^\d+\. \*\*(v\d+(?:\.\d+)*) [-\u2013\u2014] "
     r"((?:[^*]|\*(?!\*))+?)\*\*"
@@ -94,5 +96,5 @@ def render(entries: List[Tuple[str, str, str]]) -> str:
 
 def write_changelog(plan_path: Path, output: Path) -> int:
     entries = parse_plan(plan_path)
-    output.write_text(render(entries) + "\n", encoding="utf-8")
+    atomic_write(output, render(entries) + "\n")
     return len(entries)
