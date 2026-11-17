@@ -2459,6 +2459,20 @@ framework adapters import lazily and degrade when the framework is absent.
          again (the checkout step missed after the merge) - the
          branch-at-sha recovery held, nothing reached the remote.
 
+577. **v5.9.7 addendum - mkstemp's fd was leaking into the
+       rename** (recorded):
+       - The Windows rerun on the sweep caught a LATENT bug the
+         conversion exposed: ``_write_temp_prices`` took
+         mkstemp's PATH and never closed the returned fd - the
+         handle stayed open for the process lifetime without
+         delete-share, and a rename of an open file fails with
+         Access denied on Windows. The old bare ``write_text``
+         happened to work through the open handle (share-all
+         opens); ``atomic_write``'s replace is what surfaced the
+         leak years later. The fd closes the moment the name
+         exists. The lesson: replacing a write primitive
+         re-tests every assumption the old one tolerated.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

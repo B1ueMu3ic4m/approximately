@@ -1676,7 +1676,14 @@ def _write_temp_prices(table: Any) -> Any:
             for v in table.values()):
         raise KeyError("prices must be a JSON object mapping model "
                        "to non-negative numbers")
-    path = Path(tempfile.mkstemp(suffix=".json")[1])
+    # mkstemp returns an OPEN fd: on Windows a rename of a file
+    # whose handle lacks delete-share fails with Access denied -
+    # the old write_text happened to work through the open handle,
+    # atomic_write's replace exposed the latent leak. Close the fd
+    # the moment the name exists.
+    fd, path_str = tempfile.mkstemp(suffix=".json")
+    os.close(fd)
+    path = Path(path_str)
     atomic_write(path, json.dumps(table))
     _TEMP_PRICES[str(path)] = True
     return path
