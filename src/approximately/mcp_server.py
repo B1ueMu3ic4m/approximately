@@ -1338,11 +1338,17 @@ _TOOLS: List[Dict[str, Any]] = [
                        "search over every field a conversation "
                        "speaks through (task, results, thoughts, "
                        "errors, final output) with readable "
-                       "excerpts, or the day-by-day summary of "
-                       "topics, tools and outcomes. grep="
-                       "searches; summarize=true aggregates; "
+                       "excerpts, the day-by-day summary of "
+                       "topics, tools and outcomes, or the "
+                       "weekly postmortem (day rows plus the "
+                       "failed runs with error excerpts and the "
+                       "failure modes the detectors name). "
+                       "grep=searches; summarize=true "
+                       "aggregates; digest=true postmortems; "
                        "neither returns the timeline. "
-                       "since_days filters the window.",
+                       "since_days filters the window; day="
+                       "names one calendar day; stores=[...] "
+                       "reads several stores as one memory.",
         "inputSchema": {
             "type": "object",
             "properties": {
