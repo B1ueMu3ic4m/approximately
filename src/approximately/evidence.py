@@ -174,12 +174,14 @@ def build_store_packs(store: Any, out_dir: Path,
                       .hexdigest(),
         })
     index_path = out_dir / "index.json"
-    index_path.write_text(json.dumps({
+    from .store import atomic_write
+
+    atomic_write(index_path, json.dumps({
         "packs": len(index),
         "packed_at": datetime.datetime.now(
             datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "traces": index,
-    }, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    }, indent=2, sort_keys=True) + "\n")
     return {"packs": len(index), "index": str(index_path),
             "traces": index}
 

@@ -15,6 +15,8 @@ import re
 from pathlib import Path
 from typing import Any, Dict
 
+from .store import atomic_write
+
 AGENT_TEMPLATE = '''"""A tiny booking agent instrumented with approximately.
 
 Run:  python {name}/agent.py
@@ -57,7 +59,8 @@ if __name__ == "__main__":
     report = attribute(rec.trace)
     print(report.summary)
     out = store / f"{{rec.trace.id}}.report.html"
-    out.write_text(render_html(rec.trace, report), encoding="utf-8")
+    out.write_text(render_html(rec.trace, report),
+                    encoding="utf-8")
     print(f"report: {{out}}")
 '''
 
@@ -125,12 +128,12 @@ def scaffold(name: str, base: Path = Path(".")) -> Path:
         )
     target = base / name
     target.mkdir(parents=True, exist_ok=True)
-    (target / "agent.py").write_text(
-        AGENT_TEMPLATE.format(name=name), encoding="utf-8")
-    (target / "test_agent_regressions.py").write_text(
-        TEST_TEMPLATE.format(name=name), encoding="utf-8")
-    (target / "README.md").write_text(
-        README_TEMPLATE.format(name=name), encoding="utf-8")
+    atomic_write(target / "agent.py",
+                 AGENT_TEMPLATE.format(name=name))
+    atomic_write(target / "test_agent_regressions.py",
+                 TEST_TEMPLATE.format(name=name))
+    atomic_write(target / "README.md",
+                 README_TEMPLATE.format(name=name))
     return target
 
 # --- approximately init: gate an existing repo -----------------------
@@ -235,11 +238,10 @@ def init_scaffold(directory: Path, force: bool = False) -> Dict[str, Any]:
             result[str(gi_path)] = "skipped"
         elif existing:
             pad = "" if existing.endswith("\n") else "\n"
-            gi_path.write_text(existing + pad + _GITIGNORE_LINE + "\n",
-                               encoding="utf-8")
+            atomic_write(gi_path, existing + pad + _GITIGNORE_LINE + "\n")
             result[str(gi_path)] = "appended"
         else:
-            gi_path.write_text(_GITIGNORE_LINE + "\n", encoding="utf-8")
+            atomic_write(gi_path, _GITIGNORE_LINE + "\n")
             result[str(gi_path)] = "written"
     except OSError:
         result[str(gi_path)] = "refused"
@@ -251,7 +253,7 @@ def _write_once(path: Path, content: str, force: bool) -> str:
         return "skipped"
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
+        atomic_write(path, content)
     except OSError:
         # a hostile tree (a file that is a directory, a read-only
         # parent) is a refusal, not a traceback

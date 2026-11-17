@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from .distill import check_floors, evaluate_multi, load_dataset
+from .store import atomic_write
 
 
 def _non_finite(node: Any, path: str = "$") -> list:
@@ -118,8 +119,7 @@ def update_floors(dataset: Path, floors_path: Path,
                 floors["min_records"] = int(existing["min_records"])
         except (OSError, ValueError):
             pass
-    floors_path.write_text(json.dumps(floors, indent=2) + "\n",
-                           encoding="utf-8")
+    atomic_write(floors_path, json.dumps(floors, indent=2) + "\n")
     return {"written": str(floors_path), "records": len(labeled),
             "modes": sorted(measured),
             "sample_f1": floors["sample_f1"]}
@@ -227,5 +227,5 @@ def junit_xml(result: dict, label: str = "gate") -> str:
 
 def write_junit(result: dict, path: Path, label: str = "gate") -> Path:
     """Persist the JUnit rendering; the result dict may carry _floors."""
-    path.write_text(junit_xml(result, label=label), encoding="utf-8")
+    atomic_write(path, junit_xml(result, label=label))
     return path

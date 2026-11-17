@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.7
+
+- the class is closed: no direct artifact write remains. (planned): - The mechanical sweep converts every remaining final artifact path to the primitive: bench floors + junit, changelog, the demo tours, replay/regression/mermaid/ repaired-trace/share-copy/print-tools/SARIF/leaderboard, the evidence index, the prices rewrite, the MCP prices table + share out, the scaffold report - 20+ sites, one primitive, no exceptions. Two mechanical-sweep lessons recorded: the prices-store cycle (a module-level import of a store symbol from a module store itself imports is a cycle - the import moves into the function), and the template string (the scaffold's AGENT_TEMPLATE contains a write_text that belongs to the USER's agent process - a mechanical rewrite must not cross the trust boundary of a string literal). The scaffolded agent keeps its own plain write. Also: the commit landed on local main again (the checkout step missed after the merge) - the branch-at-sha recovery held, nothing reached the remote.
+
 ## v5.9.6
 
 - the concurrent writers get the primitive. (planned): - Three more sites write where others may be writing. The judge cache: parallel workers share one directory, and a torn cache line poisons every verdict read back later (atomic_write). The digest compaction: a fleet watch may be appending while the compaction rewrites - the replace is all-or-nothing instead of a torn line. And ``append_digest`` itself: a Windows sharing violation on the digest file raised out of the watch loop - the open shares the ledger's 30s budget now, giving up only by name. Each pin injects the failure it guards against.

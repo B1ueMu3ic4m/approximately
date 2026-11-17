@@ -66,14 +66,15 @@ def load_catalog(store_dir: Union[str, Path]) -> Optional[dict]:
 
 
 def save_catalog(store_dir: Union[str, Path], table: dict) -> Path:
+    from .store import atomic_write
+
     """Write the catalog atomically: the tmp file lands whole, then
     os.replace swaps it in — a crash mid-write must not leave a
     torn prices.json for the money door to refuse."""
     path = catalog_path(store_dir)
     clean = validate_table(table)
     tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(json.dumps(clean, indent=2, sort_keys=True) + "\n",
-                   encoding="utf-8")
+    atomic_write(tmp, json.dumps(clean, indent=2, sort_keys=True) + "\n")
     try:
         os.replace(tmp, path)
     except OSError:

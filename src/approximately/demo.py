@@ -15,7 +15,7 @@ from typing import Optional, Tuple
 
 from .attributor import attribute
 from .recorder import Recorder
-from .store import TraceStore
+from .store import TraceStore, atomic_write
 from .trace import Trace
 
 
@@ -101,5 +101,5 @@ def run_demo(store_dir: Optional[Path] = None) -> Tuple[Trace, object, Optional[
     path = store.directory / f"{rec.trace.id}.report.html"
     from .report import render_html
 
-    path.write_text(render_html(rec.trace, report), encoding="utf-8")
+    atomic_write(path, render_html(rec.trace, report))
     return rec.trace, report, path
