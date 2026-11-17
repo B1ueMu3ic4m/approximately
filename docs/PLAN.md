@@ -2473,6 +2473,16 @@ framework adapters import lazily and degrade when the framework is absent.
          exists. The lesson: replacing a write primitive
          re-tests every assumption the old one tolerated.
 
+578. **v5.9.8 - the guide catches up to the family** (planned):
+       - docs/RECALL.md was written at v5.8.0, before the
+         digest existed: the loop now shows the weekly
+         postmortem step, the door table gains recall-digest
+         (error excerpt + detector modes + recurring patterns
+         across 2+ days) and --export digest.md, and the fleet
+         view's divergence contract gets its own section - the
+         guide a lost human reads must describe what the tool
+         now does, not what it did when the guide was born.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

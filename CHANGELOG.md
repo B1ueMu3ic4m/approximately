@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.8
+
+- the guide catches up to the family. (planned): - docs/RECALL.md was written at v5.8.0, before the digest existed: the loop now shows the weekly postmortem step, the door table gains recall-digest (error excerpt + detector modes + recurring patterns across 2+ days) and --export digest.md, and the fleet view's divergence contract gets its own section - the guide a lost human reads must describe what the tool now does, not what it did when the guide was born.
+
 ## v5.9.7
 
 - the class is closed: no direct artifact write remains. (planned): - The mechanical sweep converts every remaining final artifact path to the primitive: bench floors + junit, changelog, the demo tours, replay/regression/mermaid/ repaired-trace/share-copy/print-tools/SARIF/leaderboard, the evidence index, the prices rewrite, the MCP prices table + share out, the scaffold report - 20+ sites, one primitive, no exceptions. Two mechanical-sweep lessons recorded: the prices-store cycle (a module-level import of a store symbol from a module store itself imports is a cycle - the import moves into the function), and the template string (the scaffold's AGENT_TEMPLATE contains a write_text that belongs to the USER's agent process - a mechanical rewrite must not cross the trust boundary of a string literal). The scaffolded agent keeps its own plain write. Also: the commit landed on local main again (the checkout step missed after the merge) - the branch-at-sha recovery held, nothing reached the remote.
