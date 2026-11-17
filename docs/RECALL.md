@@ -22,8 +22,13 @@ approximately recall-summary --since 1w
 # 4. drill into that one day the summary flagged
 approximately recall --day 2026-11-17
 
-# 5. take the memory with you (one markdown diary)
+# 5. the weekly postmortem: day rows + the failed runs,
+#    with error excerpts and the failure modes the detectors name
+approximately recall-digest --since 1w
+
+# 6. take the memory with you (one markdown diary)
 approximately recall --export diary.md
+approximately recall-digest --since 1w --export digest.md
 ```
 
 ## What each door answers
@@ -32,6 +37,7 @@ approximately recall --export diary.md
 |---|---|---|
 | `recall` | The timeline: conversations in the order they happened, grouped by day | `--grep TEXT` turns it into a search that shows the excerpt of the moment something was said |
 | `recall-summary` | Day by day: how many conversations, top topics, which tools carried them, how many failed | CJK-aware topics (bigrams), no dependencies |
+| `recall-digest` | The weekly postmortem: the day rows PLUS every failed run — its error excerpt (the moment it broke) and the failure modes the rule detectors name; modes recurring across 2+ days are named as the pattern | `--export digest.md` files it atomically |
 | `--export FILE` | The whole memory as one markdown diary (summary + timeline) | written atomically |
 
 ## Filters (they all compose)
@@ -67,6 +73,16 @@ approximately recall ~/agents/ops-store ~/agents/coding-store
   the `--export` diary lists the fleet in its header
 - a typo'd store path answers `store not found` — a silently
   created empty store would read as lost memory
+
+## Conflicts in a fleet view
+
+When several stores are read as one memory, a trace id appearing
+in two boxes counts once — but if the two copies carry DIFFERENT
+content, the id is named as **diverged** in the timeline, the
+summary, the digest and the exports: two boxes holding two
+histories of one conversation is exactly the sync-conflict the
+evidence ledger exists to catch, so it is never silently read
+away. Identical copies stay one memory, no noise.
 
 ## MCP
 
