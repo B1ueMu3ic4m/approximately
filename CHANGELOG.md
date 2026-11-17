@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.9
+
+- the tool description names the new doors. (planned): - The MCP recall description still ended at summarize: digest, stores and day were wired but INVISIBLE to a client listing tools - a door the schema hides is a door half of the ecosystem never calls. The description now names all three (digest=true postmortems, day= one calendar day, stores=[...] one memory over several stores); docs/mcp-tools.json regenerated. The repo About already carries conversation recall.
+
 ## v5.9.8
 
 - the guide catches up to the family. (planned): - docs/RECALL.md was written at v5.8.0, before the digest existed: the loop now shows the weekly postmortem step, the door table gains recall-digest (error excerpt + detector modes + recurring patterns across 2+ days) and --export digest.md, and the fleet view's divergence contract gets its own section - the guide a lost human reads must describe what the tool now does, not what it did when the guide was born.

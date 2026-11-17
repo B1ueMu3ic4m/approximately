@@ -2483,6 +2483,18 @@ framework adapters import lazily and degrade when the framework is absent.
          guide a lost human reads must describe what the tool
          now does, not what it did when the guide was born.
 
+579. **v5.9.9 - the tool description names the new doors**
+       (planned):
+       - The MCP recall description still ended at summarize:
+       digest, stores and day were wired but INVISIBLE to a
+       client listing tools - a door the schema hides is a
+       door half of the ecosystem never calls. The
+       description now names all three (digest=true
+       postmortems, day= one calendar day, stores=[...] one
+       memory over several stores); docs/mcp-tools.json
+       regenerated. The repo About already carries
+       conversation recall.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
