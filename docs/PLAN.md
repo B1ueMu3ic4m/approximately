@@ -2425,6 +2425,20 @@ framework adapters import lazily and degrade when the framework is absent.
          to paths nobody else touches concurrently. One pin
          injects the violation into the primitive.
 
+575. **v5.9.6 - the concurrent writers get the primitive**
+       (planned):
+       - Three more sites write where others may be writing.
+         The judge cache: parallel workers share one directory,
+         and a torn cache line poisons every verdict read back
+         later (atomic_write). The digest compaction: a fleet
+         watch may be appending while the compaction rewrites -
+         the replace is all-or-nothing instead of a torn line.
+         And ``append_digest`` itself: a Windows sharing
+         violation on the digest file raised out of the watch
+         loop - the open shares the ledger's 30s budget now,
+         giving up only by name. Each pin injects the failure
+         it guards against.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

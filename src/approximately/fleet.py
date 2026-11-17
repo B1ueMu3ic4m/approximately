@@ -705,13 +705,26 @@ def digest_snapshot(summaries: List[StoreSummary]) -> dict:
 
 
 def append_digest(digest_dir: Path, snapshot: dict) -> Path:
-    """Append one snapshot line to the current day's JSONL file."""
+    """Append one snapshot line to the current day's JSONL file.
+
+    The open shares the ledger's budget: a Windows sharing
+    violation on the digest file (another watcher, an indexer)
+    used to raise out of the watch loop - the line retries until
+    it lands or the budget runs out."""
     digest_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.datetime.now().strftime("%Y%m%d")
     path = digest_dir / f"digest-{stamp}.jsonl"
-    with path.open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps(snapshot, sort_keys=True) + "\n")
-    return path
+    line = json.dumps(snapshot, sort_keys=True) + "\n"
+    deadline = time.monotonic() + 30.0
+    while True:
+        try:
+            with path.open("a", encoding="utf-8") as fh:
+                fh.write(line)
+            return path
+        except OSError:
+            if time.monotonic() > deadline:
+                raise
+            time.sleep(0.1)
 
 
 def compact_digests(digest_dir: Path, dry_run: bool = False
@@ -750,8 +763,13 @@ def compact_digests(digest_dir: Path, dry_run: bool = False
         report["before"] += before
         report["after"] += 1
         if not dry_run:
-            path.write_text(json.dumps(kept, sort_keys=True) + "\n",
-                            encoding="utf-8")
+            # atomic_write: a fleet watch may be appending to this
+            # same digest while the compaction rewrites it - the
+            # replace is all-or-nothing instead of a torn line
+            from .store import atomic_write
+
+            atomic_write(path,
+                         json.dumps(kept, sort_keys=True) + "\n")
     report["before"] = report["before"] or sum(
         f["before"] for f in report["files"])
     return report
