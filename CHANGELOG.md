@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.5
+
+- one artifact-write primitive for everything. (planned): - The bounded-write lesson generalizes into the one primitive: ``store.atomic_write`` - a unique tmp file written inside the bounded budget, then os.replace - and every artifact door routes through it (the report/index/plan exports via cli's _atomic_write, the diary and digest exports via recall). A transient sharing violation on the tmp retries; the door never dies after the numbers were computed. The direct single-shot write_text sites (changelog, bench floors, print-tools) keep their overwrite semantics and stay documented scope - they are operator-initiated writes to paths nobody else touches concurrently. One pin injects the violation into the primitive.
+
 ## v5.9.4
 
 - the memory doors meet hostile records on their feet. (planned): - The hostile-record sweep found one real leak: a 200KB task blobbed into one "word" rode the topic counter into the summary prose as a 200KB line (the keyword tokenizer never capped token length). Keywords now refuse tokens over 32 chars - they name what the run was ABOUT, and nothing about it is 33+ chars. The rest of the family already answered by data: the timeline/summary/digest doors survived the sweep (200KB task, script-tag tool name with CRLF, 300KB result, 100KB error, bool model, string epoch, surrogate final output), the prose stays line-bounded, the wire stays data-faithful, the fleet divergence compare survives weird bytes, and the exports stay atomic. 6 new pins.

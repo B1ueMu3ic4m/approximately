@@ -69,6 +69,18 @@ def trace_files(directory: "Path") -> List["Path"]:
             if p.name not in STORE_ARTIFACTS]
 
 
+def atomic_write(path: Path, text: str,
+                 budget_s: float = 10.0) -> None:
+    """The one artifact-write primitive: a unique tmp file in the
+    target's directory written inside a bounded budget, then
+    os.replace - readers see the old file or the complete new
+    one, and a Windows sharing violation on the tmp (the
+    indexer's favorite target) retries instead of killing the
+    door after the numbers were computed."""
+    tmp = path.with_name(path.name + f".{os.getpid()}.tmp")
+    _write_bounded(tmp, text, path, budget_s)
+
+
 def _write_bounded(tmp: Path, payload: str, path: Path,
                    budget_s: float = 10.0) -> None:
     """The trace file write shares the per-id lock's own budget: a

@@ -96,6 +96,33 @@ def test_a_transient_read_failure_is_retried_too(tmp_path,
     assert led.entries()[0].trace_id == "abcd1234ef01"
 
 
+def test_every_atomic_write_retries_a_transient(tmp_path,
+                                                monkeypatch):
+    """The artifact-write primitive shares the bounded budget:
+    report/diary/digest/plan exports must not die after the
+    numbers were computed because an indexer held the tmp."""
+    from pathlib import Path
+
+    from approximately.store import atomic_write
+
+    out = tmp_path / "artifact.html"
+    real = Path.write_text
+    state = {"n": 0}
+
+    def flaky(self, text, *a, **kw):
+        if state["n"] == 0 and self.name.endswith(".tmp"):
+            state["n"] += 1
+            raise PermissionError(32, "sharing violation")
+        return real(self, text, *a, **kw)
+
+    monkeypatch.setattr(Path, "write_text", flaky)
+    atomic_write(out, "<html>the answer</html>")
+    assert state["n"] == 1, "the write retried once and landed"
+    assert out.read_text(encoding="utf-8") == \
+        "<html>the answer</html>"
+    assert not list(tmp_path.glob("*.tmp")), "no half artifact"
+
+
 def test_a_lock_sharing_violation_is_contention(tmp_path,
                                                 monkeypatch):
     """Windows maps a sharing violation on an existing lock file to
