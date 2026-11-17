@@ -264,10 +264,17 @@ def judge_trace(
         try:
             cache = Path(cache_dir)
             cache.mkdir(parents=True, exist_ok=True)
-            _cache_path(cache, key).write_text(
-                json.dumps({"model": chosen_model, "preset": preset,
-                            "payload": payload, "raw": raw}),
-                encoding="utf-8")
+            # atomic_write: parallel judge workers share the cache
+            # directory, and a torn cache line (a crash mid-write,
+            # or a sharing violation on the tmp) would poison the
+            # verdicts every later run reads back
+            from .store import atomic_write
+
+            atomic_write(_cache_path(cache, key),
+                         json.dumps({"model": chosen_model,
+                                     "preset": preset,
+                                     "payload": payload,
+                                     "raw": raw}))
         except OSError:
             pass  # a full or read-only cache must not fail the judge
     return verdict

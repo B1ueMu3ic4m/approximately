@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.6
+
+- the concurrent writers get the primitive. (planned): - Three more sites write where others may be writing. The judge cache: parallel workers share one directory, and a torn cache line poisons every verdict read back later (atomic_write). The digest compaction: a fleet watch may be appending while the compaction rewrites - the replace is all-or-nothing instead of a torn line. And ``append_digest`` itself: a Windows sharing violation on the digest file raised out of the watch loop - the open shares the ledger's 30s budget now, giving up only by name. Each pin injects the failure it guards against.
+
 ## v5.9.5
 
 - one artifact-write primitive for everything. (planned): - The bounded-write lesson generalizes into the one primitive: ``store.atomic_write`` - a unique tmp file written inside the bounded budget, then os.replace - and every artifact door routes through it (the report/index/plan exports via cli's _atomic_write, the diary and digest exports via recall). A transient sharing violation on the tmp retries; the door never dies after the numbers were computed. The direct single-shot write_text sites (changelog, bench floors, print-tools) keep their overwrite semantics and stay documented scope - they are operator-initiated writes to paths nobody else touches concurrently. One pin injects the violation into the primitive.
