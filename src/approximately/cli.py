@@ -1830,6 +1830,17 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 def cmd_verify(args: argparse.Namespace) -> int:
 
+    names = list(getattr(args, "stores", None) or [])
+    if names:
+        # argparse hands the FIRST positional to `trace`: a fleet
+        # invocation's leading store paths land there and must
+        # rejoin the list
+        if getattr(args, "trace", None):
+            names.insert(0, args.trace)
+        return _verify_fleet(names, key=_key_of(args.key_file),
+                             as_json=getattr(args, "json", False),
+                             since_days=getattr(args, "since", None),
+                             strict=getattr(args, "strict", False))
     store = TraceStore(args.store)
     if getattr(args, "all", None):
         return _verify_all(store, key=_key_of(args.key_file),
@@ -2480,6 +2491,41 @@ def _audit_skips(store: Any) -> list:
     return skipped
 
 
+def _verify_all_payload(store: Any, key: Any,
+                        since_days: Optional[int] = None,
+                        strict: bool = False) -> dict:
+    """One store's whole batch audit as data — the fleet mode and
+    the single-store door both render from this shape."""
+    from .ledger import verify_ledger
+
+    counts = {"intact": 0, "unsigned": 0, "keyed": 0, "problem": 0}
+    rows = [_audit_row(store, trace, key, counts)
+            for trace in store.list_traces(since_days=since_days)]
+    skipped = _audit_skips(store)
+    ledger_present = (store.directory / "ledger.jsonl").is_file()
+    if skipped:
+        counts["skipped"] = len(skipped)
+    ledger_check = verify_ledger(store.directory)
+    ledger_broken = bool(ledger_check.entries) and not ledger_check.intact
+    if ledger_broken:
+        counts["problem"] += 1
+    return {"summary": counts, "skipped": skipped,
+            "ledger_present": ledger_present,
+            "ledger_broken": ledger_broken,
+            "ledger_detail": ledger_check.detail,
+            "strict": strict,
+            "traces": rows}
+
+
+def _verify_print_rows(rows: list) -> None:
+    """The per-trace verdict lines both verify doors print."""
+    for row in rows:
+        flag = {"intact": "", "unsigned": " (unsigned)",
+                "keyed": " (keyed, no key)"}.get(
+                    row["verdict"], " <-- " + row["verdict"])
+        print(f"{row['trace_id']}: {row['verdict']}{flag}")
+
+
 def _verify_all(store: Any, key: Any, as_json: bool = False,
                 since_days: Optional[int] = None,
                 strict: bool = False, quiet: bool = False) -> int:
@@ -2491,40 +2537,18 @@ def _verify_all(store: Any, key: Any, as_json: bool = False,
     """
     import json as _json
 
-    from .ledger import verify_ledger
-
-    counts = {"intact": 0, "unsigned": 0, "keyed": 0, "problem": 0}
-    skipped = []
-    rows = [_audit_row(store, trace, key, counts)
-            for trace in store.list_traces(since_days=since_days)]
-    skipped = _audit_skips(store)
-    ledger_present = (store.directory / "ledger.jsonl").is_file()
-    if skipped:
-        counts["skipped"] = len(skipped)
-    ledger_check = verify_ledger(store.directory)
-    ledger_broken = bool(ledger_check.entries) and not ledger_check.intact
-    if ledger_broken:
-        counts["problem"] += 1
+    payload = _verify_all_payload(store, key, since_days, strict)
+    counts = payload["summary"]
+    skipped = payload["skipped"]
     if as_json:
-        print(_json.dumps({
-            "summary": counts, "skipped": skipped,
-            "ledger_present": ledger_present,
-            "ledger_broken": ledger_broken,
-            "ledger_detail": ledger_check.detail,
-            "strict": strict,
-            "traces": rows,
-        }, indent=2))
+        print(_json.dumps(payload, indent=2))
         if skipped:
             return 6
         return 1 if _verify_fails(counts, strict) else 0
     if not quiet:
-        for row in rows:
-            flag = {"intact": "", "unsigned": " (unsigned)",
-                    "keyed": " (keyed, no key)"}.get(
-                        row["verdict"], " <-- " + row["verdict"])
-            print(f"{row['trace_id']}: {row['verdict']}{flag}")
-    if ledger_broken:
-        print(f"LEDGER BROKEN: {ledger_check.detail}")
+        _verify_print_rows(payload["traces"])
+    if payload["ledger_broken"]:
+        print(f"LEDGER BROKEN: {payload['ledger_detail']}")
     if skipped:
         print(f"INCOMPLETE AUDIT: {len(skipped)} file(s) unreadable, "
               "skipped: " + ", ".join(skipped[:5])
@@ -2536,6 +2560,56 @@ def _verify_all(store: Any, key: Any, as_json: bool = False,
     if skipped:
         return 6
     return 1 if _verify_fails(counts, strict) else 0
+
+
+def _verify_print_store(name: str, payload: dict,
+                        strict: bool) -> None:
+    """One store's fleet section: rows, ledger, skips, totals."""
+    counts = payload["summary"]
+    print(f"== {name} ==")
+    _verify_print_rows(payload["traces"])
+    if payload["ledger_broken"]:
+        print(f"LEDGER BROKEN: {payload['ledger_detail']}")
+    if payload["skipped"]:
+        print(f"INCOMPLETE AUDIT: {len(payload['skipped'])} "
+              "file(s) unreadable")
+    print(f"{counts['intact']} intact · "
+          f"{counts['problem']} failed"
+          + ("  [strict]" if strict else ""))
+
+
+def _verify_fleet(names: List[str], key: Any, as_json: bool,
+                  since_days: Optional[int],
+                  strict: bool) -> int:
+    """Verify every named store as one audit: a section per store,
+    the exit is the WORST (an incomplete box outranks a tampered
+    one — 6 dominates, because unreadable evidence is the deeper
+    problem than wrong evidence)."""
+    import json as _json
+
+    payloads = []
+    for name in names:
+        path = Path(name)
+        if not path.is_dir():
+            print(f"error: store not found: {path} "
+                  "(create one with `approximately new` or check the "
+                  "path)", file=sys.stderr)
+            return 2
+        payloads.append((path.name, _verify_all_payload(
+            TraceStore(path), key, since_days, strict)))
+    if as_json:
+        print(_json.dumps({"stores": [{"store": n, **p}
+                                      for n, p in payloads]}, indent=2))
+    else:
+        for name, payload in payloads:
+            _verify_print_store(name, payload, strict)
+    worst = 0
+    for _name, payload in payloads:
+        if payload["skipped"]:
+            worst = max(worst, 6)
+        elif _verify_fails(payload["summary"], strict):
+            worst = max(worst, 1)
+    return worst
 
 
 def _verify_fails(counts: dict, strict: bool) -> bool:
@@ -6188,6 +6262,11 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("verify", parents=[common],
                        help="verify the tamper-evident hash chain of a trace")
     p.add_argument("trace", nargs="?", help="trace id (required unless --all)")
+    p.add_argument("stores", nargs="*",
+                   help="optional store directories verified as ONE "
+                        "audit (fleet mode: a section per store, the "
+                        "exit is the worst; default is the --store "
+                        "path)")
     p.add_argument("--key-file",
                    help="signing key file for HMAC-keyed traces")
     p.add_argument("--verify", metavar="PACK",
