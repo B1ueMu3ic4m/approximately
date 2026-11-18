@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.10
+
+- verify walks the fleet. (planned): - The verify door audited exactly one store - but the evidence now lives wherever each agent ran, and the operator's question is "is EVERY box's evidence still good?", not "is this one?". Positional store paths verify as ONE audit: a section per store, each verdict labeled with its store, ``--json`` aggregates under ``stores``, and the exit is the WORST (an incomplete box outranks a tampered one - unreadable evidence is the deeper problem: 6 dominates 1). A typo'd store answers by name. The payload refactor (_verify_all_payload) means the fleet mode and the single-store door render from one shape - the single-store prose is byte-identical, the JSON gains no key. argparse hands the first positional to ``trace``: a fleet invocation's leading paths land there and rejoin the list (pinned).
+
 ## v5.9.9
 
 - the tool description names the new doors. (planned): - The MCP recall description still ended at summarize: digest, stores and day were wired but INVISIBLE to a client listing tools - a door the schema hides is a door half of the ecosystem never calls. The description now names all three (digest=true postmortems, day= one calendar day, stores=[...] one memory over several stores); docs/mcp-tools.json regenerated. The repo About already carries conversation recall.

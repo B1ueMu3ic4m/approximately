@@ -2495,6 +2495,24 @@ framework adapters import lazily and degrade when the framework is absent.
        regenerated. The repo About already carries
        conversation recall.
 
+580. **v5.9.10 - verify walks the fleet** (planned):
+       - The verify door audited exactly one store - but the
+       evidence now lives wherever each agent ran, and the
+       operator's question is "is EVERY box's evidence still
+       good?", not "is this one?". Positional store paths
+       verify as ONE audit: a section per store, each verdict
+       labeled with its store, ``--json`` aggregates under
+       ``stores``, and the exit is the WORST (an incomplete
+       box outranks a tampered one - unreadable evidence is
+       the deeper problem: 6 dominates 1). A typo'd store
+       answers by name. The payload refactor
+       (_verify_all_payload) means the fleet mode and the
+       single-store door render from one shape - the
+       single-store prose is byte-identical, the JSON gains
+       no key. argparse hands the first positional to
+       ``trace``: a fleet invocation's leading paths land
+       there and rejoin the list (pinned).
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
