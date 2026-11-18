@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.15
+
+- the README shows the fleet convention. (planned): - Four doors now read several stores as ONE view (recall/recall-summary/recall-digest, verify, handoff --queue) under the same positional convention - but the README buried each in its own row. A consolidated "Fleet mode" section shows the convention once, with the divergence contract, the worst-exit rule, and the not-found refusal - the convention a lost human reads must be findable in one place.
+
 ## v5.9.14
 
 - the MCP handoff surface meets the worklist. (planned): - The CLI handoff door grew --queue in v1.6 and the fleet worklist in v5.9.13; the MCP handoff tool stayed per-trace - an agent asking "what failures should I work off?" had to call triage and handoff separately and stitch the pages itself. The handoff tool gains queue=N (the postmortem worklist) and stores=[...] (the fleet worklist, every brief naming its box). The wire stays honest: queue < 1 refuses by name, a typo'd store answers by name, the schema describes both keys (and drops the trace requirement - the worklist replaces it), and the per-trace shape is unchanged. Also: the commit landed on local main again (the checkout step missed after the merge) - the branch-at-sha recovery held, nothing reached the remote.
