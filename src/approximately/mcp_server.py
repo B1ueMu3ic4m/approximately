@@ -1079,7 +1079,11 @@ _TOOLS: List[Dict[str, Any]] = [
                        "token/cost burn at the store's price "
                        "catalog, annotations on file, and the full "
                        "record path. redact=true scrubs builtin "
-                       "secret shapes from every free-text line.",
+                       "secret shapes from every free-text line. "
+                       "queue=N returns the postmortem worklist "
+                       "instead (briefs for the top N unannotated "
+                       "failures; stores=[...] makes it a fleet "
+                       "worklist where every brief names its box).",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -1088,8 +1092,18 @@ _TOOLS: List[Dict[str, Any]] = [
                 "redact": {"type": "boolean",
                            "description": "sanitize the brief "
                                           "(builtin patterns)"},
+                "queue": {"type": "integer",
+                          "description": "the postmortem worklist "
+                                         "instead: briefs for the "
+                                         "top N unannotated "
+                                         "failures"},
+                "stores": {"type": "array",
+                           "items": {"type": "string"},
+                           "description": "store directories for "
+                                          "the queue worklist "
+                                          "(fleet mode: every brief "
+                                          "names its box)"},
             },
-            "required": ["trace"],
         },
     },
     {
@@ -1487,7 +1501,7 @@ def _verify_tally(store: Any, key: Any) -> dict:
     return {"traces": len(rows), "tally": counts, "rows": rows}
 
 
-def _verify_stores(paths: Any) -> List[Any]:
+def _named_stores(paths: Any) -> List[Any]:
     """The fleet view's store list, refused at the boundary: a
     non-list or a typo'd path names itself (the recall doors'
     convention)."""
@@ -1517,7 +1531,7 @@ def _tool_verify(ctx: ServerContext, args: Dict[str, Any]) -> dict:
                     "stores": [{"store": name,
                                 **_verify_tally(store, key)}
                                for name, store in
-                               _verify_stores(paths)]}
+                               _named_stores(paths)]}
         store = _store(ctx, args)
         return {"all": True, **_verify_tally(store, key)}
     store = _store(ctx, args)
@@ -2524,17 +2538,29 @@ def _tool_grade(ctx: ServerContext, args: Dict[str, Any]) -> dict:
 
 
 def _tool_handoff(ctx: ServerContext, args: Dict[str, Any]) -> dict:
-    from .handoff import brief
+    from .handoff import brief, worklist, worklist_fleet
 
-    store = _store(ctx, args)
-    trace = _mcp_trace(store, args.get("trace"))
-    if trace is None:
-        raise KeyError(f"no trace {args['trace']!r} in store")
     table = None
     if args.get("redact"):
         from .redact import compile_patterns
 
         table = compile_patterns()
+    queue = _opt_int(args, "queue")
+    if queue is not None:
+        if queue < 1:
+            raise ValueError("queue must be >= 1")
+        paths = args.get("stores")
+        if paths is not None:
+            page = worklist_fleet(_named_stores(paths),
+                                  limit=queue, table=table)
+        else:
+            page = worklist(_store(ctx, args), limit=queue,
+                            table=table)
+        return {"queue": queue, "markdown": page}
+    store = _store(ctx, args)
+    trace = _mcp_trace(store, args.get("trace"))
+    if trace is None:
+        raise KeyError(f"no trace {args['trace']!r} in store")
     return {"trace": trace.id, "redacted": bool(table),
             "markdown": brief(trace, store, table=table)}
 

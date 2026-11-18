@@ -1149,7 +1149,7 @@
     },
     {
       "name": "handoff",
-      "description": "One markdown brief for the next engineer (or agent): what failed and the attribution, whether the hash chain is trustworthy, the token/cost burn at the store's price catalog, annotations on file, and the full record path. redact=true scrubs builtin secret shapes from every free-text line.",
+      "description": "One markdown brief for the next engineer (or agent): what failed and the attribution, whether the hash chain is trustworthy, the token/cost burn at the store's price catalog, annotations on file, and the full record path. redact=true scrubs builtin secret shapes from every free-text line. queue=N returns the postmortem worklist instead (briefs for the top N unannotated failures; stores=[...] makes it a fleet worklist where every brief names its box).",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1162,11 +1162,19 @@
           "redact": {
             "type": "boolean",
             "description": "sanitize the brief (builtin patterns)"
+          },
+          "queue": {
+            "type": "integer",
+            "description": "the postmortem worklist instead: briefs for the top N unannotated failures"
+          },
+          "stores": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "store directories for the queue worklist (fleet mode: every brief names its box)"
           }
-        },
-        "required": [
-          "trace"
-        ]
+        }
       }
     },
     {
