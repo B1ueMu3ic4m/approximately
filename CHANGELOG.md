@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.14
+
+- the MCP handoff surface meets the worklist. (planned): - The CLI handoff door grew --queue in v1.6 and the fleet worklist in v5.9.13; the MCP handoff tool stayed per-trace - an agent asking "what failures should I work off?" had to call triage and handoff separately and stitch the pages itself. The handoff tool gains queue=N (the postmortem worklist) and stores=[...] (the fleet worklist, every brief naming its box). The wire stays honest: queue < 1 refuses by name, a typo'd store answers by name, the schema describes both keys (and drops the trace requirement - the worklist replaces it), and the per-trace shape is unchanged.
+
 ## v5.9.13
 
 - the postmortem worklist walks the fleet. (planned): - The handoff --queue worklist read exactly one store - but the failures to work off live wherever each agent ran. Positional store paths make the fleet worklist: each store's queue in its own order, the cap applied across the total with the overflow COUNTED beyond the cap (never swallowed), every brief naming its box (the reader has to know which machine owns the failure), and a typo'd store answering by name. The single-store worklist is byte-identical. The cmd_handoff extraction notes: the redact table (duplicated per path) and the fleet page builder move into helpers; the complexity floor holds at 87.
