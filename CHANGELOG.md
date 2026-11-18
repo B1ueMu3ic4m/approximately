@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.12
+
+- a budget that far from its measurement is a noise detector. (planned): - The result-meter gate tripped a second Windows CI loss while measuring ~110ms locally against a 5s budget: the 2k-trace store build on the noisy legs shares the machine with the OS's own indexing, and a budget 45x from its measurement is a CI-noise detector, not a regression detector. The meter's budget widens to 15s - the regression sensitivity stays (a real slowdown is a multiple, not a 15x), and the runner stops being flagged.
+
 ## v5.9.11
 
 - the MCP verify surface meets the fleet. (planned): - The MCP verify tool kept its single-store surface - an agent harness asking "is EVERY box's evidence still good?" had no door. The verify tool gains ``stores`` (with all=true): a tally per store, the same shape the CLI's fleet mode aggregates. The wire stays honest: a non-list item and a typo'd path answer by name (the recall doors' convention), the schema describes the key, and the single-store wire shape gains nothing.

@@ -2524,6 +2524,17 @@ framework adapters import lazily and degrade when the framework is absent.
        recall doors' convention), the schema describes the
        key, and the single-store wire shape gains nothing.
 
+582. **v5.9.12 - a budget that far from its measurement is a
+       noise detector** (planned):
+       - The result-meter gate tripped a second Windows CI loss
+       while measuring ~110ms locally against a 5s budget: the
+       2k-trace store build on the noisy legs shares the machine
+       with the OS's own indexing, and a budget 45x from its
+       measurement is a CI-noise detector, not a regression
+       detector. The meter's budget widens to 15s - the
+       regression sensitivity stays (a real slowdown is a
+       multiple, not a 15x), and the runner stops being flagged.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
