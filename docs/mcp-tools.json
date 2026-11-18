@@ -68,6 +68,13 @@
           "all": {
             "type": "boolean",
             "description": "verify every trace in the store and return the tally (trace omitted)"
+          },
+          "stores": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "store directories verified as ONE audit (with all=true): a tally per store"
           }
         },
         "required": []
