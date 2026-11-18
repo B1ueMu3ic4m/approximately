@@ -2578,6 +2578,19 @@ framework adapters import lazily and degrade when the framework is absent.
        not-found refusal - the convention a lost human reads
        must be findable in one place.
 
+586. **v5.9.16 - the scaffolded agent inherits the discipline**
+       (planned):
+       - The scaffold's AGENT_TEMPLATE wrote its own report
+       with a bare write_text - the USER's project, the one
+       place a sharing violation would kill the user's own
+       tour after the numbers were computed. The template now
+       imports the package's atomic_write (the scaffolded
+       project already imports approximately for the Recorder)
+       and writes through it - a user project inherits the
+       discipline and the Windows robustness, not just the
+       API. A pin compiles the generated agent and asserts the
+       primitive is there.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

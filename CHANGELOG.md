@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.16
+
+- the scaffolded agent inherits the discipline. (planned): - The scaffold's AGENT_TEMPLATE wrote its own report with a bare write_text - the USER's project, the one place a sharing violation would kill the user's own tour after the numbers were computed. The template now imports the package's atomic_write (the scaffolded project already imports approximately for the Recorder) and writes through it - a user project inherits the discipline and the Windows robustness, not just the API. A pin compiles the generated agent and asserts the primitive is there.
+
 ## v5.9.15
 
 - the README shows the fleet convention. (planned): - Four doors now read several stores as ONE view (recall/recall-summary/recall-digest, verify, handoff --queue) under the same positional convention - but the README buried each in its own row. A consolidated "Fleet mode" section shows the convention once, with the divergence contract, the worst-exit rule, and the not-found refusal - the convention a lost human reads must be findable in one place.

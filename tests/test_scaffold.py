@@ -51,6 +51,24 @@ def test_scaffold_is_idempotent_friendly(tmp_path):
     assert (tmp_path / "ag" / "agent.py").exists()
 
 
+def test_the_scaffolded_agent_writes_atomically(tmp_path,
+                                                monkeypatch):
+    """The generated agent.py's report write uses the SAME
+    primitive the package uses: a user project inherits the
+    discipline (and the Windows sharing-violation robustness),
+    not just the API."""
+    monkeypatch.chdir(tmp_path)
+    code = main(["new", "atomic_probe"])
+    assert code == 0
+    agent = (tmp_path / "atomic_probe" / "agent.py").read_text(
+        encoding="utf-8")
+    assert "atomic_write" in agent, (
+        "the generated agent wrote its report with a bare "
+        "write_text - a sharing violation would kill the user's "
+        "own tour after the numbers were computed")
+    compile(agent, "agent.py", "exec")
+
+
 def test_scaffold_rejects_traversal_names(tmp_path):
     from approximately.scaffold import scaffold
 
