@@ -2631,6 +2631,21 @@ framework adapters import lazily and degrade when the framework is absent.
        name, the schema describes the key, and the
        single-store shape is unchanged.
 
+590. **v5.9.20 - the fleet doors meet corrupt records TOGETHER**
+       (planned):
+       - Each fleet door's hostile-store sweep ran on its own;
+       the composition pin runs corrupt files, an oversized
+       task, a script-tag tool and a 5KB error across TWO
+       boxes through every fleet door at once. The
+       composition found one gap: the fleet verify section
+       reported the skip COUNT but not the skip NAMES (the
+       single-store door names them - the fleet section's
+       render was a quieter copy). The section now names the
+       skipped files like the single door does. The rest of
+       the composition held: memory/worklist doors answer by
+       data, the incomplete box dominates the exit (6), and
+       no box's junk crosses into the other box's section.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.20
+
+- the fleet doors meet corrupt records TOGETHER. (planned): - Each fleet door's hostile-store sweep ran on its own; the composition pin runs corrupt files, an oversized task, a script-tag tool and a 5KB error across TWO boxes through every fleet door at once. The composition found one gap: the fleet verify section reported the skip COUNT but not the skip NAMES (the single-store door names them - the fleet section's render was a quieter copy). The section now names the skipped files like the single door does. The rest of the composition held: memory/worklist doors answer by data, the incomplete box dominates the exit (6), and no box's junk crosses into the other box's section.
+
 ## v5.9.19
 
 - the MCP doctor surface meets the fleet. (planned): - The audit family's last MCP gap: verify gained stores (v5.9.11), handoff gained the fleet worklist (v5.9.14) - the doctor tool still audited ONE store, so an agent checking every box's hygiene made N calls and aggregated the verdicts itself. The doctor tool gains ``stores``: a FLEET audit (one report per store, healthy = every box healthy). Audit-ONLY by design - a repair needs an operator looking at ONE box, so the fleet mode never crosses fix=true. The wire stays honest: a non-list item and a typo'd path answer by name, the schema describes the key, and the single-store shape is unchanged.

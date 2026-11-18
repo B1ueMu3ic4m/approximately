@@ -2598,8 +2598,10 @@ def _verify_print_store(name: str, payload: dict,
     if payload["ledger_broken"]:
         print(f"LEDGER BROKEN: {payload['ledger_detail']}")
     if payload["skipped"]:
-        print(f"INCOMPLETE AUDIT: {len(payload['skipped'])} "
-              "file(s) unreadable")
+        skipped = payload["skipped"]
+        print(f"INCOMPLETE AUDIT: {len(skipped)} file(s) unreadable, "
+              "skipped: " + ", ".join(skipped[:5])
+              + ("…" if len(skipped) > 5 else ""))
     print(f"{counts['intact']} intact · "
           f"{counts['problem']} failed"
           + ("  [strict]" if strict else ""))
