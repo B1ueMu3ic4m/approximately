@@ -2602,6 +2602,20 @@ framework adapters import lazily and degrade when the framework is absent.
        the pin asserts the audit actually vouches for the
        store it measured.
 
+588. **v5.9.18 - the budget-hygiene policy, applied** (planned):
+       - The budget audit computed every gate's headroom ratio
+       (budget / local measurement): result-meter tripped TWO
+       Windows losses at 44x headroom, so contention on the
+       noisy legs can eat 45x and more - every gate below ~25x
+       was exposed. The policy: every gate's budget is >= 100x
+       its local measurement (verify 5s to 30s, recall 5s to
+       15s, status-frame 5s to 25s, doctor 5s to 15s, ci 30s
+       to 120s; the healthy ones stay). A generous budget
+       costs nothing - the gate's runtime is the measurement;
+       the budget only decides pass/fail - and a real
+       regression is a multiple, which still fails it. The
+       policy lives as the comment the next gate author reads.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

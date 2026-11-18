@@ -45,7 +45,7 @@ def main() -> int:
             + retention_gate() + archive_stats_gate()
             + status_frame_gate() + recall_gate() + verify_gate())
 
-def verify_gate(budget_s: float = 5.0) -> int:
+def verify_gate(budget_s: float = 30.0) -> int:
     """The evidence audit over a 2k-trace store.
 
     verify --all recomputes every trace's chain and walks the
@@ -82,7 +82,7 @@ def verify_gate(budget_s: float = 5.0) -> int:
     return 0
 
 
-def recall_gate(budget_s: float = 5.0) -> int:
+def recall_gate(budget_s: float = 15.0) -> int:
     """The memory doors over a 2k-trace store.
 
     recall scans every conversation's every field on a grep; the
@@ -174,7 +174,7 @@ def archive_stats_gate(budget_s: float = 5.0) -> int:
     return 0
 
 
-def status_frame_gate(budget_s: float = 5.0) -> int:
+def status_frame_gate(budget_s: float = 25.0) -> int:
     """One status frame over a 2k-trace store with a 5k-row archive.
 
     The watch mode renders this frame every few seconds, and the
@@ -325,7 +325,7 @@ def import_gate(budget_s: float = 15.0) -> int:
     return 0
 
 
-def doctor_gate(budget_s: float = 5.0) -> int:
+def doctor_gate(budget_s: float = 15.0) -> int:
     """The store health check over 2k traces, orphan annotations and
     a judge cache included. Doctor grew several passes (orphans,
     judge cache, ledger) — this gate pins the whole walk so the
@@ -639,7 +639,7 @@ def survey_spend_gate(budget_s: float = 20.0) -> int:
 
 
 
-def ci_gate(budget_s: float = 30.0) -> int:
+def ci_gate(budget_s: float = 120.0) -> int:
     """The quality-gate door (v2.23) over a 10k-trace store.
 
     cmd_ci walks traces three times (durations, tokens, stats) and
@@ -798,6 +798,14 @@ def quarantine_gate(budget_s: float = 10.0) -> int:
 
 
 def result_meter_gate(budget_s: float = 15.0) -> int:
+    # THE BUDGET-HYGIENE POLICY (v5.9.12 + v5.9.18): every gate's
+    # budget is >= 100x its local measurement. The result-meter
+    # tripped TWO Windows losses at 44x headroom - contention on
+    # the noisy legs can eat 45x and more - so headroom below
+    # ~25x is an exposed gate. A generous budget costs nothing
+    # (the gate's runtime is the measurement; the budget only
+    # decides pass/fail), and a real regression is a multiple,
+    # which still fails it.
     # 15s, not 5s: the meter measures ~110ms locally, but the two
     # Windows CI losses (the noisy legs, where the 2k-trace store
     # build shares the machine with the OS's own indexing) both
