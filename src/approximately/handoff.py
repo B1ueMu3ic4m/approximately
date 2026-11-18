@@ -11,7 +11,7 @@ so the page is safe to paste before it exists.
 from __future__ import annotations
 
 import time
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Tuple
 
 from .trace import Trace
 
@@ -155,6 +155,40 @@ def brief(trace: Trace, store: Any,
     lines.append(f"*Full record: `{store.directory}/{trace.id}.json` "
                  f"— verify with `approximately verify {trace.id}`*")
     return "\n".join(lines)
+
+
+def worklist_fleet(stores: List[Tuple[str, Any]],
+                   limit: int = 5,
+                   table: Optional[dict] = None) -> str:
+    """The fleet worklist: the same page over several stores —
+    each store's queue in its own order, concatenated, and the
+    limit applied across the total; every brief names its box
+    (the reader has to know which machine owns the failure)."""
+    parts = [f"# postmortem worklist (fleet) — {limit} brief cap"]
+    owed = 0
+    for name, store in stores:
+        from .triage import triage_store
+
+        rows = triage_store(store, unannotated_only=True)[:limit]
+        for row in rows:
+            owed += 1
+            if owed > limit:
+                continue
+            trace = store.load(row.trace_id)
+            if trace is None:
+                parts.append(f"\n## {row.trace_id} ({name})\n\n"
+                             "unreadable — left for `doctor --fix`\n")
+                continue
+            page = brief(trace, store, table=table)
+            tagged = page.replace("\n", f"\n> store: {name}\n", 1)
+            parts.append("\n" + tagged)
+    if not owed:
+        return ("postmortem worklist: nothing owed — every failed "
+                "run in the window carries an annotation\n")
+    if owed > limit:
+        parts.append(f"\n({owed - limit} more brief(s) beyond the "
+                     f"cap of {limit})\n")
+    return "\n".join(parts) + "\n"
 
 
 def worklist(store: Any, limit: int = 5,
