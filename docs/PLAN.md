@@ -2616,6 +2616,21 @@ framework adapters import lazily and degrade when the framework is absent.
        regression is a multiple, which still fails it. The
        policy lives as the comment the next gate author reads.
 
+589. **v5.9.19 - the MCP doctor surface meets the fleet**
+       (planned):
+       - The audit family's last MCP gap: verify gained stores
+       (v5.9.11), handoff gained the fleet worklist (v5.9.14)
+       - the doctor tool still audited ONE store, so an agent
+       checking every box's hygiene made N calls and
+       aggregated the verdicts itself. The doctor tool gains
+       ``stores``: a FLEET audit (one report per store,
+       healthy = every box healthy). Audit-ONLY by design - a
+       repair needs an operator looking at ONE box, so the
+       fleet mode never crosses fix=true. The wire stays
+       honest: a non-list item and a typo'd path answer by
+       name, the schema describes the key, and the
+       single-store shape is unchanged.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
