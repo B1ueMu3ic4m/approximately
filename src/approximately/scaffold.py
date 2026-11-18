@@ -59,8 +59,9 @@ if __name__ == "__main__":
     report = attribute(rec.trace)
     print(report.summary)
     out = store / f"{{rec.trace.id}}.report.html"
-    out.write_text(render_html(rec.trace, report),
-                    encoding="utf-8")
+    from approximately.store import atomic_write
+
+    atomic_write(out, render_html(rec.trace, report))
     print(f"report: {{out}}")
 '''
 
