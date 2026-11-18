@@ -1211,20 +1211,51 @@ def _emit_markdown(page: str, out: Optional[str], json_mode: bool,
     return 0
 
 
+def _fleet_worklist_page(names: List[str],
+                         args: argparse.Namespace,
+                         table: Optional[dict]) -> str:
+    """The fleet worklist page: the named stores resolved and
+    refused by name, the queue interleaved, every brief naming
+    its box. argparse hands the FIRST positional to ``trace``: a
+    fleet invocation's leading store paths land there and must
+    rejoin the list."""
+    from .handoff import worklist_fleet
+
+    if getattr(args, "trace", None):
+        names = [args.trace, *names]
+    stores = []
+    for name in names:
+        path = Path(name)
+        if not path.is_dir():
+            print(f"error: store not found: {path}", file=sys.stderr)
+            raise SystemExit(2)
+        stores.append((path.name, TraceStore(path)))
+    return worklist_fleet(stores, limit=int(args.queue), table=table)
+
+
+def _redact_table(args: argparse.Namespace) -> Optional[dict]:
+    """The --redact view's builtin secret patterns, or None."""
+    if not getattr(args, "redact", False):
+        return None
+    from .redact import compile_patterns
+
+    return compile_patterns()
+
+
 def cmd_handoff(args: argparse.Namespace) -> int:
     """One markdown page for the next engineer (or agent)."""
     from .handoff import brief
 
     store = TraceStore(args.store)
     if getattr(args, "queue", None) is not None:
-        table = None
-        if getattr(args, "redact", False):
-            from .redact import compile_patterns
-
-            table = compile_patterns()
+        table = _redact_table(args)
+        names = list(getattr(args, "stores", None) or [])
+        if names:
+            page = _fleet_worklist_page(names, args, table)
+        else:
+            page = _worklist_page(store, int(args.queue), table)
         return _emit_markdown(
-            _worklist_page(store, int(args.queue), table),
-            worklist=True, out=getattr(args, "out", None),
+            page, worklist=True, out=getattr(args, "out", None),
             json_mode=bool(getattr(args, "json", False)))
     if not args.trace:
         print("error: a trace id is required (or use --queue N)",
@@ -1234,11 +1265,7 @@ def cmd_handoff(args: argparse.Namespace) -> int:
     if trace is None:
         print(f"error: no such trace: {args.trace}", file=sys.stderr)
         return 2
-    table = None
-    if getattr(args, "redact", False):
-        from .redact import compile_patterns
-
-        table = compile_patterns()
+    table = _redact_table(args)
     page = brief(trace, store, table=table)
     if getattr(args, "out", None):
         try:
@@ -6043,6 +6070,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--queue", type=int, metavar="N",
                    help="the postmortem worklist instead: briefs "
                         "for the top N unannotated failures")
+    p.add_argument("stores", nargs="*",
+                   help="optional store directories for the --queue "
+                        "worklist (fleet mode: the queue interleaves, "
+                        "every brief names its box; default is the "
+                        "--store path)")
     p.add_argument("--redact", action="store_true",
                    help="render from a sanitized view (builtin "
                         "secret patterns scrubbed)")

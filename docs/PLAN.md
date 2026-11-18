@@ -2535,6 +2535,21 @@ framework adapters import lazily and degrade when the framework is absent.
        regression sensitivity stays (a real slowdown is a
        multiple, not a 15x), and the runner stops being flagged.
 
+583. **v5.9.13 - the postmortem worklist walks the fleet**
+       (planned):
+       - The handoff --queue worklist read exactly one store -
+       but the failures to work off live wherever each agent
+       ran. Positional store paths make the fleet worklist:
+       each store's queue in its own order, the cap applied
+       across the total with the overflow COUNTED beyond the
+       cap (never swallowed), every brief naming its box (the
+       reader has to know which machine owns the failure), and
+       a typo'd store answering by name. The single-store
+       worklist is byte-identical. The cmd_handoff extraction
+       notes: the redact table (duplicated per path) and the
+       fleet page builder move into helpers; the complexity
+       floor holds at 87.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

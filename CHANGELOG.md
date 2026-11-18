@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.13
+
+- the postmortem worklist walks the fleet. (planned): - The handoff --queue worklist read exactly one store - but the failures to work off live wherever each agent ran. Positional store paths make the fleet worklist: each store's queue in its own order, the cap applied across the total with the overflow COUNTED beyond the cap (never swallowed), every brief naming its box (the reader has to know which machine owns the failure), and a typo'd store answering by name. The single-store worklist is byte-identical. The cmd_handoff extraction notes: the redact table (duplicated per path) and the fleet page builder move into helpers; the complexity floor holds at 87.
+
 ## v5.9.12
 
 - a budget that far from its measurement is a noise detector. (planned): - The result-meter gate tripped a second Windows CI loss while measuring ~110ms locally against a 5s budget: the 2k-trace store build on the noisy legs shares the machine with the OS's own indexing, and a budget 45x from its measurement is a CI-noise detector, not a regression detector. The meter's budget widens to 15s - the regression sensitivity stays (a real slowdown is a multiple, not a 15x), and the runner stops being flagged.
