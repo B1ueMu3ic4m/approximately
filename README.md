@@ -240,6 +240,31 @@ Every row is HMAC-signed (an open receiver marks rows `verified: false` instead)
 
 Advanced: **local small-model judge** (`distill` exports training data; per-serving-stack recipes in [docs/DISTILLATION.md](docs/DISTILLATION.md) — Ollama, llama.cpp, vLLM, TGI, OpenAI fine-tunes), **attribution benchmark** (`benchmark`, per-mode precision/recall/F1, `--html` renders a shareable leaderboard page), **cost-vs-recall curve reports** (`curve`), **threat model** ([docs/SECURITY.md](docs/SECURITY.md)).
 
+## Fleet mode: one memory, one audit, one queue — over every box
+
+Agents run on several machines and the evidence lives wherever
+each one ran. The doors that answer operator questions read
+several stores as ONE view — positional store paths, the same
+convention everywhere:
+
+```
+approximately recall ~/ops-store ~/coding-store       # one memory over every box
+approximately recall-summary ~/ops-store ~/coding-store
+approximately recall-digest ~/ops-store ~/coding-store # the weekly postmortem
+approximately verify ~/ops-store ~/coding-store        # the fleet's evidence, vouched as one
+approximately handoff --queue 5 ~/ops-store ~/coding-store  # the triage queue across boxes
+```
+
+- recall/search/summary/digest entries name their store; the same
+  trace id landing in two boxes counts once, and copies that
+  DIVERGED are named (the sync-conflict the ledger exists to catch)
+- verify prints a section per store and exits with the WORST
+  verdict — an incomplete box outranks a tampered one
+- the handoff worklist's cap applies across the total, with the
+  overflow counted beyond the cap
+- a typo'd store path always answers `store not found` — a
+  silently-created empty store would read as lost evidence
+
 ## Design principles
 
 1. **Zero dependencies** — the core uses only the Python standard library; attribution works offline, deterministically, and for free

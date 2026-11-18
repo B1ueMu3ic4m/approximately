@@ -2567,6 +2567,17 @@ framework adapters import lazily and degrade when the framework is absent.
        checkout step missed after the merge) - the
        branch-at-sha recovery held, nothing reached the remote.
 
+585. **v5.9.15 - the README shows the fleet convention**
+       (planned):
+       - Four doors now read several stores as ONE view
+       (recall/recall-summary/recall-digest, verify, handoff
+       --queue) under the same positional convention - but the
+       README buried each in its own row. A consolidated
+       "Fleet mode" section shows the convention once, with
+       the divergence contract, the worst-exit rule, and the
+       not-found refusal - the convention a lost human reads
+       must be findable in one place.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
