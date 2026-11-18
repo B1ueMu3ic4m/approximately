@@ -2563,6 +2563,9 @@ framework adapters import lazily and degrade when the framework is absent.
        answers by name, the schema describes both keys (and
        drops the trace requirement - the worklist replaces it),
        and the per-trace shape is unchanged.
+       Also: the commit landed on local main again (the
+       checkout step missed after the merge) - the
+       branch-at-sha recovery held, nothing reached the remote.
 
 ## 4. Launch plan
 
