@@ -13,7 +13,7 @@ per-trace shape is unchanged.
 
 import json
 
-from approximately.mcp_server import ServerContext, _TOOLS, handle_request
+from approximately.mcp_server import _TOOLS, ServerContext, handle_request
 from approximately.recorder import Recorder
 from approximately.store import TraceStore
 
