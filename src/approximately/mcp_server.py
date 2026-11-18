@@ -94,6 +94,12 @@ _TOOLS: List[Dict[str, Any]] = [
                         "description": "verify every trace in the "
                                        "store and return the tally "
                                        "(trace omitted)"},
+                "stores": {"type": "array",
+                           "items": {"type": "string"},
+                           "description": "store directories "
+                                          "verified as ONE audit "
+                                          "(with all=true): a tally "
+                                          "per store"},
             },
             "required": [],
         },
@@ -1466,22 +1472,55 @@ def _tool_attribute(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     return payload
 
 
-def _tool_verify(ctx: ServerContext, args: Dict[str, Any]) -> dict:
-    from .integrity import load_key, verdict_payload, verify
+def _verify_tally(store: Any, key: Any) -> dict:
+    """One store's whole-store tally: the shape both the single
+    door and the fleet view return."""
+    from .integrity import verify
 
-    store = _store(ctx, args)
+    counts: dict = {}
+    rows = []
+    for trace in store.list_traces():
+        result = verify(trace, key=key)
+        counts[result.verdict] = counts.get(result.verdict, 0) + 1
+        rows.append({"trace_id": trace.id,
+                     "verdict": result.verdict})
+    return {"traces": len(rows), "tally": counts, "rows": rows}
+
+
+def _verify_stores(paths: Any) -> List[Any]:
+    """The fleet view's store list, refused at the boundary: a
+    non-list or a typo'd path names itself (the recall doors'
+    convention)."""
+    from .store import TraceStore
+
+    if not isinstance(paths, list) or \
+            any(not isinstance(p, str) for p in paths):
+        raise ValueError("stores must be a list of paths")
+    stores = []
+    for p in paths:
+        path = Path(p)
+        if not path.is_dir():
+            raise ValueError(f"store not found: {path}")
+        stores.append((path.name, TraceStore(path)))
+    return stores
+
+
+def _tool_verify(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .integrity import load_key, verdict_payload
+
     key = (load_key(str(args["key_file"]))
            if args.get("key_file") else None)
     if args.get("all") and not args.get("trace"):
-        counts: dict = {}
-        rows = []
-        for trace in store.list_traces():
-            result = verify(trace, key=key)
-            counts[result.verdict] = counts.get(result.verdict, 0) + 1
-            rows.append({"trace_id": trace.id,
-                         "verdict": result.verdict})
-        return {"all": True, "traces": len(rows), "tally": counts,
-                "rows": rows}
+        paths = args.get("stores")
+        if paths is not None:
+            return {"all": True,
+                    "stores": [{"store": name,
+                                **_verify_tally(store, key)}
+                               for name, store in
+                               _verify_stores(paths)]}
+        store = _store(ctx, args)
+        return {"all": True, **_verify_tally(store, key)}
+    store = _store(ctx, args)
     trace = _mcp_trace(store, args.get("trace"))
     if trace is None:
         raise KeyError(f"no trace {args['trace']!r} in store")
