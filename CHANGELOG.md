@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.19
+
+- the MCP doctor surface meets the fleet. (planned): - The audit family's last MCP gap: verify gained stores (v5.9.11), handoff gained the fleet worklist (v5.9.14) - the doctor tool still audited ONE store, so an agent checking every box's hygiene made N calls and aggregated the verdicts itself. The doctor tool gains ``stores``: a FLEET audit (one report per store, healthy = every box healthy). Audit-ONLY by design - a repair needs an operator looking at ONE box, so the fleet mode never crosses fix=true. The wire stays honest: a non-list item and a typo'd path answer by name, the schema describes the key, and the single-store shape is unchanged.
+
 ## v5.9.18
 
 - the budget-hygiene policy, applied. (planned): - The budget audit computed every gate's headroom ratio (budget / local measurement): result-meter tripped TWO Windows losses at 44x headroom, so contention on the noisy legs can eat 45x and more - every gate below ~25x was exposed. The policy: every gate's budget is >= 100x its local measurement (verify 5s to 30s, recall 5s to 15s, status-frame 5s to 25s, doctor 5s to 15s, ci 30s to 120s; the healthy ones stay). A generous budget costs nothing - the gate's runtime is the measurement; the budget only decides pass/fail - and a real regression is a multiple, which still fails it. The policy lives as the comment the next gate author reads.

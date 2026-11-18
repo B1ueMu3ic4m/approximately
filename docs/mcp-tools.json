@@ -402,6 +402,13 @@
             "type": "boolean",
             "description": "recompute every record's integrity chain \u2014 a record can be parseable yet lie"
           },
+          "stores": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "store directories for a FLEET audit (one report per store, healthy = every box healthy); audit-only, no fix"
+          },
           "fix": {
             "type": "boolean",
             "description": "also repair: remove stale locks and temp files, quarantine corrupt records into <store>/.quarantine with a manifest (bytes preserved)"

@@ -385,6 +385,13 @@ _TOOLS: List[Dict[str, Any]] = [
                          "description": "recompute every record's "
                                         "integrity chain — a record "
                                         "can be parseable yet lie"},
+                "stores": {"type": "array",
+                           "items": {"type": "string"},
+                           "description": "store directories for a "
+                                          "FLEET audit (one report "
+                                          "per store, healthy = "
+                                          "every box healthy); "
+                                          "audit-only, no fix"},
                 "fix": {"type": "boolean",
                         "description": "also repair: remove stale "
                                        "locks and temp files, "
@@ -1947,8 +1954,44 @@ def _tool_spend_forecast(ctx: ServerContext,
                           horizon_days=horizon or 14)
 
 
+def _doctor_summary(directory: Path, args: Dict[str, Any]) -> dict:
+    """One store's doctor report as the wire wants it: the health
+    verdict and the finding counts, audit-only."""
+    from .doctor import doctor
+
+    digest_dir = args.get("digest_dir")
+    judge_cache = args.get("judge_cache")
+    spool_dir = args.get("spool_dir")
+    report = doctor(directory,
+                    Path(str(digest_dir)) if digest_dir else None,
+                    judge_cache=(Path(str(judge_cache))
+                                 if judge_cache else None),
+                    spool_dir=(Path(str(spool_dir))
+                               if spool_dir else None),
+                    deep=bool(args.get("deep")))
+    return {"store": str(directory), "healthy": report.healthy,
+            "records": report.records, "corrupt": report.corrupt,
+            "id_mismatch": report.id_mismatch,
+            "ledger_present": report.ledger_present,
+            "ledger_intact": report.ledger_intact,
+            "ledger_detail": report.ledger_detail,
+            "stale_locks": report.stale_locks,
+            "temp_files": report.temp_files}
+
+
 def _tool_doctor(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .doctor import doctor, fix_hygiene, quarantine_corrupt
+
+    paths = args.get("stores")
+    if paths is not None:
+        # the fleet audit: one report per store, audit-only (a
+        # repair needs an operator looking at ONE box)
+        stores = _named_stores(paths)
+        reports = [_doctor_summary(store.directory, args)
+                   for _name, store in stores]
+        return {"fleet": True,
+                "healthy": all(r["healthy"] for r in reports),
+                "reports": reports}
 
     digest_dir = args.get("digest_dir")
     judge_cache = args.get("judge_cache")
