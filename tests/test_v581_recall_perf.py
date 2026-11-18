@@ -27,6 +27,14 @@ def test_the_gate_is_registered():
     assert "def recall_gate" in src
 
 
+def test_the_verify_gate_is_registered():
+    src = (ROOT / "scripts" / "perf_gate.py").read_text(
+        encoding="utf-8")
+    assert "verify_gate()" in src, \
+        "the evidence audit runs without a budget elsewhere"
+    assert "def verify_gate" in src
+
+
 def test_the_gate_passes_in_the_full_run():
     r = subprocess.run(
         [sys.executable, "scripts/perf_gate.py"],

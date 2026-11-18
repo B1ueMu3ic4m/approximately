@@ -2591,6 +2591,17 @@ framework adapters import lazily and degrade when the framework is absent.
        API. A pin compiles the generated agent and asserts the
        primitive is there.
 
+587. **v5.9.17 - the evidence audit gets a performance budget**
+       (planned):
+       - verify --all recomputes every trace's chain and walks
+       the ledger - the operator's "is the evidence still
+       good?" must stay linear-ish in traces and finish inside
+       budget, or the CI gate that leans on it hangs the
+       pipeline. verify_gate joins perf_gate (2k traces, 5s
+       budget, ~300ms measured) beside the other doors, and
+       the pin asserts the audit actually vouches for the
+       store it measured.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

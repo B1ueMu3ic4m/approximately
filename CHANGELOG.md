@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.17
+
+- the evidence audit gets a performance budget. (planned): - verify --all recomputes every trace's chain and walks the ledger - the operator's "is the evidence still good?" must stay linear-ish in traces and finish inside budget, or the CI gate that leans on it hangs the pipeline. verify_gate joins perf_gate (2k traces, 5s budget, ~300ms measured) beside the other doors, and the pin asserts the audit actually vouches for the store it measured.
+
 ## v5.9.16
 
 - the scaffolded agent inherits the discipline. (planned): - The scaffold's AGENT_TEMPLATE wrote its own report with a bare write_text - the USER's project, the one place a sharing violation would kill the user's own tour after the numbers were computed. The template now imports the package's atomic_write (the scaffolded project already imports approximately for the Recorder) and writes through it - a user project inherits the discipline and the Windows robustness, not just the API. A pin compiles the generated agent and asserts the primitive is there.

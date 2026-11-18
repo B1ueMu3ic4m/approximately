@@ -43,7 +43,44 @@ def main() -> int:
             + composition_gate() + failure_budget_gate()
             + tail_gate() + startup_gate() + complexity_gate()
             + retention_gate() + archive_stats_gate()
-            + status_frame_gate() + recall_gate())
+            + status_frame_gate() + recall_gate() + verify_gate())
+
+def verify_gate(budget_s: float = 5.0) -> int:
+    """The evidence audit over a 2k-trace store.
+
+    verify --all recomputes every trace's chain and walks the
+    ledger - the operator's "is the evidence still good?" must
+    stay linear-ish in traces and finish inside budget, or the
+    CI gate that leans on it hangs the pipeline.
+    """
+    import tempfile
+
+    from approximately.cli import _verify_all_payload
+    from approximately.recorder import Recorder
+    from approximately.store import TraceStore
+
+    with tempfile.TemporaryDirectory() as tmp:
+        store = TraceStore(Path(tmp) / "s")
+        for i in range(2_000):
+            rec = Recorder(f"verify run {i}", save=False)
+            rec.tool("deploy", {"i": i}, result="ok")
+            rec.respond("done", success=True)
+            store.save(rec.trace)
+        start = time.perf_counter()
+        payload = _verify_all_payload(store, None)
+        elapsed = time.perf_counter() - start
+        print(f"perf-gate[verify]: audit over 2k traces in "
+              f"{elapsed * 1000:.0f}ms (budget {budget_s:g}s) - "
+              + ("PASS" if elapsed <= budget_s else "FAIL"))
+        if payload["summary"]["intact"] != 2_000:
+            print("FAIL: verify audit did not vouch for the store",
+                  file=sys.stderr)
+            return 1
+        if elapsed > budget_s:
+            print("FAIL: verify slowed past budget", file=sys.stderr)
+            return 1
+    return 0
+
 
 def recall_gate(budget_s: float = 5.0) -> int:
     """The memory doors over a 2k-trace store.
