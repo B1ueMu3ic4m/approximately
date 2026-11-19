@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.21
+
+- one resolver, one refusal word. (planned): - The three fleet doors resolved their named stores with three near-identical inline loops - and two different refusal WORDS (verify carried the "create one with approximately new" parenthetical, handoff did not). One resolver (_fleet_stores) now serves recall/verify/ handoff: same loop, same word, same exit - a fleet door's refusal reads identically whichever door refused.
+
 ## v5.9.20
 
 - the fleet doors meet corrupt records TOGETHER. (planned): - Each fleet door's hostile-store sweep ran on its own; the composition pin runs corrupt files, an oversized task, a script-tag tool and a 5KB error across TWO boxes through every fleet door at once. The composition found one gap: the fleet verify section reported the skip COUNT but not the skip NAMES (the single-store door names them - the fleet section's render was a quieter copy). The section now names the skipped files like the single door does. The rest of the composition held: memory/worklist doors answer by data, the incomplete box dominates the exit (6), and no box's junk crosses into the other box's section.

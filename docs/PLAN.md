@@ -2646,6 +2646,15 @@ framework adapters import lazily and degrade when the framework is absent.
        data, the incomplete box dominates the exit (6), and
        no box's junk crosses into the other box's section.
 
+591. **v5.9.21 - one resolver, one refusal word** (planned):
+       - The three fleet doors resolved their named stores with
+       three near-identical inline loops - and two different
+       refusal WORDS (verify carried the "create one with
+       approximately new" parenthetical, handoff did not). One
+       resolver (_fleet_stores) now serves recall/verify/
+       handoff: same loop, same word, same exit - a fleet
+       door's refusal reads identically whichever door refused.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
