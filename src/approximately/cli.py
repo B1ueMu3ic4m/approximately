@@ -1223,13 +1223,7 @@ def _fleet_worklist_page(names: List[str],
 
     if getattr(args, "trace", None):
         names = [args.trace, *names]
-    stores = []
-    for name in names:
-        path = Path(name)
-        if not path.is_dir():
-            print(f"error: store not found: {path}", file=sys.stderr)
-            raise SystemExit(2)
-        stores.append((path.name, TraceStore(path)))
+    stores = _fleet_stores(names)
     return worklist_fleet(stores, limit=int(args.queue), table=table)
 
 
@@ -2544,6 +2538,21 @@ def _verify_all_payload(store: Any, key: Any,
             "traces": rows}
 
 
+def _fleet_stores(names: List[str]) -> List[Any]:
+    """The named stores the fleet doors read: each resolved and
+    refused by name with the same word (recall/verify/handoff)."""
+    stores = []
+    for name in names:
+        path = Path(name)
+        if not path.is_dir():
+            print(f"error: store not found: {path} "
+                  "(create one with `approximately new` or check the "
+                  "path)", file=sys.stderr)
+            raise SystemExit(2)
+        stores.append((path.name, TraceStore(path)))
+    return stores
+
+
 def _verify_print_rows(rows: list) -> None:
     """The per-trace verdict lines both verify doors print."""
     for row in rows:
@@ -2616,16 +2625,9 @@ def _verify_fleet(names: List[str], key: Any, as_json: bool,
     problem than wrong evidence)."""
     import json as _json
 
-    payloads = []
-    for name in names:
-        path = Path(name)
-        if not path.is_dir():
-            print(f"error: store not found: {path} "
-                  "(create one with `approximately new` or check the "
-                  "path)", file=sys.stderr)
-            return 2
-        payloads.append((path.name, _verify_all_payload(
-            TraceStore(path), key, since_days, strict)))
+    payloads = [(name, _verify_all_payload(store, key,
+                                           since_days, strict))
+                for name, store in _fleet_stores(names)]
     if as_json:
         print(_json.dumps({"stores": [{"store": n, **p}
                                       for n, p in payloads]}, indent=2))
