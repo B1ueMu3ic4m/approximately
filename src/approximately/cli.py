@@ -3560,6 +3560,23 @@ def cmd_recall(args: argparse.Namespace) -> int:
         _print_search(payload)
         _print_duplicates(payload)
         return 0
+    related_id = getattr(args, "related", None)
+    if related_id:
+        from .recall import related as related_fn
+
+        try:
+            payload = related_fn(
+                store, related_id,
+                limit=int(getattr(args, "limit", 5)) or 5,
+                since=getattr(args, "since", None), until=until)
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        if getattr(args, "json", False):
+            print(json.dumps(payload, indent=2))
+            return 0
+        print(_render_related(payload))
+        return 0
     payload = timeline(store, since=getattr(args, "since", None),
                        until=until,
                        limit=int(getattr(args, "limit", 0)) or None,
@@ -3570,6 +3587,24 @@ def cmd_recall(args: argparse.Namespace) -> int:
     print(render_timeline(payload))
     _print_duplicates(payload)
     return 0
+
+
+def _render_related(payload: dict) -> str:
+    """The related-conversations answer: one line a conversation,
+    its score and the reasons it earned."""
+    if not payload["results"]:
+        return ("nothing related to this conversation in the "
+                "window")
+    lines = []
+    for e in payload["results"]:
+        mark = _recall_mark(e["success"])
+        store = (" {" + str(e["store"]) + "}"
+                 if e.get("store") else "")
+        reasons = ", ".join(e["reasons"])
+        lines.append(f"{e['day']} {e['time']}  {mark}  "
+                     f"{e['task'][:60]}{store}  "
+                     f"(score {e['score']}: {reasons})")
+    return "\n".join(lines)
 
 
 def _print_duplicates(payload: dict) -> None:
@@ -6800,6 +6835,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="only this one calendar day (the "
                         "drill-down step from recall-summary's "
                         "day rows)")
+    p.add_argument("--related", metavar="TRACE_ID",
+                   help="the conversations related to this one: "
+                        "shared tools, shared topic, same day")
     p.add_argument("--grep", metavar="TEXT",
                    help="search every field a conversation "
                         "speaks through (task, results, thoughts, "

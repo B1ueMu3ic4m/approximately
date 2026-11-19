@@ -1448,6 +1448,10 @@
             "type": "string",
             "description": "one calendar day (YYYY-MM-DD): the drill-down step from the summary's day rows"
           },
+          "related": {
+            "type": "string",
+            "description": "a trace id: the conversations related to this one (shared tools, shared topic, same day)"
+          },
           "stores": {
             "type": "array",
             "items": {

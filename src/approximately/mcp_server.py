@@ -1406,6 +1406,12 @@ _TOOLS: List[Dict[str, Any]] = [
                                        "(YYYY-MM-DD): the "
                                        "drill-down step from the "
                                        "summary's day rows"},
+                "related": {"type": "string",
+                            "description": "a trace id: the "
+                                           "conversations related "
+                                           "to this one (shared "
+                                           "tools, shared topic, "
+                                           "same day)"},
                 "stores": {"type": "array",
                            "items": {"type": "string"},
                            "description": "store directories read "
@@ -1524,6 +1530,19 @@ def _named_stores(paths: Any) -> List[Any]:
             raise ValueError(f"store not found: {path}")
         stores.append((path.name, TraceStore(path)))
     return stores
+
+
+def _related_result(store: Any, related_id: Any,
+                    limit: Optional[int]) -> dict:
+    """The recall tool's related dispatch: a path-shaped ref is
+    refused, a safe id scores the fleet."""
+    from .recall import related
+    from .store import _safe_id
+
+    if not _safe_id(str(related_id)):
+        raise ValueError("related must be a safe trace id")
+    return related(store, str(related_id),
+                   limit=20 if limit is None else int(limit))
 
 
 def _tool_verify(ctx: ServerContext, args: Dict[str, Any]) -> dict:
@@ -3033,6 +3052,9 @@ def _tool_recall(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     day = args.get("day")
     if day is not None and not valid_day(day):
         raise ValueError(f"--day wants YYYY-MM-DD, got {day!r}")
+    related_id = args.get("related")
+    if related_id is not None:
+        return _related_result(store, related_id, limit)
     if grep:
         return search(store, str(grep), since=since, until=until,
                       limit=20 if limit is None else int(limit),
