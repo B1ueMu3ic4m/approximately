@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.29
+
+- the README's promises actually run. (planned): - A smoke test seeds a store in a sandbox HOME and runs the capability table's read-path examples: recall/ recall-summary/recall-digest/verify/query/stats/grade/ cluster/drift/explain/taxonomy/anomalies/attribute/ metrics/handoff --queue, plus the fleet forms and the --json shapes. The sweep caught TWO stale promises: ``anomalies --all --tokens`` (the door is per-trace) and ``attribute --sarif`` (the flag needs a path and --all) - the README rows now name the real invocations. A promise that 404s is worse than no promise.
+
 ## v5.9.28
 
 - the related scorer gets a budget too. (planned): - The recall gate measured three doors; the related scorer shipped in v5.9.22 without one - a door outside the budget family is a door that can regress silently. The gate measures it (~320ms over 2k traces, the priciest of the four - it scores every pair) and the 15s budget from the hygiene policy applies.
