@@ -2693,6 +2693,16 @@ framework adapters import lazily and degrade when the framework is absent.
        still names its store"). Relatedness does not stop at
        the machine boundary either.
 
+595. **v5.9.25 - the step timeout tracks the slowest leg**
+       (planned):
+       - The only red of the day was not a test: the CI Test
+       step's 12-minute timeout killed the suite on windows
+       3.11 (the rerun passed - a slow-leg stall, not a hang).
+       The suite grew ~120 tests in two days; the timeout
+       rises to 20 minutes so it tracks the slowest leg, not
+       the fastest. A timeout that only fires on the fastest
+       machine is a false alarm generator.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
