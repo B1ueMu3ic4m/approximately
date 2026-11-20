@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.22
+
+- from one conversation, the related ones. (planned): - The memory family's next follow-up: ``recall --related TRACE_ID`` scores every other conversation - shared tools (a Jaccard), shared task topics, the same calendar day - and returns the top N with the reasons each score was earned. The scoring is deterministic (score desc, then trace id: equal scores break by id, so the answer never reshuffles between calls); the trace itself never ranks; zero-score conversations never appear. The MCP recall tool gains the same key (a path-shaped ref refused - related names a trace id), the schema describes it, and the complexity floor holds at 87 through honest extractions (_score_pair/_scored_candidates/ _related_results). 5 new pins.
+
 ## v5.9.21
 
 - one resolver, one refusal word. (planned): - The three fleet doors resolved their named stores with three near-identical inline loops - and two different refusal WORDS (verify carried the "create one with approximately new" parenthetical, handoff did not). One resolver (_fleet_stores) now serves recall/verify/ handoff: same loop, same word, same exit - a fleet door's refusal reads identically whichever door refused.
