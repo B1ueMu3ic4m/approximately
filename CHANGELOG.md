@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.24
+
+- related spans the fleet. (planned): - The scorer reads list_traces, so the fleet view works through delegation - the pin now proves it: a cross-box match ranks with its store tag ("a cross-box match still names its store"). Relatedness does not stop at the machine boundary either.
+
 ## v5.9.23
 
 - the memory reads the same way from every timezone. (planned): - The day bucketing used the machine's zone: an operator in Tokyo and one in Berlin reading the SAME store saw different day rows, and the day names moved when the store moved. ``--utc`` on recall/recall-summary/ recall-digest (and utc=true on the MCP tool) buckets in UTC: two operators in different timezones read the same store the same way, and the bucketing is deterministic across machines. The default stays the human's own zone - memory is kept in the days the human actually lived; UTC is the ops answer. 4 new pins (the fixture uses a real UTC midnight, not a guessed stamp - the first guess didn't even straddle one).
