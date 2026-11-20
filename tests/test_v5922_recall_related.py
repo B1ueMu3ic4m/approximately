@@ -100,6 +100,34 @@ def test_the_scoring_is_deterministic(tmp_path):
         "equal scores break by trace id: the answer never reshuffles"
 
 
+def test_related_spans_the_fleet(tmp_path):
+    # the fleet view (MultiStore) delegates list_traces: the
+    # scorer sees both boxes and each result names its store
+    from approximately.recall import MultiStore, related
+    from approximately.recorder import Recorder
+    from approximately.store import TraceStore
+
+    for name, task in (("a", "ship the payments flow"),
+                       ("b", "review the payments docs")):
+        store = TraceStore(tmp_path / name)
+        rec = Recorder(task, model="m/1", store=store, save=False)
+        rec.tool("deploy", {}, result="ok")
+        rec.respond("done", success=True)
+        store.save(rec.trace)
+
+    view = MultiStore()
+    view.add(TraceStore(tmp_path / "a"), str(tmp_path / "a"))
+    view.add(TraceStore(tmp_path / "b"), str(tmp_path / "b"))
+    trace_id = TraceStore(tmp_path / "a").list_traces()[0].id
+    payload = related(view, trace_id, limit=5)
+    assert payload["related"] == 1
+    top = payload["results"][0]
+    assert top["task"] == "review the payments docs"
+    assert top["store"] == "b", \
+        "a cross-box match still names its store"
+    assert "shared tools" in top["reasons"]
+
+
 def test_an_unknown_trace_answers_by_name(tmp_path):
     _convo(tmp_path, "s", "a run", ["deploy"])
     r = _run("--store", str(tmp_path / "s"), "recall", "--related",

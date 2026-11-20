@@ -2686,6 +2686,13 @@ framework adapters import lazily and degrade when the framework is absent.
        real UTC midnight, not a guessed stamp - the first
        guess didn't even straddle one).
 
+594. **v5.9.24 - related spans the fleet** (planned):
+       - The scorer reads list_traces, so the fleet view works
+       through delegation - the pin now proves it: a cross-box
+       match ranks with its store tag ("a cross-box match
+       still names its store"). Relatedness does not stop at
+       the machine boundary either.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
