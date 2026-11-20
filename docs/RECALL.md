@@ -38,6 +38,7 @@ approximately recall-digest --since 1w --export digest.md
 | `recall` | The timeline: conversations in the order they happened, grouped by day | `--grep TEXT` turns it into a search that shows the excerpt of the moment something was said |
 | `recall-summary` | Day by day: how many conversations, top topics, which tools carried them, how many failed | CJK-aware topics (bigrams), no dependencies |
 | `recall-digest` | The weekly postmortem: the day rows PLUS every failed run — its error excerpt (the moment it broke) and the failure modes the rule detectors name; modes recurring across 2+ days are named as the pattern | `--export digest.md` files it atomically |
+| `recall --related ID` | From one conversation, the related ones — scored by shared tools (a Jaccard), shared task topics, and the same day; each result names the reasons its score was earned | deterministic: equal scores break by trace id |
 | `--export FILE` | The whole memory as one markdown diary (summary + timeline) | written atomically |
 
 ## Filters (they all compose)
@@ -49,6 +50,9 @@ approximately recall-digest --since 1w --export digest.md
   an honest empty answer, garbage is refused at the flag boundary
 - `--model NAME` — case-insensitive substring over the recorded model
 - `--failed-only` / `--ok-only` — the outcome filters
+- `--utc` — bucket days in UTC instead of the machine's zone:
+  two operators in different timezones read the same store the
+  same way (the default stays the human's own zone)
 - `--limit N` — the newest N conversations (the search cap is 20)
 - `--json` — machine-readable shapes for scripts and MCP clients
 
