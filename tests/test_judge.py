@@ -166,3 +166,38 @@ def test_judge_wraps_missing_api_key_as_judgeerror(failing_trace, monkeypatch):
     with pytest.raises(JudgeError):
         judge_trace(failing_trace, base_url="http://127.0.0.1:9/v1",
                     api_key=None)
+
+
+def test_the_judge_suite_cannot_leak_off_loopback(failing_trace,
+                                                  fake_server,
+                                                  monkeypatch):
+    """The guard: whatever base URL a test hands the judge, the
+    OpenAI client constructor refuses a non-loopback host BEFORE
+    any HTTP can happen — the fixtures' payloads (failing traces,
+    prompt shapes, a stray real API key) never leave the machine
+    by accident."""
+    from urllib.parse import urlparse
+
+    import approximately.judge as judge_mod
+
+    real_client = judge_mod._openai_client
+
+    def guarded(api_key, base_url):
+        host = urlparse(base_url or "").hostname or ""
+        if host not in ("127.0.0.1", "localhost", "::1"):
+            raise AssertionError(
+                f"the judge suite must dial loopback, got {host}")
+        return real_client(api_key, base_url)
+
+    monkeypatch.setattr(judge_mod, "_openai_client", guarded)
+    # the honest shape still works (the fake server is loopback)
+    verdict = judge_trace(failing_trace, model="fake",
+                          base_url=_base_url(fake_server),
+                          api_key="test")
+    assert verdict.detection.mode_id
+    # a network-facing URL is refused by the guard itself, before
+    # any client construction or HTTP can happen (the judge door
+    # wraps everything into JudgeError - the guard fires first)
+    with pytest.raises(AssertionError, match="loopback"):
+        judge_mod._openai_client("sk-really-a-secret",
+                                 "https://api.openai.com/v1")

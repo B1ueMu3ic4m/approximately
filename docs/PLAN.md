@@ -2741,6 +2741,17 @@ framework adapters import lazily and degrade when the framework is absent.
        the README rows now name the real invocations. A promise
        that 404s is worse than no promise.
 
+600. **v5.9.30 - the judge suite gets a leak guard**
+       (planned):
+       - The judge integration tests hit a fake OpenAI server on
+       the loopback; a real OPENAI_API_KEY in the environment
+       would send the fixtures' payloads to a REAL endpoint -
+       the suite trusts the runner's env. A guard reads the
+       base URL the client actually dialed and refuses the
+       network-facing shape (any non-loopback base URL while a
+       key is present fails the test before the first call) -
+       fixture bytes never leave the machine by accident.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.30
+
+- the judge suite gets a leak guard. (planned): - The judge integration tests hit a fake OpenAI server on the loopback; a real OPENAI_API_KEY in the environment would send the fixtures' payloads to a REAL endpoint - the suite trusts the runner's env. A guard reads the base URL the client actually dialed and refuses the network-facing shape (any non-loopback base URL while a key is present fails the test before the first call) - fixture bytes never leave the machine by accident.
+
 ## v5.9.29
 
 - the README's promises actually run. (planned): - A smoke test seeds a store in a sandbox HOME and runs the capability table's read-path examples: recall/ recall-summary/recall-digest/verify/query/stats/grade/ cluster/drift/explain/taxonomy/anomalies/attribute/ metrics/handoff --queue, plus the fleet forms and the --json shapes. The sweep caught TWO stale promises: ``anomalies --all --tokens`` (the door is per-trace) and ``attribute --sarif`` (the flag needs a path and --all) - the README rows now name the real invocations. A promise that 404s is worse than no promise.

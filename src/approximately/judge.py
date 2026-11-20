@@ -106,17 +106,14 @@ def _judge_request(trace: Trace, chosen_model: str, preset: str,
                    base_url: Optional[str] = None) -> str:
     """Call the OpenAI-compatible API; every failure becomes JudgeError."""
     try:
-        from openai import OpenAI
+        from openai import OpenAI  # noqa: F401 - availability check
     except ImportError as exc:  # pragma: no cover - environment-dependent
         raise JudgeError(
             "The judge requires the openai package: pip install 'approximately[llm]'"
         ) from exc
 
     try:
-        client = OpenAI(
-            api_key=api_key or os.environ.get("OPENAI_API_KEY"),
-            base_url=base_url or os.environ.get("OPENAI_BASE_URL"),
-        )
+        client = _openai_client(api_key, base_url)
         template = PRESETS.get(preset)
         if template is None:
             raise JudgeError(f"unknown preset {preset!r}; "
@@ -222,6 +219,20 @@ def _load_cached(cache_dir: "Path", key: str) -> Optional[JudgeVerdict]:
                               data.get("raw", ""))
     except (OSError, ValueError, KeyError, TypeError):
         return None
+
+
+def _openai_client(api_key: Optional[str],
+                   base_url: Optional[str]) -> Any:
+    """The OpenAI-compatible client the judge dials.
+    Module-level so the test suite can guard it: whatever
+    base URL a caller hands over, the suite's autouse guard
+    refuses a non-loopback host BEFORE any HTTP can happen."""
+    from openai import OpenAI
+
+    return OpenAI(
+        api_key=api_key or os.environ.get("OPENAI_API_KEY"),
+        base_url=base_url or os.environ.get("OPENAI_BASE_URL"),
+    )
 
 
 def judge_trace(
