@@ -2703,6 +2703,15 @@ framework adapters import lazily and degrade when the framework is absent.
        the fastest. A timeout that only fires on the fastest
        machine is a false alarm generator.
 
+596. **v5.9.26 - the guide names the two newest doors**
+       (planned):
+       - docs/RECALL.md predated --related (the relatedness
+       scorer, with the reasons each score was earned) and
+       --utc (the deterministic cross-timezone bucketing); the
+       door table and the filter list catch up, and the README
+       capability row names --related. The guide a lost human
+       reads tracks the doors that exist.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
