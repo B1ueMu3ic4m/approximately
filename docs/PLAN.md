@@ -2671,6 +2671,21 @@ framework adapters import lazily and degrade when the framework is absent.
        through honest extractions (_score_pair/_scored_candidates/
        _related_results). 5 new pins.
 
+593. **v5.9.23 - the memory reads the same way from every
+       timezone** (planned):
+       - The day bucketing used the machine's zone: an operator
+       in Tokyo and one in Berlin reading the SAME store saw
+       different day rows, and the day names moved when the
+       store moved. ``--utc`` on recall/recall-summary/
+       recall-digest (and utc=true on the MCP tool) buckets in
+       UTC: two operators in different timezones read the same
+       store the same way, and the bucketing is deterministic
+       across machines. The default stays the human's own zone
+       - memory is kept in the days the human actually lived;
+       UTC is the ops answer. 4 new pins (the fixture uses a
+       real UTC midnight, not a guessed stamp - the first
+       guess didn't even straddle one).
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

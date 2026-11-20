@@ -1452,6 +1452,10 @@
             "type": "string",
             "description": "a trace id: the conversations related to this one (shared tools, shared topic, same day)"
           },
+          "utc": {
+            "type": "boolean",
+            "description": "bucket days in UTC instead of the server's zone"
+          },
           "stores": {
             "type": "array",
             "items": {

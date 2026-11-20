@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.23
+
+- the memory reads the same way from every timezone. (planned): - The day bucketing used the machine's zone: an operator in Tokyo and one in Berlin reading the SAME store saw different day rows, and the day names moved when the store moved. ``--utc`` on recall/recall-summary/ recall-digest (and utc=true on the MCP tool) buckets in UTC: two operators in different timezones read the same store the same way, and the bucketing is deterministic across machines. The default stays the human's own zone - memory is kept in the days the human actually lived; UTC is the ops answer. 4 new pins (the fixture uses a real UTC midnight, not a guessed stamp - the first guess didn't even straddle one).
+
 ## v5.9.22
 
 - from one conversation, the related ones. (planned): - The memory family's next follow-up: ``recall --related TRACE_ID`` scores every other conversation - shared tools (a Jaccard), shared task topics, the same calendar day - and returns the top N with the reasons each score was earned. The scoring is deterministic (score desc, then trace id: equal scores break by id, so the answer never reshuffles between calls); the trace itself never ranks; zero-score conversations never appear. The MCP recall tool gains the same key (a path-shaped ref refused - related names a trace id), the schema describes it, and the complexity floor holds at 87 through honest extractions (_score_pair/_scored_candidates/ _related_results). 5 new pins.
