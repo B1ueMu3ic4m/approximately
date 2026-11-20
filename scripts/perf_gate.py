@@ -107,12 +107,17 @@ def recall_gate(budget_s: float = 15.0) -> int:
                          result=f"step {j} " + "x" * 150)
             rec.respond("done", success=(i % 5 != 0))
             store.save(rec.trace)
+        from approximately.recall import related
+
+        trace_id = store.list_traces()[0].id
         worst = 0.0
         for name, door in (("search", lambda: search(
                                 store, "deploy service 3",
                                 limit=20)),
                            ("timeline", lambda: timeline(store)),
-                           ("summarize", lambda: summarize(store))):
+                           ("summarize", lambda: summarize(store)),
+                           ("related", lambda: related(
+                               store, trace_id, limit=5))):
             start = time.perf_counter()
             payload = door()
             elapsed = time.perf_counter() - start

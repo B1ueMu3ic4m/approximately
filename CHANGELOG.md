@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.28
+
+- the related scorer gets a budget too. (planned): - The recall gate measured three doors; the related scorer shipped in v5.9.22 without one - a door outside the budget family is a door that can regress silently. The gate measures it (~320ms over 2k traces, the priciest of the four - it scores every pair) and the 15s budget from the hygiene policy applies.
+
 ## v5.9.27
 
 - the recall description names related and utc. (planned): - The 5.9.9 lesson applied twice is the rule: the recall description named digest/day/stores but related and utc shipped schema-only - a door the description hides is a door half of the ecosystem never calls. The description now names both, docs/mcp-tools.json regenerated.
