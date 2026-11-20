@@ -26,7 +26,12 @@ jobs:
         run: pip install -e ".[dev]"
       - name: Test
         run: pytest -q
-        timeout-minutes: 12
+        # 20, not 12: the suite's runtime crept past 12 minutes on
+        # the slowest leg (windows 3.11, one timeout failure the
+        # rerun passed) - the suite grew ~120 tests in two days and
+        # the step timeout must track the slowest leg, not the
+        # fastest
+        timeout-minutes: 20
       - name: Demo smoke test
         run: python -m approximately.cli demo
         timeout-minutes: 5
