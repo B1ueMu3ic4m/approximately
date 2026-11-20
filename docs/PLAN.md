@@ -2729,6 +2729,18 @@ framework adapters import lazily and degrade when the framework is absent.
        priciest of the four - it scores every pair) and the
        15s budget from the hygiene policy applies.
 
+599. **v5.9.29 - the README's promises actually run** (planned):
+       - A smoke test seeds a store in a sandbox HOME and runs
+       the capability table's read-path examples: recall/
+       recall-summary/recall-digest/verify/query/stats/grade/
+       cluster/drift/explain/taxonomy/anomalies/attribute/
+       metrics/handoff --queue, plus the fleet forms and the
+       --json shapes. The sweep caught TWO stale promises:
+       ``anomalies --all --tokens`` (the door is per-trace) and
+       ``attribute --sarif`` (the flag needs a path and --all) -
+       the README rows now name the real invocations. A promise
+       that 404s is worse than no promise.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
