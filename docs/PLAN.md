@@ -2712,6 +2712,14 @@ framework adapters import lazily and degrade when the framework is absent.
        capability row names --related. The guide a lost human
        reads tracks the doors that exist.
 
+597. **v5.9.27 - the recall description names related and utc**
+       (planned):
+       - The 5.9.9 lesson applied twice is the rule: the recall
+       description named digest/day/stores but related and utc
+       shipped schema-only - a door the description hides is a
+       door half of the ecosystem never calls. The description
+       now names both, docs/mcp-tools.json regenerated.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
