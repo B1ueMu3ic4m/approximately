@@ -16,7 +16,7 @@ import json
 import math
 import re
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -38,18 +38,34 @@ _CJK = re.compile(r"[\u3400-\u9fff\uf900-\ufaff]")
 _CJK_STOP_GRAMS = frozenset(["什么", "怎么", "怎样", "这个", "那个", "如何", "可以", "我们", "你们", "他们", "自己", "一个", "一些", "就是", "但是", "然后", "所以", "如果", "因为", "应该", "可能", "或者", "以及", "这样", "那样", "没有还是"])
 
 
+_UTC = False
+
+
+def set_utc(enabled: bool) -> None:
+    """Read the memory in UTC instead of the machine's zone: two
+    operators in different timezones reading the same store get
+    the SAME day bucketing, and the day names survive a move."""
+    global _UTC
+    _UTC = bool(enabled)
+
+
 def _local_day(ts: float) -> str:
-    """The conversation's local calendar day — memory is kept in
-    the days the human actually lived."""
+    """The conversation's calendar day — the days the human
+    actually lived (the machine's zone), or UTC when the door was
+    asked for deterministic bucketing."""
     try:
-        return datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
+        stamp = (datetime.fromtimestamp(ts, timezone.utc)
+                 if _UTC else datetime.fromtimestamp(ts))
+        return stamp.strftime("%Y-%m-%d")  # type: ignore[union-attr]
     except (OverflowError, OSError, ValueError):
         return "unknown"
 
 
 def _local_time(ts: float) -> str:
     try:
-        return datetime.fromtimestamp(ts).strftime("%H:%M")
+        stamp = (datetime.fromtimestamp(ts, timezone.utc)
+                 if _UTC else datetime.fromtimestamp(ts))
+        return stamp.strftime("%H:%M")  # type: ignore[union-attr]
     except (OverflowError, OSError, ValueError):
         return "??:??"
 

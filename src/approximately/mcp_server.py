@@ -1412,6 +1412,10 @@ _TOOLS: List[Dict[str, Any]] = [
                                            "to this one (shared "
                                            "tools, shared topic, "
                                            "same day)"},
+                "utc": {"type": "boolean",
+                        "description": "bucket days in UTC "
+                                       "instead of the server's "
+                                       "zone"},
                 "stores": {"type": "array",
                            "items": {"type": "string"},
                            "description": "store directories read "
@@ -3040,7 +3044,9 @@ def _recall_view(ctx: ServerContext,
 def _tool_recall(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     """What did I talk about with the AI: the timeline, a search
     with excerpts, or the day-by-day summary — one surface."""
-    from .recall import digest, search, summarize, timeline, valid_day
+    from .recall import digest, search, set_utc, summarize, timeline, valid_day
+
+    set_utc(bool(args.get("utc")))
 
     store = _recall_view(ctx, args)
     since_days = _opt_int(args, "since_days")

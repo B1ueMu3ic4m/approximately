@@ -3510,7 +3510,9 @@ def cmd_recall(args: argparse.Namespace) -> int:
     conversations in the order they happened, grouped by day;
     ``--grep`` turns it into a search that finds the moment
     something was said, with the excerpt."""
-    from .recall import render_timeline, search, timeline, valid_day
+    from .recall import render_timeline, search, set_utc, timeline, valid_day
+
+    set_utc(bool(getattr(args, "utc", False)))
 
     store = _recall_view(args)
     until = getattr(args, "until", None)
@@ -3637,7 +3639,9 @@ def cmd_recall_summary(args: argparse.Namespace) -> int:
     """The day-by-day summary: how many conversations, what they
     were about, which tools carried them, how many ended badly —
     the human-memory view of the store."""
-    from .recall import render_summary, summarize, valid_day
+    from .recall import render_summary, set_utc, summarize, valid_day
+
+    set_utc(bool(getattr(args, "utc", False)))
 
     day = getattr(args, "day", None)
     if day is not None and not valid_day(day):
@@ -3666,7 +3670,9 @@ def cmd_recall_digest(args: argparse.Namespace) -> int:
     """The weekly postmortem of the conversations: the day rows,
     then the failed runs with their error excerpts and the modes
     the rule detectors name."""
-    from .recall import digest, render_digest, valid_day
+    from .recall import digest, render_digest, set_utc, valid_day
+
+    set_utc(bool(getattr(args, "utc", False)))
 
     day = getattr(args, "day", None)
     if day is not None and not valid_day(day):
@@ -6835,6 +6841,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="only this one calendar day (the "
                         "drill-down step from recall-summary's "
                         "day rows)")
+    p.add_argument("--utc", action="store_true",
+                   help="bucket days in UTC instead of the machine's "
+                        "zone: two operators in different timezones "
+                        "read the same store the same way")
     p.add_argument("--related", metavar="TRACE_ID",
                    help="the conversations related to this one: "
                         "shared tools, shared topic, same day")
@@ -6882,6 +6892,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--day", metavar="YYYY-MM-DD",
                    help="only this one calendar day (the "
                         "drill-down step its own day rows name)")
+    p.add_argument("--utc", action="store_true",
+                   help="bucket days in UTC instead of the machine's "
+                        "zone: two operators in different timezones "
+                        "read the same store the same way")
     p.add_argument("--model", metavar="NAME",
                    help="only conversations whose model matches")
     p.add_argument("--failed-only", action="store_true",
@@ -6911,6 +6925,10 @@ def build_parser() -> argparse.ArgumentParser:
                         "this unix time, or a duration ago")
     p.add_argument("--day", metavar="YYYY-MM-DD",
                    help="only this one calendar day")
+    p.add_argument("--utc", action="store_true",
+                   help="bucket days in UTC instead of the machine's "
+                        "zone: two operators in different timezones "
+                        "read the same store the same way")
     p.add_argument("--model", metavar="NAME",
                    help="only conversations whose model matches "
                         "(case-insensitive substring)")
