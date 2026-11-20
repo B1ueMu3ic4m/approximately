@@ -1372,10 +1372,13 @@ _TOOLS: List[Dict[str, Any]] = [
                        "failure modes the detectors name). "
                        "grep=searches; summarize=true "
                        "aggregates; digest=true postmortems; "
-                       "neither returns the timeline. "
-                       "since_days filters the window; day="
-                       "names one calendar day; stores=[...] "
-                       "reads several stores as one memory.",
+                       "related=TRACE_ID scores the conversations "
+                       "related to that one (shared tools, shared "
+                       "topic, same day); neither returns the "
+                       "timeline. since_days filters the window; "
+                       "day=names one calendar day; stores=[...] "
+                       "reads several stores as one memory; "
+                       "utc=true buckets days in UTC.",
         "inputSchema": {
             "type": "object",
             "properties": {

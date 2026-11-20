@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.27
+
+- the recall description names related and utc. (planned): - The 5.9.9 lesson applied twice is the rule: the recall description named digest/day/stores but related and utc shipped schema-only - a door the description hides is a door half of the ecosystem never calls. The description now names both, docs/mcp-tools.json regenerated.
+
 ## v5.9.26
 
 - the guide names the two newest doors. (planned): - docs/RECALL.md predated --related (the relatedness scorer, with the reasons each score was earned) and --utc (the deterministic cross-timezone bucketing); the door table and the filter list catch up, and the README capability row names --related. The guide a lost human reads tracks the doors that exist.
