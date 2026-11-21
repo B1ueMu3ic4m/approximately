@@ -2828,6 +2828,28 @@ framework adapters import lazily and degrade when the framework is absent.
        ``--queue`` is refused by name; malformed expressions
        refuse by name on both doors.
 
+605. **v5.9.35 - the judge cache's hit contract is gated**
+       (planned):
+       - The declared "cache hit gate" closes with teeth: the
+       perf gate asks 24 distinct failures twice against a
+       loopback-only fake endpoint - pass one dials N times,
+       pass two must dial ZERO, every verdict answered from
+       disk. A cache that re-dials (key drift, torn writes
+       falling back) turns a free relabel into a billed one;
+       the gate fails before the bill does. The perf CI job
+       now installs ``[dev,llm]`` - a gate that quietly
+       skipped would guard nothing.
+       - addendum - the gate caught a real bug on its first
+       run: a verdict WITHOUT ``rationale`` wrote a cache
+       entry the readback refused (the shape check was
+       stricter than the fresh path, which coerces an absent
+       rationale to ""), so every such failure re-dialed the
+       endpoint on EVERY relabel - a cache that never hits
+       for a whole class of verdicts, billing silently. The
+       fix restores the symmetry (absent rationale reads
+       like fresh; present-but-garbage still misses), and
+       the pins keep it dead.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

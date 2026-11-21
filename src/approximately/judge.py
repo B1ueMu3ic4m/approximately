@@ -206,15 +206,22 @@ def _load_cached(cache_dir: "Path", key: str) -> Optional[JudgeVerdict]:
         # a cache hit must be indistinguishable from a fresh answer:
         # _parse_verdict coerces garbage (mode_id 3.5 -> OTHER,
         # dict rationale -> its repr), so validate the raw shape
-        # before trusting what a poisoned entry "says"
+        # before trusting what a poisoned entry "says". An ABSENT
+        # rationale reads like the fresh path's coercion ("") — the
+        # shape check may not be stricter than the write path, or
+        # every rationale-less verdict writes an entry that can
+        # never be hit (billed again on every relabel; the
+        # cache-hit gate caught exactly that on its first run).
         if not isinstance(payload, dict):
             return None
         if not isinstance(payload.get("mode_id"), str):
             return None
-        if not isinstance(payload.get("rationale"), str):
+        rationale = payload.get("rationale", "")
+        if not isinstance(rationale, str):
             return None
         if not isinstance(payload.get("confidence"), (int, float)):
             return None
+        payload = {**payload, "rationale": rationale}
         return _parse_verdict(payload, data["model"],
                               data.get("raw", ""))
     except (OSError, ValueError, KeyError, TypeError):
