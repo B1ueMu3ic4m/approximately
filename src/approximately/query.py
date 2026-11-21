@@ -275,8 +275,16 @@ class _Parser:
             raise QueryError(f"expected a field name, got {token[1]!r}")
         getter = _field_getter(token[1].lower(), memo=self.memo)
         op_token = self._next()
-        op = op_token[1] if op_token[0] == "op" else \
-            op_token[1].lower()
+        if op_token[0] == "op":
+            op = op_token[1]
+        elif op_token[0] == "word":
+            op = op_token[1].lower()
+        else:
+            # a number (or delimiter) in the operator slot is a
+            # refusal, not an AttributeError: fuzz round 5 found
+            # `success 5 == false` crashing the door
+            raise QueryError(f"expected an operator after "
+                             f"{token[1]!r}, got {op_token[1]!r}")
         if op not in ("==", "!=", ">=", "<=", ">", "<",
                       "contains", "startswith", "endswith",
                       "matches", "in"):

@@ -2880,6 +2880,23 @@ framework adapters import lazily and degrade when the framework is absent.
        ``check`` op with the same verdict; a plain restore
        keeps its own contract unchanged.
 
+608. **v5.9.38 - fuzz round 5: the DSL doors under hostile
+       input** (planned):
+       - The query DSL spread across the toolkit this week
+       (recall family, handoff --queue, stats, --ids), so
+       fuzz round 5 throws a seeded corpus of hostile
+       expressions at every door that now takes one:
+       unbalanced delimiters, giant tokens, unicode soup,
+       ``ago`` abuse, operator salad. Two real finds on the
+       first run: a NUMBER in the operator slot
+       (``success 5 == false``) escaped as a bare
+       AttributeError instead of a named refusal - fixed to
+       refuse by name; and the doors' envelope paths held
+       everywhere else. Contract under fuzz: rejected is
+       always a named refusal, never a traceback, never a
+       partial answer - and well-formed expressions keep
+       answering through the same doors.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
