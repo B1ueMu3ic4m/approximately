@@ -2752,6 +2752,23 @@ framework adapters import lazily and degrade when the framework is absent.
        key is present fails the test before the first call) -
        fixture bytes never leave the machine by accident.
 
+601. **v5.9.31 - the query DSL reads time like a human**
+       (planned):
+       - ``created > 1763692800`` was the only way to ask "what
+       failed in the last day" - an epoch on the command line,
+       which nobody writes from memory. Time words fix that:
+       ``created > 24h ago``, ``7d ago``, ``30m ago`` (units
+       s/m/h/d/w, floats fine, case-insensitive), composable
+       with every existing operator
+       (``success == false and created > 24h ago``). The clock
+       is read once per parse - one select, one consistent
+       "now" - not once per trace. Refusals keep the door's
+       grammar: an invented unit and a duration on a field
+       where it cannot mean anything (``tokens > 5m ago``) are
+       named, a trailing unit without ``ago`` stays the
+       leftover error it always was, and the MCP query tool
+       sells the words in its schema.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

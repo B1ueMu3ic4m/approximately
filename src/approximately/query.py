@@ -12,6 +12,9 @@ Grammar (recursive descent, precedence or < and < not < primary):
                "endswith" "matches" "in"
     value   := 'quoted string' | number | bareword (true/false/none/FM-x.y)
                | "(" value ("," value)* ")"     ← list, for `in`
+               | duration "ago"                 ← time words on `created`:
+                                                  30s ago, 5m ago, 24h ago,
+                                                  7d ago, 2w ago
 
 Fields are trace-level: ``id task success model created steps tokens
 duration mode`` — ``mode`` is the set of rule-detected failure modes,
@@ -24,6 +27,7 @@ from __future__ import annotations
 
 import math
 import re
+import time
 from typing import Any, Callable, List, Optional, Sequence
 
 from .trace import Trace
@@ -47,6 +51,10 @@ _FIELDS = ("id", "task", "success", "model", "created", "steps",
 _MAX_EXPR_CHARS = 4000
 _MAX_PATTERN_CHARS = 256     # `matches` regex source bound
 _MAX_MATCH_SUBJECT = 4096    # per-evaluation subject bound
+
+# `ago` time words: the unit's seconds. Ordered small-to-large so the
+# refusal can list them the way a human scans them.
+_UNITS = {"s": 1.0, "m": 60.0, "h": 3600.0, "d": 86400.0, "w": 604800.0}
 
 
 class QueryError(ValueError):
@@ -274,22 +282,67 @@ class _Parser:
                       "matches", "in"):
             raise QueryError(f"expected an operator after "
                              f"{token[1]!r}, got {op!r}")
-        value = self._value()
+        value = self._value(token[1].lower())
         return _comparator(getter, op, value)
 
-    def _value(self) -> Any:
+    def _ago_value(self, field: str, number: float) -> Optional[float]:
+        """A ``<n><unit> ago`` following a number: an epoch value.
+
+        Time words keep the query human — ``created > 24h ago`` is
+        "the last day" without an epoch on the command line. The
+        clock is read once per parse, not per trace, so one select
+        has one consistent "now". A unit-shaped word that is not a
+        unit, or a duration on a field where it cannot mean anything,
+        is refused by name: ``tokens > 5m ago`` is a typo the door
+        must name, not a comparison it must silently misrun.
+        """
+        unit_tok = self._peek()
+        if unit_tok is None or unit_tok[0] != "word":
+            return None
+        after = self.tokens[self.pos + 1] \
+            if self.pos + 1 < len(self.tokens) else None
+        if after is None or after[0] != "word" \
+                or after[1].lower() != "ago":
+            return None
+        unit = unit_tok[1].lower()
+        if unit not in _UNITS:
+            raise QueryError(
+                f"unknown duration unit {unit_tok[1]!r} (units: "
+                f"{', '.join(sorted(_UNITS, key=lambda u: _UNITS[u]))})")
+        if field != "created":
+            raise QueryError(
+                f"time words apply to 'created', not {field!r}")
+        self._next()            # the unit word
+        self._matches("ago")    # the time word itself
+        return time.time() - number * _UNITS[unit]
+
+    def _value(self, field: str) -> Any:
+        token = self._peek()
+        if token is not None and token[0] == "lparen":
+            return self._list_value(field)
+        return self._atom(field)
+
+    def _list_value(self, field: str) -> list:
+        # list literal: (a, b, c); () is empty, not [" ) "]
+        self._matches("(")
+        if self._matches(")"):
+            return []
+        items = [self._value(field)]
+        while self._matches(","):
+            items.append(self._value(field))
+        if not self._matches(")"):
+            raise QueryError("expected ')' closing the value list")
+        return items
+
+    def _atom(self, field: str) -> Any:
         token = self._next()
         kind, value = token
-        if kind == "lparen":            # list literal: (a, b, c)
-            if self._matches(")"):
-                return []               # () is empty, not [" ) "]
-            items = [self._value()]
-            while self._matches(","):
-                items.append(self._value())
-            if not self._matches(")"):
-                raise QueryError("expected ')' closing the value list")
-            return items
-        if kind in ("string", "number"):
+        if kind == "number":
+            ago = self._ago_value(field, value)
+            if ago is not None:
+                return ago
+            return value
+        if kind == "string":
             return value
         lowered = value.lower()
         if lowered == "true":
