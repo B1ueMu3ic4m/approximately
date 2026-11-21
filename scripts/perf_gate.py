@@ -43,7 +43,8 @@ def main() -> int:
             + composition_gate() + failure_budget_gate()
             + tail_gate() + startup_gate() + complexity_gate()
             + retention_gate() + archive_stats_gate()
-            + status_frame_gate() + recall_gate() + verify_gate())
+            + status_frame_gate() + recall_gate() + verify_gate()
+            + judge_cache_gate())
 
 def verify_gate(budget_s: float = 30.0) -> int:
     """The evidence audit over a 2k-trace store.
@@ -1246,6 +1247,110 @@ def compare_gate(budget_s: float = 20.0) -> int:
           + ("PASS" if elapsed <= budget_s else "FAIL"))
     if elapsed > budget_s:
         print("FAIL: compare slowed past budget", file=sys.stderr)
+        return 1
+    return 0
+
+
+def judge_cache_gate(budget_s: float = 30.0) -> int:
+    # The budget-hygiene policy again: pass one does N real HTTP
+    # round trips to a loopback server (~1-2s for 24 locally), so
+    # 30s keeps >= 15x headroom on the noisiest runner.
+    """The judge cache's hit contract, gated.
+
+    The second ask of the same failures must be answered entirely
+    from disk: zero API round trips, N cache hits. A cache that
+    re-dials the endpoint (key drift, torn writes falling back to
+    misses) turns a free relabel into a billed one — this gate
+    fails before the bill does. The endpoint is a loopback-only
+    fake (stdlib server, a verdict fixture for a body), so nothing
+    leaves the machine and no real key is involved. openai must be
+    installed (``pip install approximately[llm]``): a gate that
+    quietly skipped would guard nothing.
+    """
+    import json as _json
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    try:
+        import openai  # noqa: F401
+    except ImportError:
+        print("FAIL: judge-cache gate needs openai "
+              "(pip install approximately[llm]) - a gate that "
+              "quietly skipped would guard nothing", file=sys.stderr)
+        return 1
+
+    from approximately.judge import cache_stats, judge_trace
+    from approximately.recorder import Recorder
+
+    verdict_body = _json.dumps({
+        "choices": [{"message": {"role": "assistant", "content":
+                    '{"mode_id": "FM-1.3", "step_index": 0, '
+                    '"confidence": 0.9}'}}],
+    }).encode()
+
+    class _FakeEndpoint(BaseHTTPRequestHandler):
+        requests = 0
+
+        def do_POST(self):
+            self.rfile.read(int(self.headers.get("content-length", 0)))
+            _FakeEndpoint.requests += 1
+            self.send_response(200)
+            self.send_header("content-type", "application/json")
+            self.send_header("content-length", str(len(verdict_body)))
+            self.end_headers()
+            self.wfile.write(verdict_body)
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _FakeEndpoint)
+    url = f"http://127.0.0.1:{server.server_address[1]}/v1"
+    threading.Thread(target=server.serve_forever,
+                     daemon=True).start()
+    traces = []
+    for i in range(24):
+        rec = Recorder(f"cache gate failure {i} - distinct payload",
+                       save=False)
+        rec.tool("deploy", {"i": i}, result=None, error="boom")
+        rec.respond("done", success=False)
+        traces.append(rec.trace)
+
+    def _ask_all(cache_dir):
+        for trace in traces:
+            judge_trace(trace, model="fake/1", base_url=url,
+                        api_key="gate-only", cache_dir=cache_dir)
+
+    import tempfile
+
+    start = time.perf_counter()
+    with tempfile.TemporaryDirectory() as tmp:
+        cache = Path(tmp) / "jcache"
+        _ask_all(cache)                      # cold: N round trips
+        dialed_cold = _FakeEndpoint.requests
+        cache_stats(reset=True)
+        _ask_all(cache)                      # warm: 0 round trips
+        dialed_warm = _FakeEndpoint.requests - dialed_cold
+        stats = cache_stats()
+    elapsed = time.perf_counter() - start
+    server.shutdown()
+    server.server_close()
+    if dialed_cold != len(traces):
+        print(f"FAIL: cold pass dialed {dialed_cold}x for "
+              f"{len(traces)} distinct failures", file=sys.stderr)
+        return 1
+    if dialed_warm != 0 or stats.get("hits") != len(traces) \
+            or stats.get("misses") != 0:
+        print(f"FAIL: warm pass re-dialed {dialed_warm}x "
+              f"(hits={stats.get('hits')}, "
+              f"misses={stats.get('misses')}) - the cache is not "
+              "buying what it sells", file=sys.stderr)
+        return 1
+    print(f"perf-gate[judge-cache]: {len(traces)} asks, warm pass "
+          f"{stats.get('hits')} hit(s) / 0 dial(s) in "
+          f"{elapsed * 1000:.0f}ms (budget {budget_s:g}s) - "
+          + ("PASS" if elapsed <= budget_s else "FAIL"))
+    if elapsed > budget_s:
+        print("FAIL: judge cache slowed past budget", file=sys.stderr)
         return 1
     return 0
 
