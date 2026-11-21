@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.31
+
+- the query DSL reads time like a human. (planned): - ``created > 1763692800`` was the only way to ask "what failed in the last day" - an epoch on the command line, which nobody writes from memory. Time words fix that: ``created > 24h ago``, ``7d ago``, ``30m ago`` (units s/m/h/d/w, floats fine, case-insensitive), composable with every existing operator (``success == false and created > 24h ago``). The clock is read once per parse - one select, one consistent "now" - not once per trace. Refusals keep the door's grammar: an invented unit and a duration on a field where it cannot mean anything (``tokens > 5m ago``) are named, a trailing unit without ``ago`` stays the leftover error it always was, and the MCP query tool sells the words in its schema.
+
 ## v5.9.30
 
 - the judge suite gets a leak guard. (planned): - The judge integration tests hit a fake OpenAI server on the loopback; a real OPENAI_API_KEY in the environment would send the fixtures' payloads to a REAL endpoint - the suite trusts the runner's env. A guard reads the base URL the client actually dialed and refuses the network-facing shape (any non-loopback base URL while a key is present fails the test before the first call) - fixture bytes never leave the machine by accident.

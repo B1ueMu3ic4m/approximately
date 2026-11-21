@@ -960,7 +960,10 @@ _TOOLS: List[Dict[str, Any]] = [
                        "timed tool call), failed_tools and "
                        "failed_agents (names behind errored calls), "
                        "e.g. \"failed_tools contains 'search' and "
-                       "max_latency > 5000\".",
+                       "max_latency > 5000\". The created field takes "
+                       "time words: \"created > 24h ago\" (units "
+                       "s/m/h/d/w), e.g. \"success == false and "
+                       "created > 7d ago\".",
         "inputSchema": {
             "type": "object",
             "properties": {
