@@ -133,6 +133,30 @@ class DoctorReport:
                      "loudly)")
         return note
 
+    def _render_judge_cache(self) -> list:
+        """The cache section: entries and unreadable ones, plus the
+        prune outcome when the operator asked for one."""
+        lines: list = []
+        if self.judge_cache_dir:
+            note = (f"  judge cache: {self.judge_cache_entries} "
+                    "entry(ies)")
+            if self.judge_cache_corrupt:
+                note += (f", {self.judge_cache_corrupt} unreadable "
+                         "(they are misses; safe to delete)")
+            lines.append(note)
+        if self.judge_cache_prune_days is not None:
+            verb = "would prune" if self.judge_cache_prune_dry_run \
+                else "pruned"
+            note = (f"  judge cache prune: {verb} "
+                    f"{self.judge_cache_pruned} entry(ies), kept "
+                    f"{self.judge_cache_kept}, freed "
+                    f"{self.judge_cache_freed} byte(s)")
+            if self.judge_cache_prune_failed:
+                note += (f", {len(self.judge_cache_prune_failed)} "
+                         "unremovable")
+            lines.append(note)
+        return lines
+
     def _render_archive(self) -> str:
         if not (self.archive_rows or self.archive_malformed):
             return ""
@@ -167,24 +191,7 @@ class DoctorReport:
             lines.append(note)
         lines.extend(f"    orphan annotation: trace {tid}"
                      for tid in self.annotation_orphans[:5])
-        if self.judge_cache_dir:
-            note = (f"  judge cache: {self.judge_cache_entries} "
-                    "entry(ies)")
-            if self.judge_cache_corrupt:
-                note += (f", {self.judge_cache_corrupt} unreadable "
-                         "(they are misses; safe to delete)")
-            lines.append(note)
-        if self.judge_cache_prune_days is not None:
-            verb = "would prune" if self.judge_cache_prune_dry_run \
-                else "pruned"
-            note = (f"  judge cache prune: {verb} "
-                    f"{self.judge_cache_pruned} entry(ies), kept "
-                    f"{self.judge_cache_kept}, freed "
-                    f"{self.judge_cache_freed} byte(s)")
-            if self.judge_cache_prune_failed:
-                note += (f", {len(self.judge_cache_prune_failed)} "
-                         "unremovable")
-            lines.append(note)
+        lines.extend(self._render_judge_cache())
         if self.legacy_agents:
             lines.append(
                 f"  legacy meta['agent'] on {len(self.legacy_agents)} "
