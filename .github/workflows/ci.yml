@@ -23,7 +23,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install
-        run: pip install -e ".[dev]"
+        # llm too: the perf-gate subprocess inside the suite gates
+        # the judge cache's hit contract and refuses to skip
+        run: pip install -e ".[dev,llm]"
       - name: Test
         run: pytest -q
         # 20, not 12: the suite's runtime crept past 12 minutes on
