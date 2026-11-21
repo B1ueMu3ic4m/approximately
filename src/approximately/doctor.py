@@ -435,6 +435,9 @@ def prune_judge_cache(cache: Path, days: float,
     pruned = kept = freed = 0
     failed: List[str] = []
     for path in cache.glob("*.json"):
+        if not path.is_file():
+            continue    # entries are files; a directory named
+            # like one is not a cache line the operator meant
         try:
             stale = path.stat().st_mtime < cutoff
             size = path.stat().st_size
