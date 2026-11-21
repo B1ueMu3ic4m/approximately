@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.38
+
+- fuzz round 5: the DSL doors under hostile input. (planned): - The query DSL spread across the toolkit this week (recall family, handoff --queue, stats, --ids), so fuzz round 5 throws a seeded corpus of hostile expressions at every door that now takes one: unbalanced delimiters, giant tokens, unicode soup, ``ago`` abuse, operator salad. Two real finds on the first run: a NUMBER in the operator slot (``success 5 == false``) escaped as a bare AttributeError instead of a named refusal - fixed to refuse by name; and the doors' envelope paths held everywhere else. Contract under fuzz: rejected is always a named refusal, never a traceback, never a partial answer - and well-formed expressions keep answering through the same doors.
+
 ## v5.9.37
 
 - audit an archive where it lies, extract nothing. (planned): - ``restore`` verified - but only on its way to extracting somewhere: auditing the backup you are ABOUT to trust, or the one that has been sitting on a shelf, should not require a target directory. ``restore --check SNAP.zip`` recomputes every member hash against the manifest and reports: intact answers 0, tampered answers 1 NAMING the drifted members (missing, sha256 mismatch, unmanifested stowaway), unreadable answers 2, and ``--check`` with ``--into`` is refused by name (check extracts nothing, anywhere). The MCP snapshot tool gains the ``check`` op with the same verdict; a plain restore keeps its own contract unchanged.
