@@ -1381,7 +1381,10 @@ _TOOLS: List[Dict[str, Any]] = [
                        "timeline. since_days filters the window; "
                        "day=names one calendar day; stores=[...] "
                        "reads several stores as one memory; "
-                       "utc=true buckets days in UTC.",
+                       "utc=true buckets days in UTC; query="
+                       "filters every view with the shared query "
+                       "DSL (e.g. \"success == false and created "
+                       "> 24h ago\").",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -1404,6 +1407,11 @@ _TOOLS: List[Dict[str, Any]] = [
                                "description": "only conversations "
                                               "from the last N "
                                               "days"},
+                "query": {"type": "string",
+                          "description": "filter every view with "
+                                         "the shared query DSL, "
+                                         "e.g. \"success == false "
+                                         "and created > 24h ago\""},
                 "limit": {"type": "integer",
                           "description": "cap the hits/timeline "
                                          "entries"},
@@ -3028,22 +3036,30 @@ def _recall_view(ctx: ServerContext,
                  args: Dict[str, Any]) -> Any:
     """One store, or the fleet view: a stores list reads several
     stores as one memory (deduped by trace id, each entry naming
-    its store). A typo'd path answers by name, like the CLI."""
-    from .recall import MultiStore
+    its store). A typo'd path answers by name, like the CLI. A
+    query expression wraps the view: every view the recall tool
+    serves reads the selection, not the whole box."""
+    from .recall import MultiStore, _Queried
     from .store import TraceStore
 
     paths = args.get("stores")
     if paths is None:
-        return _store(ctx, args)
-    if not isinstance(paths, list) or \
-            any(not isinstance(p, str) for p in paths):
-        raise ValueError("stores must be a list of paths")
-    view = MultiStore()
-    for p in paths:
-        path = Path(p)
-        if not path.is_dir():
-            raise ValueError(f"store not found: {path}")
-        view.add(TraceStore(path), str(path))
+        view: Any = _store(ctx, args)
+    else:
+        if not isinstance(paths, list) or \
+                any(not isinstance(p, str) for p in paths):
+            raise ValueError("stores must be a list of paths")
+        view = MultiStore()
+        for p in paths:
+            path = Path(p)
+            if not path.is_dir():
+                raise ValueError(f"store not found: {path}")
+            view.add(TraceStore(path), str(path))
+    expr = args.get("query")
+    if expr:
+        from .query import parse
+
+        view = _Queried(view, parse(str(expr)))
     return view
 
 

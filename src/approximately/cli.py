@@ -3501,15 +3501,25 @@ def _recall_store(store_arg: "str | None") -> TraceStore:
 def _recall_view(args: argparse.Namespace) -> Any:
     """One store, or the fleet view: positional store paths read
     as one memory (deduped by trace id, each entry carrying its
-    store's name). A typo'd path still answers by name."""
-    from .recall import MultiStore
+    store's name). A typo'd path still answers by name. A
+    ``--query`` expression wraps the view: every memory door then
+    reads the selection instead of the whole box."""
+    from .query import QueryError, parse
+    from .recall import MultiStore, _Queried
 
     names = list(getattr(args, "stores", None) or [])
     if not names:
-        return _recall_store(args.store)
-    view = MultiStore()
-    for name in names:
-        view.add(_recall_store(name), name)
+        view: Any = _recall_store(args.store)
+    else:
+        view = MultiStore()
+        for name in names:
+            view.add(_recall_store(name), name)
+    expr = getattr(args, "query", None)
+    if expr:
+        try:
+            view = _Queried(view, parse(str(expr)))
+        except QueryError as exc:
+            raise SystemExit(f"error: {exc}") from exc
     return view
 
 
@@ -6881,6 +6891,11 @@ def build_parser() -> argparse.ArgumentParser:
                    help="only conversations that ended in failure")
     p.add_argument("--ok-only", action="store_true",
                    help="only conversations that succeeded")
+    p.add_argument("--query", metavar="EXPR",
+                   help="filter every memory view with the shared "
+                        "query DSL, e.g. \"success == false and "
+                        "created > 24h ago\" (composes with "
+                        "--grep/--day/--since)")
     p.add_argument("--export", metavar="FILE",
                    help="write the memory as one markdown diary "
                         "(summary + timeline) instead of printing")
@@ -6918,6 +6933,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="only conversations that ended in failure")
     p.add_argument("--ok-only", action="store_true",
                    help="only conversations that succeeded")
+    p.add_argument("--query", metavar="EXPR",
+                   help="filter the summary with the shared query "
+                        "DSL, e.g. \"success == false and created "
+                        "> 24h ago\"")
     p.add_argument("--json", action="store_true",
                    help="emit the summary shape as JSON")
     p.set_defaults(func=cmd_recall_summary)
@@ -6952,6 +6971,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="only failures in the window")
     p.add_argument("--ok-only", action="store_true",
                    help="only successes in the window")
+    p.add_argument("--query", metavar="EXPR",
+                   help="filter the digest with the shared query "
+                        "DSL, e.g. \"failed_tools contains "
+                        "'search'\"")
     p.add_argument("--export", metavar="FILE",
                    help="write the digest as one markdown file "
                         "instead of printing (atomic)")

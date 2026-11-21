@@ -18,7 +18,7 @@ import re
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 from .trace import Trace
 
@@ -203,6 +203,30 @@ class MultiStore:
                         and trace.id not in self.diverged):
                     self.diverged.append(trace.id)
         return traces
+
+
+class _Queried:
+    """A store (or fleet view) seen through a query-DSL predicate.
+
+    One wrap point gives every memory door the shared expression
+    language: ``recall --query "success == false and created > 24h
+    ago"`` reads the same timeline, search, summary and digest —
+    of the selection, not the whole box. The predicate compiles
+    once per door call; everything the wrapped view offers besides
+    listing passes through untouched, so fleet conflict counts and
+    store labels survive the wrap.
+    """
+
+    def __init__(self, inner: Any, pred: Callable[[Any], bool]):
+        self._inner = inner
+        self._pred = pred
+
+    def list_traces(self, **kw: Any) -> List[Any]:
+        return [t for t in self._inner.list_traces(**kw)
+                if self._pred(t)]
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._inner, name)
 
 
 def _entry(trace: Trace) -> dict:

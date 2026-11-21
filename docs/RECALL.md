@@ -50,6 +50,11 @@ approximately recall-digest --since 1w --export digest.md
   an honest empty answer, garbage is refused at the flag boundary
 - `--model NAME` — case-insensitive substring over the recorded model
 - `--failed-only` / `--ok-only` — the outcome filters
+- `--query EXPR` — the shared query DSL over every conversation:
+  any field the expression language knows (`success`, `mode`,
+  `tools`, `failed_tools`, `max_latency`, `tokens`, `created` with
+  time words …), e.g. `recall --query "success == false and
+  created > 24h ago"`; a malformed expression is refused by name
 - `--utc` — bucket days in UTC instead of the machine's zone:
   two operators in different timezones read the same store the
   same way (the default stays the human's own zone)

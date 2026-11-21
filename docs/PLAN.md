@@ -2786,6 +2786,31 @@ framework adapters import lazily and degrade when the framework is absent.
        call only ever touches the cache the operator points at,
        and stays out of MCP on purpose (destructive path ops are
        not a wire tool's job).
+       - addendum - the first CI run failed on the lint leg:
+       xenon flagged ``DoctorReport.render`` at D. The local
+       perf-gate counts C+ blocks against the baseline and
+       passed; the CI gate separately blocks any D/F-grade
+       FUNCTION, a bound the local loop did not reproduce. The
+       fix was the honest one (render's cache section extracted
+       to ``_render_judge_cache``), and the local loop now runs
+       xenon with the CI's own flags before pushing.
+
+603. **v5.9.33 - the memory doors speak the query DSL**
+       (planned):
+       - The memory family had outcome flags, a model substring
+       and calendar windows, but "which conversations touched
+       deploy and failed with a slow tool" needed the export
+       door. ``--query EXPR`` wraps the resolved view (one store
+       or the fleet) with the shared query DSL: timeline, search,
+       summary, digest and related all read the selection, not
+       the whole box, composing with the existing filters. One
+       wrap point (``_Queried``: list_traces filters, everything
+       else delegates) gives the language to every door at once
+       and keeps fleet conflict counts and store labels intact.
+       The expression compiles once per door call; a malformed
+       one is refused by name on both the CLI and the wire (the
+       MCP recall tool gains the key and sells it in its
+       schema).
 
 ## 4. Launch plan
 
