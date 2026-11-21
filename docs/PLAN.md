@@ -2769,6 +2769,24 @@ framework adapters import lazily and degrade when the framework is absent.
        leftover error it always was, and the MCP query tool
        sells the words in its schema.
 
+602. **v5.9.32 - the judge cache gets the operator's call**
+       (planned):
+       - v169 made doctor read the judge cache and deliberately
+       left deletion to the operator's own hands; this is that
+       call, made explicit and reported:
+       ``doctor --judge-cache DIR --prune DAYS`` removes entries
+       older than DAYS by mtime age (a stale corrupt entry is
+       dead weight by age, a fresh one stays named),
+       ``--dry-run`` prints the very numbers the real prune
+       would print without unlinking, unlink failures (a file
+       locked by a running judge on Windows) are counted and
+       named instead of fatal, and the report carries the prune
+       outcome next to the post-prune health reading.
+       ``--prune`` without a cache dir is refused by name - the
+       call only ever touches the cache the operator points at,
+       and stays out of MCP on purpose (destructive path ops are
+       not a wire tool's job).
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

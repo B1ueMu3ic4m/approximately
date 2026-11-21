@@ -2301,6 +2301,11 @@ def _fleet_survey(args: argparse.Namespace) -> int:
 def cmd_doctor(args: argparse.Namespace) -> int:
     from .doctor import doctor, fix_hygiene, quarantine_corrupt
 
+    prune = getattr(args, "prune", None)
+    if prune is not None and not getattr(args, "judge_cache", None):
+        print("error: --prune needs --judge-cache DIR (the prune "
+              "only ever touches the cache you name)", file=sys.stderr)
+        return 2
     report = doctor(Path(args.store),
                     Path(args.digest_dir) if args.digest_dir else None,
                     judge_cache=(Path(args.judge_cache) if
@@ -2308,7 +2313,10 @@ def cmd_doctor(args: argparse.Namespace) -> int:
                                  else None),
                     spool_dir=(Path(args.spool) if
                                getattr(args, "spool", None) else None),
-                    deep=bool(getattr(args, "deep", False)))
+                    deep=bool(getattr(args, "deep", False)),
+                    judge_cache_prune=prune,
+                    judge_cache_dry_run=bool(
+                        getattr(args, "dry_run", False)))
     if getattr(args, "fix", False):
         removed = fix_hygiene(Path(args.store), report)
         report.stale_locks = [n for n in report.stale_locks
@@ -6495,6 +6503,14 @@ def build_parser() -> argparse.ArgumentParser:
                    help="also count judge-cache entries and unreadable "
                         "ones (read-only; corrupt entries are safe "
                         "misses)")
+    p.add_argument("--prune", metavar="DAYS", type=float,
+                   help="remove judge-cache entries older than DAYS "
+                        "(needs --judge-cache; 0 clears every entry; "
+                        "the report counts removed, kept, and freed "
+                        "bytes)")
+    p.add_argument("--dry-run", action="store_true",
+                   help="with --prune: report the numbers without "
+                        "deleting anything")
     p.add_argument("--spool", metavar="DIR",
                    help="also check a spool directory: pending files "
                         "and ones no pass could parse")

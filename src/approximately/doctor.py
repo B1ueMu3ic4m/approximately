@@ -46,6 +46,12 @@ class DoctorReport:
     judge_cache_dir: str = ""
     judge_cache_entries: int = 0
     judge_cache_corrupt: int = 0
+    judge_cache_prune_days: Optional[float] = None
+    judge_cache_prune_dry_run: bool = False
+    judge_cache_pruned: int = 0
+    judge_cache_kept: int = 0
+    judge_cache_freed: int = 0
+    judge_cache_prune_failed: List[str] = field(default_factory=list)
     archive_rows: int = 0
     archive_malformed: int = 0
     archive_rotated: int = 0
@@ -93,6 +99,12 @@ class DoctorReport:
             "judge_cache_dir": self.judge_cache_dir,
             "judge_cache_entries": self.judge_cache_entries,
             "judge_cache_corrupt": self.judge_cache_corrupt,
+            "judge_cache_prune_days": self.judge_cache_prune_days,
+            "judge_cache_prune_dry_run": self.judge_cache_prune_dry_run,
+            "judge_cache_pruned": self.judge_cache_pruned,
+            "judge_cache_kept": self.judge_cache_kept,
+            "judge_cache_freed": self.judge_cache_freed,
+            "judge_cache_prune_failed": self.judge_cache_prune_failed,
             "spool_dir": self.spool_dir,
             "spool_pending": self.spool_pending,
             "spool_unparsed": self.spool_unparsed,
@@ -161,6 +173,17 @@ class DoctorReport:
             if self.judge_cache_corrupt:
                 note += (f", {self.judge_cache_corrupt} unreadable "
                          "(they are misses; safe to delete)")
+            lines.append(note)
+        if self.judge_cache_prune_days is not None:
+            verb = "would prune" if self.judge_cache_prune_dry_run \
+                else "pruned"
+            note = (f"  judge cache prune: {verb} "
+                    f"{self.judge_cache_pruned} entry(ies), kept "
+                    f"{self.judge_cache_kept}, freed "
+                    f"{self.judge_cache_freed} byte(s)")
+            if self.judge_cache_prune_failed:
+                note += (f", {len(self.judge_cache_prune_failed)} "
+                         "unremovable")
             lines.append(note)
         if self.legacy_agents:
             lines.append(
@@ -356,6 +379,78 @@ def _check_judge_cache(report: DoctorReport, cache: Path) -> None:
     report.judge_cache_corrupt = corrupt
 
 
+def _check_annotations(store: Path, report: DoctorReport) -> None:
+    """Annotation ledger health: totals, unreadable lines, and
+    references that name a trace the store no longer holds."""
+    health = TraceStore(store).annotations_health()
+    report.annotation_lines = health["total"]
+    report.annotation_corrupt = health["corrupt"]
+    known = {p.stem for p in trace_files(Path(store))}
+    report.annotation_orphans = sorted({
+        str(a.get("trace_id"))
+        for a in TraceStore(store).annotations()
+        if a.get("trace_id") and str(a.get("trace_id")) not in known
+    })
+
+
+def _apply_cache_prune(report: DoctorReport, cache: Path,
+                       days: float, dry_run: bool) -> None:
+    """Run the operator's prune and copy the outcome into the
+    report; the read-only check that follows reads what remains."""
+    outcome = prune_judge_cache(cache, days, dry_run=dry_run)
+    report.judge_cache_prune_days = days
+    report.judge_cache_prune_dry_run = dry_run
+    report.judge_cache_pruned = outcome["pruned"]
+    report.judge_cache_kept = outcome["kept"]
+    report.judge_cache_freed = outcome["freed_bytes"]
+    report.judge_cache_prune_failed = outcome["failed"]
+
+
+def prune_judge_cache(cache: Path, days: float,
+                      dry_run: bool = False) -> dict:
+    """The operator's call on the judge cache: remove entries older
+    than ``days`` days.
+
+    v169 made doctor read the cache but left deletion to the
+    operator's own hands; this is that call, made explicit and
+    reported. Age is the file's mtime. Corrupt entries are not
+    special-cased: a stale one is dead weight by age, a fresh one
+    stays and stays named by the read-only check. ``dry_run`` scans
+    and reports the very numbers the real prune would print, without
+    unlinking anything. Unlink failures (a file locked by a running
+    judge on Windows) are counted and named, not fatal.
+    """
+    if days < 0:
+        raise ValueError(f"prune days must be >= 0, got {days}")
+    if not cache.is_dir():
+        raise ValueError(f"no judge cache at {cache}")
+    cutoff = time.time() - days * 86400
+    pruned = kept = freed = 0
+    failed: List[str] = []
+    for path in cache.glob("*.json"):
+        try:
+            stale = path.stat().st_mtime < cutoff
+            size = path.stat().st_size
+        except OSError:
+            failed.append(path.name)
+            continue
+        if not stale:
+            kept += 1
+            continue
+        if dry_run:
+            pruned += 1
+            freed += size
+            continue
+        try:
+            path.unlink()
+            pruned += 1
+            freed += size
+        except OSError:
+            failed.append(path.name)
+    return {"pruned": pruned, "kept": kept, "freed_bytes": freed,
+            "failed": failed[:10]}
+
+
 def _check_spool(spool: Path, report: DoctorReport) -> None:
     """Spool hygiene: how many files are waiting, and which ones a
     pass could not parse (they stay put by design — a human needs
@@ -380,7 +475,9 @@ def _check_spool(spool: Path, report: DoctorReport) -> None:
 def doctor(store: Path, digest_dir: Optional[Path] = None,
            judge_cache: Optional[Path] = None,
            spool_dir: Optional[Path] = None,
-           deep: bool = False) -> DoctorReport:
+           deep: bool = False,
+           judge_cache_prune: Optional[float] = None,
+           judge_cache_dry_run: bool = False) -> DoctorReport:
     """Run every check and return the structured report.
 
     With ``deep`` each readable record's integrity chain is
@@ -395,16 +492,11 @@ def doctor(store: Path, digest_dir: Optional[Path] = None,
         _check_chains(store, report)
     if digest_dir is not None and digest_dir.is_dir():
         _check_digests(digest_dir, report)
-    health = TraceStore(store).annotations_health()
-    report.annotation_lines = health["total"]
-    report.annotation_corrupt = health["corrupt"]
-    known = {p.stem for p in trace_files(Path(store))}
-    report.annotation_orphans = sorted({
-        str(a.get("trace_id"))
-        for a in TraceStore(store).annotations()
-        if a.get("trace_id") and str(a.get("trace_id")) not in known
-    })
+    _check_annotations(store, report)
     if judge_cache is not None:
+        if judge_cache_prune is not None:
+            _apply_cache_prune(report, judge_cache, judge_cache_prune,
+                               dry_run=judge_cache_dry_run)
         _check_judge_cache(report, judge_cache)
     if spool_dir is not None:
         _check_spool(spool_dir, report)
