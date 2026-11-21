@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.36
+
+- the selection feeds pipelines, the doors keep their tempers. (planned): - ``query --ids`` - one id per line, xargs-friendly: the DSL is the selection primitive for the whole toolkit, so the answer must pipe. And the week's new surfaces meet hostile input together: depth/size/pattern-bound expressions through the memory wrap refuse by name on the door AND on the wire (an isError envelope, never a traceback), a directory named like a cache entry is not a cache line the prune may unlink (and not a failure either - not an entry at all), an entry stamped in the future is kept (not stale is not deleted), and ``0s ago`` is an honest empty window.
+
 ## v5.9.35
 
 - the judge cache's hit contract is gated. (planned): - The declared "cache hit gate" closes with teeth: the perf gate asks 24 distinct failures twice against a loopback-only fake endpoint - pass one dials N times, pass two must dial ZERO, every verdict answered from disk. A cache that re-dials (key drift, torn writes falling back) turns a free relabel into a billed one; the gate fails before the bill does. The perf CI job now installs ``[dev,llm]`` - a gate that quietly skipped would guard nothing. - addendum - the gate caught a real bug on its first run: a verdict WITHOUT ``rationale`` wrote a cache entry the readback refused (the shape check was stricter than the fresh path, which coerces an absent rationale to ""), so every such failure re-dialed the endpoint on EVERY relabel - a cache that never hits for a whole class of verdicts, billing silently. The fix restores the symmetry (absent rationale reads like fresh; present-but-garbage still misses), and the pins keep it dead.

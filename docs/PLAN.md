@@ -2850,6 +2850,20 @@ framework adapters import lazily and degrade when the framework is absent.
        like fresh; present-but-garbage still misses), and
        the pins keep it dead.
 
+606. **v5.9.36 - the selection feeds pipelines, the doors keep
+       their tempers** (planned):
+       - ``query --ids`` - one id per line, xargs-friendly: the
+       DSL is the selection primitive for the whole toolkit, so
+       the answer must pipe. And the week's new surfaces meet
+       hostile input together: depth/size/pattern-bound
+       expressions through the memory wrap refuse by name on
+       the door AND on the wire (an isError envelope, never a
+       traceback), a directory named like a cache entry is not
+       a cache line the prune may unlink (and not a failure
+       either - not an entry at all), an entry stamped in the
+       future is kept (not stale is not deleted), and ``0s
+       ago`` is an honest empty window.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

@@ -760,6 +760,10 @@ def cmd_query(args: argparse.Namespace) -> int:
         prices = _resolve_cli_prices(args)
         return _print_query_stats(found, stats_json=bool(args.json),
                                   prices=prices)
+    if getattr(args, "ids", False):
+        for trace in found:
+            print(trace.id)
+        return 0
     if getattr(args, "json", None):
         print(json.dumps([t.to_dict() for t in found],
                          indent=2, default=str))
@@ -6358,6 +6362,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--stats", action="store_true",
                    help="aggregate the selection instead of listing it: "
                         "counts, failure rate, mode totals, means")
+    p.add_argument("--ids", action="store_true",
+                   help="one matching id per line (xargs-friendly)")
     p.add_argument("--prices", metavar="FILE",
                    help="with --stats: model -> blended $/1k JSON "
                         "table; adds est_spend over the selection "
