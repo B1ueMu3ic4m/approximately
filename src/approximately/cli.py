@@ -10,7 +10,7 @@ import signal
 import sys
 import time
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, Callable, List, Optional
 
 from . import __version__
 from .store import TraceStore, atomic_write, safe_artifact, trace_files
@@ -1190,11 +1190,12 @@ def cmd_grade(args: argparse.Namespace) -> int:
 
 
 def _worklist_page(store: Any, limit: int,
-                   table: Optional[dict]) -> str:
+                   table: Optional[dict],
+                   pred: Optional[Callable] = None) -> str:
     """The queue rendered as one markdown page."""
     from .handoff import worklist
 
-    return worklist(store, limit=limit, table=table)
+    return worklist(store, limit=limit, table=table, query=pred)
 
 
 def _emit_markdown(page: str, out: Optional[str], json_mode: bool,
@@ -1213,7 +1214,8 @@ def _emit_markdown(page: str, out: Optional[str], json_mode: bool,
 
 def _fleet_worklist_page(names: List[str],
                          args: argparse.Namespace,
-                         table: Optional[dict]) -> str:
+                         table: Optional[dict],
+                         pred: Optional[Callable] = None) -> str:
     """The fleet worklist page: the named stores resolved and
     refused by name, the queue interleaved, every brief naming
     its box. argparse hands the FIRST positional to ``trace``: a
@@ -1224,7 +1226,8 @@ def _fleet_worklist_page(names: List[str],
     if getattr(args, "trace", None):
         names = [args.trace, *names]
     stores = _fleet_stores(names)
-    return worklist_fleet(stores, limit=int(args.queue), table=table)
+    return worklist_fleet(stores, limit=int(args.queue), table=table,
+                          query=pred)
 
 
 def _redact_table(args: argparse.Namespace) -> Optional[dict]:
@@ -1236,18 +1239,43 @@ def _redact_table(args: argparse.Namespace) -> Optional[dict]:
     return compile_patterns()
 
 
+def _compile_query(expr: Optional[str]) -> Optional[Callable]:
+    """Compile the shared query DSL for the doors that filter
+    beyond the memory family; a malformed expression answers by
+    name, the same way the recall wrap refuses."""
+    if not expr:
+        return None
+    from .query import QueryError, parse
+
+    try:
+        return parse(str(expr))
+    except QueryError as exc:
+        raise SystemExit(f"error: {exc}") from exc
+
+
+def _queue_page(args: argparse.Namespace, store: Any) -> str:
+    """The --queue page: the worklist (single box or fleet),
+    optionally narrowed by the shared query DSL."""
+    table = _redact_table(args)
+    pred = _compile_query(getattr(args, "query", None))
+    names = list(getattr(args, "stores", None) or [])
+    if names:
+        return _fleet_worklist_page(names, args, table, pred)
+    return _worklist_page(store, int(args.queue), table, pred)
+
+
 def cmd_handoff(args: argparse.Namespace) -> int:
     """One markdown page for the next engineer (or agent)."""
     from .handoff import brief
 
     store = TraceStore(args.store)
+    if getattr(args, "query", None) and \
+            getattr(args, "queue", None) is None:
+        print("error: --query works with --queue (a single-trace "
+              "brief has nothing to filter)", file=sys.stderr)
+        return 2
     if getattr(args, "queue", None) is not None:
-        table = _redact_table(args)
-        names = list(getattr(args, "stores", None) or [])
-        if names:
-            page = _fleet_worklist_page(names, args, table)
-        else:
-            page = _worklist_page(store, int(args.queue), table)
+        page = _queue_page(args, store)
         return _emit_markdown(
             page, worklist=True, out=getattr(args, "out", None),
             json_mode=bool(getattr(args, "json", False)))
@@ -2811,6 +2839,9 @@ def cmd_stats(args: argparse.Namespace) -> int:
 
     store = TraceStore(args.store)
     traces = store.list_traces(since_days=getattr(args, "since", None))
+    pred = _compile_query(getattr(args, "query", None))
+    if pred is not None:
+        traces = [t for t in traces if pred(t)]
     price = getattr(args, "price_per_1k", None)
     if getattr(args, "by_tool", False):
         from .cluster import tool_scorecard
@@ -6133,6 +6164,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--queue", type=int, metavar="N",
                    help="the postmortem worklist instead: briefs "
                         "for the top N unannotated failures")
+    p.add_argument("--query", metavar="EXPR",
+                   help="with --queue: narrow the worklist with the "
+                        "shared query DSL, e.g. \"mode == FM-3.2\" "
+                        "or \"max_latency > 5000\"")
     p.add_argument("stores", nargs="*",
                    help="optional store directories for the --queue "
                         "worklist (fleet mode: the queue interleaves, "
@@ -7098,6 +7133,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="trend bucket size in days (default 7)")
     p.add_argument("--since", type=int, metavar="DAYS",
                    help="only traces created in the last DAYS days")
+    p.add_argument("--query", metavar="EXPR",
+                   help="aggregate the selection instead of the "
+                        "whole box: the shared query DSL, e.g. "
+                        "\"success == false and created > 24h ago\"")
     p.add_argument("--json", action="store_true", help="emit JSON")
     p.set_defaults(func=cmd_stats)
 

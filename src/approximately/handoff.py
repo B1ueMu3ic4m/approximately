@@ -11,7 +11,7 @@ so the page is safe to paste before it exists.
 from __future__ import annotations
 
 import time
-from typing import Any, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 from .trace import Trace
 
@@ -159,17 +159,21 @@ def brief(trace: Trace, store: Any,
 
 def worklist_fleet(stores: List[Tuple[str, Any]],
                    limit: int = 5,
-                   table: Optional[dict] = None) -> str:
+                   table: Optional[dict] = None,
+                   query: Optional[Callable] = None) -> str:
     """The fleet worklist: the same page over several stores —
     each store's queue in its own order, concatenated, and the
     limit applied across the total; every brief names its box
-    (the reader has to know which machine owns the failure)."""
+    (the reader has to know which machine owns the failure). A
+    ``query`` predicate narrows every box's queue the same way."""
     parts = [f"# postmortem worklist (fleet) — {limit} brief cap"]
     owed = 0
     for name, store in stores:
         from .triage import triage_store
 
-        rows = triage_store(store, unannotated_only=True)[:limit]
+        rows = _matching_rows(
+            store, triage_store(store, unannotated_only=True),
+            query)[:limit]
         for row in rows:
             owed += 1
             if owed > limit:
@@ -191,18 +195,39 @@ def worklist_fleet(stores: List[Tuple[str, Any]],
     return "\n".join(parts) + "\n"
 
 
+def _matching_rows(store: Any, rows: list,
+                   query: Optional[Callable]) -> list:
+    """The queue rows whose trace matches the door's query. An
+    unreadable row stays — the filter narrows evidence, it never
+    hides a torn page from ``doctor --fix``."""
+    if query is None:
+        return rows
+    kept = []
+    for row in rows:
+        trace = store.load(row.trace_id)
+        if trace is None or query(trace):
+            kept.append(row)
+    return kept
+
+
 def worklist(store: Any, limit: int = 5,
-             table: Optional[dict] = None) -> str:
+             table: Optional[dict] = None,
+             query: Optional[Callable] = None) -> str:
     """The postmortem worklist: one page of briefs for the top of
     the triage queue — what ``digest`` counts as owed, rendered as
     the reading material for working it off. Unannotated failures
     first (the queue's own order), each brief under its trace id;
     a trace that fails to render becomes its own one-line entry,
-    never a torn page."""
+    never a torn page. A ``query`` predicate (the shared DSL)
+    narrows the queue to the failures that match — annotate the
+    FM-3.2 ones first, or the slow ones — without hiding unreadable
+    rows."""
     from .triage import triage_store
 
-    rows = triage_store(store, unannotated_only=True)[:max(0,
-                                                          int(limit))]
+    rows = _matching_rows(store,
+                          triage_store(store,
+                                       unannotated_only=True),
+                          query)[:max(0, int(limit))]
     if not rows:
         return ("postmortem worklist: nothing owed — every failed "
                 "run in the window carries an annotation\n")

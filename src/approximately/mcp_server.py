@@ -1107,6 +1107,12 @@ _TOOLS: List[Dict[str, Any]] = [
                                          "instead: briefs for the "
                                          "top N unannotated "
                                          "failures"},
+                "query": {"type": "string",
+                          "description": "with queue: narrow the "
+                                         "worklist with the shared "
+                                         "query DSL, e.g. \"mode == "
+                                         "FM-3.2\" or \"max_latency "
+                                         "> 5000\""},
                 "stores": {"type": "array",
                            "items": {"type": "string"},
                            "description": "store directories for "
@@ -2629,13 +2635,20 @@ def _tool_handoff(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     if queue is not None:
         if queue < 1:
             raise ValueError("queue must be >= 1")
+        pred = None
+        expr = args.get("query")
+        if expr:
+            from .query import parse
+
+            pred = parse(str(expr))
         paths = args.get("stores")
         if paths is not None:
             page = worklist_fleet(_named_stores(paths),
-                                  limit=queue, table=table)
+                                  limit=queue, table=table,
+                                  query=pred)
         else:
             page = worklist(_store(ctx, args), limit=queue,
-                            table=table)
+                            table=table, query=pred)
         return {"queue": queue, "markdown": page}
     store = _store(ctx, args)
     trace = _mcp_trace(store, args.get("trace"))

@@ -1174,6 +1174,10 @@
             "type": "integer",
             "description": "the postmortem worklist instead: briefs for the top N unannotated failures"
           },
+          "query": {
+            "type": "string",
+            "description": "with queue: narrow the worklist with the shared query DSL, e.g. \"mode == FM-3.2\" or \"max_latency > 5000\""
+          },
           "stores": {
             "type": "array",
             "items": {
