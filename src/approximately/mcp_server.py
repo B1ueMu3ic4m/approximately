@@ -1137,8 +1137,11 @@ _TOOLS: List[Dict[str, Any]] = [
             "properties": {
                 "store": {"type": "string"},
                 "op": {"type": "string",
-                       "enum": ["create", "restore"],
-                       "description": "default create"},
+                       "enum": ["create", "restore", "check"],
+                       "description": "default create; check "
+                                      "recomputes every member "
+                                      "hash and reports, "
+                                      "extracting nothing"},
                 "path": {"type": "string",
                          "description": "the archive (created or "
                                         "restored)"},
@@ -2659,13 +2662,18 @@ def _tool_handoff(ctx: ServerContext, args: Dict[str, Any]) -> dict:
 
 
 def _tool_snapshot(ctx: ServerContext, args: Dict[str, Any]) -> dict:
-    from .snapshot import restore, snapshot
+    from .snapshot import restore, snapshot, verify_snapshot
 
     store = _store(ctx, args)
     op = str(args.get("op") or "create")
     path = args.get("path")
     if not path:
         raise KeyError("snapshot needs the archive path")
+    if op == "check":
+        manifest, offenders = verify_snapshot(Path(str(path)))
+        return {"members": len(manifest.get("members") or {}),
+                "intact": not offenders,
+                "mismatches": offenders}
     if op == "restore":
         into = args.get("into")
         if not into:

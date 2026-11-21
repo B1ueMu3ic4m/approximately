@@ -1201,9 +1201,10 @@
             "type": "string",
             "enum": [
               "create",
-              "restore"
+              "restore",
+              "check"
             ],
-            "description": "default create"
+            "description": "default create; check recomputes every member hash and reports, extracting nothing"
           },
           "path": {
             "type": "string",

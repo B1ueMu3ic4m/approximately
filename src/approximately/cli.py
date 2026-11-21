@@ -1335,12 +1335,56 @@ def cmd_snapshot(args: argparse.Namespace) -> int:
     return 0
 
 
+def _check_snapshot_report(args: argparse.Namespace) -> int:
+    """The --check verdict: every member hash recomputed against
+    the manifest, nothing extracted. Intact answers 0, tampered
+    answers 1 naming the drifted members, unreadable answers 2."""
+    import zipfile
+
+    from .snapshot import verify_snapshot
+
+    try:
+        manifest, offenders = verify_snapshot(Path(args.snapshot))
+    except (ValueError, OSError, zipfile.BadZipFile) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    members = len(manifest.get("members") or {})
+    if getattr(args, "json", False):
+        print(json.dumps({"snapshot": str(args.snapshot),
+                          "members": members,
+                          "intact": not offenders,
+                          "mismatches": offenders},
+                         indent=2))
+        return 1 if offenders else 0
+    print(f"snapshot {args.snapshot}: {members} member(s)")
+    for line in offenders[:10]:
+        print(f"  mismatch: {line}")
+    if len(offenders) > 10:
+        print(f"  ... +{len(offenders) - 10} more")
+    if not offenders:
+        print("  every hash matches the manifest")
+    return 1 if offenders else 0
+
+
 def cmd_restore(args: argparse.Namespace) -> int:
-    """Verify every member hash, then extract into --into."""
+    """Verify every member hash, then extract into --into. With
+    ``--check`` the hashes are recomputed and reported, nothing is
+    extracted: auditing an archive in place is the point."""
     import zipfile
 
     from .snapshot import restore
 
+    if getattr(args, "check", False) and getattr(args, "into", None):
+        print("error: --check extracts nothing — drop --into",
+              file=sys.stderr)
+        return 2
+    if getattr(args, "check", False):
+        return _check_snapshot_report(args)
+    if not getattr(args, "into", None):
+        print("error: restore needs --into DIR (or --check to "
+              "audit the archive without extracting)",
+              file=sys.stderr)
+        return 2
     try:
         report = restore(Path(args.snapshot), Path(args.into),
                          force=bool(args.force))
@@ -6200,8 +6244,13 @@ def build_parser() -> argparse.ArgumentParser:
                             "extract it into --into")
     p.add_argument("snapshot", metavar="SNAP.zip",
                    help="the archive to restore")
-    p.add_argument("--into", required=True, metavar="DIR",
-                   help="target directory (created as needed)")
+    p.add_argument("--into", metavar="DIR",
+                   help="target directory (created as needed); "
+                        "required unless --check")
+    p.add_argument("--check", action="store_true",
+                   help="recompute every member hash and report — "
+                        "audit the archive in place, extract "
+                        "nothing (exit 1 names the mismatches)")
     p.add_argument("--force", action="store_true",
                    help="overwrite files that already exist in "
                         "--into (default: refuse)")

@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.37
+
+- audit an archive where it lies, extract nothing. (planned): - ``restore`` verified - but only on its way to extracting somewhere: auditing the backup you are ABOUT to trust, or the one that has been sitting on a shelf, should not require a target directory. ``restore --check SNAP.zip`` recomputes every member hash against the manifest and reports: intact answers 0, tampered answers 1 NAMING the drifted members (missing, sha256 mismatch, unmanifested stowaway), unreadable answers 2, and ``--check`` with ``--into`` is refused by name (check extracts nothing, anywhere). The MCP snapshot tool gains the ``check`` op with the same verdict; a plain restore keeps its own contract unchanged.
+
 ## v5.9.36
 
 - the selection feeds pipelines, the doors keep their tempers. (planned): - ``query --ids`` - one id per line, xargs-friendly: the DSL is the selection primitive for the whole toolkit, so the answer must pipe. And the week's new surfaces meet hostile input together: depth/size/pattern-bound expressions through the memory wrap refuse by name on the door AND on the wire (an isError envelope, never a traceback), a directory named like a cache entry is not a cache line the prune may unlink (and not a failure either - not an entry at all), an entry stamped in the future is kept (not stale is not deleted), and ``0s ago`` is an honest empty window.
