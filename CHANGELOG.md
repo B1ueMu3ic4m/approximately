@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.32
+
+- the judge cache gets the operator's call. (planned): - v169 made doctor read the judge cache and deliberately left deletion to the operator's own hands; this is that call, made explicit and reported: ``doctor --judge-cache DIR --prune DAYS`` removes entries older than DAYS by mtime age (a stale corrupt entry is dead weight by age, a fresh one stays named), ``--dry-run`` prints the very numbers the real prune would print without unlinking, unlink failures (a file locked by a running judge on Windows) are counted and named instead of fatal, and the report carries the prune outcome next to the post-prune health reading. ``--prune`` without a cache dir is refused by name - the call only ever touches the cache the operator points at, and stays out of MCP on purpose (destructive path ops are not a wire tool's job).
+
 ## v5.9.31
 
 - the query DSL reads time like a human. (planned): - ``created > 1763692800`` was the only way to ask "what failed in the last day" - an epoch on the command line, which nobody writes from memory. Time words fix that: ``created > 24h ago``, ``7d ago``, ``30m ago`` (units s/m/h/d/w, floats fine, case-insensitive), composable with every existing operator (``success == false and created > 24h ago``). The clock is read once per parse - one select, one consistent "now" - not once per trace. Refusals keep the door's grammar: an invented unit and a duration on a field where it cannot mean anything (``tokens > 5m ago``) are named, a trailing unit without ``ago`` stays the leftover error it always was, and the MCP query tool sells the words in its schema.
