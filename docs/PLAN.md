@@ -2812,6 +2812,22 @@ framework adapters import lazily and degrade when the framework is absent.
        MCP recall tool gains the key and sells it in its
        schema).
 
+604. **v5.9.34 - the worklist and the aggregate speak the DSL**
+       (planned):
+       - The postmortem worklist ordered itself (unannotated
+       failures first) and stats counted the whole box, but
+       "annotate the FM-3.2 ones first" or "the aggregate of
+       just the slow failures" needed the export door.
+       ``handoff --queue N --query EXPR`` narrows the worklist
+       to the failures matching the shared expression - fleet
+       boxes included, unreadable rows never hidden (a filter
+       narrows evidence, it does not launder it) - and ``stats
+       --query EXPR`` aggregates the selection instead of the
+       whole box, matching the wire, where the stats tool
+       already took an expression. ``--query`` without
+       ``--queue`` is refused by name; malformed expressions
+       refuse by name on both doors.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.34
+
+- the worklist and the aggregate speak the DSL. (planned): - The postmortem worklist ordered itself (unannotated failures first) and stats counted the whole box, but "annotate the FM-3.2 ones first" or "the aggregate of just the slow failures" needed the export door. ``handoff --queue N --query EXPR`` narrows the worklist to the failures matching the shared expression - fleet boxes included, unreadable rows never hidden (a filter narrows evidence, it does not launder it) - and ``stats --query EXPR`` aggregates the selection instead of the whole box, matching the wire, where the stats tool already took an expression. ``--query`` without ``--queue`` is refused by name; malformed expressions refuse by name on both doors.
+
 ## v5.9.33
 
 - the memory doors speak the query DSL. (planned): - The memory family had outcome flags, a model substring and calendar windows, but "which conversations touched deploy and failed with a slow tool" needed the export door. ``--query EXPR`` wraps the resolved view (one store or the fleet) with the shared query DSL: timeline, search, summary, digest and related all read the selection, not the whole box, composing with the existing filters. One wrap point (``_Queried``: list_traces filters, everything else delegates) gives the language to every door at once and keeps fleet conflict counts and store labels intact. The expression compiles once per door call; a malformed one is refused by name on both the CLI and the wire (the MCP recall tool gains the key and sells it in its schema).
