@@ -2118,8 +2118,10 @@ def _print_fleet(summaries: list) -> None:
         flag = "" if s.ledger_intact is not False else "  [LEDGER BROKEN]"
         anomalies = getattr(s, "fleet_anomalies", 0) or 0
         slow = f", {anomalies} slow outlier(s)" if anomalies else ""
+        chain = getattr(s, "annotation_broken", 0) or 0
+        triage = (f", TRIAGE CHAIN BROKEN x{chain}" if chain else "")
         print(f"{s.name}: {s.traces} traces, "
-              f"failure rate {s.failure_rate:.0%}{slow}{flag}")
+              f"failure rate {s.failure_rate:.0%}{slow}{triage}{flag}")
         if getattr(s, "inbox_rows", 0):
             print(f"  webhook inbox: {s.inbox_rows} row(s), "
                   f"{s.inbox_verified} verified")
