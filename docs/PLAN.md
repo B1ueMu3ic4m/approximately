@@ -3008,6 +3008,19 @@ framework adapters import lazily and degrade when the framework is absent.
        existing entry misses once after the upgrade, which
        is the honest price of a prompt change.
 
+615. **v5.9.45 - the front door sells what the doors do**
+       (planned):
+       - The GitHub page is the product's front door: the
+       night's five capability families were half-shipped
+       without README rows (the annotation chain, the
+       snapshot signature, the diary's triage lines, the
+       prompt-revision cache invalidation). README gained
+       the rows with real flag spellings and RECALL.md a
+       ``Triage annotations`` section; the pin is a PARITY
+       FLOOR that cuts both ways - a doc edit that drops a
+       promise fails the suite, and a doc that promises a
+       flag the parser does not know fails too.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

@@ -110,3 +110,31 @@ a readable window around the match — the moment it was said, not
 the whole log. Records are stored with tamper-evident chains
 (`verify`), so the memory you are reading is the memory that was
 recorded.
+
+## Triage annotations
+
+Reading the memory ends with a verdict. Annotations live in an
+append-only sidecar (`annotations.jsonl`), and each one is
+chain-stamped — keyed HMAC when a signing key is in play, plain
+sha256 when not — so an edited verdict or a removed line breaks
+every later link:
+
+```
+approximately annotate TRACE_ID "looks like the deploy timeout family" \
+    --verdict confirmed
+approximately verify --annotations          # the triage-log verdict
+approximately verify --annotations A B     # fleet: exit is the worst
+```
+
+`verify --annotations` names every broken link by line and trace;
+legacy unsigned lines never read as broken; a keyed entry whose
+key has rotated is unverifiable (cannot judge without the key)
+but its link continuity is still auditable. `doctor --deep` walks
+the chain and fails the health verdict on any broken link —
+verdicts drive triage, so a broken chain is broken evidence.
+
+`recall --export` carries each conversation's latest verdict onto
+its timeline line (`· triage: confirmed "looks like…"`), and the
+diary closes with a `## Triage` tally: how many failed
+conversations carry a verdict, which words, how many still
+unannotated.
