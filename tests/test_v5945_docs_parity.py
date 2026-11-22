@@ -38,6 +38,19 @@ def test_the_readme_names_the_annotation_chain():
             f"README dropped the promise: {promise!r}"
 
 
+def test_the_readme_names_the_related_verdict_signal():
+    readme = _norm(_read("README.md"))
+    for promise in (
+            "SAME triage verdict",
+            "--agent NAME",
+    ):
+        assert promise in readme, \
+            f"README dropped the promise: {promise!r}"
+    guide = _read("docs/RECALL.md")
+    assert "`same verdict` reason" in _norm(guide), \
+        "RECALL.md dropped the related-verdict promise"
+
+
 def test_the_readme_names_the_snapshot_signature():
     readme = _norm(_read("README.md"))
     for promise in (

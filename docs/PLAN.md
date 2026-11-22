@@ -3051,6 +3051,17 @@ framework adapters import lazily and degrade when the framework is absent.
        the fleet view works unchanged - the triage map
        already aggregates across boxes.
 
+618. **v5.9.48 - the front door catches up with the scorer**
+       (planned):
+       - The parity floor worked in reverse: v5947 shipped
+       the related-verdict signal and the ``--agent``
+       filter, and the front door had not caught up. The
+       memory row now names the ``--agent`` filter and the
+       SAME-triage-verdict reason; RECALL.md's triage
+       section names the scorer reading the verdicts; the
+       parity pin grows the two promises - a doc edit that
+       drops them fails the suite exactly like the rest.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
