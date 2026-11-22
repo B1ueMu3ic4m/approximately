@@ -51,7 +51,7 @@
     },
     {
       "name": "verify",
-      "description": "Verify the HMAC evidence chain of a trace. Returns the full verdict payload: verdict (intact, tampered, unsigned, keyed, wrong-key, rolled-back, ledger-broken), detail, chain finals, rollback flag and ledger health.",
+      "description": "Verify the HMAC evidence chain of a trace. Returns the full verdict payload: verdict (intact, tampered, unsigned, keyed, wrong-key, rolled-back, ledger-broken), detail, chain finals, rollback flag and ledger health. annotations=true instead walks the annotation chain: every signed triage entry's stamp and its link (intact=false names the broken links; legacy unsigned lines never read as broken).",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -68,6 +68,10 @@
           "all": {
             "type": "boolean",
             "description": "verify every trace in the store and return the tally (trace omitted)"
+          },
+          "annotations": {
+            "type": "boolean",
+            "description": "walk the annotation chain instead of the record chains"
           },
           "stores": {
             "type": "array",

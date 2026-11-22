@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.40
+
+- the annotation chain gets a first-class door. (planned): - ``doctor --deep`` walks the annotation chain, but deep is the whole house sweep; a cron (or an agent's pre-flight) that wants only the triage-log verdict should not pay for every record's chain recomputation. ``verify --annotations`` is that door: one store or a fleet (a section per store, the exit the worst, --json one array), exit 1 names the broken links, and the counts stay honest about what the door can know - legacy unsigned lines and rotated-key entries are counted, never guessed at. ``--key-file`` feeds keyed entries; ``--all`` and a bare trace id are refused by name; the MCP verify tool gains the ``annotations`` key with the same verdict.
+
 ## v5.9.39
 
 - the triage log is evidence too. (planned): - Annotations drive triage: a flipped verdict (``confirmed`` to ``false-positive``) silently rewrites the postmortem history, and the sidecar was unsigned JSONL while the records themselves carried a tamper-evident chain. Each new annotation extends the previous stamp (keyed HMAC when a signing key is in play, plain sha256 - tamper-EVIDENT - when not), so an edited verdict or a removed line breaks every later link, named by line and trace. ``doctor --deep`` walks the chain; a broken link fails the health verdict (verdicts drive triage: a broken chain is broken evidence). The contract stays honest about what it can know: a legacy unsigned log verifies trivially (never reads as broken), a corrupt line starts a fresh segment exactly as the writer's tail read would link it, and a keyed entry whose key has rotated is UNVERIFIABLE - the content check needs the key, but the link continuity never does, and the wrong key never blesses an entry.

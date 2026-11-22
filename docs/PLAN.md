@@ -2919,6 +2919,23 @@ framework adapters import lazily and degrade when the framework is absent.
        the link continuity never does, and the wrong key
        never blesses an entry.
 
+610. **v5.9.40 - the annotation chain gets a first-class
+       door** (planned):
+       - ``doctor --deep`` walks the annotation chain, but
+       deep is the whole house sweep; a cron (or an agent's
+       pre-flight) that wants only the triage-log verdict
+       should not pay for every record's chain
+       recomputation. ``verify --annotations`` is that
+       door: one store or a fleet (a section per store, the
+       exit the worst, --json one array), exit 1 names the
+       broken links, and the counts stay honest about what
+       the door can know - legacy unsigned lines and
+       rotated-key entries are counted, never guessed at.
+       ``--key-file`` feeds keyed entries; ``--all`` and a
+       bare trace id are refused by name; the MCP verify
+       tool gains the ``annotations`` key with the same
+       verdict.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
