@@ -3694,6 +3694,7 @@ def cmd_recall(args: argparse.Namespace) -> int:
     store = _recall_view(args)
     until = getattr(args, "until", None)
     model = getattr(args, "model", None)
+    agent = getattr(args, "agent", None)
     outcomes = ("failed" if getattr(args, "failed_only", False)
                 else "ok" if getattr(args, "ok_only", False)
                 else "all")
@@ -3724,7 +3725,7 @@ def cmd_recall(args: argparse.Namespace) -> int:
                              until=until,
                              limit=int(getattr(args, "limit", 20)),
                              model=model, outcomes=outcomes,
-                             day=day)
+                             day=day, agent=agent)
         except ValueError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
@@ -3759,7 +3760,8 @@ def cmd_recall(args: argparse.Namespace) -> int:
     payload = timeline(store, since=getattr(args, "since", None),
                        until=until,
                        limit=int(getattr(args, "limit", 0)) or None,
-                       model=model, outcomes=outcomes, day=day)
+                       model=model, outcomes=outcomes, day=day,
+                       agent=agent)
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2))
         return 0
@@ -3825,6 +3827,7 @@ def cmd_recall_summary(args: argparse.Namespace) -> int:
         print(f"error: --day wants YYYY-MM-DD, got {day!r}",
               file=sys.stderr)
         return 2
+    agent = getattr(args, "agent", None)
     store = _recall_view(args)
     payload = summarize(store, since=getattr(args, "since", None),
                         until=getattr(args, "until", None),
@@ -3834,7 +3837,8 @@ def cmd_recall_summary(args: argparse.Namespace) -> int:
                                              False)
                                   else "ok"
                                   if getattr(args, "ok_only", False)
-                                  else "all"), day=day)
+                                  else "all"), day=day,
+                                  agent=agent)
     if getattr(args, "json", False):
         print(json.dumps(payload, indent=2))
         return 0
@@ -3856,6 +3860,7 @@ def cmd_recall_digest(args: argparse.Namespace) -> int:
         print(f"error: --day wants YYYY-MM-DD, got {day!r}",
               file=sys.stderr)
         return 2
+    agent = getattr(args, "agent", None)
     store = _recall_view(args)
     payload = digest(store, since=getattr(args, "since", None),
                      until=getattr(args, "until", None),
@@ -3865,7 +3870,8 @@ def cmd_recall_digest(args: argparse.Namespace) -> int:
                                           False)
                                else "ok"
                                if getattr(args, "ok_only", False)
-                               else "all"), day=day)
+                               else "all"), day=day,
+                               agent=agent)
     out_arg = getattr(args, "export", None)
     if out_arg:
         out = Path(out_arg)
@@ -7078,6 +7084,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--model", metavar="NAME",
                    help="only conversations whose model matches "
                         "(case-insensitive substring)")
+    p.add_argument("--agent", metavar="NAME",
+                   help="only conversations whose named agents "
+                        "match (case-insensitive substring; a run "
+                        "with no Step.agent never matches — stats "
+                        "--by-agent answers that bucket)")
     p.add_argument("--failed-only", action="store_true",
                    help="only conversations that ended in failure")
     p.add_argument("--ok-only", action="store_true",
@@ -7120,6 +7131,9 @@ def build_parser() -> argparse.ArgumentParser:
                         "read the same store the same way")
     p.add_argument("--model", metavar="NAME",
                    help="only conversations whose model matches")
+    p.add_argument("--agent", metavar="NAME",
+                   help="only conversations whose named agents "
+                        "match (case-insensitive substring)")
     p.add_argument("--failed-only", action="store_true",
                    help="only conversations that ended in failure")
     p.add_argument("--ok-only", action="store_true",
@@ -7158,6 +7172,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--model", metavar="NAME",
                    help="only conversations whose model matches "
                         "(case-insensitive substring)")
+    p.add_argument("--agent", metavar="NAME",
+                   help="only conversations whose named agents "
+                        "match (case-insensitive substring)")
     p.add_argument("--failed-only", action="store_true",
                    help="only failures in the window")
     p.add_argument("--ok-only", action="store_true",

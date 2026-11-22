@@ -1469,6 +1469,10 @@
             "type": "string",
             "description": "one calendar day (YYYY-MM-DD): the drill-down step from the summary's day rows"
           },
+          "agent": {
+            "type": "string",
+            "description": "only conversations whose named agents match (case-insensitive substring; a run with no Step.agent never matches)"
+          },
           "related": {
             "type": "string",
             "description": "a trace id: the conversations related to this one (shared tools, shared topic, same day)"
