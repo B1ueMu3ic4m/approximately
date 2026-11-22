@@ -3021,6 +3021,20 @@ framework adapters import lazily and degrade when the framework is absent.
        promise fails the suite, and a doc that promises a
        flag the parser does not know fails too.
 
+616. **v5.9.46 - the memory door filters by agent**
+       (planned):
+       - Multi-agent runs produce one conversation with
+       several voices - "what did the researcher actually
+       do?" needed the query DSL or a manual scan.
+       ``recall --agent NAME`` (and recall-summary /
+       recall-digest) filters the memory to conversations
+       whose named agents match (case-insensitive substring,
+       like --model over models); a run with no Step.agent
+       never matches - the unattributed bucket stays ``stats
+       --by-agent``'s answer. The MCP recall tool gains the
+       key, and the filter composes with --grep / --day /
+       --query across the fleet view.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

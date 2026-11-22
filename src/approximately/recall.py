@@ -104,19 +104,39 @@ def _in_time_window(stamp: Optional[float], since: Optional[float],
     return not (until is not None and stamp > until)
 
 
+def _model_match(trace: Trace, model: Optional[str]) -> bool:
+    """The model filter: case-insensitive substring, like --query's
+    substring semantics."""
+    if not model:
+        return True
+    return model.lower() in str(trace.model or "").lower()
+
+
+def _agent_match(trace: Trace, agent: Optional[str]) -> bool:
+    """The agent filter (case-insensitive substring over the named
+    agents, like --model over models): an unattributed run never
+    matches — `stats --by-agent` answers the unattributed bucket."""
+    if not agent:
+        return True
+    named = {s.agent for s in trace.steps if s.agent}
+    return any(agent.lower() in str(name).lower() for name in named)
+
+
 def _in_window(trace: Trace, since: Optional[float],
                until: Optional[float], model: Optional[str],
-               outcomes: str, day: Optional[str] = None) -> bool:
-    """The time window plus the outcome/model filters: `outcomes`
-    is "all", "ok" or "failed" — a human looks for the runs that
-    went wrong, or for the ones that worked."""
+               outcomes: str, day: Optional[str] = None,
+               agent: Optional[str] = None) -> bool:
+    """The time window plus the outcome/model/agent filters:
+    `outcomes` is "all", "ok" or "failed" — a human looks for the
+    runs that went wrong, or for the ones that worked."""
     stamp = _finite_stamp(trace.created_at)
     if not _in_time_window(stamp, since, until):
         return False
     if day is not None and _local_day(stamp or 0) != day:
         return False
-    if model and model.lower() not in \
-            str(trace.model or "").lower():
+    if not _model_match(trace, model):
+        return False
+    if not _agent_match(trace, agent):
         return False
     if outcomes == "ok":
         return trace.success is True
@@ -128,9 +148,11 @@ def _in_window(trace: Trace, since: Optional[float],
 def _steps_window(traces: Iterable[Trace], since: Optional[float],
                   until: Optional[float], model: Optional[str] = None,
                   outcomes: str = "all",
-                  day: Optional[str] = None) -> List[Trace]:
+                  day: Optional[str] = None,
+                  agent: Optional[str] = None) -> List[Trace]:
     return [t for t in traces
-            if _in_window(t, since, until, model, outcomes, day)]
+            if _in_window(t, since, until, model, outcomes, day,
+                          agent)]
 
 
 def _step_totals(steps: list) -> Tuple[int, int]:
@@ -318,12 +340,14 @@ def timeline(store: Any, since: Optional[float] = None,
              limit: Optional[int] = None,
              model: Optional[str] = None,
              outcomes: str = "all",
-             day: Optional[str] = None) -> dict:
+             day: Optional[str] = None,
+             agent: Optional[str] = None) -> dict:
     """The conversations in the order they happened, grouped by
     the day they happened on — the machine's answer to "what did
     I even talk about last week?\"."""
     traces = _steps_window(store.list_traces(), since, until,
-                           model=model, outcomes=outcomes, day=day)
+                           model=model, outcomes=outcomes, day=day,
+                           agent=agent)
     entries = sorted((_entry(t) for t in traces),
                      key=lambda e: (e["created_at"] or 0, e["id"]))
     if limit is not None:
@@ -389,7 +413,8 @@ def search(store: Any, needle: str, since: Optional[float] = None,
            until: Optional[float] = None, limit: int = 20,
            model: Optional[str] = None,
            outcomes: str = "all",
-           day: Optional[str] = None) -> dict:
+           day: Optional[str] = None,
+           agent: Optional[str] = None) -> dict:
     """Find the conversations where something was said — every
     field a conversation speaks through, with a readable excerpt
     of the moment. Case-insensitive; newest last."""
@@ -397,7 +422,8 @@ def search(store: Any, needle: str, since: Optional[float] = None,
     if not needle:
         raise ValueError("search needs something to look for")
     traces = _steps_window(store.list_traces(), since, until,
-                           model=model, outcomes=outcomes, day=day)
+                           model=model, outcomes=outcomes, day=day,
+                           agent=agent)
     traces.sort(key=lambda t: (t.created_at or 0, t.id))
     hits = []
     for trace in traces:
@@ -500,12 +526,14 @@ def summarize(store: Any, since: Optional[float] = None,
               until: Optional[float] = None,
               model: Optional[str] = None,
               outcomes: str = "all",
-              day: Optional[str] = None) -> dict:
+              day: Optional[str] = None,
+              agent: Optional[str] = None) -> dict:
     """The day-by-day answer: how many conversations, what they
     were about (top topics), which tools carried them, how many
     ended badly — the human-memory view of the store."""
     traces = _steps_window(store.list_traces(), since, until,
-                           model=model, outcomes=outcomes, day=day)
+                           model=model, outcomes=outcomes, day=day,
+                           agent=agent)
     days: Dict[str, List[Trace]] = {}
     for trace in traces:
         stamp = _finite_stamp(trace.created_at)
@@ -555,15 +583,18 @@ def digest(store: Any, since: Optional[float] = None,
            until: Optional[float] = None,
            model: Optional[str] = None,
            outcomes: str = "all",
-           day: Optional[str] = None) -> dict:
+           day: Optional[str] = None,
+           agent: Optional[str] = None) -> dict:
     """The weekly postmortem of the conversations: the day rows,
     then the failed runs with their error excerpts and the modes
     the rule detectors name - what went wrong, when, and (the
     attribution layer's answer) how."""
     summary = summarize(store, since=since, until=until,
-                        model=model, outcomes=outcomes, day=day)
+                        model=model, outcomes=outcomes, day=day,
+                        agent=agent)
     failed = _steps_window(store.list_traces(), since, until,
-                           model=model, outcomes="failed", day=day)
+                           model=model, outcomes="failed", day=day,
+                           agent=agent)
     failed.sort(key=lambda t: (t.created_at or 0, t.id))
     rows = [_failure_row(t) for t in failed]
     payload = {**summary, "failures": rows}

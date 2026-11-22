@@ -1452,6 +1452,13 @@ _TOOLS: List[Dict[str, Any]] = [
                                        "(YYYY-MM-DD): the "
                                        "drill-down step from the "
                                        "summary's day rows"},
+                "agent": {"type": "string",
+                          "description": "only conversations "
+                                         "whose named agents "
+                                         "match (case-insensitive "
+                                         "substring; a run with "
+                                         "no Step.agent never "
+                                         "matches)"},
                 "related": {"type": "string",
                             "description": "a trace id: the "
                                            "conversations related "
@@ -3156,16 +3163,19 @@ def _tool_recall(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     related_id = args.get("related")
     if related_id is not None:
         return _related_result(store, related_id, limit)
+    agent = args.get("agent")
     if grep:
         return search(store, str(grep), since=since, until=until,
                       limit=20 if limit is None else int(limit),
-                      day=day)
+                      day=day, agent=agent)
     if args.get("summarize"):
-        return summarize(store, since=since, until=until, day=day)
+        return summarize(store, since=since, until=until, day=day,
+                         agent=agent)
     if args.get("digest"):
-        return digest(store, since=since, until=until, day=day)
+        return digest(store, since=since, until=until, day=day,
+                      agent=agent)
     return timeline(store, since=since, until=until,
-                    limit=limit, day=day)
+                    limit=limit, day=day, agent=agent)
 
 
 _HANDLERS = {
