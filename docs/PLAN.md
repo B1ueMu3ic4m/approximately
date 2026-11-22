@@ -3035,6 +3035,22 @@ framework adapters import lazily and degrade when the framework is absent.
        key, and the filter composes with --grep / --day /
        --query across the fleet view.
 
+617. **v5.9.47 - the related scorer reads the human verdicts**
+       (planned):
+       - Shared tools, shared topics and the same day are
+       behavioral signals; the strongest relatedness signal
+       there is - the analyst already looked at both runs
+       and called them the SAME thing - was invisible to
+       the scorer. ``related`` reads the annotation sidecar
+       once (the same pass the diary uses): two
+       conversations carrying the SAME triage verdict earn a
+       ``same verdict`` reason and a score bump, the
+       candidate's verdict word rides its result entry, and
+       an unannotated candidate never earns the reason. The
+       ordering stays deterministic (score desc, then id);
+       the fleet view works unchanged - the triage map
+       already aggregates across boxes.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
