@@ -2936,6 +2936,25 @@ framework adapters import lazily and degrade when the framework is absent.
        tool gains the ``annotations`` key with the same
        verdict.
 
+611. **v5.9.41 - the diary carries the triage words**
+       (planned):
+       - The diary is the artifact a person opens months
+       later - and the part a reader actually came for is
+       the triage verdict ("was this the one we
+       confirmed?"). ``recall --export`` appends each
+       conversation's latest verdict and a bounded note
+       excerpt to its timeline line, read from the
+       annotation sidecar in ONE pass (a per-line lookup
+       would read the file once per conversation), across
+       the fleet view too - MultiStore gained an
+       ``annotations()`` aggregation so each box's verdict
+       rides its own entries. The stdout timeline stays
+       lean - the door that answers "what did I talk
+       about" does not grow store lookups per line - and a
+       store without annotations renders without a triage
+       tail at all. One conversation, one tail, and the
+       LATEST annotation is what the reader gets.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

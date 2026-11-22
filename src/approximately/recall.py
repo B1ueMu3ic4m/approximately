@@ -93,6 +93,17 @@ def valid_day(text: Any) -> bool:
     return True
 
 
+def _in_time_window(stamp: Optional[float], since: Optional[float],
+                    until: Optional[float]) -> bool:
+    """The epoch window half of the filter: a conversation with no
+    finite stamp never matches an epoch-bounded window."""
+    if since is None and until is None:
+        return True
+    if stamp is None or stamp < (since or 0):
+        return False
+    return not (until is not None and stamp > until)
+
+
 def _in_window(trace: Trace, since: Optional[float],
                until: Optional[float], model: Optional[str],
                outcomes: str, day: Optional[str] = None) -> bool:
@@ -100,9 +111,7 @@ def _in_window(trace: Trace, since: Optional[float],
     is "all", "ok" or "failed" — a human looks for the runs that
     went wrong, or for the ones that worked."""
     stamp = _finite_stamp(trace.created_at)
-    if ((since is not None or until is not None)
-            and (stamp is None or stamp < (since or 0)
-                 or (until is not None and stamp > until))):
+    if not _in_time_window(stamp, since, until):
         return False
     if day is not None and _local_day(stamp or 0) != day:
         return False
@@ -203,6 +212,20 @@ class MultiStore:
                         and trace.id not in self.diverged):
                     self.diverged.append(trace.id)
         return traces
+
+    def annotations(self, trace_id: Optional[str] = None) -> list:
+        """Every box's triage log, per box in order — the
+        annotations read as one memory, the way the traces do (a
+        duplicated id keeps its first store's verdict)."""
+        out: List[Any] = []
+        for store, _name in zip(self._stores, self._names,
+                                strict=True):
+            annotations = getattr(store, "annotations", None)
+            if annotations is None:
+                continue
+            out.extend(annotations(trace_id)
+                       if trace_id is not None else annotations())
+        return out
 
 
 class _Queried:
@@ -703,20 +726,59 @@ def _mark(success: Any) -> str:
         else "·"
 
 
+def _triage_map(store: Any) -> dict:
+    """trace_id → the latest triage word and note, read from the
+    annotation sidecar in ONE pass (a per-line lookup would read
+    the file once per conversation). A view without annotations
+    (a wrapped or foreign store) reads as no triage at all."""
+    latest: dict = {}
+    annotations = getattr(store, "annotations", None)
+    if annotations is None:
+        return latest
+    try:
+        entries = annotations()
+    except (OSError, ValueError):
+        return latest
+    if not isinstance(entries, list):
+        return latest
+    for entry in entries:
+        tid = entry.get("trace_id") if isinstance(entry, dict) \
+            else None
+        if not tid:
+            continue
+        latest[tid] = entry
+    return latest
+
+
+def _triage_suffix(entry: dict) -> str:
+    """The per-conversation triage tail: the verdict word plus a
+    bounded note excerpt — the diary line stays one line."""
+    verdict = str(entry.get("verdict") or "").strip()
+    note = " ".join(str(entry.get("note") or "").split())
+    tail = f" · triage: {verdict or 'noted'}"
+    if note:
+        tail += f' "{note[:48]}{"…" if len(note) > 48 else ""}"'
+    return tail
+
+
 def export_diary(store: Any, output: Path,
                  since: Optional[float] = None,
                  until: Optional[float] = None) -> dict:
     """The memory as a file: timeline then summary, one markdown
-    diary a person can open months later. Returns the counts."""
+    diary a person can open months later — with each
+    conversation's triage word riding its line, because the
+    verdicts are the part a reader actually came for. Returns the
+    counts."""
     summary = summarize(store, since=since, until=until)
     payload = timeline(store, since=since, until=until)
+    triage = _triage_map(store)
     names = getattr(store, "names", None)
     head = "Conversation diary"
     if names:
         head += " — " + ", ".join(Path(n).name for n in names)
     text = (f"# {head}\n\n"
             f"{render_summary(summary)}\n\n"
-            f"## Timeline\n\n{render_timeline(payload)}\n")
+            f"## Timeline\n\n{render_timeline(payload, triage)}\n")
     dup = _dup_payload(store)
     if dup:
         text += f"\n{duplicate_note(dup)}\n"
@@ -728,9 +790,11 @@ def export_diary(store: Any, output: Path,
             "path": str(output)}
 
 
-def render_timeline(payload: dict) -> str:
+def render_timeline(payload: dict, triage: Optional[dict] = None) -> str:
     """The prose timeline: day headers, one conversation a line —
-    the shape a human skims at 2am looking for last Tuesday."""
+    the shape a human skims at 2am looking for last Tuesday. The
+    optional triage map (diary only) appends each conversation's
+    verdict; the stdout door stays lean."""
     lines: List[str] = []
     if not payload["conversations"]:
         return "no conversations in this window"
@@ -746,8 +810,11 @@ def render_timeline(payload: dict) -> str:
                    else f" {e['duration_ms'] / 1000.0:.0f}s")
             store = (" {" + str(e["store"]) + "}"
                      if e.get("store") else "")
+            triage_tail = ""
+            if triage and e["id"] in triage:
+                triage_tail = _triage_suffix(triage[e["id"]])
             lines.append(f"  {e['time']}  {mark}  {e['task'][:72]}"
-                         f"{store}{tools}{dur}")
+                         f"{store}{tools}{dur}{triage_tail}")
     return "\n".join(lines)
 
 
