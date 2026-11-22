@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.41
+
+- the diary carries the triage words. (planned): - The diary is the artifact a person opens months later - and the part a reader actually came for is the triage verdict ("was this the one we confirmed?"). ``recall --export`` appends each conversation's latest verdict and a bounded note excerpt to its timeline line, read from the annotation sidecar in ONE pass (a per-line lookup would read the file once per conversation), across the fleet view too - MultiStore gained an ``annotations()`` aggregation so each box's verdict rides its own entries. The stdout timeline stays lean - the door that answers "what did I talk about" does not grow store lookups per line - and a store without annotations renders without a triage tail at all. One conversation, one tail, and the LATEST annotation is what the reader gets.
+
 ## v5.9.40
 
 - the annotation chain gets a first-class door. (planned): - ``doctor --deep`` walks the annotation chain, but deep is the whole house sweep; a cron (or an agent's pre-flight) that wants only the triage-log verdict should not pay for every record's chain recomputation. ``verify --annotations`` is that door: one store or a fleet (a section per store, the exit the worst, --json one array), exit 1 names the broken links, and the counts stay honest about what the door can know - legacy unsigned lines and rotated-key entries are counted, never guessed at. ``--key-file`` feeds keyed entries; ``--all`` and a bare trace id are refused by name; the MCP verify tool gains the ``annotations`` key with the same verdict.
