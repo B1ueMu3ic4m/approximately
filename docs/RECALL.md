@@ -126,7 +126,10 @@ approximately verify --annotations          # the triage-log verdict
 approximately verify --annotations A B     # fleet: exit is the worst
 ```
 
-`verify --annotations` names every broken link by line and trace;
+`verify --annotations` names every broken link by line and trace
+(and the fleet dashboard's per-box sections carry the same
+verdict — a broken chain on one box is broken evidence
+fleet-wide);
 legacy unsigned lines never read as broken; a keyed entry whose
 key has rotated is unverifiable (cannot judge without the key)
 but its link continuity is still auditable. `doctor --deep` walks

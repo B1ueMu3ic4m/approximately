@@ -74,15 +74,26 @@ def test_the_readme_names_the_judge_parity_and_diary():
 
 
 def test_recall_doc_carries_the_triage_section():
-    guide = _read("docs/RECALL.md")
+    guide = _norm(_read("docs/RECALL.md"))
     for promise in (
             "## Triage annotations",
             "verify --annotations",
             "## Triage",
             "unverifiable",
+            "broken evidence fleet-wide",
     ):
         assert promise in guide, \
             f"RECALL.md dropped the promise: {promise!r}"
+
+
+def test_the_readme_names_the_fleet_chain_verdict():
+    readme = _norm(_read("README.md"))
+    for promise in (
+            "TRIAGE CHAIN BROKEN xN",
+            "screams only when broken",
+    ):
+        assert promise in readme, \
+            f"README dropped the promise: {promise!r}"
 
 
 def test_the_promised_flags_actually_exist():

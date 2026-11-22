@@ -3077,6 +3077,17 @@ framework adapters import lazily and degrade when the framework is absent.
        conversation, no refusal), and a fleet where the
        agent only exists on the second box still answers.
 
+620. **v5.9.50 - the front door reads the fleet chains too**
+       (planned):
+       - The parity floor continues: the fleet row now names
+       the per-box triage-log chain verdict (``TRIAGE CHAIN
+       BROKEN xN`` - screams only when broken), and
+       RECALL.md's triage section names the fleet-wide
+       rule - a broken chain on one box is broken evidence
+       fleet-wide. The parity pin grows the promises; the
+       suite now guards the whole night's surface, docs
+       included.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
