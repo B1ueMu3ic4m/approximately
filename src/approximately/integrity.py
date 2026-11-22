@@ -387,3 +387,34 @@ def verdict_payload(trace: Trace, directory: Any, key: Optional[bytes] = None) -
             "rollback": False,
             "ledger": {"entries": ledger_check.entries,
                        "intact": ledger_check.intact}}
+
+
+# --- annotation chain -------------------------------------------------
+
+ANNOTATION_ALGO = "sha256-chain-v2"
+ANNOTATION_ALGO_KEYED = "hmac-sha256-chain-v2"
+
+
+def annotation_stamp(entry: dict, prev: str,
+                     key: Optional[bytes]) -> str:
+    """One annotation chain link: keyed HMAC (or plain sha256, the
+    unkeyed tamper-EVIDENT form) over the canonical entry plus the
+    previous stamp — an edited or removed line breaks every later
+    link, exactly like the record chain."""
+    material = _canonical(entry) + prev.encode("utf-8")
+    return _mac(key, material) if key else _sha(material)
+
+
+def stamp_annotation(entry: dict, prev: str,
+                     key: Optional[bytes]) -> dict:
+    """The writer's side: the entry as stored — content, the chain
+    link it extends, the algorithm marker, and the stamp over all
+    of it (the key_id rides inside when a key is in play, so a
+    verifier notices a rotated key instead of silently failing)."""
+    stamped = {**entry, "prev": prev,
+               "alg": ANNOTATION_ALGO_KEYED if key
+               else ANNOTATION_ALGO}
+    if key:
+        stamped["key_id"] = key_id(key)
+    stamped["stamp"] = annotation_stamp(stamped, prev, key)
+    return stamped

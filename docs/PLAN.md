@@ -2897,6 +2897,28 @@ framework adapters import lazily and degrade when the framework is absent.
        partial answer - and well-formed expressions keep
        answering through the same doors.
 
+609. **v5.9.39 - the triage log is evidence too**
+       (planned):
+       - Annotations drive triage: a flipped verdict
+       (``confirmed`` to ``false-positive``) silently
+       rewrites the postmortem history, and the sidecar was
+       unsigned JSONL while the records themselves carried a
+       tamper-evident chain. Each new annotation extends the
+       previous stamp (keyed HMAC when a signing key is in
+       play, plain sha256 - tamper-EVIDENT - when not), so an
+       edited verdict or a removed line breaks every later
+       link, named by line and trace. ``doctor --deep`` walks
+       the chain; a broken link fails the health verdict
+       (verdicts drive triage: a broken chain is broken
+       evidence). The contract stays honest about what it can
+       know: a legacy unsigned log verifies trivially (never
+       reads as broken), a corrupt line starts a fresh
+       segment exactly as the writer's tail read would link
+       it, and a keyed entry whose key has rotated is
+       UNVERIFIABLE - the content check needs the key, but
+       the link continuity never does, and the wrong key
+       never blesses an entry.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

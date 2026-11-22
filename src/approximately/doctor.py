@@ -43,6 +43,9 @@ class DoctorReport:
     annotation_lines: int = 0
     annotation_corrupt: int = 0
     annotation_orphans: List[str] = field(default_factory=list)
+    annotation_signed: int = 0
+    annotation_unverifiable: int = 0
+    annotation_broken: List[str] = field(default_factory=list)
     judge_cache_dir: str = ""
     judge_cache_entries: int = 0
     judge_cache_corrupt: int = 0
@@ -73,6 +76,7 @@ class DoctorReport:
                     or self.digest_gaps
                     or self.spool_unparsed
                     or self.chain_failed
+                    or self.annotation_broken
                     or self.ledger_intact is False)
 
     def to_dict(self) -> dict:
@@ -96,6 +100,9 @@ class DoctorReport:
             "annotation_lines": self.annotation_lines,
             "annotation_corrupt": self.annotation_corrupt,
             "annotation_orphans": self.annotation_orphans,
+            "annotation_signed": self.annotation_signed,
+            "annotation_unverifiable": self.annotation_unverifiable,
+            "annotation_broken": self.annotation_broken,
             "judge_cache_dir": self.judge_cache_dir,
             "judge_cache_entries": self.judge_cache_entries,
             "judge_cache_corrupt": self.judge_cache_corrupt,
@@ -132,6 +139,22 @@ class DoctorReport:
                      "unreadable line(s) (the flush drops them "
                      "loudly)")
         return note
+
+    def _render_annotation_chain(self) -> list:
+        """The chain section (deep): signed count, and a BROKEN
+        marker that names the verdicts must-not-trust rule."""
+        lines: list = []
+        if self.annotation_signed or self.annotation_broken:
+            note = (f"  annotation chain: {self.annotation_signed} "
+                    "signed")
+            if self.annotation_broken:
+                note += (f", {len(self.annotation_broken)} BROKEN "
+                         "(verdicts drive triage — treat as "
+                         "tampered evidence)")
+            lines.append(note)
+        lines.extend(f"    broken annotation link: {line}"
+                     for line in self.annotation_broken[:5])
+        return lines
 
     def _render_judge_cache(self) -> list:
         """The cache section: entries and unreadable ones, plus the
@@ -191,6 +214,7 @@ class DoctorReport:
             lines.append(note)
         lines.extend(f"    orphan annotation: trace {tid}"
                      for tid in self.annotation_orphans[:5])
+        lines.extend(self._render_annotation_chain())
         lines.extend(self._render_judge_cache())
         if self.legacy_agents:
             lines.append(
@@ -400,6 +424,20 @@ def _check_annotations(store: Path, report: DoctorReport) -> None:
     })
 
 
+def _check_annotation_chain(store: Path, report: DoctorReport) -> None:
+    """The annotation chain (deep): every signed entry's stamp must
+    match its content and its link. Verdicts drive triage, so a
+    broken chain is broken evidence — it fails the health verdict,
+    and a legacy unsigned log never reads as broken."""
+    path = Path(store) / "annotations.jsonl"
+    if not path.exists():
+        return
+    check = TraceStore(store).verify_annotations()
+    report.annotation_signed = check["signed"]
+    report.annotation_unverifiable = check.get("unverifiable", 0)
+    report.annotation_broken = check["broken"][:10]
+
+
 def _apply_cache_prune(report: DoctorReport, cache: Path,
                        days: float, dry_run: bool) -> None:
     """Run the operator's prune and copy the outcome into the
@@ -500,6 +538,7 @@ def doctor(store: Path, digest_dir: Optional[Path] = None,
     _check_hygiene(store, report)
     if deep:
         _check_chains(store, report)
+        _check_annotation_chain(store, report)
     if digest_dir is not None and digest_dir.is_dir():
         _check_digests(digest_dir, report)
     _check_annotations(store, report)

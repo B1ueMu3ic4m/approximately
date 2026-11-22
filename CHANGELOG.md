@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.39
+
+- the triage log is evidence too. (planned): - Annotations drive triage: a flipped verdict (``confirmed`` to ``false-positive``) silently rewrites the postmortem history, and the sidecar was unsigned JSONL while the records themselves carried a tamper-evident chain. Each new annotation extends the previous stamp (keyed HMAC when a signing key is in play, plain sha256 - tamper-EVIDENT - when not), so an edited verdict or a removed line breaks every later link, named by line and trace. ``doctor --deep`` walks the chain; a broken link fails the health verdict (verdicts drive triage: a broken chain is broken evidence). The contract stays honest about what it can know: a legacy unsigned log verifies trivially (never reads as broken), a corrupt line starts a fresh segment exactly as the writer's tail read would link it, and a keyed entry whose key has rotated is UNVERIFIABLE - the content check needs the key, but the link continuity never does, and the wrong key never blesses an entry.
+
 ## v5.9.38
 
 - fuzz round 5: the DSL doors under hostile input. (planned): - The query DSL spread across the toolkit this week (recall family, handoff --queue, stats, --ids), so fuzz round 5 throws a seeded corpus of hostile expressions at every door that now takes one: unbalanced delimiters, giant tokens, unicode soup, ``ago`` abuse, operator salad. Two real finds on the first run: a NUMBER in the operator slot (``success 5 == false``) escaped as a bare AttributeError instead of a named refusal - fixed to refuse by name; and the doors' envelope paths held everywhere else. Contract under fuzz: rejected is always a named refusal, never a traceback, never a partial answer - and well-formed expressions keep answering through the same doors.
