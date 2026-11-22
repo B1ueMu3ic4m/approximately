@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.51
+
+- mutation fuzz over the annotation chain. (planned): - The chain's honest contracts were pinned with crafted cases; a seeded corpus of hostile MUTATIONS (truncate mid-line, drop, reorder, splice duplicate ids with flipped verdicts) now runs against ``verify_annotations`` and ``doctor --deep``. The invariants hold under everything: the walk never raises, every broken link is named by line and trace, the partitions never overlap or vanish, a one-torn-line file is one corrupt count (not a chain verdict), and a fully emptied or garbage file answers honestly. Deterministic seed - a failure reproduces exactly.
+
 ## v5.9.50
 
 - the front door reads the fleet chains too. (planned): - The parity floor continues: the fleet row now names the per-box triage-log chain verdict (``TRIAGE CHAIN BROKEN xN`` - screams only when broken), and RECALL.md's triage section names the fleet-wide rule - a broken chain on one box is broken evidence fleet-wide. The parity pin grows the promises; the suite now guards the whole night's surface, docs included.

@@ -3088,6 +3088,21 @@ framework adapters import lazily and degrade when the framework is absent.
        suite now guards the whole night's surface, docs
        included.
 
+621. **v5.9.51 - mutation fuzz over the annotation chain**
+       (planned):
+       - The chain's honest contracts were pinned with
+       crafted cases; a seeded corpus of hostile MUTATIONS
+       (truncate mid-line, drop, reorder, splice duplicate
+       ids with flipped verdicts) now runs against
+       ``verify_annotations`` and ``doctor --deep``. The
+       invariants hold under everything: the walk never
+       raises, every broken link is named by line and
+       trace, the partitions never overlap or vanish, a
+       one-torn-line file is one corrupt count (not a
+       chain verdict), and a fully emptied or garbage file
+       answers honestly. Deterministic seed - a failure
+       reproduces exactly.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
