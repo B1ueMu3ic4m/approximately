@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.45
+
+- the front door sells what the doors do. (planned): - The GitHub page is the product's front door: the night's five capability families were half-shipped without README rows (the annotation chain, the snapshot signature, the diary's triage lines, the prompt-revision cache invalidation). README gained the rows with real flag spellings and RECALL.md a ``Triage annotations`` section; the pin is a PARITY FLOOR that cuts both ways - a doc edit that drops a promise fails the suite, and a doc that promises a flag the parser does not know fails too.
+
 ## v5.9.44
 
 - the judge cache key covers the prompt. (planned): - ``_cache_key`` hashed model + preset NAME + trace - but the name is not the prompt: a prompt fix or a taxonomy addition shipped in a release left every cached verdict produced by the OLD words, served forever to a warm cache (a bill for stale judgments). The key now includes the static half of what the judge actually answers for - the template plus the taxonomy block interpolated into it - so the release that changes the words invalidates the verdicts the old words produced. One-time cost: every existing entry misses once after the upgrade, which is the honest price of a prompt change.
