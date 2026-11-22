@@ -1009,7 +1009,8 @@ def cmd_annotate(args: argparse.Namespace) -> int:
         return 2
     entry = store.annotate(args.trace, args.note,
                            author=getattr(args, "author", "") or "",
-                           verdict=getattr(args, "verdict", "") or "")
+                           verdict=getattr(args, "verdict", "") or "",
+                           key_file=getattr(args, "key_file", None))
     if getattr(args, "json", False):
         print(json.dumps({"annotated": True, "entry": entry,
                           "notes_on_file":
@@ -6190,6 +6191,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--verdict", default="",
                    help="triage verdict, e.g. confirmed / "
                         "false-positive")
+    p.add_argument("--key-file",
+                   help="signing key file: stamp this annotation "
+                        "with a keyed HMAC (default: the "
+                        "environment key, else the plain "
+                        "tamper-evident sha256 chain)")
     p.add_argument("--json", action="store_true",
            help="emit machine-readable JSON instead of prose")
     p.add_argument("--from-anomalies", action="store_true",

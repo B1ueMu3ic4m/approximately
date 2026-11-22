@@ -229,27 +229,19 @@ class TraceStore:
         return path
 
     def annotations_health(self) -> dict:
-        """Sidecar hygiene: total and unreadable line counts (absent
-        sidecar is 0/0 — no annotations is not a problem)."""
+        """Sidecar hygiene: total and unreadable line counts, read
+        from the chain walk's own tally — one pass over the file,
+        one definition of "unreadable" (an absent sidecar is 0/0:
+        no annotations is not a problem)."""
         path = self.directory / "annotations.jsonl"
-        if not path.exists():
-            return {"present": False, "total": 0, "corrupt": 0}
-        total = corrupt = 0
-        for raw in path.read_text(encoding="utf-8").splitlines():
-            line = raw.strip()
-            if not line:
-                continue
-            total += 1
-            try:
-                entry = json.loads(line)
-                if not isinstance(entry, dict):
-                    corrupt += 1
-            except json.JSONDecodeError:
-                corrupt += 1
-        return {"present": True, "total": total, "corrupt": corrupt}
+        result = self.verify_annotations()
+        return {"present": path.exists(),
+                "total": result["total"],
+                "corrupt": result["corrupt"]}
 
     def annotate(self, trace_id: str, note: str,
-                 author: str = "", verdict: str = "") -> dict:
+                 author: str = "", verdict: str = "",
+                 key_file: Optional[str] = None) -> dict:
         """Attach an analyst annotation to a trace (append-only).
 
         Annotations live in a sidecar ``annotations.jsonl`` — never in
@@ -274,7 +266,7 @@ class TraceStore:
         # plain sha256 when not), so an edited verdict or a
         # removed line breaks every later link
         stamped = stamp_annotation(entry, self._last_stamp(),
-                                   load_key())
+                                   load_key(key_file))
         path = self.directory / "annotations.jsonl"
         with path.open("a", encoding="utf-8") as fh:
             # ensure_ascii (the default) is load-bearing: a lone
@@ -318,12 +310,12 @@ class TraceStore:
         from .integrity import load_key
 
         key = load_key(key_file)
-        total = signed = unsigned = unverifiable = 0
+        total = signed = unsigned = unverifiable = corrupt = 0
         broken: List[str] = []
         path = self.directory / "annotations.jsonl"
         if not path.exists():
             return {"total": 0, "signed": 0, "unsigned": 0,
-                    "unverifiable": 0, "broken": []}
+                    "unverifiable": 0, "corrupt": 0, "broken": []}
         prev = ""
         for lineno, raw in enumerate(
                 path.read_text(encoding="utf-8").splitlines(), 1):
@@ -337,9 +329,13 @@ class TraceStore:
             except ValueError:
                 # a corrupt line is a torn segment: the next
                 # signed entry chains from empty, exactly as the
-                # writer's tail read would have linked it
+                # writer's tail read would have linked it; total
+                # counts EVERY line — the doctor's hygiene reading
+                # names the unreadable subset
                 prev = ""
-                continue    # corrupt lines are doctor's own count
+                corrupt += 1
+                total += 1
+                continue
             total += 1
             stamp = entry.get("stamp")
             if not isinstance(stamp, str) or not stamp:
@@ -355,7 +351,8 @@ class TraceStore:
                 unverifiable += 1
             prev = stamp
         return {"total": total, "signed": signed, "unsigned": unsigned,
-                "unverifiable": unverifiable, "broken": broken}
+                "unverifiable": unverifiable, "corrupt": corrupt,
+                "broken": broken}
 
     def annotations(self, trace_id: Optional[str] = None) -> list:
         """Annotations for one trace, or all of them, oldest first.

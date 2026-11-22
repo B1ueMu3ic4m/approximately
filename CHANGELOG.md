@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.42
+
+- the diary closes the loop; the annotate door takes the key. (planned): - v5941 put each verdict on its diary line; this round closes the artifact with the number a reader can ACT on: a ``## Triage`` tally - how many failed conversations carry a verdict, which words, how many still unannotated (a failure-free day closes silently). And ``annotate --key-file`` completes the chain story's parity: a keyed stamp from a named file through the CLI, the store API, and the MCP tool, verified by the same file via ``verify --annotations --key-file``.
+
 ## v5.9.41
 
 - the diary carries the triage words. (planned): - The diary is the artifact a person opens months later - and the part a reader actually came for is the triage verdict ("was this the one we confirmed?"). ``recall --export`` appends each conversation's latest verdict and a bounded note excerpt to its timeline line, read from the annotation sidecar in ONE pass (a per-line lookup would read the file once per conversation), across the fleet view too - MultiStore gained an ``annotations()`` aggregation so each box's verdict rides its own entries. The stdout timeline stays lean - the door that answers "what did I talk about" does not grow store lookups per line - and a store without annotations renders without a triage tail at all. One conversation, one tail, and the LATEST annotation is what the reader gets.

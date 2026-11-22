@@ -732,6 +732,11 @@ _TOOLS: List[Dict[str, Any]] = [
                                            "verdict; read: only "
                                            "annotations with this "
                                            "verdict"},
+                "key_file": {"type": "string",
+                             "description": "write: signing key "
+                                            "file — stamp this "
+                                            "annotation with a "
+                                            "keyed HMAC"},
             },
         },
     },
@@ -2763,7 +2768,9 @@ def _tool_annotate(ctx: ServerContext, args: Dict[str, Any]) -> dict:
         return {"trace": trace_id, "annotations": rows}
     entry = store.annotate(trace_id, str(args["note"]),
                            author=str(args.get("author", "") or ""),
-                           verdict=str(args.get("verdict", "") or ""))
+                           verdict=str(args.get("verdict", "") or ""),
+                           key_file=(str(args["key_file"])
+                                     if args.get("key_file") else None))
     return {"trace": trace_id, "annotated": True,
             "total_on_file": len(store.annotations(trace_id)),
             "entry": entry}
