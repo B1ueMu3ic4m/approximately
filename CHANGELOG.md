@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.44
+
+- the judge cache key covers the prompt. (planned): - ``_cache_key`` hashed model + preset NAME + trace - but the name is not the prompt: a prompt fix or a taxonomy addition shipped in a release left every cached verdict produced by the OLD words, served forever to a warm cache (a bill for stale judgments). The key now includes the static half of what the judge actually answers for - the template plus the taxonomy block interpolated into it - so the release that changes the words invalidates the verdicts the old words produced. One-time cost: every existing entry misses once after the upgrade, which is the honest price of a prompt change.
+
 ## v5.9.43
 
 - the snapshot's manifest gets a signature. (planned): - The plain manifest's tamper-evidence is advisory: an attacker who captures the archive can rebuild manifest and zip TOGETHER - every hash recomputed, the de-coverage attack undetected. ``snapshot --key-file`` signs the manifest (HMAC, the evidence packs' scheme), and ``restore --check --key-file`` audits both directions: a signed snapshot under a keyless reviewer is LOCKED - saying trusted would let the attack win by omission; an unsigned snapshot under a key-holding reviewer is advisory and named; the wrong key blesses nothing. ``restore`` carries the same verdict into extraction, and the MCP snapshot tool takes ``key_file`` across all three ops. - addendum - the round's commit landed on local main (the branch checkout was missed after the previous merge, the fifth direct-to-main slip). This one was caught at push time - the refspec refused - and the practiced recovery (branch-at-sha, reset main, branch push, PR) shipped nothing to the remote. The checkout step stays on the checklist; the near-miss is recorded because a slip that only the refspec caught is still worth naming.
