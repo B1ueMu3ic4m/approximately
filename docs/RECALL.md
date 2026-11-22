@@ -133,6 +133,10 @@ but its link continuity is still auditable. `doctor --deep` walks
 the chain and fails the health verdict on any broken link —
 verdicts drive triage, so a broken chain is broken evidence.
 
+`recall --related TRACE_ID` reads the same verdicts: two
+conversations the analyst confirmed the SAME way earn a
+`same verdict` reason and lead the results.
+
 `recall --export` carries each conversation's latest verdict onto
 its timeline line (`· triage: confirmed "looks like…"`), and the
 diary closes with a `## Triage` tally: how many failed

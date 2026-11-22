@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.48
+
+- the front door catches up with the scorer. (planned): - The parity floor worked in reverse: v5947 shipped the related-verdict signal and the ``--agent`` filter, and the front door had not caught up. The memory row now names the ``--agent`` filter and the SAME-triage-verdict reason; RECALL.md's triage section names the scorer reading the verdicts; the parity pin grows the two promises - a doc edit that drops them fails the suite exactly like the rest.
+
 ## v5.9.47
 
 - the related scorer reads the human verdicts. (planned): - Shared tools, shared topics and the same day are behavioral signals; the strongest relatedness signal there is - the analyst already looked at both runs and called them the SAME thing - was invisible to the scorer. ``related`` reads the annotation sidecar once (the same pass the diary uses): two conversations carrying the SAME triage verdict earn a ``same verdict`` reason and a score bump, the candidate's verdict word rides its result entry, and an unannotated candidate never earns the reason. The ordering stays deterministic (score desc, then id); the fleet view works unchanged - the triage map already aggregates across boxes.
