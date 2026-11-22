@@ -679,25 +679,35 @@ def _find_trace(store: Any, trace_id: str) -> Optional[Trace]:
     return None
 
 
+def _jaccard(own: set, target: set) -> float:
+    """Shared-over-union; an empty union is 0 (nothing shared)."""
+    union = own | target
+    return len(own & target) / len(union) if union else 0.0
+
+
 def _score_pair(trace: Trace, target_tools: set,
-                target_words: set, target_day: str) -> dict:
+                target_words: set, target_day: str,
+                target_verdict: str = "",
+                verdict_word: str = "") -> dict:
     """One candidate's relatedness components: shared tools (a
-    Jaccard), shared task topics, the same calendar day."""
+    Jaccard), shared task topics, the same calendar day, and the
+    human triage verdict — two runs the analyst confirmed the same
+    way are related by the strongest signal there is."""
     tools = {s.tool for s in trace.steps
              if s.kind == "tool_call" and s.tool}
     words = _task_keywords_of(trace)
     day = _local_day(_finite_stamp(trace.created_at) or 0)
-    union = tools | target_tools
-    tool_score = (len(tools & target_tools) / len(union)
-                  if union else 0.0)
-    word_union = words | target_words
-    topic_score = (len(words & target_words) / len(word_union)
-                   if word_union else 0.0)
-    score = tool_score + topic_score \
-        + (0.5 if day == target_day else 0.0)
+    same_verdict = bool(target_verdict and verdict_word
+                        and verdict_word == target_verdict)
+    score = (_jaccard(tools, target_tools)
+             + _jaccard(words, target_words)
+             + (0.5 if day == target_day else 0.0)
+             + (0.5 if same_verdict else 0.0))
     return {"score": score,
             "shared_tools": bool(tools & target_tools),
             "shared_topic": bool(words & target_words),
+            "same_verdict": same_verdict,
+            "verdict": verdict_word,
             "same_day": day == target_day}
 
 
@@ -706,8 +716,9 @@ def related(store: Any, trace_id: str, limit: int = 5,
             until: Optional[float] = None) -> dict:
     """From one conversation, the related ones: scored by shared
     tools (a Jaccard), shared task topics, and the same calendar
-    day - deterministic (score desc, then id) so the answer never
-    reshuffles between calls. The trace itself never ranks."""
+    day, and the triage verdict - deterministic (score desc, then
+    id) so the answer never reshuffles between calls. The trace
+    itself never ranks."""
     target = _find_trace(store, trace_id)
     if target is None:
         raise ValueError(f"no such trace: {trace_id}")
@@ -727,12 +738,18 @@ def _scored_candidates(store: Any, target: Trace) -> list:
                     if s.kind == "tool_call" and s.tool}
     target_words = _task_keywords_of(target)
     target_day = _local_day(_finite_stamp(target.created_at) or 0)
+    triage = _triage_map(store)
+    target_verdict = str(triage.get(target.id, {}).get("verdict")
+                         or "")
     scored = []
     for trace in store.list_traces():
         if trace.id == target.id:
             continue
+        verdict_word = str(triage.get(trace.id, {}).get("verdict")
+                           or "")
         verdict = _score_pair(trace, target_tools, target_words,
-                              target_day)
+                              target_day, target_verdict,
+                              verdict_word)
         if verdict["score"] > 0:
             scored.append((verdict["score"], trace.id, trace,
                            verdict))
@@ -746,12 +763,15 @@ def _related_results(windowed: list, limit: int) -> list:
     for score, _tid, trace, verdict in windowed[:max(0, int(limit))]:
         entry = _entry(trace)
         entry["score"] = round(score, 3)
+        entry["verdict"] = verdict["verdict"]
         entry["reasons"] = [name for name, flag in
                             (("shared tools",
                               verdict["shared_tools"]),
                              ("shared topic",
                               verdict["shared_topic"]),
-                             ("same day", verdict["same_day"]))
+                             ("same day", verdict["same_day"]),
+                             ("same verdict",
+                              verdict["same_verdict"]))
                             if flag]
         results.append(entry)
     return results

@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.47
+
+- the related scorer reads the human verdicts. (planned): - Shared tools, shared topics and the same day are behavioral signals; the strongest relatedness signal there is - the analyst already looked at both runs and called them the SAME thing - was invisible to the scorer. ``related`` reads the annotation sidecar once (the same pass the diary uses): two conversations carrying the SAME triage verdict earn a ``same verdict`` reason and a score bump, the candidate's verdict word rides its result entry, and an unannotated candidate never earns the reason. The ordering stays deterministic (score desc, then id); the fleet view works unchanged - the triage map already aggregates across boxes.
+
 ## v5.9.46
 
 - the memory door filters by agent. (planned): - Multi-agent runs produce one conversation with several voices - "what did the researcher actually do?" needed the query DSL or a manual scan. ``recall --agent NAME`` (and recall-summary / recall-digest) filters the memory to conversations whose named agents match (case-insensitive substring, like --model over models); a run with no Step.agent never matches - the unattributed bucket stays ``stats --by-agent``'s answer. The MCP recall tool gains the key, and the filter composes with --grep / --day / --query across the fleet view.
