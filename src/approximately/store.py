@@ -58,6 +58,34 @@ def _safe_id(trace_id: str) -> bool:
     return bool(trace_id) and bool(SAFE_ID.match(trace_id))
 
 
+def _annotation_entry_verdict(entry: dict, prev: str,
+                              lineno: int) -> "tuple":
+    """One signed annotation's verdict: ('ok'|'broken'|
+    'unverifiable', message). The stamp check needs the signing
+    key; the link continuity never does — a rotated key leaves the
+    sequence still auditable, and the wrong key blesses nothing."""
+    import hmac as _hmac
+
+    from .integrity import annotation_stamp, load_key
+
+    stamp = entry.get("stamp", "")
+    key = load_key() if entry.get("key_id") else None
+    if key is None and entry.get("key_id"):
+        if entry.get("prev", "") != prev:
+            return "broken", (
+                f"line {lineno}: trace "
+                f"{entry.get('trace_id')} breaks the link")
+        return "unverifiable", None
+    check = {k: v for k, v in entry.items() if k != "stamp"}
+    actual = annotation_stamp(check, entry.get("prev", ""), key)
+    if not _hmac.compare_digest(actual, stamp) \
+            or entry.get("prev", "") != prev:
+        return "broken", (
+            f"line {lineno}: trace "
+            f"{entry.get('trace_id')} does not match its chain")
+    return "ok", None
+
+
 def trace_files(directory: "Path") -> List["Path"]:
     """Root-level trace candidates, oldest-mtime last: every
     ``*.json`` in the store that is not furniture (the price
@@ -238,12 +266,91 @@ class TraceStore:
                  "author": str(author or ""),
                  "verdict": str(verdict or "").strip().lower(),
                  "note": str(note or "")}
+        from .integrity import load_key, stamp_annotation
+
+        # the triage log is evidence too: each entry extends the
+        # previous stamp (keyed when a signing key is in play,
+        # plain sha256 when not), so an edited verdict or a
+        # removed line breaks every later link
+        stamped = stamp_annotation(entry, self._last_stamp(),
+                                   load_key())
         path = self.directory / "annotations.jsonl"
         with path.open("a", encoding="utf-8") as fh:
             # ensure_ascii (the default) is load-bearing: a lone
             # surrogate in a hostile note crashes a UTF-8 write
-            fh.write(json.dumps(entry) + "\n")
-        return entry
+            fh.write(json.dumps(stamped) + "\n")
+        return stamped
+
+    def _last_stamp(self) -> str:
+        """The chain link the next annotation extends: the last
+        line's stamp. A torn tail (a corrupt last line) starts a
+        fresh segment rather than propagating a lie; an unsigned
+        (legacy) tail links as empty — signed entries append
+        cleanly after an upgrade."""
+        path = self.directory / "annotations.jsonl"
+        if not path.exists():
+            return ""
+        with path.open("rb") as fh:
+            fh.seek(0, os.SEEK_END)
+            size = fh.tell()
+            window = min(size, 4096)
+            fh.seek(size - window)
+            tail = fh.read().decode("utf-8", "replace")
+        lines = [ln for ln in tail.splitlines() if ln.strip()]
+        if not lines:
+            return ""
+        try:
+            last = json.loads(lines[-1])
+        except json.JSONDecodeError:
+            return ""
+        stamp = last.get("stamp") if isinstance(last, dict) else None
+        return stamp if isinstance(stamp, str) else ""
+
+    def verify_annotations(self) -> dict:
+        """Recompute the annotation chain the way the writer wrote
+        it: every signed entry's stamp must match its own content
+        AND its ``prev`` must equal the walked previous stamp. An
+        unsigned (legacy) entry verifies trivially and resets the
+        link — signed entries append cleanly after an upgrade, and
+        no old file ever reads as broken."""
+        total = signed = unsigned = unverifiable = 0
+        broken: List[str] = []
+        path = self.directory / "annotations.jsonl"
+        if not path.exists():
+            return {"total": 0, "signed": 0, "unsigned": 0,
+                    "unverifiable": 0, "broken": []}
+        prev = ""
+        for lineno, raw in enumerate(
+                path.read_text(encoding="utf-8").splitlines(), 1):
+            line = raw.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+                if not isinstance(entry, dict):
+                    raise ValueError
+            except ValueError:
+                # a corrupt line is a torn segment: the next
+                # signed entry chains from empty, exactly as the
+                # writer's tail read would have linked it
+                prev = ""
+                continue    # corrupt lines are doctor's own count
+            total += 1
+            stamp = entry.get("stamp")
+            if not isinstance(stamp, str) or not stamp:
+                unsigned += 1
+                prev = ""
+                continue
+            signed += 1
+            verdict, message = _annotation_entry_verdict(
+                entry, prev, lineno)
+            if verdict == "broken":
+                broken.append(message)
+            elif verdict == "unverifiable":
+                unverifiable += 1
+            prev = stamp
+        return {"total": total, "signed": signed, "unsigned": unsigned,
+                "unverifiable": unverifiable, "broken": broken}
 
     def annotations(self, trace_id: Optional[str] = None) -> list:
         """Annotations for one trace, or all of them, oldest first.
