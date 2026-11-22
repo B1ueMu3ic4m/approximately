@@ -168,9 +168,24 @@ def _parse_verdict(payload: dict, chosen_model: str, raw: str) -> JudgeVerdict:
     return JudgeVerdict(detection=detection, rationale=rationale, raw=raw)
 
 
+def _prompt_revision(preset: str) -> str:
+    """The static half of what the judge actually answers for — the
+    template plus the taxonomy block interpolated into it. The
+    cache key covers it: a prompt or taxonomy fix shipped in a
+    release invalidates every verdict produced by the old words,
+    instead of serving them forever to a warm cache."""
+    template = PRESETS.get(preset)
+    if template is None:
+        return ""
+    text = template.replace(
+        "{modes}", _taxonomy_block(compact=(preset == "local")))
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+
 def _cache_key(trace: Trace, chosen_model: str, preset: str) -> str:
     canonical = json.dumps(
         {"model": chosen_model, "preset": preset,
+         "prompt": _prompt_revision(preset),
          "trace": _compact_trace(trace)},
         sort_keys=True, default=str)
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
