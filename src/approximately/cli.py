@@ -1925,15 +1925,87 @@ def cmd_status(args: argparse.Namespace) -> int:
     return 0
 
 
+def _verify_annotations_store(store: "TraceStore", key_file: Any,
+                              as_json: bool) -> int:
+    """One store's triage-log verdict: intact 0, broken 1. The
+    counts stay honest about what the door can know — legacy
+    unsigned lines and rotated-key entries are counted, never
+    guessed at."""
+    result = store.verify_annotations(key_file=key_file)
+    intact = not result["broken"]
+    if as_json:
+        print(json.dumps({**result,
+                          "store": str(store.directory),
+                          "intact": intact},
+                         indent=2))
+        return 0 if intact else 1
+    print(f"annotations: {result['total']} line(s), "
+          f"{result['signed']} signed, "
+          f"{result['unsigned']} legacy"
+          + (f", {result['unverifiable']} unverifiable "
+             "(key rotated?)" if result["unverifiable"] else ""))
+    for line in result["broken"][:10]:
+        print(f"  BROKEN: {line}")
+    if intact:
+        print("  chain intact")
+    return 0 if intact else 1
+
+
+def _verify_annotations_fleet(names: List[str], key_file: Any,
+                              as_json: bool) -> int:
+    """The triage-log verdict over several stores: each box's
+    chain in its own section, the exit the worst of them; --json
+    is one array, not one document per box."""
+    stores = _fleet_stores(names)
+    if as_json:
+        payload = []
+        for name, store in stores:
+            result = store.verify_annotations(key_file=key_file)
+            payload.append({**result, "store": name,
+                            "intact": not result["broken"]})
+        print(json.dumps(payload, indent=2))
+        return 1 if any(not p["intact"] for p in payload) else 0
+    worst = 0
+    for name, store in stores:
+        print(f"== {name} ==")
+        worst = max(worst, _verify_annotations_store(
+            store, key_file, as_json))
+    return worst
+
+
+def _verify_annotations_route(args: argparse.Namespace,
+                              names: List[str]) -> int:
+    """The --annotations mode: the triage-log verdict only, so
+    --all and a bare trace id are refused by name; one store or
+    a fleet."""
+    if getattr(args, "all", None):
+        print("error: --annotations verifies the triage log "
+              "only — drop --all", file=sys.stderr)
+        return 2
+    if getattr(args, "trace", None) and not names:
+        print("error: --annotations verifies the triage log "
+              "only — drop the trace id", file=sys.stderr)
+        return 2
+    if names:
+        return _verify_annotations_fleet(
+            names, args.key_file,
+            as_json=getattr(args, "json", False))
+    return _verify_annotations_store(
+        TraceStore(args.store), args.key_file,
+        as_json=getattr(args, "json", False))
+
+
 def cmd_verify(args: argparse.Namespace) -> int:
 
     names = list(getattr(args, "stores", None) or [])
+    # argparse hands the FIRST positional to `trace`: a fleet
+    # invocation's leading store paths land there and must
+    # rejoin the list
+    if getattr(args, "trace", None) and names:
+        names.insert(0, args.trace)
+    if getattr(args, "annotations", False):
+        return _verify_annotations_route(args, names)
     if names:
-        # argparse hands the FIRST positional to `trace`: a fleet
-        # invocation's leading store paths land there and must
-        # rejoin the list
-        if getattr(args, "trace", None):
-            names.insert(0, args.trace)
         return _verify_fleet(names, key=_key_of(args.key_file),
                              as_json=getattr(args, "json", False),
                              since_days=getattr(args, "since", None),
@@ -6454,6 +6526,12 @@ def build_parser() -> argparse.ArgumentParser:
                         "path)")
     p.add_argument("--key-file",
                    help="signing key file for HMAC-keyed traces")
+    p.add_argument("--annotations", action="store_true",
+                   help="verify the annotation chain instead of "
+                        "trace records: every signed entry's stamp "
+                        "and its link (exit 1 names the broken "
+                        "links; legacy unsigned lines never read "
+                        "as broken)")
     p.add_argument("--verify", metavar="PACK",
                    help="verify an existing pack: recompute every "
                         "manifest hash and the chain inside; exit 1 "

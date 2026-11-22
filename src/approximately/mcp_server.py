@@ -81,7 +81,12 @@ _TOOLS: List[Dict[str, Any]] = [
                        "Returns the full verdict payload: verdict "
                        "(intact, tampered, unsigned, keyed, wrong-key, "
                        "rolled-back, ledger-broken), detail, chain "
-                       "finals, rollback flag and ledger health.",
+                       "finals, rollback flag and ledger health. "
+                       "annotations=true instead walks the "
+                       "annotation chain: every signed triage "
+                       "entry's stamp and its link (intact=false "
+                       "names the broken links; legacy unsigned "
+                       "lines never read as broken).",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -94,6 +99,10 @@ _TOOLS: List[Dict[str, Any]] = [
                         "description": "verify every trace in the "
                                        "store and return the tally "
                                        "(trace omitted)"},
+                "annotations": {"type": "boolean",
+                                "description": "walk the annotation "
+                                               "chain instead of the "
+                                               "record chains"},
                 "stores": {"type": "array",
                            "items": {"type": "string"},
                            "description": "store directories "
@@ -1572,11 +1581,34 @@ def _related_result(store: Any, related_id: Any,
                    limit=20 if limit is None else int(limit))
 
 
+def _verify_annotations_payload(ctx: ServerContext,
+                                args: Dict[str, Any],
+                                key_file: Optional[str]) -> dict:
+    """The annotations verdict as a tool payload: one store or a
+    per-store section list, each carrying its own intact flag."""
+    if args.get("stores") is not None:
+        sections = []
+        for name, store in _named_stores(args["stores"]):
+            result = store.verify_annotations(key_file=key_file)
+            sections.append({"store": name,
+                             "intact": not result["broken"],
+                             **result})
+        return {"annotations": True, "stores": sections}
+    store = _store(ctx, args)
+    result = store.verify_annotations(key_file=key_file)
+    return {"annotations": True, "intact": not result["broken"],
+            **result}
+
+
 def _tool_verify(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     from .integrity import load_key, verdict_payload
 
     key = (load_key(str(args["key_file"]))
            if args.get("key_file") else None)
+    if args.get("annotations"):
+        key_file = (str(args["key_file"])
+                    if args.get("key_file") else None)
+        return _verify_annotations_payload(ctx, args, key_file)
     if args.get("all") and not args.get("trace"):
         paths = args.get("stores")
         if paths is not None:
