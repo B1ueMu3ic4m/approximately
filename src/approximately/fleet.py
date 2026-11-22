@@ -75,6 +75,7 @@ class StoreSummary:
     trend_verdict: str = "stable"
     trend_slope: float = 0.0
     annotations: int = 0
+    annotation_broken: int = 0
     fleet_anomalies: int = 0
     worst_anomaly: Optional[dict] = None
     inbox_rows: int = 0
@@ -190,6 +191,8 @@ def webhook_payload(summaries: List[StoreSummary]) -> dict:
                 "worsening": s.worsening,
                 "ledger_intact": s.ledger_intact,
                 "annotations": getattr(s, "annotations", 0),
+                "annotation_broken":
+                    getattr(s, "annotation_broken", 0),
                 "annotations_confirmed":
                     getattr(s, "annotations_confirmed", 0),
                 "inbox_rows": getattr(s, "inbox_rows", 0),
@@ -348,6 +351,7 @@ def survey(stores: List[Path], top_agents: int = 3,
         rows = trend(traces)
         verdict, slope = _verdict(rows)
         health = store.annotations_health()
+        chain = store.verify_annotations()
         notes = store.annotations()
         from .anomaly import (
             detect_fleet_anomalies,
@@ -374,6 +378,7 @@ def survey(stores: List[Path], top_agents: int = 3,
             trend_verdict=verdict,
             trend_slope=slope,
             annotations=health["total"],
+            annotation_broken=len(chain["broken"]),
             inbox_rows=inbox["rows"],
             inbox_verified=inbox["verified"],
             inbox_kinds=inbox["kinds"],
@@ -469,9 +474,13 @@ def _store_card(s: StoreSummary) -> str:
             census = ", ".join(
                 f"{k} x{v}" for k, v in sorted(kinds.items()))
             inbox_note += f" ({census})"
+    triage_chain_note = (
+        f' · TRIAGE CHAIN BROKEN x{getattr(s, "annotation_broken", 0)}'
+        if getattr(s, "annotation_broken", 0) else "")
     sub = (f'{esc(s.path)} · {s.traces} traces · ledger: '
            f'{ledger_note} · notes: {getattr(s, "annotations", 0)} '
            f'({getattr(s, "annotations_confirmed", 0)} confirmed)'
+           f'{triage_chain_note}'
            f'{esc(inbox_note)}')
     if getattr(s, "total_tokens", 0):
         sub += f' · {s.total_tokens:,} tokens'

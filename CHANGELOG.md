@@ -3,6 +3,10 @@
 Generated from [docs/PLAN.md](docs/PLAN.md) — the single
 source of truth. Newest first.
 
+## v5.9.49
+
+- the fleet dashboard reads the triage chains. (planned): - The survey counted notes and confirmed verdicts per box but never said whether the triage LOG itself is intact - a broken chain on one box is broken evidence fleet-wide. Each store section now carries its annotation-chain verdict (JSON ``annotation_broken``; the compact prose line screams ``TRIAGE CHAIN BROKEN xN`` only when it is broken - an intact chain is quiet). And ``recall --agent`` meets hostile input: CJK agent names match, mixed case matches, an empty ``--agent ""`` is the filter being off (every conversation, no refusal), and a fleet where the agent only exists on the second box still answers.
+
 ## v5.9.48
 
 - the front door catches up with the scorer. (planned): - The parity floor worked in reverse: v5947 shipped the related-verdict signal and the ``--agent`` filter, and the front door had not caught up. The memory row now names the ``--agent`` filter and the SAME-triage-verdict reason; RECALL.md's triage section names the scorer reading the verdicts; the parity pin grows the two promises - a doc edit that drops them fails the suite exactly like the rest.

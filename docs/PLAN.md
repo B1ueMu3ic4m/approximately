@@ -3062,6 +3062,21 @@ framework adapters import lazily and degrade when the framework is absent.
        parity pin grows the two promises - a doc edit that
        drops them fails the suite exactly like the rest.
 
+619. **v5.9.49 - the fleet dashboard reads the triage chains**
+       (planned):
+       - The survey counted notes and confirmed verdicts per
+       box but never said whether the triage LOG itself is
+       intact - a broken chain on one box is broken evidence
+       fleet-wide. Each store section now carries its
+       annotation-chain verdict (JSON ``annotation_broken``;
+       the compact prose line screams ``TRIAGE CHAIN BROKEN
+       xN`` only when it is broken - an intact chain is
+       quiet). And ``recall --agent`` meets hostile input:
+       CJK agent names match, mixed case matches, an empty
+       ``--agent ""`` is the filter being off (every
+       conversation, no refusal), and a fleet where the
+       agent only exists on the second box still answers.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
