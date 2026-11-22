@@ -1214,6 +1214,10 @@
             ],
             "description": "default create; check recomputes every member hash and reports, extracting nothing"
           },
+          "key_file": {
+            "type": "string",
+            "description": "signing key file: create signs the manifest (HMAC); check/restore audit the signature \u2014 a signed snapshot without the key is locked"
+          },
           "path": {
             "type": "string",
             "description": "the archive (created or restored)"

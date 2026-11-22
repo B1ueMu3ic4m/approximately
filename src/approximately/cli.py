@@ -1324,7 +1324,10 @@ def cmd_snapshot(args: argparse.Namespace) -> int:
               file=sys.stderr)
         return 2
     try:
-        report = snapshot(store_path, Path(args.snapshot))
+        report = snapshot(store_path,
+                          Path(args.snapshot),
+                          key=_key_of(getattr(args,
+                                              "key_file", None)))
     except OSError as exc:
         print(f"error: snapshot: {exc}", file=sys.stderr)
         return 2
@@ -1345,7 +1348,9 @@ def _check_snapshot_report(args: argparse.Namespace) -> int:
     from .snapshot import verify_snapshot
 
     try:
-        manifest, offenders = verify_snapshot(Path(args.snapshot))
+        manifest, offenders = verify_snapshot(
+            Path(args.snapshot),
+            key=_key_of(getattr(args, "key_file", None)))
     except (ValueError, OSError, zipfile.BadZipFile) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -1388,7 +1393,9 @@ def cmd_restore(args: argparse.Namespace) -> int:
         return 2
     try:
         report = restore(Path(args.snapshot), Path(args.into),
-                         force=bool(args.force))
+                         force=bool(args.force),
+                         key=_key_of(getattr(args, "key_file",
+                                             None)))
     except (ValueError, OSError, zipfile.BadZipFile) as exc:
         # BadZipFile extends Exception directly (NOT OSError): a
         # non-zip or a CRC-corrupted archive used to traceback
@@ -6314,6 +6321,11 @@ def build_parser() -> argparse.ArgumentParser:
                             "manifest (lossless, tamper-evident)")
     p.add_argument("snapshot", metavar="OUT.zip",
                    help="the archive to write")
+    p.add_argument("--key-file",
+                   help="signing key file: the manifest is also "
+                        "HMAC-signed (a doctored archive can "
+                        "rebuild manifest and zip together; only "
+                        "the keyed signature notices)")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_snapshot)
 
@@ -6329,6 +6341,11 @@ def build_parser() -> argparse.ArgumentParser:
                    help="recompute every member hash and report — "
                         "audit the archive in place, extract "
                         "nothing (exit 1 names the mismatches)")
+    p.add_argument("--key-file",
+                   help="signing key file: audits a signed "
+                        "snapshot's HMAC (a signed snapshot "
+                        "without the key is locked, an unsigned "
+                        "one under a key is advisory)")
     p.add_argument("--force", action="store_true",
                    help="overwrite files that already exist in "
                         "--into (default: refuse)")
