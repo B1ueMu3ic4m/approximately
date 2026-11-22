@@ -413,6 +413,18 @@ def search(store: Any, needle: str, since: Optional[float] = None,
         "hits": len(hits), "results": hits})
 
 
+def _cjk_counts(text: str, counts: "Counter") -> None:
+    """CJK topics as bigrams, stop-grams removed BEFORE cutting:
+    怎么把 bigrammed raw yields 么把/把重 — noise between the
+    fence posts."""
+    for run in re.findall(r"[\u3400-\u9fff\uf900-\ufaff]+", text):
+        cleaned = run
+        for stop in _CJK_STOP_GRAMS:
+            cleaned = cleaned.replace(stop, "")
+        for i in range(len(cleaned) - 1):
+            counts[cleaned[i:i + 2]] += 1
+
+
 def _keywords(texts: List[str], top: int = 6) -> List[Tuple[str, int]]:
     """What the conversations were about, by frequency: latin words
     of three letters or more plus CJK bigrams (no dependencies, no
@@ -427,14 +439,7 @@ def _keywords(texts: List[str], top: int = 6) -> List[Tuple[str, int]]:
                 # was ABOUT, and nothing about it is 33+ chars
                 continue
             counts[word] += 1
-        for run in re.findall(r"[\u3400-\u9fff\uf900-\ufaff]+", text):
-            # stop-grams are REMOVED before cutting: 怎么把 bigrammed
-            # raw yields 么把/把重 — noise between the fence posts
-            cleaned = run
-            for stop in _CJK_STOP_GRAMS:
-                cleaned = cleaned.replace(stop, "")
-            for i in range(len(cleaned) - 1):
-                counts[cleaned[i:i + 2]] += 1
+        _cjk_counts(text, counts)
     return counts.most_common(top)
 
 
@@ -761,6 +766,29 @@ def _triage_suffix(entry: dict) -> str:
     return tail
 
 
+def _triage_closing(payload: dict, triage: dict) -> str:
+    """The diary's closing tally: how many failed conversations
+    carry a verdict, and which words — the "what's owed" number a
+    reader can act on. A day with no failures closes silently."""
+    failed = [e for day in payload["days"]
+              for e in day["entries"] if e["success"] is False]
+    if not failed:
+        return ""
+    judged = [triage[e["id"]] for e in failed if e["id"] in triage]
+    words: dict = {}
+    for entry in judged:
+        verdict = str(entry.get("verdict") or "").strip() or "noted"
+        words[verdict] = words.get(verdict, 0) + 1
+    tally = " · ".join(f"{count} {word}"
+                       for word, count in sorted(words.items()))
+    owed = len(failed) - len(judged)
+    owed_line = (f"; {owed} still unannotated" if owed
+                 else "; every failure carries a verdict")
+    return (f"\n## Triage\n\n{len(judged)} of {len(failed)} failed "
+            f"conversation(s) carry a verdict"
+            f"{': ' + tally if tally else ''}{owed_line}\n")
+
+
 def export_diary(store: Any, output: Path,
                  since: Optional[float] = None,
                  until: Optional[float] = None) -> dict:
@@ -779,6 +807,7 @@ def export_diary(store: Any, output: Path,
     text = (f"# {head}\n\n"
             f"{render_summary(summary)}\n\n"
             f"## Timeline\n\n{render_timeline(payload, triage)}\n")
+    text += _triage_closing(payload, triage)
     dup = _dup_payload(store)
     if dup:
         text += f"\n{duplicate_note(dup)}\n"

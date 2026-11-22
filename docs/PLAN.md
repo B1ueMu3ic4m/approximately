@@ -2955,6 +2955,19 @@ framework adapters import lazily and degrade when the framework is absent.
        tail at all. One conversation, one tail, and the
        LATEST annotation is what the reader gets.
 
+612. **v5.9.42 - the diary closes the loop; the annotate door
+       takes the key** (planned):
+       - v5941 put each verdict on its diary line; this round
+       closes the artifact with the number a reader can ACT
+       on: a ``## Triage`` tally - how many failed
+       conversations carry a verdict, which words, how many
+       still unannotated (a failure-free day closes
+       silently). And ``annotate --key-file`` completes the
+       chain story's parity: a keyed stamp from a named file
+       through the CLI, the store API, and the MCP tool,
+       verified by the same file via
+       ``verify --annotations --key-file``.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post

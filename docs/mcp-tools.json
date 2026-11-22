@@ -769,6 +769,10 @@
           "verdict": {
             "type": "string",
             "description": "write: the triage verdict; read: only annotations with this verdict"
+          },
+          "key_file": {
+            "type": "string",
+            "description": "write: signing key file \u2014 stamp this annotation with a keyed HMAC"
           }
         }
       }
