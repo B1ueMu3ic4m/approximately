@@ -16,7 +16,7 @@ import json
 import time
 import zipfile
 from pathlib import Path
-from typing import Any, List, Tuple
+from typing import Any, List, Optional, Tuple
 
 from .prices import STORE_ARTIFACTS
 
@@ -24,6 +24,41 @@ MANIFEST_NAME = "manifest.json"
 SNAPSHOT_FORMAT = 1
 
 _SKIP_SUFFIXES = (".lock", ".tmp")
+
+
+def _canonical_manifest(manifest: dict) -> bytes:
+    """The signing material: the manifest as stored, minus the
+    signature — the same scheme the evidence packs use, so one
+    verification discipline covers both artifacts."""
+    body = {k: v for k, v in manifest.items() if k != "signature"}
+    return json.dumps(body, sort_keys=True, default=str).encode(
+        "utf-8")
+
+
+def _signature_verdict(manifest: dict,
+                       key: Optional[bytes]) -> List[str]:
+    """The authentication audit, both directions (the evidence
+    packs' precedent): a signed snapshot under a keyless reviewer
+    is LOCKED — saying trusted would let the de-coverage attack
+    win by omission; an unsigned snapshot under a key-holding
+    reviewer is advisory and named; the wrong key blesses
+    nothing."""
+    import hmac as _hmac
+
+    signature = manifest.get("signature")
+    if signature is not None:
+        if key is None:
+            return [("manifest is signed — no key to verify it "
+                     "(pass --key-file)")]
+        if not _hmac.compare_digest(
+                signature, _hmac.new(
+                    key, _canonical_manifest(manifest),
+                    hashlib.sha256).hexdigest()):
+            return ["manifest signature: HMAC mismatch"]
+        return []
+    if key is not None:
+        return ["snapshot is not signed — cannot authenticate"]
+    return []
 
 
 def _is_evidence(path: Path, rel: Path) -> bool:
@@ -64,8 +99,13 @@ def _sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def snapshot(store_dir: Path, out_path: Path) -> dict:
-    """Zip the store with a sha256 manifest; returns the report."""
+def snapshot(store_dir: Path, out_path: Path,
+             key: Optional[bytes] = None) -> dict:
+    """Zip the store with a sha256 manifest; with a key the
+    manifest is also SIGNED (the plain manifest's tamper-evidence
+    is advisory — a doctored archive can rebuild manifest and zip
+    together, and only the keyed signature notices). Returns the
+    report."""
     store_dir = Path(store_dir)
     out_path = Path(out_path)
     members = _member_candidates(store_dir)
@@ -80,6 +120,12 @@ def snapshot(store_dir: Path, out_path: Path) -> dict:
         "created_at": time.time(),
         "members": table,
     }
+    if key is not None:
+        import hmac as _hmac
+
+        manifest["signature"] = _hmac.new(
+            key, _canonical_manifest(manifest),
+            hashlib.sha256).hexdigest()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(out_path, "w",
                          compression=zipfile.ZIP_DEFLATED) as zf:
@@ -113,11 +159,14 @@ def _load_manifest(zf: zipfile.ZipFile, archive: Path) -> dict:
     return manifest
 
 
-def verify_snapshot(archive: Path) -> Tuple[dict, List[str]]:
-    """Recompute every member hash; returns (manifest, offenders).
+def verify_snapshot(archive: Path,
+                    key: Optional[bytes] = None) -> Tuple[dict, List[str]]:
+    """Recompute every member hash and audit the signature; returns
+    (manifest, offenders).
 
     An empty offender list means the archive is exactly what the
-    manifest recorded."""
+    manifest recorded AND (when a key is in play on either side)
+    authenticated."""
     archive = Path(archive)
     if not archive.is_file():
         raise ValueError(f"no such snapshot: {archive}")
@@ -138,6 +187,7 @@ def verify_snapshot(archive: Path) -> Tuple[dict, List[str]]:
             for name in zf.namelist()
             if name != MANIFEST_NAME
             and name not in manifest["members"])
+        offenders.extend(_signature_verdict(manifest, key))
     return manifest, offenders
 
 
@@ -151,14 +201,15 @@ def _escaping_members(names: Any, into: Path) -> list:
                 into_resolved)]
 
 
-def restore(archive: Path, into: Path, force: bool = False) -> dict:
+def restore(archive: Path, into: Path, force: bool = False,
+            key: Optional[bytes] = None) -> dict:
     """Verify, then extract into ``into``; refuses on any hash
-    mismatch (listing offenders) or on existing files without
-    ``force`` — a restore that overwrites silently is how backups
-    lose trust."""
+    mismatch or signature verdict (listing offenders) or on
+    existing files without ``force`` — a restore that overwrites
+    silently is how backups lose trust."""
     archive = Path(archive)
     into = Path(into)
-    manifest, offenders = verify_snapshot(archive)
+    manifest, offenders = verify_snapshot(archive, key=key)
     if offenders:
         raise ValueError("snapshot verification failed: "
                          + "; ".join(offenders[:5])

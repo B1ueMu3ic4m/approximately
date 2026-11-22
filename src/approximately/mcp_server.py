@@ -1156,6 +1156,15 @@ _TOOLS: List[Dict[str, Any]] = [
                                       "recomputes every member "
                                       "hash and reports, "
                                       "extracting nothing"},
+                "key_file": {"type": "string",
+                             "description": "signing key file: "
+                                            "create signs the "
+                                            "manifest (HMAC); "
+                                            "check/restore audit "
+                                            "the signature — a "
+                                            "signed snapshot "
+                                            "without the key is "
+                                            "locked"},
                 "path": {"type": "string",
                          "description": "the archive (created or "
                                         "restored)"},
@@ -2699,6 +2708,7 @@ def _tool_handoff(ctx: ServerContext, args: Dict[str, Any]) -> dict:
 
 
 def _tool_snapshot(ctx: ServerContext, args: Dict[str, Any]) -> dict:
+    from .integrity import load_key
     from .snapshot import restore, snapshot, verify_snapshot
 
     store = _store(ctx, args)
@@ -2706,8 +2716,11 @@ def _tool_snapshot(ctx: ServerContext, args: Dict[str, Any]) -> dict:
     path = args.get("path")
     if not path:
         raise KeyError("snapshot needs the archive path")
+    key = (load_key(str(args["key_file"]))
+           if args.get("key_file") else None)
     if op == "check":
-        manifest, offenders = verify_snapshot(Path(str(path)))
+        manifest, offenders = verify_snapshot(Path(str(path)),
+                                              key=key)
         return {"members": len(manifest.get("members") or {}),
                 "intact": not offenders,
                 "mismatches": offenders}
@@ -2717,10 +2730,10 @@ def _tool_snapshot(ctx: ServerContext, args: Dict[str, Any]) -> dict:
             raise KeyError("snapshot restore needs into")
         try:
             return restore(Path(str(path)), Path(str(into)),
-                           force=bool(args.get("force")))
+                           force=bool(args.get("force")), key=key)
         except ValueError as exc:
             raise KeyError(str(exc)) from exc
-    return snapshot(store.directory, Path(str(path)))
+    return snapshot(store.directory, Path(str(path)), key=key)
 
 
 def _tool_tail(ctx: ServerContext, args: Dict[str, Any]) -> dict:

@@ -2968,6 +2968,31 @@ framework adapters import lazily and degrade when the framework is absent.
        verified by the same file via
        ``verify --annotations --key-file``.
 
+613. **v5.9.43 - the snapshot's manifest gets a signature**
+       (planned):
+       - The plain manifest's tamper-evidence is advisory: an
+       attacker who captures the archive can rebuild manifest
+       and zip TOGETHER - every hash recomputed, the
+       de-coverage attack undetected. ``snapshot
+       --key-file`` signs the manifest (HMAC, the evidence
+       packs' scheme), and ``restore --check --key-file``
+       audits both directions: a signed snapshot under a
+       keyless reviewer is LOCKED - saying trusted would let
+       the attack win by omission; an unsigned snapshot under
+       a key-holding reviewer is advisory and named; the
+       wrong key blesses nothing. ``restore`` carries the
+       same verdict into extraction, and the MCP snapshot
+       tool takes ``key_file`` across all three ops.
+       - addendum - the round's commit landed on local main
+       (the branch checkout was missed after the previous
+       merge, the fifth direct-to-main slip). This one was
+       caught at push time - the refspec refused - and the
+       practiced recovery (branch-at-sha, reset main,
+       branch push, PR) shipped nothing to the remote. The
+       checkout step stays on the checklist; the near-miss
+       is recorded because a slip that only the refspec
+       caught is still worth naming.
+
 ## 4. Launch plan
 
 1. **Artifacts**: public GitHub repo + PyPI + technical blog post
